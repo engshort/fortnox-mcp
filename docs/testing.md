@@ -1,5 +1,12 @@
 # Test strategy and evidence
 
+The [S00 file-probe record](implementation/S00-files-evidence.md) adds observable
+two-file round trips, private-address/redirect/timeout rejection, format bounds,
+real OAuth scope denial/revocation, encrypted SQLite/D1 isolation, concurrent
+capacity and restart/expiry cleanup. These run in the OAuth package's existing
+`npm test`, including actual local workerd execution, without live credentials.
+Actual-host file ingress/egress remains a separate G03 requirement.
+
 Tests establish business behavior, not merely that an HTTP wrapper returns JSON. All financial fixtures are synthetic. The [S00 spike tests](../spikes/s00-mcp/test/http.test.ts) cover transport and schema boundaries. The S01 root tests add exact decimals, server identity/company checks and durable SQLite/D1 state transitions. The separate [OAuth probe tests](../spikes/s00-oauth/test/oauth.test.ts) exercise maintained auth endpoints on Node and local workerd/D1. Full financial and hosted-client acceptance remain pending.
 
 ## Layers

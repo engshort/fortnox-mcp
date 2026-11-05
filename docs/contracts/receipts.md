@@ -1,5 +1,10 @@
 # Receipts, files and batch recovery
 
+The isolated [S00 file probe](../implementation/S00-files-evidence.md) implements
+a default-off synthetic subset of file ingress/egress. Its intentionally narrower
+format limits and local evidence do not establish product receipt support or
+actual ChatGPT transfer. [Swedish probe instructions](../users/klientprov.sv.md).
+
 ## Intended workflow
 
 1. The user provides one or more receipt files in the AI client.

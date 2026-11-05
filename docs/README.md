@@ -1,5 +1,10 @@
 # Documentation map
 
+Current S00 follow-up: [maintenance deployment](implementation/S00-hosted-maintenance-2026-11-05.md),
+[review recheck](implementation/S00-review-acceptance-2026-11-05.md),
+[default-off file probe](implementation/S00-files-evidence.md) and
+[Swedish synthetic-client instructions](users/klientprov.sv.md).
+
 Baseline approved by the project owner on **2026-10-18**. This is an implementation specification, not a record of implemented features.
 
 ## Reading paths

@@ -1,5 +1,11 @@
 # Client compatibility and embedded UI
 
+**2026-11-05:** [maintenance was deployed](../implementation/S00-hosted-maintenance-2026-11-05.md)
+with original bindings/grants preserved; [review regressions passed again](../implementation/S00-review-acceptance-2026-11-05.md).
+The [optional file probe](../implementation/S00-files-evidence.md) is implemented
+and locally verified. Actual-host G01/G02/G03 acceptance remains open; the dated
+historical observations below are not new client-support claims.
+
 Production client support remains a target. The [S00 spike](../implementation/S00-spike-evidence.md) tests the official SDK client locally, while the separate OAuth probe below records limited live ChatGPT evidence. Neither enables Fortnox operations.
 
 The separate [OAuth probe](../implementation/S00-oauth-evidence.md) adds local

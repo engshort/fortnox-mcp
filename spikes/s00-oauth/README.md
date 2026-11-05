@@ -1,5 +1,13 @@
 # S00 authenticated MCP feasibility probe
 
+The [2026-11-05 maintenance update](../../docs/implementation/S00-hosted-maintenance-2026-11-05.md)
+is deployed with the original bindings and grants preserved. Actual-host
+acceptance remains open. An additional [default-off file experiment](../../docs/implementation/S00-files-evidence.md)
+implements `probe_synthetic_files`, `read_synthetic_file` and protected file
+resources with separately consented `mcp:files`. It is locally verified only;
+read its format, DNS/socket, encryption and cleanup prerequisites before enabling.
+No existing grant is widened and no Fortnox operation is added.
+
 Experimental and isolated. The hosted MCP/OAuth server remains synthetic-only;
 the separate local G04 operator process can read an explicitly allowed Fortnox
 test company's identity after owner consent. This is not the product's S02 auth

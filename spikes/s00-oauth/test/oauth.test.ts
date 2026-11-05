@@ -27,6 +27,9 @@ import { exportStatements } from "../scripts/export-db.js";
 import { mintOperatorLogin } from "../scripts/mint-login.js";
 import { createProbeAuth } from "../src/auth.js";
 import type { McpRequestDiagnostic } from "../src/diagnostics.js";
+import { fileSchema } from "../src/file-sql.js";
+import { sqliteFileStore } from "../src/file-sqlite.js";
+import { fileValidator } from "../src/file-validation.js";
 import {
   createProbeHandler,
   type ProtocolNegotiation,
@@ -62,7 +65,7 @@ function required<T>(value: T | null | undefined): T {
   return value;
 }
 
-async function fixture(worker = false, review = false) {
+async function fixture(worker = false, review = false, files = false) {
   const redirectUri = worker
     ? "https://chatgpt.com/connector_platform_oauth_redirect"
     : callback;
@@ -104,12 +107,27 @@ async function fixture(worker = false, review = false) {
     ]);
   }
   if (review) db.exec(reviewSchema);
+  if (files) db.exec(fileSchema);
   const app = createProbeHandler({
     origin,
     secret,
     ownerId: seeded.response.user.id,
     database: db,
     ...(review ? { review: sqliteReviewStore(db) } : {}),
+    ...(files
+      ? {
+          files: {
+            store: sqliteFileStore(db),
+            origins: [],
+            validator: fileValidator,
+            transport: {
+              async open() {
+                throw new Error("Synthetic origin not enabled");
+              },
+            },
+          },
+        }
+      : {}),
     testRedirectUri: callback,
     onProtocolNegotiated: (event) => {
       negotiations.push(event);
@@ -136,6 +154,12 @@ async function fixture(worker = false, review = false) {
           AUTH_SECRET: secret,
           OWNER_ID: seeded.response.user.id,
           ...(review ? { PROBE_SYNTHETIC_REVIEW: "true" } : {}),
+          ...(files
+            ? {
+                PROBE_SYNTHETIC_FILES: "true",
+                PROBE_FILE_CLEANUP: "scheduled-5m",
+              }
+            : {}),
         },
       }),
     );
@@ -209,9 +233,12 @@ async function fixture(worker = false, review = false) {
       token_endpoint_auth_method: "none",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
-      scope: review
-        ? "mcp:read offline_access mcp:review"
-        : "mcp:read offline_access",
+      scope: [
+        "mcp:read",
+        "offline_access",
+        ...(review ? ["mcp:review"] : []),
+        ...(files ? ["mcp:files"] : []),
+      ].join(" "),
     });
     assert.equal(r.status, 201, "DCR succeeds");
     return (await data(r)).client_id;
@@ -334,6 +361,69 @@ async function fixture(worker = false, review = false) {
     },
   };
 }
+
+test("file scope requires separate real OAuth consent on Node and workerd/D1; anonymous and revoked requests fail closed", async () => {
+  for (const worker of [false, true]) {
+    const f = await fixture(worker, false, true);
+    try {
+      const call = async (token?: string) =>
+        f.req(
+          "/mcp",
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: {
+              name: "probe_synthetic_files",
+              arguments: {
+                files: [
+                  {
+                    download_url: "https://files.example.com/receipt",
+                    file_id: "synthetic-file",
+                  },
+                ],
+              },
+            },
+          },
+          undefined,
+          {
+            accept: "application/json, text/event-stream",
+            "mcp-protocol-version": "2025-11-25",
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+          },
+        );
+      assert.equal((await call()).status, 401);
+      const readGrant = await f.grant();
+      const readToken = await data(await f.exchange(readGrant.exchangeBody));
+      const denied = (await (await call(readToken.access_token)).json()) as {
+        result: { isError: boolean; content: Array<{ text: string }> };
+      };
+      assert.equal(denied.result.isError, true);
+      assert.equal(denied.result.content[0].text, "FILE_SCOPE_REQUIRED");
+      const fileGrant = await f.grant("mcp:read offline_access mcp:files");
+      const fileToken = await data(await f.exchange(fileGrant.exchangeBody));
+      const allowed = (await (await call(fileToken.access_token)).json()) as {
+        result: { isError: boolean; content: Array<{ text: string }> };
+      };
+      assert.equal(
+        allowed.result.content[0].text,
+        "FILE_URL_DENIED",
+        "scope passes; empty origin allowlist prevents network access",
+      );
+      await f.req(
+        "/auth/oauth2/revoke",
+        new URLSearchParams({
+          client_id: fileGrant.clientId,
+          token: fileToken.access_token,
+          token_type_hint: "access_token",
+        }),
+      );
+      assert.equal((await call(fileToken.access_token)).status, 401);
+    } finally {
+      await f.close();
+    }
+  }
+});
 
 test("local operator renewal recovers an expired session without replacing OAuth or review state on Node and D1", async () => {
   for (const worker of [false, true]) {

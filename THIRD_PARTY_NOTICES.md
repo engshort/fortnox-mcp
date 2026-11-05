@@ -2,7 +2,25 @@
 
 Project-authored code and documentation use AGPL-3.0-only. This does not grant rights to Fortnox's API specification, documentation, trademarks, customer data or other third-party material.
 
-## Fortnox specification
+## S00 optional file-probe dependencies (2026-11-05)
+
+These exact versions are confined to the experimental OAuth/file package:
+
+| Package | Version | License |
+| --- | --- | --- |
+| pdf-lib | 1.17.1 | MIT |
+| pngjs | 7.0.0 | MIT |
+| jpeg-js | 0.4.4 | BSD-3-Clause |
+| ipaddr.js | 2.2.0 | MIT |
+| http-parser-js | 0.5.10 | MIT |
+| @types/pngjs (development only) | 6.0.5 | MIT |
+
+Transitive pins, integrity and licenses remain in the package lockfile. Preserve
+their original notices when distributing a bundle. These libraries provide
+format parsing, address classification and HTTP framing; no Fortnox specification
+or generated provider material was introduced. Their licenses do not resolve G05.
+
+## Fortnox specification provenance
 
 The initial design was informed by a user-supplied `openapi.json`, identified in [source-lock.json](docs/reference/source-lock.json). Its `info.license` field is absent. The file is not committed or relicensed here. Obtain an authorized copy from Fortnox for local development and preserve provenance. Review redistribution rights before vendoring specifications or generating redistributable code from them.
 

@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import { createProbeAuth, type ProbeConfig } from "./auth.js";
 import type { McpRequestDiagnostic } from "./diagnostics.js";
+import { syntheticCompany } from "./files.js";
 import { page, script, style } from "./pages.js";
 import { createProbeServer } from "./server.js";
 
@@ -160,6 +161,7 @@ export function createProbeHandler(
             "mcp:read",
             "offline_access",
             ...(config.review ? ["mcp:review"] : []),
+            ...(config.files ? ["mcp:files"] : []),
           ],
           bearer_methods_supported: ["header"],
         }),
@@ -326,12 +328,14 @@ export function createProbeHandler(
       });
     }
     let reviewAuthorized = false;
+    let filesAuthorized = false;
     if (!publicDiscovery) {
       try {
         const verified = await auth.api.verifyProbeToken({
           body: { token: authorization?.slice(7) ?? "" },
         });
         reviewAuthorized = verified.scopes.includes("mcp:review");
+        filesAuthorized = verified.scopes.includes("mcp:files");
         if (diagnostic) diagnostic.authorization = "verified";
       } catch {
         return new Response("Invalid or expired authorization", {
@@ -353,6 +357,18 @@ export function createProbeHandler(
               origin,
               owner: config.ownerId,
               authorized: reviewAuthorized,
+            }
+          : undefined,
+        config.files
+          ? {
+              authorized: filesAuthorized,
+              origin,
+              context: {
+                ...config.files,
+                owner: config.ownerId,
+                secret: config.secret,
+                company: syntheticCompany,
+              },
             }
           : undefined,
       );
