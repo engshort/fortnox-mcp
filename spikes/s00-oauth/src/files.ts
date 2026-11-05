@@ -69,6 +69,7 @@ export interface FileStore {
     owner: string,
     company: string,
     now: number,
+    maxBytes?: number,
   ): Promise<{ record: FileRecord; chunks: SealedChunk[] } | null>;
   removeWorkflow(
     workflow: string,
@@ -96,6 +97,7 @@ export interface FileContext {
   transport: FileTransport;
   validator: FileValidator;
   codec?: FileCodec;
+  maxBytes?: number;
   now?: () => number;
 }
 export function isPublicAddress(value: string) {
@@ -226,8 +228,15 @@ async function seal(
 }
 export async function fetchFile(
   input: FileInput,
-  context: Pick<FileContext, "origins" | "transport">,
+  context: Pick<FileContext, "origins" | "transport" | "maxBytes">,
 ) {
+  const maximum = context.maxBytes ?? fileLimits.bytes;
+  if (
+    !Number.isSafeInteger(maximum) ||
+    maximum < 1 ||
+    maximum > fileLimits.bytes
+  )
+    throw new FileError("FILE_UNAVAILABLE");
   const url = approvedFileUrl(input.download_url, context.origins);
   const controller = new AbortController();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
@@ -255,10 +264,7 @@ export async function fetchFile(
         );
       }
       const length = response.headers.get("content-length");
-      if (
-        length &&
-        (!/^\d+$/.test(length) || Number(length) > fileLimits.bytes)
-      ) {
+      if (length && (!/^\d+$/.test(length) || Number(length) > maximum)) {
         void response.body?.cancel().catch(() => {});
         throw new FileError("FILE_TOO_LARGE");
       }
@@ -270,7 +276,7 @@ export async function fetchFile(
         const chunk = await reader.read();
         if (chunk.done) break;
         size += chunk.value.byteLength;
-        if (size > fileLimits.bytes) throw new FileError("FILE_TOO_LARGE");
+        if (size > maximum) throw new FileError("FILE_TOO_LARGE");
         chunks.push(chunk.value);
       }
       if (controller.signal.aborted) throw new FileError("FILE_TIMEOUT");
@@ -395,9 +401,12 @@ export function fileService(context: FileContext) {
         context.owner,
         context.company,
         now(),
+        context.maxBytes ?? fileLimits.bytes,
       );
       if (!stored) throw new FileError("FILE_UNAVAILABLE");
       const { record, chunks } = stored;
+      if (record.bytes > (context.maxBytes ?? fileLimits.bytes))
+        throw new FileError("FILE_TOO_LARGE");
       if (
         record.expires <= now() ||
         chunks.length !== record.chunks ||

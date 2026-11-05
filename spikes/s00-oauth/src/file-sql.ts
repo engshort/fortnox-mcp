@@ -30,9 +30,9 @@ export const insertChunkSql = `INSERT INTO s00_file_chunks (file_id,idx,iv,data)
 export const chunkValues = (r: FileRecord, c: SealedChunk) =>
   [r.id, c.index, c.iv, c.data, r.id, r.owner, r.company, r.workflow] as const;
 export const readFileSql =
-  "SELECT * FROM s00_files WHERE id=? AND owner=? AND company=? AND expires>?";
+  "SELECT * FROM s00_files WHERE id=? AND owner=? AND company=? AND expires>? AND bytes<=?";
 export const readChunksSql = `SELECT idx AS 'index',iv,data FROM s00_file_chunks WHERE file_id IN
- (SELECT id FROM s00_files WHERE id=? AND owner=? AND company=? AND expires>?) ORDER BY idx`;
+ (SELECT id FROM s00_files WHERE id=? AND owner=? AND company=? AND expires>? AND bytes<=?) ORDER BY idx`;
 // Explicit chunk deletion does not depend on connection-local foreign-key PRAGMA.
 export const cleanupChunksSql =
   "DELETE FROM s00_file_chunks WHERE file_id IN (SELECT id FROM s00_files WHERE expires<=?)";

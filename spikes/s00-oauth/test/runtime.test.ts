@@ -10,9 +10,9 @@ import { fileSchema } from "../src/file-sql.js";
 import { sqliteFileStore } from "../src/file-sqlite.js";
 import { fileValidator } from "../src/file-validation.js";
 import { reviewSchema } from "../src/review.js";
-import { sqliteReviewStore } from "../src/review-sqlite.js";
 import { handleRuntimeRequest } from "../src/runtime-http.js";
 import { runRuntimeProbe, runtimeFile } from "../src/runtime-probe.js";
+import { sqliteRuntimeReviews } from "../src/runtime-sqlite.js";
 
 const token = "a".repeat(64),
   origin = "https://runtime.example.com";
@@ -26,13 +26,25 @@ function fixture() {
       owner: "synthetic-runtime-owner",
       secret: "synthetic-runtime-encryption-key-not-real-credential",
       files: sqliteFileStore(db),
-      reviews: sqliteReviewStore(db),
+      reviews: sqliteRuntimeReviews(db),
       validator: fileValidator,
     },
   };
 }
 test("runtime probe verifies exact two-file output and one concurrent winner, then deletes its staged bytes", async () => {
   const f = fixture();
+  f.db
+    .prepare("INSERT INTO s00_review VALUES(?,?,?,?,?,?,?,?)")
+    .run(
+      "old-synthetic-review",
+      f.context.owner,
+      "s00-company-a",
+      "synthetic-hash",
+      "synthetic-capability",
+      1,
+      0,
+      "consumed",
+    );
   const file = runtimeFile(1024),
     body = new Uint8Array(2048);
   body.set(file);
@@ -59,6 +71,12 @@ test("runtime probe verifies exact two-file output and one concurrent winner, th
       "consumed",
     );
     assert.ok(body.every((v) => v === 0));
+    assert.equal(
+      f.db
+        .prepare("SELECT state FROM s00_review WHERE id='old-synthetic-review'")
+        .get()?.state,
+      "consumed",
+    );
   } finally {
     f.db.close();
   }
@@ -174,6 +192,19 @@ test("actual workerd executes the operator budget probe and preserves its one-wi
       .split(";")
       .filter((s) => s.trim()))
       await db.prepare(sql).run();
+    await db
+      .prepare("INSERT INTO s00_review VALUES(?,?,?,?,?,?,?,?)")
+      .bind(
+        "old-synthetic-review",
+        "synthetic-runtime-owner",
+        "s00-company-a",
+        "synthetic-hash",
+        "synthetic-capability",
+        1,
+        0,
+        "consumed",
+      )
+      .run();
     const file = runtimeFile(1024),
       body = new Uint8Array(2048);
     body.set(file);
@@ -210,6 +241,16 @@ test("actual workerd executes the operator budget probe and preserves its one-wi
       fortnoxEnabled: false,
     });
     const reopened = await mf.getD1Database("DB");
+    assert.equal(
+      (
+        await reopened
+          .prepare(
+            "SELECT state FROM s00_review WHERE id='old-synthetic-review'",
+          )
+          .first<{ state: string }>()
+      )?.state,
+      "consumed",
+    );
     assert.equal(
       (
         await reopened

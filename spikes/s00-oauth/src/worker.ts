@@ -2,10 +2,12 @@ import { diagnosticWindow, type McpRequestDiagnostic } from "./diagnostics.js";
 import { fileCodec } from "./file-codec.js";
 import { d1FileStore } from "./file-d1.js";
 import { fileValidator } from "./file-validation.js";
+import { workerFileByteBudget } from "./file-worker-budget.js";
 import { workerFileTransport } from "./file-worker-transport.js";
 import { parseFileOrigins } from "./files.js";
 import { createProbeHandler } from "./http.js";
 import { d1ReviewStore } from "./review.js";
+import { d1RuntimeReviews } from "./runtime-d1.js";
 import { handleRuntimeRequest } from "./runtime-http.js";
 
 interface Env {
@@ -36,7 +38,7 @@ export default {
         owner: env.OWNER_ID,
         secret: env.AUTH_SECRET,
         files: d1FileStore(env.AUTH_DB),
-        reviews: d1ReviewStore(env.AUTH_DB),
+        reviews: d1RuntimeReviews(env.AUTH_DB),
         validator: fileValidator,
         codec: fileCodec,
       },
@@ -68,6 +70,7 @@ export default {
               validator: fileValidator,
               codec: fileCodec,
               origins: parseFileOrigins(env.PROBE_FILE_ORIGINS),
+              maxBytes: workerFileByteBudget,
             },
           }
         : {}),

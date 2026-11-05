@@ -21,7 +21,10 @@ export interface SocketEgress {
 // The maintained HTTP parser handles framing/chunking. Only a fixed GET is
 // emitted; the socket uses a checked public IP and TLS validates the URL host.
 // No unpinned fetch fallback is permitted if the runtime refuses that socket.
-export function socketFileTransport(egress: SocketEgress): FileTransport {
+export function socketFileTransport(
+  egress: SocketEgress,
+  maximumBytes: number = fileLimits.bytes,
+): FileTransport {
   return {
     async open(url, signal) {
       const addresses = await egress.resolve(url.hostname, signal);
@@ -67,7 +70,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
           const length = headers.get("content-length");
           if (
             length &&
-            (!/^\d+$/.test(length) || Number(length) > fileLimits.bytes)
+            (!/^\d+$/.test(length) || Number(length) > maximumBytes)
           )
             throw new FileError("FILE_TOO_LARGE");
           if (
@@ -78,7 +81,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
         };
         parser[HTTPParser.kOnBody] = (chunk, offset, length) => {
           size += length;
-          if (size > fileLimits.bytes) throw new FileError("FILE_TOO_LARGE");
+          if (size > maximumBytes) throw new FileError("FILE_TOO_LARGE");
           chunks.push(Buffer.from(chunk.subarray(offset, offset + length)));
         };
         parser[HTTPParser.kOnMessageComplete] = () => {
@@ -94,7 +97,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
               break;
             }
             networkBytes += next.value.length;
-            if (networkBytes > fileLimits.bytes + 128 * 1024)
+            if (networkBytes > maximumBytes + 128 * 1024)
               throw new FileError("FILE_TOO_LARGE");
             const parsed = parser.execute(Buffer.from(next.value));
             if (parsed instanceof Error) throw parsed;

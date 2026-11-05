@@ -4,6 +4,7 @@ import {
   type FileContext,
   FileError,
   fileInputSchema,
+  fileLimits,
   fileService,
 } from "./files.js";
 
@@ -14,6 +15,7 @@ export interface FileProbeContext {
 }
 export function registerFiles(server: McpServer, probe: FileProbeContext) {
   const service = fileService(probe.context);
+  const maximum = probe.context.maxBytes ?? fileLimits.bytes;
   const securitySchemes = [
     { type: "oauth2", scopes: ["mcp:read", "offline_access", "mcp:files"] },
   ];
@@ -34,8 +36,7 @@ export function registerFiles(server: McpServer, probe: FileProbeContext) {
     "probe_synthetic_files",
     {
       title: "Verify synthetic receipt file transfer",
-      description:
-        "Download one or two user-selected synthetic receipt files, verify bytes and return short-lived encrypted file references. No Fortnox operation; do not send real receipts. PNG/JPEG or uncompressed PDF only, 5 MiB each, at most 10 PDF pages.",
+      description: `Download one or two user-selected synthetic receipt files, verify bytes and return short-lived encrypted file references. No Fortnox operation; do not send real receipts. PNG/JPEG or uncompressed PDF only, ${maximum} bytes each, at most 10 PDF pages.`,
       inputSchema: fileInputSchema,
       outputSchema: z
         .object({
@@ -50,7 +51,7 @@ export function registerFiles(server: McpServer, probe: FileProbeContext) {
                   id: z.uuid(),
                   uri: z.string(),
                   mime: z.enum(["image/png", "image/jpeg", "application/pdf"]),
-                  bytes: z.number().int().positive(),
+                  bytes: z.number().int().positive().max(maximum),
                   sha256: z.string().regex(/^[0-9a-f]{64}$/),
                   expires: z.number().int().positive(),
                   receiptReference: z.string(),

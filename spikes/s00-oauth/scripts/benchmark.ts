@@ -9,13 +9,13 @@ import { sqliteFileStore } from "../src/file-sqlite.js";
 import { fileValidator } from "../src/file-validation.js";
 import { digest } from "../src/files.js";
 import { reviewSchema } from "../src/review.js";
-import { sqliteReviewStore } from "../src/review-sqlite.js";
 import {
   type RuntimeWorkload,
   runRuntimeProbe,
   runtimeFile,
   runtimeWorkloads,
 } from "../src/runtime-probe.js";
+import { sqliteRuntimeReviews } from "../src/runtime-sqlite.js";
 
 // Optional private JSON: {origin, token}. Never put token values in argv/stdout.
 const privatePath = process.argv[2];
@@ -39,7 +39,7 @@ const context = {
   owner: "synthetic-runtime-owner",
   secret: randomBytes(48).toString("base64url"),
   files: sqliteFileStore(db),
-  reviews: sqliteReviewStore(db),
+  reviews: sqliteRuntimeReviews(db),
   validator: fileValidator,
   codec: fileCodec,
 };
