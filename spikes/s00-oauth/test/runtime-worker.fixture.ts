@@ -1,3 +1,4 @@
+import { fileCodec } from "../src/file-codec.js";
 import { d1FileStore } from "../src/file-d1.js";
 import { fileValidator } from "../src/file-validation.js";
 import { d1ReviewStore } from "../src/review.js";
@@ -19,6 +20,7 @@ export default {
           files: d1FileStore(env.DB),
           reviews: d1ReviewStore(env.DB),
           validator: fileValidator,
+          codec: fileCodec,
         },
       })) ?? new Response(null, { status: 404 })
     );

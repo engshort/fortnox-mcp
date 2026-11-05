@@ -3,9 +3,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { fileCodec } from "../src/file-codec.js";
 import { fileSchema } from "../src/file-sql.js";
 import { sqliteFileStore } from "../src/file-sqlite.js";
 import { fileValidator } from "../src/file-validation.js";
+import { digest } from "../src/files.js";
 import { reviewSchema } from "../src/review.js";
 import { sqliteReviewStore } from "../src/review-sqlite.js";
 import {
@@ -39,6 +41,7 @@ const context = {
   files: sqliteFileStore(db),
   reviews: sqliteReviewStore(db),
   validator: fileValidator,
+  codec: fileCodec,
 };
 const results: unknown[] = [];
 try {
@@ -47,6 +50,7 @@ try {
     const body = new Uint8Array(size * 2);
     body.set(file);
     body.set(file, size);
+    const expectedHash = await digest(file);
     const started = performance.now(),
       cpu = process.cpuUsage();
     if (remote) {
@@ -71,12 +75,26 @@ try {
         } catch {
           result = { error: "NON_JSON_RUNTIME_RESPONSE" };
         }
+        const hashes = result.sha256;
+        const verified =
+          response.ok &&
+          result.synthetic === true &&
+          result.fortnoxEnabled === false &&
+          result.bytesPerFile === size &&
+          result.totalFileBytes === size * 2 &&
+          result.acceptedClaims === 1 &&
+          result.decimalTotal === "50.00" &&
+          Array.isArray(hashes) &&
+          hashes.length === 2 &&
+          hashes.every((h) => h === expectedHash);
+        if (!verified) process.exitCode = 1;
         const evidence = {
           runtime: "hosted-worker",
           workload,
           httpStatus: response.status,
           roundTripMs: Math.round(performance.now() - started),
           ...result,
+          independentlyVerified: verified,
         };
         results.push(evidence);
         console.log(JSON.stringify(evidence));
@@ -100,6 +118,7 @@ try {
           );
         }
       } catch {
+        process.exitCode = 1;
         const result = {
           runtime: "hosted-worker",
           workload,

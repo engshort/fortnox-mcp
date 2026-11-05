@@ -1,4 +1,5 @@
 import { diagnosticWindow, type McpRequestDiagnostic } from "./diagnostics.js";
+import { fileCodec } from "./file-codec.js";
 import { d1FileStore } from "./file-d1.js";
 import { fileValidator } from "./file-validation.js";
 import { workerFileTransport } from "./file-worker-transport.js";
@@ -37,6 +38,7 @@ export default {
         files: d1FileStore(env.AUTH_DB),
         reviews: d1ReviewStore(env.AUTH_DB),
         validator: fileValidator,
+        codec: fileCodec,
       },
     });
     if (runtime) return runtime;
@@ -64,6 +66,7 @@ export default {
               store: d1FileStore(env.AUTH_DB),
               transport: workerFileTransport,
               validator: fileValidator,
+              codec: fileCodec,
               origins: parseFileOrigins(env.PROBE_FILE_ORIGINS),
             },
           }

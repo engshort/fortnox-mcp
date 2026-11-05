@@ -42,6 +42,7 @@ export interface RuntimeContext {
   files: FileContext["store"];
   reviews: ReviewStore;
   validator: FileContext["validator"];
+  codec?: FileContext["codec"];
 }
 export async function runRuntimeProbe(
   context: RuntimeContext,
@@ -93,6 +94,7 @@ export async function runRuntimeProbe(
     secret: context.secret,
     store: context.files,
     validator: context.validator,
+    codec: context.codec,
     origins: [origin],
     transport: {
       async open(url) {

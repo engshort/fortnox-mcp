@@ -83,6 +83,10 @@ export interface FileTransport {
 export interface FileValidator {
   validate(bytes: Uint8Array): Promise<{ mime: string; pages?: number }>;
 }
+export interface FileCodec {
+  encode(bytes: Uint8Array): string;
+  decode(text: string): Uint8Array;
+}
 export interface FileContext {
   owner: string;
   company: string;
@@ -91,6 +95,7 @@ export interface FileContext {
   store: FileStore;
   transport: FileTransport;
   validator: FileValidator;
+  codec?: FileCodec;
   now?: () => number;
 }
 export function isPublicAddress(value: string) {
@@ -196,7 +201,12 @@ const aad = (record: FileRecord, index: number) =>
       index,
     ]),
   );
-async function seal(record: FileRecord, bytes: Uint8Array, key: CryptoKey) {
+async function seal(
+  record: FileRecord,
+  bytes: Uint8Array,
+  key: CryptoKey,
+  codec: FileCodec,
+) {
   const chunks: SealedChunk[] = [];
   for (let offset = 0; offset < bytes.length; offset += fileLimits.chunkBytes) {
     const index = chunks.length,
@@ -208,8 +218,8 @@ async function seal(record: FileRecord, bytes: Uint8Array, key: CryptoKey) {
     );
     chunks.push({
       index,
-      iv: encode(iv),
-      data: encode(new Uint8Array(encrypted)),
+      iv: codec.encode(iv),
+      data: codec.encode(new Uint8Array(encrypted)),
     });
   }
   return chunks;
@@ -295,6 +305,7 @@ export async function fetchFile(
 }
 export function fileService(context: FileContext) {
   const now = context.now ?? Date.now;
+  const codec = context.codec ?? { encode, decode };
   return {
     async ingest(input: unknown) {
       const parsed = fileInputSchema.safeParse(input);
@@ -339,7 +350,7 @@ export function fileService(context: FileContext) {
             if (
               !(await context.store.put(
                 record,
-                await seal(record, bytes, key),
+                await seal(record, bytes, key, codec),
                 now(),
               ))
             )
@@ -404,11 +415,11 @@ export function fileService(context: FileContext) {
             await crypto.subtle.decrypt(
               {
                 name: "AES-GCM",
-                iv: decode(chunk.iv),
+                iv: new Uint8Array(codec.decode(chunk.iv)),
                 additionalData: aad(record, index),
               },
               key,
-              decode(chunk.data),
+              new Uint8Array(codec.decode(chunk.data)),
             ),
           );
           bytes.set(decoded, offset);
@@ -423,7 +434,7 @@ export function fileService(context: FileContext) {
           throw new Error("Invalid file");
         return {
           mime: record.mime,
-          blob: encode(bytes),
+          blob: codec.encode(bytes),
           sha256: record.hash,
           bytes: record.bytes,
         };
