@@ -205,7 +205,14 @@ export function createProbeHandler(
             : url.pathname === "/sign-in"
               ? "sign-in"
               : "consent",
-          Boolean(config.review),
+          Boolean(config.review) &&
+            (url.searchParams.get("scope") ?? "")
+              .split(/\s+/)
+              .includes("mcp:review"),
+          Boolean(config.files) &&
+            (url.searchParams.get("scope") ?? "")
+              .split(/\s+/)
+              .includes("mcp:files"),
         ),
         200,
         "text/html; charset=utf-8",

@@ -6,6 +6,14 @@ two-file input/output acceptance remains open.** Tracks
 
 ## Behavior and interfaces
 
+The consent page now describes the capabilities in the verified signed OAuth
+request, rather than every enabled experiment. A file-scope request explicitly
+describes selected synthetic-file download/readback, encrypted owner/company-bound
+temporary storage, 55-minute reference expiry and normal one-hour cleanup with
+outage recovery. A read-only request does not display file or review consent.
+This corrects a missing user-facing file description; it does not widen any
+existing client registration or token grant.
+
 The isolated OAuth probe adds optional `probe_synthetic_files`,
 `read_synthetic_file` and `s00://files/{id}` resources. Files are default-off
 and require separately consented `mcp:files` plus the normal OAuth owner/resource

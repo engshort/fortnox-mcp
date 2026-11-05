@@ -20,6 +20,13 @@ Filprovet är avstängt från början. Operatören kontrollerar först säker h�
 schemalagd rensning och klientstöd. `mcp:files` kräver ett nytt samtycke;
 granskningsbehörigheten ger inte automatiskt filåtkomst.
 
+Samtyckessidan beskriver de behörigheter som faktiskt begärs: läsning,
+syntetisk granskning och/eller syntetiska filer. För filbehörigheten visas
+krypterad lagring, ägar-/företagsbindning, 55 minuters giltighet och rensning.
+En äldre OAuth-klient kan behöva ersättas med en separat privat testklient om
+dess registrerade scopes saknar `mcp:files`. Ett `invalid_scope`-fel löses inte
+genom att ändra gamla tokenposter eller lägga till filbehörighet utan samtycke.
+
 Välj högst två syntetiska PNG-, JPEG- eller enkla okomprimerade PDF-filer,
 högst **1 MiB vardera på Workers**, 5 MiB på Node och tio sidor per PDF.
 Worker-gränsen sänktes efter faktisk mätning av minnesbehovet. PNG måste vara 8-bitars utan
