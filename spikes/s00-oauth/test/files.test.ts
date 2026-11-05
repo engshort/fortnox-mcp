@@ -383,6 +383,43 @@ test("pinned socket transport rejects private DNS before connecting and validate
   );
   assert.equal(connected, false);
 });
+test("socket diagnostics classify failures without exposing exception details", async () => {
+  const events: unknown[] = [];
+  const socket: FileSocket = {
+    opened: Promise.resolve({}),
+    readable: new ReadableStream({
+      start(c) {
+        c.error(new Error("TLS certificate secret-path?signature=secret"));
+      },
+    }),
+    writable: new WritableStream(),
+    async close() {},
+    startTls() {
+      return this;
+    },
+  };
+  const transport = socketFileTransport(
+    {
+      async resolve() {
+        return ["8.8.8.8"];
+      },
+      connect() {
+        return socket;
+      },
+    },
+    undefined,
+    (event) => events.push(event),
+  );
+  await assert.rejects(() =>
+    transport.open(new URL(fileOrigin), new AbortController().signal),
+  );
+  assert.deepEqual(events.at(-1), { stage: "failed", reason: "tls" });
+  assert.doesNotMatch(
+    JSON.stringify(events),
+    /secret|signature|certificate|example/,
+  );
+});
+
 test("actual workerd/D1 stores encrypted files, isolates reads, persists through restart and cleans expired bytes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "s00-file-worker-"));
   const built = await build({

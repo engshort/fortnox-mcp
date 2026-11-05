@@ -124,6 +124,13 @@ operator review an exact origin after a deny; it does not add an origin to the
 allowlist or bypass public pinned DNS/TLS checks. It is off by default along
 with request diagnostics. Use synthetic files only and keep stored logs off.
 
+`s00_file_transport` uses another bounded window to report fixed stage labels
+and an HTTP status, when available. Failure reasons are coarse classifications
+(`tls`, `egress_denied`, `http_parser`, `unsupported`, `connection`, `other`),
+not raw exception text or proof of a specific provider fault. Sink failure does
+not change transport behavior. No exception message, header or byte content is
+emitted, and no unpinned HTTP fallback is introduced.
+
 Fixed protocol/tool schemas are public for ChatGPT's metadata refresh:
 `initialize`, `notifications/initialized` and `tools/list`. All other methods,
 including every tool call and resource request, require OAuth. Every member of

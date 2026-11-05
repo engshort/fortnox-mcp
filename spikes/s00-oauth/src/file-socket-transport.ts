@@ -26,8 +26,16 @@ export type FileTransportDiagnostic = {
     | "requesting"
     | "reading"
     | "response"
-    | "complete";
+    | "complete"
+    | "failed";
   status?: number;
+  reason?:
+    | "tls"
+    | "egress_denied"
+    | "http_parser"
+    | "unsupported"
+    | "connection"
+    | "other";
 };
 // The maintained HTTP parser handles framing/chunking. Only a fixed GET is
 // emitted; the socket uses a checked public IP and TLS validates the URL host.
@@ -134,6 +142,25 @@ export function socketFileTransport(
           throw new FileError("FILE_FETCH_FAILED");
         emit({ stage: "complete" });
         return new Response(Buffer.concat(chunks, size), { status, headers });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const reason = /TLS|SSL|certificate|cert|hostname/i.test(message)
+          ? "tls"
+          : /proxy request failed|cannot connect to the specified address/i.test(
+                message,
+              )
+            ? "egress_denied"
+            : error instanceof Error &&
+                "code" in error &&
+                /^HPE_/.test(String(error.code))
+              ? "http_parser"
+              : /not implemented|not supported/i.test(message)
+                ? "unsupported"
+                : /socket|connection|stream|closed/i.test(message)
+                  ? "connection"
+                  : "other";
+        emit({ stage: "failed", reason });
+        throw error;
       } finally {
         for (const chunk of chunks) chunk.fill(0);
         signal.removeEventListener("abort", abort);
