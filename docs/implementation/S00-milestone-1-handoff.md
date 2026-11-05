@@ -3,6 +3,11 @@
 Updated **2026-11-05**. Scope: G01–G05 (#31–#35), with the early M23/G09 subset
 needed to classify the runtime. **The milestone remains open.**
 
+The subsequent [actual ChatGPT acceptance run](S00-client-acceptance-2026-11-05.md)
+records restrictive-CSP review/double-click/remount evidence, the reproduced
+saved-answer failure, old-client scope mismatch and staged G03 checks. It does
+not close G01–G03. G05 remains open by the owner's instruction.
+
 ## Reviewable deliveries
 
 Review these stacked PRs in order; each uses the preceding delivery as its base.

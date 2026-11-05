@@ -100,5 +100,7 @@ Generate two known-hash fixtures outside Git with
 `node --import tsx scripts/prepare-file-fixtures.ts`; it prints only synthetic
 paths, byte lengths and hashes.
 
-No actual-host file upload/download, hosted origin acceptance or scheduled
-cleanup result is claimed. G03 remains open until that evidence exists.
+The [actual ChatGPT follow-up](S00-client-acceptance-2026-11-05.md) records client
+attachment upload and scheduled deletion of a dedicated expired sentinel. These
+do not prove MCP file ingress/egress, hosted CDN acceptance or genuine uploaded
+file retention. G03 remains open until its complete actual-host evidence exists.

@@ -6,6 +6,11 @@ runtime measurements and outstanding acceptance. G01/G02/G03 remain partial,
 G04 retains its closed scope, G05 stays blocked and full G09 stays open.
 Earlier observations below are historical evidence, not new client support.
 
+The [actual ChatGPT follow-up](../implementation/S00-client-acceptance-2026-11-05.md)
+adds scoped live CSP, double-click and consumed-remount evidence. Saved model
+answers still fail to load; older registered clients cannot request newly added
+scopes. G01–G03 remain partial and G05 remains open.
+
 The [G01/G02 maintenance follow-up](../implementation/S00-client-maintenance-evidence.md)
 implements local diagnostics, review-status recovery and restrictive-CSP browser
 regressions. Actual ChatGPT maintenance/CSP acceptance remains open; no gate is
