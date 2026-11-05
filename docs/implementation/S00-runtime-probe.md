@@ -2,6 +2,7 @@
 
 Tracks [M23 #77](https://github.com/engshort/fortnox-mcp/issues/77) under G09.
 This is an early representative subset, not full Node/Worker/SIE acceptance.
+See the [actual measurements and selected 1 MiB Worker boundary](S00-runtime-evidence-2026-11-05.md).
 
 `npm run benchmark` in `spikes/s00-oauth` runs three workloads on Node: two
 plain synthetic PDFs of 1 KiB, 1 MiB and 5 MiB each. The same portable workload
