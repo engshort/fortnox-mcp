@@ -471,6 +471,8 @@ test("actual workerd/D1 stores encrypted files, isolates reads, persists through
 
 test("MCP file descriptors use complete host schemas, default off, scoped calls and authenticated resources", async () => {
   const f = fixture();
+  const sourceHosts: string[] = [];
+  f.context.onSourceHostname = (hostname) => sourceHosts.push(hostname);
   const connect = async (enabled: boolean, authorized: boolean) => {
     const server = createProbeServer(
       undefined,
@@ -512,6 +514,7 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
     true,
   );
   await denied.close();
+  assert.deepEqual(sourceHosts, [], "unscoped calls cannot emit file sources");
   const allowed = await connect(true, true);
   try {
     const catalog = await allowed.client.listTools();
@@ -527,6 +530,7 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
       arguments: batch,
     });
     assert.notEqual(result.isError, true);
+    assert.deepEqual(sourceHosts, ["files.example.com", "files.example.com"]);
     assert.doesNotMatch(
       JSON.stringify(result),
       /download_url|synthetic-client-file/,
@@ -550,6 +554,50 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
     await noScope.close();
   } finally {
     await allowed.close();
+    f.db.close();
+  }
+});
+
+test("file-source diagnostics omit URL secrets and do not weaken origin checks", async () => {
+  const f = fixture();
+  const hosts: string[] = [];
+  const service = fileService({
+    ...f.context,
+    origins: [],
+    onSourceHostname: (hostname) => hosts.push(hostname),
+  });
+  try {
+    await assert.rejects(
+      () =>
+        service.ingest({
+          files: [input(`${fileOrigin}/private-id?signature=secret`)],
+        }),
+      /FILE_URL_DENIED/,
+    );
+    assert.deepEqual(hosts, ["files.example.com"]);
+    assert.doesNotMatch(
+      JSON.stringify(hosts),
+      /private-id|signature|secret|https/,
+    );
+    for (const url of [
+      "https://user:secret@files.example.com/a",
+      "https://127.0.0.1/a",
+      "file:///secret",
+    ]) {
+      await assert.rejects(
+        () => service.ingest({ files: [input(url)] }),
+        /FILE_URL_DENIED/,
+      );
+    }
+    assert.equal(hosts.length, 1);
+    const throwing = fileService({
+      ...f.context,
+      onSourceHostname() {
+        throw new Error("sink failed");
+      },
+    });
+    assert.equal((await throwing.ingest({ files: [input()] })).files.length, 1);
+  } finally {
     f.db.close();
   }
 });

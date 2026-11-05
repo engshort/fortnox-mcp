@@ -1,4 +1,5 @@
-// Fixed labels only: no RPC bodies, tool arguments, IDs, URLs or credentials.
+// Request diagnostics use fixed labels: no RPC bodies, IDs, URLs or credentials.
+// The same bounded window also gates the separate hostname-only file sink.
 export interface McpRequestDiagnostic {
   method: "GET" | "POST" | "other";
   contentType: "json" | "absent" | "other";
@@ -9,10 +10,10 @@ export interface McpRequestDiagnostic {
   status: number;
 }
 
-export function diagnosticWindow(
+export function diagnosticWindow<T = McpRequestDiagnostic>(
   enabled: string | undefined,
   until: string | undefined,
-  emit: (event: McpRequestDiagnostic) => void,
+  emit: (event: T) => void,
   now = Date.now,
 ) {
   const deadline =
@@ -27,7 +28,7 @@ export function diagnosticWindow(
   )
     return undefined;
   let remaining = 64;
-  return (event: McpRequestDiagnostic) => {
+  return (event: T) => {
     if (now() >= deadline || remaining <= 0) return;
     remaining--;
     emit(event);

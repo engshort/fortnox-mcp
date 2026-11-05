@@ -116,6 +116,14 @@ filter a short-lived operator tail to these allowlisted fields with Wrangler
 disk logging disabled, then turn the variable off again. This does not add a
 model-callable diagnostic or change protocol selection.
 
+The same opt-in deadline also gates a separate `s00_file_source` diagnostic,
+bounded to 64 events per isolate. Only a successfully scoped file invocation can
+reach it. It emits a syntactically safe HTTPS DNS hostname, without scheme,
+path, query, credentials, client file ID or original name. This helps the
+operator review an exact origin after a deny; it does not add an origin to the
+allowlist or bypass public pinned DNS/TLS checks. It is off by default along
+with request diagnostics. Use synthetic files only and keep stored logs off.
+
 Fixed protocol/tool schemas are public for ChatGPT's metadata refresh:
 `initialize`, `notifications/initialized` and `tools/list`. All other methods,
 including every tool call and resource request, require OAuth. Every member of

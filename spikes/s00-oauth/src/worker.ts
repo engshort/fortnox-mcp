@@ -26,6 +26,7 @@ interface Env {
 }
 let diagnosticConfig: string | undefined;
 let emitDiagnostic: ((event: McpRequestDiagnostic) => void) | undefined;
+let emitFileSource: ((event: { hostname: string }) => void) | undefined;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!env.AUTH_SECRET || !env.OWNER_ID || !env.PROBE_ORIGIN)
@@ -55,6 +56,12 @@ export default {
         env.PROBE_PROTOCOL_DIAGNOSTICS_UNTIL,
         (event) => console.info({ event: "s00_mcp_request", ...event }),
       );
+      emitFileSource = diagnosticWindow(
+        env.PROBE_PROTOCOL_DIAGNOSTICS,
+        env.PROBE_PROTOCOL_DIAGNOSTICS_UNTIL,
+        (event: { hostname: string }) =>
+          console.info({ event: "s00_file_source", ...event }),
+      );
     }
     return createProbeHandler({
       origin: env.PROBE_ORIGIN,
@@ -71,6 +78,12 @@ export default {
               codec: fileCodec,
               origins: parseFileOrigins(env.PROBE_FILE_ORIGINS),
               maxBytes: workerFileByteBudget,
+              ...(emitFileSource
+                ? {
+                    onSourceHostname: (hostname: string) =>
+                      emitFileSource?.({ hostname }),
+                  }
+                : {}),
             },
           }
         : {}),
