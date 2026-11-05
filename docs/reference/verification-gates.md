@@ -1,5 +1,11 @@
 # Verification gates and known gaps
 
+**2026-11-05:** [milestone 1 handoff](../implementation/S00-milestone-1-handoff.md)
+records deployed maintenance, locally verified default-off files, actual hosted
+runtime measurements and outstanding acceptance. G01/G02/G03 remain partial,
+G04 retains its closed scope, G05 stays blocked and full G09 stays open.
+Earlier observations below are historical evidence, not new client support.
+
 The [G01/G02 maintenance follow-up](../implementation/S00-client-maintenance-evidence.md)
 implements local diagnostics, review-status recovery and restrictive-CSP browser
 regressions. Actual ChatGPT maintenance/CSP acceptance remains open; no gate is
