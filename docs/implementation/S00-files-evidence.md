@@ -101,6 +101,9 @@ Generate two known-hash fixtures outside Git with
 paths, byte lengths and hashes.
 
 The [actual ChatGPT follow-up](S00-client-acceptance-2026-11-05.md) records client
-attachment upload and scheduled deletion of a dedicated expired sentinel. These
-do not prove MCP file ingress/egress, hosted CDN acceptance or genuine uploaded
-file retention. G03 remains open until its complete actual-host evidence exists.
+attachment upload, new scoped consent, scheduled deletion of an expired
+sentinel and actual authenticated file calls. After exact source-origin review,
+the Worker transport returned `FILE_FETCH_FAILED` while reading, with no HTTP
+response headers observed and no staged bytes. These checks do not prove
+successful ingress/egress, CDN acceptance or genuine uploaded-file retention.
+File ingress and temporary diagnostics were disabled again. G03 remains open.

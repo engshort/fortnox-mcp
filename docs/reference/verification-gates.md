@@ -7,9 +7,11 @@ G04 retains its closed scope, G05 stays blocked and full G09 stays open.
 Earlier observations below are historical evidence, not new client support.
 
 The [actual ChatGPT follow-up](../implementation/S00-client-acceptance-2026-11-05.md)
-adds scoped live CSP, double-click and consumed-remount evidence. Saved model
-answers still fail to load; older registered clients cannot request newly added
-scopes. G01–G03 remain partial and G05 remains open.
+adds scoped live CSP, double-click, consumed-remount and fresh-client refresh
+evidence. Automatic saved-answer loading fails, with explicit retry recovery;
+older registrations reject newly added scopes. Actual file calls return
+`FILE_URL_DENIED`, then `FILE_FETCH_FAILED` after exact source-origin review,
+with no stored bytes. G01–G03 remain partial and G05 remains open.
 
 The [G01/G02 maintenance follow-up](../implementation/S00-client-maintenance-evidence.md)
 implements local diagnostics, review-status recovery and restrictive-CSP browser

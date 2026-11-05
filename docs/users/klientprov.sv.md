@@ -6,9 +6,12 @@ Använd endast påhittade underlag. Inga verifikationer bokförs.
 ## Anslutning och granskning
 
 Den isolerade provservern uppdaterades den 5 november 2026 med bevarad ägare,
-hemligheter och databas. Sparade svar, administrativ **Reload tools** och
-granskningsvyn behöver fortfarande verifieras i det avsedda ChatGPT-kontot.
-En fungerande serverstatus räcker inte för att förklara klientstödet färdigt.
+hemligheter och databas. Det faktiska Chrome-provet har verifierat status,
+tokenförnyelse för en ny klient och ett testgodkännande under begränsande CSP.
+Efter omladdning kan sparade svar kräva **Läs in svaret igen** och vyn
+**Försök igen**. Godkännandet återlästes som redan registrerat och gick inte
+att skicka igen. Administrativ **Reload tools** provades, men fullständigt
+klientstöd är fortfarande inte godkänt.
 
 Om svaret på ett godkännande försvinner: använd **Kontrollera status**.
 Skicka inte samma godkännande igen när utfallet är okänt. En saknad eller
@@ -35,6 +38,11 @@ komprimerade PDF:er stöds inte i detta begränsade prov. Hämtningen får ta h�
 15 sekunder. En bild som syns i konversationen innebär inte automatiskt att
 klienten lämnar över dess bytes till servern.
 
+Under ett uttryckligt aktiverat, kort operatörsprov kan diagnostiken visa enbart
+filvärdens DNS-namn för ett behörigt anrop. Signerade URL-parametrar, sökvägar
+och filidentifierare loggas inte. Diagnostiken lägger inte till några tillåtna
+värdar och stängs av efter provet.
+
 Jämför filstorlek och SHA-256 med originalen och prova varje returnerad fil.
 Referenserna hör till provets ägare/företag och gäller i högst 55 minuter.
 Underlagen lagras krypterat och rensas av bakgrundskörningen. Vid driftavbrott
@@ -42,5 +50,8 @@ kan fysisk rensning fördröjas, men utgångna referenser ger inte åtkomst.
 Ny hämtning efter expiry kräver ny filinput.
 
 `synthetic-receipt` och `synthetic-voucher` är testreferenser, inte poster i
-Fortnox. Faktiskt filstöd i ChatGPT är ännu inte verifierat.
+Fortnox. Filanropen i Chrome gav först `FILE_URL_DENIED`. Med exakt den
+observerade filvärden tillåten gav de `FILE_FETCH_FAILED` vid svarsläsning;
+inga filbytes lagrades. Filprovet är åter avstängt och inga filvärdar är tillåtna. Faktiskt
+filstöd i ChatGPT är ännu inte verifierat.
 [Tekniskt underlag och kvarstående prov](../implementation/S00-files-evidence.md).
