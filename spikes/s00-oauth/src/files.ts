@@ -147,12 +147,18 @@ export async function digest(bytes: Uint8Array) {
     .join("");
 }
 const encode = (bytes: Uint8Array) => {
-  let text = "";
-  for (const byte of bytes) text += String.fromCharCode(byte);
-  return btoa(text);
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    parts.push(String.fromCharCode(...bytes.subarray(offset, offset + 0x8000)));
+  }
+  return btoa(parts.join(""));
 };
-const decode = (text: string) =>
-  Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+const decode = (text: string) => {
+  const binary = atob(text),
+    bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+};
 async function encryptionKey(secret: string) {
   if (secret.length < 32) throw new FileError("FILE_UNAVAILABLE");
   const material = await crypto.subtle.importKey(
