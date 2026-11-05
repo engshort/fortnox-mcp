@@ -1,6 +1,7 @@
 import { diagnosticWindow, type McpRequestDiagnostic } from "./diagnostics.js";
 import { fileCodec } from "./file-codec.js";
 import { d1FileStore } from "./file-d1.js";
+import type { FileTransportDiagnostic } from "./file-socket-transport.js";
 import { fileValidator } from "./file-validation.js";
 import { workerFileByteBudget } from "./file-worker-budget.js";
 import { workerFileTransport } from "./file-worker-transport.js";
@@ -27,6 +28,7 @@ interface Env {
 let diagnosticConfig: string | undefined;
 let emitDiagnostic: ((event: McpRequestDiagnostic) => void) | undefined;
 let emitFileSource: ((event: { hostname: string }) => void) | undefined;
+let emitFileTransport: ((event: FileTransportDiagnostic) => void) | undefined;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!env.AUTH_SECRET || !env.OWNER_ID || !env.PROBE_ORIGIN)
@@ -62,6 +64,12 @@ export default {
         (event: { hostname: string }) =>
           console.info({ event: "s00_file_source", ...event }),
       );
+      emitFileTransport = diagnosticWindow(
+        env.PROBE_PROTOCOL_DIAGNOSTICS,
+        env.PROBE_PROTOCOL_DIAGNOSTICS_UNTIL,
+        (event: FileTransportDiagnostic) =>
+          console.info({ event: "s00_file_transport", ...event }),
+      );
     }
     return createProbeHandler({
       origin: env.PROBE_ORIGIN,
@@ -73,7 +81,7 @@ export default {
         ? {
             files: {
               store: d1FileStore(env.AUTH_DB),
-              transport: workerFileTransport,
+              transport: workerFileTransport(emitFileTransport),
               validator: fileValidator,
               codec: fileCodec,
               origins: parseFileOrigins(env.PROBE_FILE_ORIGINS),

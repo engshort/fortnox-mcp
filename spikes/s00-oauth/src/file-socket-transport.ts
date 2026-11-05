@@ -18,19 +18,40 @@ export interface SocketEgress {
   resolve(hostname: string, signal: AbortSignal): Promise<string[]>;
   connect(address: string): FileSocket;
 }
+export type FileTransportDiagnostic = {
+  stage:
+    | "resolving"
+    | "connecting"
+    | "securing"
+    | "requesting"
+    | "reading"
+    | "response"
+    | "complete";
+  status?: number;
+};
 // The maintained HTTP parser handles framing/chunking. Only a fixed GET is
 // emitted; the socket uses a checked public IP and TLS validates the URL host.
 // No unpinned fetch fallback is permitted if the runtime refuses that socket.
 export function socketFileTransport(
   egress: SocketEgress,
   maximumBytes: number = fileLimits.bytes,
+  report?: (event: FileTransportDiagnostic) => void,
 ): FileTransport {
+  const emit = (event: FileTransportDiagnostic) => {
+    try {
+      report?.(event);
+    } catch {
+      /* Operator diagnostics never alter transport. */
+    }
+  };
   return {
     async open(url, signal) {
+      emit({ stage: "resolving" });
       const addresses = await egress.resolve(url.hostname, signal);
       if (!addresses.length || addresses.some((a) => !isPublicAddress(a)))
         throw new FileError("FILE_URL_DENIED");
       signal.throwIfAborted();
+      emit({ stage: "connecting" });
       let socket = egress.connect(addresses[0]);
       const abort = () => {
         void socket.close().catch(() => {});
@@ -40,9 +61,11 @@ export function socketFileTransport(
       try {
         await socket.opened;
         signal.throwIfAborted();
+        emit({ stage: "securing" });
         socket = socket.startTls({ expectedServerHostname: url.hostname });
         await socket.opened;
         signal.throwIfAborted();
+        emit({ stage: "requesting" });
         const writer = socket.writable.getWriter();
         await writer.write(
           new TextEncoder().encode(
@@ -58,6 +81,7 @@ export function socketFileTransport(
           complete = false;
         const headers = new Headers();
         parser[HTTPParser.kOnHeadersComplete] = (info) => {
+          emit({ stage: "response", status: info.statusCode });
           if (status || info.upgrade || info.statusCode !== 200)
             throw new FileError(
               [401, 403, 404, 410].includes(info.statusCode)
@@ -88,6 +112,7 @@ export function socketFileTransport(
           complete = true;
         };
         const reader = socket.readable.getReader();
+        emit({ stage: "reading" });
         try {
           while (!complete) {
             const next = await reader.read();
@@ -107,6 +132,7 @@ export function socketFileTransport(
         }
         if (!complete || !status || signal.aborted)
           throw new FileError("FILE_FETCH_FAILED");
+        emit({ stage: "complete" });
         return new Response(Buffer.concat(chunks, size), { status, headers });
       } finally {
         for (const chunk of chunks) chunk.fill(0);

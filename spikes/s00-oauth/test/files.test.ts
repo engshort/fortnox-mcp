@@ -340,15 +340,21 @@ test("pinned socket transport rejects private DNS before connecting and validate
       return this;
     },
   });
-  const transport = socketFileTransport({
-    async resolve() {
-      return ["8.8.8.8"];
+  const transport = socketFileTransport(
+    {
+      async resolve() {
+        return ["8.8.8.8"];
+      },
+      connect(address) {
+        target = address;
+        return makeSocket();
+      },
     },
-    connect(address) {
-      target = address;
-      return makeSocket();
+    undefined,
+    () => {
+      throw new Error("diagnostic sink failed");
     },
-  });
+  );
   const result = await fetchFile(
     input(`${fileOrigin}/receipt?opaque=synthetic`),
     { origins: [fileOrigin], transport },
