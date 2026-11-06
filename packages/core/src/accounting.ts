@@ -40,11 +40,18 @@ export const voucherInput = z
   })
   .strict();
 export type VoucherInput = z.infer<typeof voucherInput>;
+export const referenceAccountNumbers = z
+  .array(z.number().int().min(1000).max(9999))
+  .min(1)
+  .max(20)
+  .refine((numbers) => new Set(numbers).size === numbers.length);
 export interface AccountingReferences {
   company_id: string;
   financial_year: number;
   retrieved_at: number;
   complete: boolean;
+  // When present, completeness covers exactly these accounts, not the whole chart.
+  account_numbers?: number[];
   year: { id: number; from: string; to: string };
   locked_through: string | null;
   // Unproven boundary/precision/row semantics may be shown, never used for booking.
@@ -84,6 +91,12 @@ export function validateVoucher(
   const fail = (path: string, rule: string) => fields.push({ path, rule });
   if (refs.company_id !== value.company_id)
     throw new DomainError("COMPANY_FORBIDDEN");
+  if (
+    refs.account_numbers &&
+    (value.rows.some((row) => !refs.account_numbers?.includes(row.account)) ||
+      refs.accounts.some((a) => !refs.account_numbers?.includes(a.number)))
+  )
+    fail("references", "account_selection_mismatch");
   if (
     !refs.complete ||
     !refs.validation_verified ||

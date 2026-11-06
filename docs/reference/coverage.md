@@ -110,3 +110,13 @@ results were partial at the 500-account budget and contained unknown information
 rules. This is bounded positive provider evidence, not supported financial
 coverage or a product OAuth/ChatGPT reference acceptance. #92/#76/#93 remain open;
 no operation changes to `verified` or default-enabled status.
+
+## Selected account details
+
+Optional explicit account selection adds one registered read,
+`GET /3/accounts/{Number}`, to the nine-operation accounting ledger. Detail
+responses bind number/year and expose named information settings when present.
+Completeness of an explicit selection is separate from completeness of the full
+chart. Domain validation/preparation/commit derive this selection from voucher
+rows, bounded to 20 distinct accounts. Financial verification and trusted review
+remain disabled pending their own evidence; #92/#76/#93 remain open.

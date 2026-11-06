@@ -57,3 +57,22 @@ Before an upstream mutation, durably record a company-bound execution intent and
 After a timeout/network loss, classify outcome as unknown unless there is evidence the request was not sent or was rejected. Reconcile using returned IDs, trusted references and provider state. A matching amount/date alone is not proof of identity. Do not assume Fortnox supports an idempotency header unless verified for that endpoint.
 
 The system provides duplicate prevention and recovery, not unconditional exactly-once delivery. If reconciliation is inconclusive, request human review and retain the unknown state. See [receipt state machine](receipts.md) and [test strategy](../testing.md).
+
+## Selected account references
+
+An explicit `account_numbers` selection contains 1–20 distinct four-digit account
+numbers. References report that exact sorted selection. `complete=true` then
+means the selected accounts and the other required reference collections were
+retrieved completely; it does not claim a complete chart of accounts or verified
+financial semantics. An omitted selection retains bounded whole-chart behavior.
+The validator rejects rows outside a reported selection and never fills missing
+accounts or rules.
+
+Validation, preparation and execution derive a distinct selection from the
+voucher's own rows; execution derives it from the immutable stored proposal.
+They read `/3/accounts/{Number}` with explicit fiscal year rather than relying on
+the potentially partial list response. The detail response must match both
+requested number and year. Company/grant/generation checks apply before and
+after provider I/O. Missing/unknown requirements and `validation_verified=false`
+still block validation. More than 20 distinct accounts is outside this bounded
+retrieval profile, even though a voucher may contain up to 100 rows.

@@ -34,7 +34,7 @@ it("accounting operation evidence pins source and keeps partial live evidence un
     const bytes = readFileSync(new URL(`../../${path}`, import.meta.url));
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(hash);
   }
-  expect(new Set(ledger.operations.map((o) => o.localId)).size).toBe(8);
+  expect(new Set(ledger.operations.map((o) => o.localId)).size).toBe(9);
   for (const operation of ledger.operations) {
     expect(operation.status).toBe("implemented_unverified");
     expect(operation.supported).toBe(false);

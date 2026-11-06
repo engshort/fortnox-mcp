@@ -102,3 +102,11 @@ Read pagination and filters are endpoint-specific. The global parameter guide do
 Classify by behavior, not HTTP verb: `/3/invoices/{DocumentNumber}/email` and `/eprint` are GET operations with external effects. PDF/print/reminder behavior must also be verified before assigning read-only status.
 
 Use `readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint` accurately. Bounded private-account reads are not automatically open-world merely because Fortnox is hosted remotely. Sending to external recipients is open-world; retry safety must be proved per operation. See [sources](../reference/sources.md).
+
+### Selected accounting references
+
+`get_accounting_references` accepts optional `account_numbers` (1–20 distinct
+integers, 1000–9999). No provider URL, implicit account or company is accepted.
+Its output echoes the sorted `account_numbers` when present; completeness then
+covers that selection, not the entire chart. Without it, existing bounded list
+behavior is preserved. This read adds no approval or financial write capability.

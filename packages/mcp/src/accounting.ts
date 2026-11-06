@@ -5,6 +5,7 @@ import {
   type Bookkeeping,
   DomainError,
   proposalReference,
+  referenceAccountNumbers,
   reviewCommitInput,
   voucherInput,
 } from "@fortnox-mcp/core";
@@ -44,6 +45,7 @@ export const referencesOutput = z
     financial_year: z.number().int(),
     retrieved_at: z.number().int(),
     complete: z.boolean(),
+    account_numbers: referenceAccountNumbers.optional(),
     validation_verified: z.boolean(),
     year: z
       .object({ id: z.number().int(), from: z.string(), to: z.string() })
@@ -254,11 +256,12 @@ export function registerAccounting(
     {
       title: "Read company accounting references",
       description:
-        "Read bounded accounts, fiscal year, series, locked period and dimensions for an explicit company/year. Incomplete or unverified references cannot validate a booking.",
+        "Read bounded accounts, fiscal year, series, locked period and dimensions for an explicit company/year. Optional account_numbers selects at most 20 explicit accounts using detail reads; completeness then covers that selection. Incomplete or unverified references cannot validate a booking.",
       inputSchema: z
         .object({
           company_id: z.string().uuid(),
           financial_year: z.number().int().positive().safe(),
+          account_numbers: referenceAccountNumbers.optional(),
         })
         .strict(),
       outputSchema: refsSchema,
@@ -267,7 +270,12 @@ export function registerAccounting(
     },
     (input) =>
       reply(refsSchema, input.company_id, () =>
-        service.references(who(), input.company_id, input.financial_year),
+        service.references(
+          who(),
+          input.company_id,
+          input.financial_year,
+          input.account_numbers,
+        ),
       ),
   );
   server.registerResource(

@@ -81,6 +81,18 @@ som `UNKNOWN`. Ett lyckat läsanrop är därför ännu inte ett godkänt
 bokföringsunderlag. Förslagsflödet kräver fullständiga, verifierade regler för
 de konton som används. Operatörsprovet ersätter inte ett nytt prov i ChatGPT.
 
+För ett uttryckligt kontourval kan `get_accounting_references` ta
+`account_numbers` med 1–20 olika kontonummer. Ange endast konton som faktiskt
+har valts för underlaget. Servern läser då kontodetaljer och redovisar urvalet i
+svaret. `complete=true` gäller det urvalet och övriga referenser, inte hela
+kontoplanen. Utan urval finns den tidigare begränsade listläsningen kvar.
+
+Validering och förberedelse väljer själva de konton som anges i raderna;
+exekvering använder kontona i det sparade, oföränderliga förslaget. Högst 20
+olika konton kan användas i denna avgränsade profil. Okända regler och ännu
+inte verifierade finansiella krav blockerar fortfarande bokföring. Uppdatera
+verktygslistan efter deployment för att se det valfria kontourvalet.
+
 Om ett Fortnox-svar har oväntad struktur returneras `UPSTREAM_UNAVAILABLE`
 med operationens fasta felorsak och säkra fältnamn i `fields`. Det behöver
 utredas av operatören; byt inte företag eller års-ID för att försöka komma

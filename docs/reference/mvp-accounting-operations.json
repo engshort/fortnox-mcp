@@ -4,12 +4,12 @@
   "reviewedAt": "2026-11-06",
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
-    "packages/core/src/accounting.ts": "b9b1806825158ee2d7a58e4cbe39e1eee054b8b1ce49609f9244c5349a29da4d",
-    "packages/core/src/bookkeeping.ts": "94b23a4192c62c457717118fe77a2b801c5b4f220726ab817334f97dfd534551",
+    "packages/core/src/accounting.ts": "f56664bc56645e404d8fe51e92e8a0f4c2bec05e6ee92058ec198d42b6b74efb",
+    "packages/core/src/bookkeeping.ts": "dc1967111adff4e60eee2c967abe47c675aee99ce1f5ea5c375aa568a8601a22",
     "packages/core/src/connections.ts": "162fdd66d91550d9004ac89bfeee8a1bb583063694cf4c4702ee641c9d6b74d7",
-    "packages/fortnox/src/accounting.ts": "7c242e3827da6ddbfdcdac9f8e0140a746befcfb76b8bef0812d4d25725e6d29",
-    "packages/fortnox/src/http.ts": "d0014c0ed1eb7482b4f0af985791f3aee599ec1a8e48e6b193f951781a1f2131",
-    "packages/mcp/src/accounting.ts": "e30e072ab77534c687689bd2b489733193d0bf4a9e1b5da4d20432681e0d61ee",
+    "packages/fortnox/src/accounting.ts": "6d680a9de5388e6ba09898b95522a339c3da541241013ae09652bbfb3fd1f9ad",
+    "packages/fortnox/src/http.ts": "3680dc912c40998d5217d7d67648f5c734e476df04e2bf669eafc1b5a5eb8ff9",
+    "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
   },
   "gates": {
@@ -127,6 +127,55 @@
         "accountListInformationSettingOptional": true,
         "namedMandatoryRule": "MANDATORY"
       }
+    },
+    {
+      "localId": "account",
+      "upstreamOperationId": "AccountController_doShow",
+      "method": "GET",
+      "path": "/3/accounts/{Number}",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "Number": "explicit integer 1000\u20139999; at most 20 distinct selected accounts per reference call",
+        "pagination": "not accepted on detail reads"
+      },
+      "responseEnvelope": "Account",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting-selection.ts",
+        "tests/shared/provider.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "actual selected account responses in both authorized test companies",
+        "negative provider scope/license/user permissions",
+        "applicable financial validation and client evidence"
+      ],
+      "activation": "same default-off reference gate; financial writes and verified review host remain hard-disabled",
+      "unverifiedInformationRule": "Numeric, omitted or null information settings are UNKNOWN and block financial validation; provider MANDATORY normalizes to internal REQUIRED.",
+      "sourceObservation": {
+        "kind": "user_supplied_openapi",
+        "sha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+        "reviewedAt": "2026-11-06",
+        "acquisitionUrl": null,
+        "redistributed": false,
+        "accountListInformationSettingOptional": true,
+        "namedMandatoryRule": "MANDATORY"
+      },
+      "responseFields": "Number/Year/Active and named CostCenterSettings/ProjectSettings/TransactionInformationSettings; missing or numeric information stays UNKNOWN"
     },
     {
       "localId": "voucher_series",
