@@ -4,10 +4,10 @@
   "reviewedAt": "2026-11-06",
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
-    "packages/core/src/accounting.ts": "f56664bc56645e404d8fe51e92e8a0f4c2bec05e6ee92058ec198d42b6b74efb",
+    "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
     "packages/core/src/bookkeeping.ts": "dc1967111adff4e60eee2c967abe47c675aee99ce1f5ea5c375aa568a8601a22",
     "packages/core/src/connections.ts": "162fdd66d91550d9004ac89bfeee8a1bb583063694cf4c4702ee641c9d6b74d7",
-    "packages/fortnox/src/accounting.ts": "6d680a9de5388e6ba09898b95522a339c3da541241013ae09652bbfb3fd1f9ad",
+    "packages/fortnox/src/accounting.ts": "020bd2e4d45257d08446324955944e0404736f59cc2b5b3e22e8a0b729838f0e",
     "packages/fortnox/src/http.ts": "3680dc912c40998d5217d7d67648f5c734e476df04e2bf669eafc1b5a5eb8ff9",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
@@ -24,7 +24,7 @@
   "operations": [
     {
       "localId": "financial_years",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "FinancialYearController_doIndex",
       "method": "GET",
       "path": "/3/financialyears",
       "status": "implemented_unverified",
@@ -69,11 +69,12 @@
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
       "discoveryTool": "list_financial_years",
-      "responseFields": "FinancialYears: Id/FromDate/ToDate; MetaInformation: @CurrentPage/@TotalPages/@TotalResources"
+      "responseFields": "FinancialYears: Id/FromDate/ToDate; MetaInformation: @CurrentPage/@TotalPages/@TotalResources",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "accounts",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "AccountController_doIndex",
       "method": "GET",
       "path": "/3/accounts",
       "status": "implemented_unverified",
@@ -126,7 +127,8 @@
         "redistributed": false,
         "accountListInformationSettingOptional": true,
         "namedMandatoryRule": "MANDATORY"
-      }
+      },
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "account",
@@ -164,7 +166,13 @@
         "serverCommit": "1e8c38b9c8dbb9e642d26566397c323f32c15cb9",
         "runtime": "hosted workerd/D1",
         "boundary": "one-use operator capability, current durable owner/company grant and internal MCP; not product OAuth or ChatGPT UI",
-        "result": "two actual selected details per company; complete selected references; no unknown information rules; financial verification remains false"
+        "result": "two actual selected details per company; complete selected references; no unknown information rules; financial verification remains false",
+        "clientRecheck": {
+          "observedAt": "2026-11-06T14:12:00+01:00",
+          "observer": "owner-reported actual ChatGPT app",
+          "serverCommit": "49061ffff53b9e02ce19a438ffcc571c9ec2341a",
+          "result": "two selected details per company, complete=true, no unknown rules, validation_verified=false; no writes"
+        }
       },
       "missingEvidence": [
         "negative provider scope/license/user permissions",
@@ -181,11 +189,12 @@
         "accountListInformationSettingOptional": true,
         "namedMandatoryRule": "MANDATORY"
       },
-      "responseFields": "Number/Year/Active and named CostCenterSettings/ProjectSettings/TransactionInformationSettings; missing or numeric information stays UNKNOWN"
+      "responseFields": "Number/Year/Active and named CostCenterSettings/ProjectSettings/TransactionInformationSettings; missing or numeric information stays UNKNOWN",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "voucher_series",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "VoucherSeriesController_doIndex",
       "method": "GET",
       "path": "/3/voucherseries",
       "status": "implemented_unverified",
@@ -228,11 +237,12 @@
         "actual product ChatGPT reference recheck on this revision",
         "actual precision/lock/row semantics where applicable"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "locked_period",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "LockedPeriodSettingsController_doShow",
       "method": "GET",
       "path": "/3/settings/lockedperiod",
       "status": "implemented_unverified",
@@ -275,11 +285,12 @@
         "actual product ChatGPT reference recheck on this revision",
         "actual precision/lock/row semantics where applicable"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "cost_centers",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "CostCenterController_doIndex",
       "method": "GET",
       "path": "/3/costcenters",
       "status": "implemented_unverified",
@@ -322,11 +333,12 @@
         "actual product ChatGPT reference recheck on this revision",
         "actual precision/lock/row semantics where applicable"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "projects",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "ProjectsController_doIndex",
       "method": "GET",
       "path": "/3/projects",
       "status": "implemented_unverified",
@@ -369,11 +381,12 @@
         "actual product ChatGPT reference recheck on this revision",
         "actual precision/lock/row semantics where applicable"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "voucher_read",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "VoucherController_doShow",
       "method": "GET",
       "path": "/3/vouchers/{series}/{number}",
       "status": "implemented_unverified",
@@ -408,11 +421,12 @@
         "actual precision/lock/row semantics where applicable",
         "applicable product ChatGPT/runtime evidence"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     },
     {
       "localId": "voucher_create",
-      "upstreamOperationId": null,
+      "upstreamOperationId": "VoucherController_doCreate",
       "method": "POST",
       "path": "/3/vouchers",
       "status": "implemented_unverified",
@@ -447,7 +461,9 @@
         "actual precision/lock/row semantics where applicable",
         "applicable product ChatGPT/runtime evidence"
       ],
-      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
+      "wireRepresentation": "Debit/Credit: exact fixed-point JSON numeric lexemes; TransactionInformation <=100 characters; Description <=200; live financial acceptance pending",
+      "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     }
   ]
 }

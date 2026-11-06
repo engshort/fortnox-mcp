@@ -648,6 +648,106 @@ export function accountingTransportContract(
     ).rejects.toThrow("COMPANY_FORBIDDEN");
     expect(urls).toHaveLength(count);
   }, 15000);
+  it("voucher wire amounts are exact JSON numbers, escaped text stays text and oversized information cannot dispatch", async () => {
+    const f = await accountingFixture(await fixture());
+    const sent: string[] = [];
+    let dispatches = 0;
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async (input) => {
+        sent.push(await (input as Request).text());
+        return Response.json(
+          { Voucher: { Year: 7, VoucherNumber: 1, VoucherSeries: "A" } },
+          { status: 201 },
+        );
+      },
+    });
+    const adapter = new FortnoxAccounting(f.connections, provider, f.gates);
+    const information = "x".repeat(100);
+    const description = 'Synthetic "Debit":123.45 text';
+    const voucher = {
+      ...f.voucher,
+      description,
+      rows: [
+        {
+          account: 1930,
+          debit: "999999999999.99",
+          credit: "0",
+          information,
+          cost_center: "CENTER_A",
+          project: "PROJECT_A",
+        },
+        { account: 4000, debit: "0", credit: "999999999999.99" },
+      ],
+    };
+    expect(
+      await adapter.submit(f.actor, voucher, async () => {
+        dispatches++;
+      }),
+    ).toMatchObject({ state: "succeeded" });
+    const body = sent[0];
+    if (body === undefined) throw new Error("Missing synthetic request body");
+    expect(body).toContain('"Debit":999999999999.99');
+    expect(body).toContain('"Credit":999999999999.99');
+    const decoded = parseExactProviderJson(body) as {
+      Voucher: {
+        Description: string;
+        VoucherRows: Array<{
+          Debit: string;
+          Credit: string;
+          TransactionInformation?: string;
+        }>;
+      };
+    };
+    expect(decoded.Voucher.Description).toBe(description);
+    expect(
+      decoded.Voucher.VoucherRows.map((row) => [row.Debit, row.Credit]),
+    ).toEqual([
+      ["999999999999.99", "0.00"],
+      ["0.00", "999999999999.99"],
+    ]);
+    expect(decoded.Voucher.VoucherRows[0]?.TransactionInformation).toBe(
+      information,
+    );
+    const native = JSON.parse(body) as {
+      Voucher: { VoucherRows: Array<{ Debit: unknown; Credit: unknown }> };
+    };
+    expect(
+      native.Voucher.VoucherRows.every(
+        (row) =>
+          typeof row.Debit === "number" && typeof row.Credit === "number",
+      ),
+    ).toBe(true);
+    for (const bad of [
+      {
+        ...voucher,
+        rows: voucher.rows.map((row) => ({
+          ...row,
+          information: "x".repeat(101),
+        })),
+      },
+      {
+        ...voucher,
+        rows: voucher.rows.map((row) => ({ ...row, debit: "0.001" })),
+      },
+      {
+        ...voucher,
+        rows: voucher.rows.map((row) => ({
+          ...row,
+          debit: '0},"Injected":true',
+        })),
+      },
+    ])
+      await expect(
+        adapter.submit(f.actor, bad, async () => {
+          dispatches++;
+        }),
+      ).rejects.toThrow();
+    expect(sent).toHaveLength(1);
+    expect(dispatches).toBe(1);
+  });
   it("the fixed voucher POST is sent once for 401/403/429/5xx, redirects and lost responses; no unsafe retry", async () => {
     const f = await accountingFixture(await fixture());
     let status = 201;

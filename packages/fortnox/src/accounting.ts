@@ -145,6 +145,26 @@ function parseReferenceResponse<T>(
   );
 }
 
+// Only validated fixed-point decimals become JSON number tokens. All other
+// fields use JSON.stringify; never parse monetary values through binary Number.
+function voucherRequestBody(voucher: VoucherInput): string {
+  const header = JSON.stringify({
+    Description: voucher.description,
+    TransactionDate: voucher.date,
+    VoucherSeries: voucher.series,
+  });
+  const rows = voucher.rows.map((row) => {
+    const fields = JSON.stringify({
+      Account: row.account,
+      ...(row.cost_center ? { CostCenter: row.cost_center } : {}),
+      ...(row.project ? { Project: row.project } : {}),
+      ...(row.information ? { TransactionInformation: row.information } : {}),
+    });
+    return `${fields.slice(0, -1)},"Debit":${parseAmount(row.debit, 2)},"Credit":${parseAmount(row.credit, 2)}}`;
+  });
+  return `{"Voucher":${header.slice(0, -1)},"VoucherRows":[${rows.join(",")}]}}`;
+}
+
 export class FortnoxAccounting implements AccountingProvider {
   readonly http: FortnoxHttp;
   constructor(
@@ -448,6 +468,7 @@ export class FortnoxAccounting implements AccountingProvider {
     );
     if (!this.gates.writes || !actor.scopes.includes("mcp:write") || c.readOnly)
       throw new DomainError("CAPABILITY_UNAVAILABLE");
+    const body = voucherRequestBody(voucher);
     const context = await this.context(actor, c.id, "voucher");
     // Pace and acquire credentials before marking the intent dispatched. No automatic POST retry.
     await this.http.permit(context, this.now() + 15000);
@@ -467,23 +488,7 @@ export class FortnoxAccounting implements AccountingProvider {
               accept: "application/json",
               "content-type": "application/json",
             },
-            body: JSON.stringify({
-              Voucher: {
-                Description: voucher.description,
-                TransactionDate: voucher.date,
-                VoucherSeries: voucher.series,
-                VoucherRows: voucher.rows.map((r) => ({
-                  Account: r.account,
-                  Debit: r.debit,
-                  Credit: r.credit,
-                  ...(r.cost_center ? { CostCenter: r.cost_center } : {}),
-                  ...(r.project ? { Project: r.project } : {}),
-                  ...(r.information
-                    ? { TransactionInformation: r.information }
-                    : {}),
-                })),
-              },
-            }),
+            body,
           },
         ),
       );

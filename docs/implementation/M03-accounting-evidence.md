@@ -277,6 +277,41 @@ it is not a product OAuth-transport or actual ChatGPT UI/review acceptance.
 #76/#93 retain financial and trusted-review acceptance. Production support and
 financial activation are unchanged.
 
+### Owner-reported actual ChatGPT selected read — 2026-11-06
+
+At **14:12 Europe/Stockholm**, the owner reported three successful calls in the
+actual updated ChatGPT app against deployed revision
+`49061ffff53b9e02ce19a438ffcc571c9ec2341a`: company discovery and one selected
+reference call for each of the two authorized companies. Each service/user path
+returned two requested accounts, `complete=true`, `validation_verified=false`
+and zero unknown rules. All six selected account-rule values per company were
+`ALLOWED`. No write was requested or performed. This is owner-reported actual
+client read evidence, separate from the directly observed hosted operator probe;
+it does not prove a human approval action, voucher validation or creation.
+
+## Voucher payload contract follow-up
+
+The privately supplied source describes voucher payload Debit/Credit as JSON
+numbers and TransactionInformation with a 100-character limit. The adapter had
+sent monetary strings and allowed row information up to 200 characters. The
+independently written serializer now emits exact fixed-point number lexemes;
+it never passes money through JavaScript Number. Domain/proposal decimal text
+is unchanged. Other fields use normal JSON string escaping, with no global
+replacement or template interpretation of caller text. The body is constructed
+before the provider dispatch claim.
+
+The shared voucher schema now rejects row information longer than 100
+characters before submission; it does not truncate content. The voucher-level
+description retains its distinct 200-character limit. Synthetic Node/workerd
+HTTP regressions inspect the real request body: large exact cents, numeric JSON
+types, canonical zero amounts, escaped text, boundary-length information and
+invalid precision/injection rejection without dispatch. Existing tests retain
+single-attempt writes and unknown-outcome handling across transport failures.
+Local verification: 96 Node/domain tests and 80 actual local workerd/D1 tests
+passed, together with typecheck/lint/build, six no-eval artifact tests, native
+Worker/CLI checks and Wrangler dry-run. No live financial write or provider
+precision acceptance is implied.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure

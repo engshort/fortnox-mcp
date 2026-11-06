@@ -29,7 +29,7 @@ export const voucherInput = z
             credit: z.string().max(32),
             cost_center: code.optional(),
             project: code.optional(),
-            information: z.string().trim().min(1).max(200).optional(),
+            information: z.string().trim().min(1).max(100).optional(),
           })
           .strict(),
       )

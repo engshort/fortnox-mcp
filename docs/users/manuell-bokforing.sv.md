@@ -134,3 +134,9 @@ Dokumentera privat innan gates kan stängas:
 
 Publicera endast redigerade resultat och begränsningar. #76/#92/#93 är
 evidenskrav; hela G06/G07 godkänns inte av milestone 3, grönt CI eller merge.
+
+Radens informationsfält får innehålla högst 100 tecken. Verifikationens
+beskrivning har en separat gräns på 200 tecken. För lång text avvisas innan
+bokföring; servern klipper inte texten. Belopp förblir exakta decimalsträngar i
+förslaget och skickas som exakta JSON-tal till Fortnox. Detta aktiverar inte
+bokföring eller ersätter mänsklig granskning.
