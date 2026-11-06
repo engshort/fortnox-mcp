@@ -1,4 +1,5 @@
 export { installationPage } from "./installation.js";
+export * from "./voucher-review.js";
 
 export function foundationPage(language: "sv" | "en" = "sv"): string {
   const title =
