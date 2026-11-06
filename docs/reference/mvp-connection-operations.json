@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-06",
+  "implementationCommit": "aaac9e6",
+  "scope": "milestone_2_connections_and_company_reads_only",
+  "sourceStrategy": "independent_implementation_no_vendored_or_generated_Fortnox_specification",
+  "externalSnapshotDistributed": false,
+  "sourceHashes": [
+    {
+      "path": "packages/fortnox/src/http.ts",
+      "sha256": "a46b5af5b2c25287aba8945961fa9ab24c0ac41c63b539d0991a47e73d403928",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/fortnox/src/connections.ts",
+      "sha256": "0cec43cc091a9dafcbc5de43385c86916bee6f0b7a83d571717d432328123be9",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/mcp/src/companies.ts",
+      "sha256": "ceba47a184cbe63c21382729ae8c9388170ec05eaf867333455e43ef18c4d58b",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "apps/shared/product.ts",
+      "sha256": "0a27fac962481d335935dc666dd57dacd9591dc65e6ed17c2185888c4ca220e3",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/core/src/connections.ts",
+      "sha256": "8b506a3d7a8afb851bb617b82f7c68b9acbdc2ad53544d13838e78ed82fee5da",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/core/src/errors.ts",
+      "sha256": "c37a5549b5fa52a108dab1dc2afc21509cde3c7cbba3c1a8cbb37eafe950a218",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "apps/shared/admin.ts",
+      "sha256": "92fa572eb43deb6c263670ee0be8883ccb5ee46d220fbb4ace4e926c52c83ca3",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "apps/node/src/product-recovery.ts",
+      "sha256": "2a7b4a20cb3ee9e38444c24e51f6b0999c72e0b8c76b17be4214960b874169db",
+      "kind": "independently_written_project_source"
+    }
+  ],
+  "rateLimitReference": "https://www.fortnox.se/developer/guides-and-good-to-know/rate-limits-for-fortnox-api",
+  "operations": [
+    {
+      "id": "fortnox_consent",
+      "method": "GET",
+      "origin": "https://apps.fortnox.se",
+      "path": "/oauth-v1/auth",
+      "scopes": [
+        "companyinformation",
+        "profile"
+      ],
+      "effect": "interactive_consent",
+      "authentication": "owner_admin_session_then_Fortnox_login",
+      "retry": "new_owner_started_flow_only",
+      "parameters": [
+        "client_id",
+        "redirect_uri",
+        "response_type",
+        "scope",
+        "state",
+        "access_type",
+        "code_challenge",
+        "code_challenge_method",
+        "account_type_service_only"
+      ],
+      "response": "exact_callback_code_state",
+      "references": [
+        "https://www.fortnox.se/developer/authorization/get-authorization-code"
+      ],
+      "tests": [
+        "tests/shared/fortnox-connections.ts",
+        "tests/shared/user-tokens.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    },
+    {
+      "id": "fortnox_code_exchange",
+      "method": "POST",
+      "origin": "https://apps.fortnox.se",
+      "path": "/oauth-v1/token",
+      "scopes": [
+        "companyinformation",
+        "profile"
+      ],
+      "effect": "token_issuance",
+      "authentication": "client_secret_basic_and_PKCE",
+      "retry": "never_replay_claimed_code",
+      "parameters": [
+        "grant_type=authorization_code",
+        "code",
+        "redirect_uri",
+        "code_verifier"
+      ],
+      "response": "oauth4webapi_validated_token_response",
+      "references": [
+        "https://www.fortnox.se/developer/authorization/get-authorization-code"
+      ],
+      "tests": [
+        "tests/shared/fortnox-connections.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    },
+    {
+      "id": "fortnox_service_token",
+      "method": "POST",
+      "origin": "https://apps.fortnox.se",
+      "path": "/oauth-v1/token",
+      "scopes": [
+        "companyinformation",
+        "profile"
+      ],
+      "effect": "token_issuance",
+      "authentication": "client_secret_basic_and_verified_TenantId",
+      "retry": "fenced_new_issuance_only",
+      "parameters": [
+        "grant_type=client_credentials",
+        "scope",
+        "TenantId_header"
+      ],
+      "response": "access_token_expires_in_scope_no_retained_refresh",
+      "references": [
+        "https://www.fortnox.se/developer/authorization/get-access-token-using-client-credentials"
+      ],
+      "tests": [
+        "tests/shared/fortnox-connections.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    },
+    {
+      "id": "fortnox_user_refresh",
+      "method": "POST",
+      "origin": "https://apps.fortnox.se",
+      "path": "/oauth-v1/token",
+      "scopes": [
+        "companyinformation",
+        "profile"
+      ],
+      "effect": "rotating_token_issuance",
+      "authentication": "client_secret_basic_and_encrypted_refresh_token",
+      "retry": "no_retry_after_dispatch_uncertainty",
+      "parameters": [
+        "grant_type=refresh_token",
+        "refresh_token"
+      ],
+      "response": "atomic_access_refresh_expiry_replacement",
+      "references": [
+        "https://www.fortnox.se/developer/authorization/get-refresh-token"
+      ],
+      "tests": [
+        "tests/shared/user-tokens.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    },
+    {
+      "id": "company_information",
+      "method": "GET",
+      "origin": "https://api.fortnox.se",
+      "path": "/3/companyinformation",
+      "scopes": [
+        "companyinformation"
+      ],
+      "effect": "private_read",
+      "authentication": "bearer_verified_connection",
+      "retry": "bounded_read_three_attempts_one_401_recovery",
+      "parameters": [],
+      "response": "CompanyInformation.DatabaseNumber_CompanyName_OrganizationNumber",
+      "references": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/authorization/get-access-token-using-client-credentials",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ],
+      "tests": [
+        "tests/shared/provider.ts",
+        "tests/shared/product-oauth.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    },
+    {
+      "id": "identity",
+      "method": "GET",
+      "origin": "https://api.fortnox.se",
+      "path": "/3/me",
+      "scopes": [
+        "profile"
+      ],
+      "effect": "private_read_unused_by_product_tools",
+      "authentication": "bearer_verified_connection",
+      "retry": "bounded_read_only",
+      "parameters": [],
+      "response": "not_exposed_no_owner_privilege_inference",
+      "references": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ],
+      "tests": [
+        "tests/shared/provider.ts"
+      ],
+      "status": "implemented_unverified",
+      "supported": false,
+      "testOnly": true,
+      "upstreamOperationId": null,
+      "rightsAndLicenses": "not_verified_for_product_two_tenant_scope; activation_blocked",
+      "sourcePaths": [
+        "packages/fortnox/src/http.ts",
+        "packages/fortnox/src/connections.ts",
+        "packages/mcp/src/companies.ts"
+      ],
+      "liveEvidence": null
+    }
+  ],
+  "localTools": [
+    {
+      "id": "list_companies",
+      "effect": "authorized_local_read"
+    },
+    {
+      "id": "get_connection_status",
+      "effect": "authorized_local_read"
+    },
+    {
+      "id": "get_company_profile",
+      "effect": "authorized_test_only_provider_read",
+      "providerOperation": "company_information"
+    }
+  ],
+  "laterMvpG06Issues": {
+    "references": 92,
+    "vouchers": 93,
+    "files": 94
+  },
+  "fullG06Issue": 36,
+  "sourceRightsIssue": 35,
+  "defaultEnabledProviderOperations": []
+}

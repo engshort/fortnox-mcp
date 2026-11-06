@@ -11,6 +11,8 @@
     "@fortnox-mcp/ui": "0.0.0",
     "zod": "4.6.7",
     "@modelcontextprotocol/sdk": "1.32.1",
-    "@cfworker/json-schema": "4.1.1"
+    "@cfworker/json-schema": "4.1.1",
+    "@fortnox-mcp/fortnox": "0.0.0",
+    "@modelcontextprotocol/server": "2.3.1"
   }
 }

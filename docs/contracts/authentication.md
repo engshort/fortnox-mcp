@@ -1,5 +1,9 @@
 # Authentication and company authorization
 
+The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup and password-reset requests are not exposed. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
+
+Reset issuance requires installation access. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form only redeems that private code through the maintained auth component, with exact Origin checks and admin-session revocation.
+
 Sources: [F01–F04, F06 in sources](../reference/sources.md). OAuth between the AI client and this server is separate from OAuth between this server and Fortnox.
 
 ## Identities

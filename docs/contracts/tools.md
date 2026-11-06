@@ -1,5 +1,7 @@
 # MCP tool and provider contract
 
+Milestone 2 adds implemented experimental `list_companies`, `get_connection_status` and test-only `get_company_profile` with strict schemas, durable authorization and structured errors. Profile execution remains disabled outside explicit two-tenant acceptance mode. See [evidence](../implementation/M02-connections-evidence.md).
+
 Most names below are proposed public contracts to finalize in S03. The opt-in
 [local documentation entry](../developer-tools.md) implements `search_api_docs`
 and `read_api_doc` plus `describe_api_operation`, with no provider operation. Other product tools remain
@@ -63,6 +65,7 @@ Continuation handles are owner/company/query-bound, bounded and expiring. A hand
 | --- | --- |
 | `AUTH_REQUIRED`, `RECONNECT_REQUIRED` | Authenticate/reconnect through the trusted flow |
 | `COMPANY_FORBIDDEN` | Caller is not authorized for the company; no provider call |
+| `CONNECTION_DISCONNECTED` | A previously authorized connection was explicitly disconnected; no profile or provider call. The old generation stays invalid after reconnection. |
 | `CAPABILITY_UNAVAILABLE` | Missing implementation, scope, license or provider rights; distinguish these causes |
 | `VALIDATION_FAILED` | Structured field/domain violations and remediation |
 | `REVIEW_REQUIRED`, `CLIENT_UNSUPPORTED` | Required approval cannot yet be completed |

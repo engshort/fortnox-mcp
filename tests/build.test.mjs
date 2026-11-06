@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import installation from "../dist/installation.js";
+import product from "../dist/product-worker.js";
 import worker from "../dist/worker.js";
 
 test("built docs entry serves guides without bundling an external specification", {
@@ -79,6 +80,92 @@ async function expectSyntheticResult(response) {
 
 test("bundled Worker runs with dynamic code generation disabled in Node", async () => {
   await expectSyntheticResult(await worker.fetch(syntheticRequest()));
+});
+
+test("built product Worker is disabled without explicit configuration", async () => {
+  assert.equal(
+    (
+      await product.fetch(
+        new Request("https://product.example.invalid/mcp"),
+        {},
+      )
+    ).status,
+    503,
+  );
+});
+
+test("built product Node entry migrates, bootstraps once and starts without provider access", {
+  timeout: 15000,
+}, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "built-product-"));
+  const port = "8797";
+  const child = spawn(
+    process.execPath,
+    [
+      "--disallow-code-generation-from-strings",
+      resolve("dist/product-node.js"),
+    ],
+    {
+      cwd: directory,
+      env: {
+        ...process.env,
+        PRODUCT_ENABLED: "true",
+        PUBLIC_ORIGIN: `http://127.0.0.1:${port}`,
+        PORT: port,
+        PRODUCT_DATABASE: join(directory, "product.sqlite"),
+        PRODUCT_MIGRATIONS_DIR: resolve("apps/worker/migrations"),
+        AUTH_SECRET: "synthetic-built-product-auth-secret",
+        CREDENTIAL_ACTIVE_KEY: "a",
+        CREDENTIAL_KEYS: JSON.stringify({
+          a: Buffer.alloc(32, 11).toString("base64"),
+        }),
+        MCP_REDIRECT_URIS: '["https://client.example.invalid/callback"]',
+        FORTNOX_TEST_MODE: "false",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  t.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      const exited = once(child, "exit");
+      child.kill("SIGTERM");
+      await exited;
+    }
+    await rm(directory, { recursive: true, force: true });
+  });
+  await Promise.race([
+    once(child.stdout, "data"),
+    once(child, "exit").then(() => {
+      throw new Error("Product exited before startup");
+    }),
+  ]);
+  const token = await readFile(join(directory, "bootstrap-code.txt"), "utf8");
+  const response = await fetch(`http://127.0.0.1:${port}/admin/bootstrap`, {
+    method: "POST",
+    headers: {
+      origin: `http://127.0.0.1:${port}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      token,
+      email: "built@example.invalid",
+      password: "Synthetic-built-password",
+    }),
+  });
+  assert.equal(response.status, 200);
+  const replay = await fetch(`http://127.0.0.1:${port}/admin/bootstrap`, {
+    method: "POST",
+    headers: {
+      origin: `http://127.0.0.1:${port}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      token,
+      email: "built@example.invalid",
+      password: "Synthetic-built-password",
+    }),
+  });
+  assert.equal(replay.status, 403);
 });
 
 test("bundled installation reports missing storage and keeps remote MCP disabled", async () => {

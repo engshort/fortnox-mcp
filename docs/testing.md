@@ -79,6 +79,10 @@ and the separately verified status of the repository setting.
 
 The [S01 workflow](../.github/workflows/s01-ci.yml), check `s01-offline`, independently runs the root locked install, typecheck, lint, Node/workerd tests, build and built-artifact tests. It preserves `s00-offline`; no repository protection setting is changed. The Worker tests run in actual **local workerd** with D1, and the Node suite additionally disposes/restarts workerd to check D1 persistence. The new hosted workflow passed on source commit `0655bfd` in [PR #8](https://github.com/alex-engvall/fortnox-mcp/pull/8), [S01 CI run 1](https://github.com/alex-engvall/fortnox-mcp/actions/runs/39123344680). The pinned Cloudflare testing toolchain includes a beta Miniflare release; successful local tests are not evidence for hosted runtime budgets.
 
+Root `test:build` keeps the original artifact suite under `--disallow-code-generation-from-strings`, then runs the [native product Worker consent test](../tests/product-worker-native.test.mjs) in actual isolated workerd/D1. The latter uses a synthetic outbound provider and exercises the default native fetch wiring, rather than replacing the product fetch function. Its Miniflare Node proxy requires code generation and runs in a separate harness; this does not change the Worker application's runtime restrictions. The local compatibility-date limit and live acceptance gap are recorded in [milestone 2 evidence](implementation/M02-connections-evidence.md).
+
+The native harness also restores D1/admin access after a wrong-key restart and verifies operator-issued recovery records through the actual reset endpoint. A second subprocess case checks the recovery CLI's private-file permissions and absence of capabilities/identity/secrets from stdout/stderr. Together these supplement the six original no-eval artifact cases; they do not execute a hosted user's browser.
+
 Later scopes add runtime/contract checks. Live Fortnox tests remain explicit
 opt-in jobs in a protected environment, never run on untrusted fork code with
 secrets. Do not expose tokens in artifacts or logs. Release artifacts and SBOMs
