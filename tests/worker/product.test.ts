@@ -2,9 +2,10 @@ import { env } from "cloudflare:workers";
 import stateSchema from "../../apps/worker/migrations/0002_product_state.sql?raw";
 import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
+import { connectionContract } from "../shared/connections.js";
 import { ownerContract } from "../shared/product-auth.js";
 
-ownerContract(async () => {
+async function fixture() {
   await env.DB.exec(stateSchema.replace(/\n/g, " "));
   if (
     !(await env.DB.prepare(
@@ -33,4 +34,6 @@ ownerContract(async () => {
     database: env.DB,
     state: d1State(env.DB),
   };
-});
+}
+ownerContract(fixture);
+connectionContract(async () => (await fixture()).state);

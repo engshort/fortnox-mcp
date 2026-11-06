@@ -1,20 +1,6 @@
-export interface StateRecord<T> {
-  version: number;
-  value: T;
-}
-export interface StateStore {
-  get<T>(space: string, id: string): Promise<StateRecord<T> | null>;
-  put<T>(
-    space: string,
-    id: string,
-    value: T,
-    expected: number | null,
-  ): Promise<boolean>;
-  list<T>(
-    space: string,
-    limit: number,
-  ): Promise<Array<{ id: string } & StateRecord<T>>>;
-}
+import type { StateRecord, StateStore } from "@fortnox-mcp/core";
+
+export type { StateRecord, StateStore } from "@fortnox-mcp/core";
 export interface StateSql {
   run(sql: string, values: readonly (string | number)[]): Promise<number>;
   all(

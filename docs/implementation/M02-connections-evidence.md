@@ -13,3 +13,11 @@ Run root `npm run typecheck`, `npm run lint`, `npm test`. The shared owner contr
 The operator command reads an ignored private JSON file, never credential arguments. Migrations must be applied first. `bootstrap` provisions only an empty installation; `reset` verifies the existing owner's email and writes the library-issued token privately. The command operates on local SQLite; D1 provisioning uses a reviewed, private conditional insert as described in the user guide. Never copy the probe's owner/grants into the product installation.
 
 Observed M01 checks (2026-11-06): root typecheck passed; three shared owner cases passed on Node/SQLite and three on local workerd/D1. Miniflare required loopback access outside the filesystem/network sandbox. Hosted acceptance was not run.
+
+## M03 — encrypted company connections (#57)
+
+The portable core owns the connection policy and vault. SQLite/D1 share one bounded JSON/CAS operational store. Each owner's connection set is limited to 20 companies and 128 KiB; reaching capacity fails explicitly. A single CAS enforces tenant uniqueness and atomic credential replacement. Company grants bind owner, client and connection generation. The model-supplied handle never establishes permission.
+
+AES-256-GCM uses a fresh 96-bit nonce and authenticated owner/company/generation/mode binding. Key IDs select external deployment keys; decrypt failures disclose no ciphertext or credentials. Rotation decrypts/re-encrypts a complete bounded snapshot and commits by CAS, retaining the previous snapshot on failure. Keep both keys until rotation and restore have been verified; remove the retired key afterward. Read-only and `review_required` are immutable defaults in this read-only milestone.
+
+Local checks cover A/B and owner isolation, duplicate tenants, wrong/missing keys, ciphertext binding, key rotation and persistence across recreated services. A separate Node test closes and reopens the actual SQLite file. No financial record replica is stored. Hosted backup/restore and the full M20 lifecycle remain later acceptance.

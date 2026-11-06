@@ -11,3 +11,9 @@ Operatören kör `node --import tsx scripts/product-operator.ts .data/operator.j
 För D1: skapa motsvarande engångskod privat, beräkna SHA-256 och sätt en tio minuters sluttid. Importera en granskad privat SQL-instruktion som endast infogar posten `installation`/`owner` i `product_state` om den inte finns (`ON CONFLICT DO NOTHING`), med version 1 och värdet `{phase:"ready",ownerId:"",tokenHash:<hash>,expiresAt:<UTC-millis>}`. Kontrollera att exakt en post skapades. Återanvänd aldrig en befintlig installations ägare eller hemligheter. Produktionskonton ingår inte i testet.
 
 Om bootstrap avbryts efter att koden förbrukats måste operatören utreda befintligt konto och tillstånd; starta inte om genom att radera ägaren. Glömt lösenord återställs genom en ny privat biblioteksgenererad kod, som gäller i tio minuter. Skicka den med det nya lösenordet till samma origins `/auth/reset-password`; koden kan användas en gång och tidigare adminsessioner återkallas. Ägaridentiteten bevaras. E-postutskick och offentlig registrering ingår inte.
+
+## Kryptering och företag
+
+Credentials krypteras med en extern 32-byte-nyckel (base64). Förvara nycklarna separat från databasen och dess backup. Varje nyckel har ett ID; behåll den gamla under en kontrollerad nyckelrotation och verifierad återställning. Saknad eller fel nyckel blockerar åtkomst.
+
+Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; samma Fortnox-tenant kan inte läggas till två gånger. Klientens företagsbehörigheter binds till aktuell anslutningsgeneration. Grundpolicyn är skrivskydd och obligatorisk granskning av framtida manuella verifikationer.
