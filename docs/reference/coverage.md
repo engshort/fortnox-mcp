@@ -18,6 +18,13 @@ provider/output schema errors from caller input errors. Diagnostics expose only
 bounded known field paths, never provider values. This establishes no financial
 rule mapping and promotes no operation to verified support.
 
+A further account-contract check against a privately supplied source snapshot
+handles optional information settings and normalizes the provider's named
+`MANDATORY` requirement to the internal `REQUIRED` rule. Absent/null/numeric
+information settings remain unknown and block financial validation. The local
+snapshot is reference input only; it is neither redistributed nor generated
+into product code. Actual reference acceptance remains open under #92.
+
 The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap, OAuth, encrypted connections, token lifecycles, disconnect/reconnect and three company tools with shared Node/workerd evidence. Provider operations remain disabled outside explicitly allowlisted test acceptance; the operation ledger distinguishes `implemented_unverified` from verified support.
 
 The built product Worker also has a native-fetch consent regression in isolated workerd/D1 with a synthetic outbound provider. It verifies runtime transport wiring separately from the injected domain transports and does not establish live Fortnox acceptance.

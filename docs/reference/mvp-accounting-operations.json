@@ -7,7 +7,7 @@
     "packages/core/src/accounting.ts": "b9b1806825158ee2d7a58e4cbe39e1eee054b8b1ce49609f9244c5349a29da4d",
     "packages/core/src/bookkeeping.ts": "94b23a4192c62c457717118fe77a2b801c5b4f220726ab817334f97dfd534551",
     "packages/core/src/connections.ts": "162fdd66d91550d9004ac89bfeee8a1bb583063694cf4c4702ee641c9d6b74d7",
-    "packages/fortnox/src/accounting.ts": "bf52c40733ba987de80e1ce37cc40191092252b00d8a6fde630c4113183147e7",
+    "packages/fortnox/src/accounting.ts": "7c242e3827da6ddbfdcdac9f8e0140a746befcfb76b8bef0812d4d25725e6d29",
     "packages/fortnox/src/http.ts": "d0014c0ed1eb7482b4f0af985791f3aee599ec1a8e48e6b193f951781a1f2131",
     "packages/mcp/src/accounting.ts": "e30e072ab77534c687689bd2b489733193d0bf4a9e1b5da4d20432681e0d61ee",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
@@ -101,7 +101,16 @@
         "applicable product ChatGPT/runtime evidence"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
-      "unverifiedInformationRule": "Numeric TransactionInformationSettings is shown as UNKNOWN; no semantic mapping, and unknown rules always block financial validation."
+      "unverifiedInformationRule": "Numeric, omitted or null information settings are UNKNOWN and block financial validation; provider MANDATORY normalizes to internal REQUIRED.",
+      "sourceObservation": {
+        "kind": "user_supplied_openapi",
+        "sha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+        "reviewedAt": "2026-11-06",
+        "acquisitionUrl": null,
+        "redistributed": false,
+        "accountListInformationSettingOptional": true,
+        "namedMandatoryRule": "MANDATORY"
+      }
     },
     {
       "localId": "voucher_series",
