@@ -4,6 +4,7 @@ import { afterEach } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
+import { accountingSelectionContract } from "../shared/accounting-selection.js";
 import { accountingTransportContract } from "../shared/accounting-transport.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
@@ -58,6 +59,7 @@ disconnectContract(async () => (await fixture()).state);
 maintenanceContract(async () => (await fixture()).state);
 accountingContract(async () => (await fixture()).state);
 accountingTransportContract(async () => (await fixture()).state);
+accountingSelectionContract(async () => (await fixture()).state);
 accountingMigrationContract(async () => {
   const { database } = await fixture();
   return {

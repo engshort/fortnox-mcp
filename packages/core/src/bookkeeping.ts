@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   type AccountingReferences,
   accountingHash,
+  referenceAccountNumbers,
   type VoucherInput,
   validateVoucher,
   voucherInput,
@@ -34,6 +35,7 @@ export interface AccountingProvider {
     actor: AccountingActor,
     company: string,
     year: number,
+    accountNumbers?: readonly number[],
   ): Promise<AccountingReferences>;
   submit(
     actor: AccountingActor,
@@ -130,12 +132,35 @@ export class Bookkeeping {
       throw new DomainError("COMPANY_FORBIDDEN");
     return result;
   }
-  async references(actor: AccountingActor, company: string, year: number) {
-    await this.authorize(actor, company);
+  async references(
+    actor: AccountingActor,
+    company: string,
+    year: number,
+    accountNumbers?: readonly number[],
+  ) {
+    const before = await this.authorize(actor, company);
     z.number().int().positive().safe().parse(year);
-    const refs = await this.provider.references(actor, company, year);
-    await this.authorize(actor, company);
-    if (refs.company_id !== company || refs.financial_year !== year)
+    const selected =
+      accountNumbers === undefined
+        ? undefined
+        : referenceAccountNumbers.parse(accountNumbers).sort((a, b) => a - b);
+    const refs = await this.provider.references(actor, company, year, selected);
+    const after = await this.authorize(actor, company);
+    if (
+      before.generation !== after.generation ||
+      refs.company_id !== company ||
+      refs.financial_year !== year
+    )
+      throw new DomainError("COMPANY_FORBIDDEN");
+    if (
+      refs.account_numbers &&
+      (!selected ||
+        JSON.stringify(
+          referenceAccountNumbers
+            .parse(refs.account_numbers)
+            .sort((a, b) => a - b),
+        ) !== JSON.stringify(selected))
+    )
       throw new DomainError("COMPANY_FORBIDDEN");
     return refs;
   }
@@ -178,7 +203,9 @@ export class Bookkeeping {
     if (c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     const validated = validateVoucher(
       value,
-      await this.references(actor, c.id, value.financial_year),
+      await this.references(actor, c.id, value.financial_year, [
+        ...new Set(value.rows.map((r) => r.account)),
+      ]),
       this.now(),
     );
     const hash = await accountingHash(validated.voucher);
@@ -246,6 +273,7 @@ export class Bookkeeping {
       actor,
       value.company_id,
       value.financial_year,
+      [...new Set(value.rows.map((r) => r.account))],
     );
     return validateVoucher(value, refs, this.now());
   }
@@ -320,7 +348,9 @@ export class Bookkeeping {
     // Current company-bound references immediately before the one durable claim.
     validateVoucher(
       voucher,
-      await this.references(actor, c.id, voucher.financial_year),
+      await this.references(actor, c.id, voucher.financial_year, [
+        ...new Set(voucher.rows.map((r) => r.account)),
+      ]),
       this.now(),
     );
     await this.connections.mutate(actor.ownerId, c.id, (current) => {

@@ -202,6 +202,81 @@ cases, and an actual ChatGPT reference recheck on this revision. #76/#93 and G02
 remain open for their independent financial and trusted-review acceptance.
 This evidence does not enable bookkeeping or claim that milestone 3 is complete.
 
+## Selected account detail follow-up
+
+The hosted list recheck established two independent limitations: a large account
+chart reaches the bounded collection limit, and list items omit transaction
+information settings. Raising the list limit cannot establish the missing rule.
+The private source snapshot separately describes `GET /3/accounts/{Number}`
+(`AccountController_doShow`, `Account` envelope) with named settings. This is a
+new independently written registered read operation, still default-disabled
+outside explicit reference-test activation; it is not generated from the input.
+
+Optional `account_numbers` selects 1–20 distinct accounts for detail reads under
+an explicit company/year. Output reports the exact sorted selection. Complete
+selected data is distinguished from a complete chart of accounts. Other required
+collections must also be complete. The selected detail collection has a shared
+15-second/256-KiB budget and existing 64-KiB response and durable client/tenant
+pacing limits. Exhausting time or aggregate bytes returns `complete=false`.
+A wrong returned account/year, changed grant/generation or disconnected company
+cannot disclose a successful result. Missing settings remain unknown.
+
+The shared domain service derives the selection from the voucher rows during
+validation and preparation, and from the immutable stored voucher immediately
+before execution. A caller cannot choose a narrower validation scope or supply
+rules. At most 20 distinct accounts may be used in this bounded profile; up to
+100 rows can reuse them. `validation_verified=false`, product `writes=false` and
+`reviewHost=false` are preserved. Account detail discovery alone cannot approve
+financial precision, locks, provider permissions or a human action.
+
+Shared Node/workerd tests cover full selected results beside a partial catalog,
+strict MCP input/output, both company token paths, unknown/mandatory settings,
+wrong identity/year, authorization before I/O, disconnect during I/O, time/size
+budgets and selection reuse by validation/preparation/commit. Local verification passed: 95 Node/domain tests, 79 actual local workerd/D1
+tests, typecheck/lint/build, six no-eval artifact checks, native Worker/CLI
+checks and Wrangler dry-run. An initial whole-suite run caught an output-schema
+transform that prevented MCP tool listing; sorting now happens in the domain
+service and the shared selection test explicitly lists tools before calling
+them. Live selected response evidence remains separate.
+
+The existing connector also successfully repeated the two bounded catalog reads
+on revision `e9f5a62` on 2026-11-06: both returned 500 accounts, `complete=false`
+and 500 unknown information settings. This exercises authenticated connected
+remote tool calls; it does not establish a human review or selected-detail
+behavior on this later implementation.
+
+### Actual selected-detail recheck — 2026-11-06
+
+At **13:02:56 UTC**, the short-lived operator probe exercised source
+`1e8c38b9c8dbb9e642d26566397c323f32c15cb9` in hosted workerd against the
+installation's D1. It selected two active account numbers actually returned by
+each company's catalog, solely for read-contract verification. It made no
+accounting/tax choice, created no proposal and performed no financial write.
+
+| Selected-reference observation | Service test company | User test company |
+| --- | --- | --- |
+| Account details returned / selected | 2 / 2 | 2 / 2 |
+| Complete selected reference bundle | `true` | `true` |
+| Unknown information rules in selected details | 0 | 0 |
+| Financial semantics verified | `false` | `false` |
+| Profile / year discovery | Passed / complete | Passed / complete |
+
+The read used named rules from detail responses, without mapping the catalog's
+missing/numeric information setting. Other required reference collections also
+completed. This establishes bounded positive detail behavior for those four
+reads, not all accounts or all financial semantics. Bearer fingerprints remained
+disjoint. A foreign-company request was denied with zero provider calls; the
+internal missing-scope check also failed closed. The one-use operator endpoint
+and nonce were removed, and the local capability file deleted.
+
+Probe bundle SHA-256:
+`e5e008934b14f4ccbedc88b9f0b74aa987e293c614eb898dcc036122ba7e186e`.
+This probe uses current durable owner/company grants and an internal MCP client;
+it is not a product OAuth-transport or actual ChatGPT UI/review acceptance.
+#92 retains negative provider scope/license/user and applicable lock/year cases;
+#76/#93 retain financial and trusted-review acceptance. Production support and
+financial activation are unchanged.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure

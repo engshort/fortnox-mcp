@@ -66,7 +66,10 @@ established; no license is declared. This does not replace the older source lock
 approve G05/#35, or establish live behavior. Its account-list contract makes
 transaction-information settings optional; named account requirements use
 `MANDATORY`. These facts inform independently written parsing and synthetic
-tests, with unknown numeric semantics still blocked. No source copy or generated
+tests, with unknown numeric semantics still blocked. Its separate account-detail
+contract identifies `AccountController_doShow` (`GET /3/accounts/{Number}`,
+`Account` envelope), with named transaction-information settings. This supports
+an independently implemented selected-account read, not inferred numeric rules. No source copy or generated
 implementation is distributed.
 
 See [source-lock.json](source-lock.json). It was analyzed locally; no live Fortnox requests were made. The source file is not redistributed here because no license field establishes redistribution terms. Resource counts and original classifications are recorded in [resource-inventory.json](resource-inventory.json).

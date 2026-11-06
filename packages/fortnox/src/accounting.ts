@@ -8,6 +8,7 @@ import {
   type Connections,
   DomainError,
   parseAmount,
+  referenceAccountNumbers,
   type SubmitResult,
   type VoucherInput,
   type VoucherReference,
@@ -95,6 +96,7 @@ const responseFieldNames = new Set([
   "@TotalPages",
   "@TotalResources",
   "Number",
+  "Account",
   "Active",
   "Year",
   "CostCenterSettings",
@@ -170,6 +172,7 @@ export class FortnoxAccounting implements AccountingProvider {
     const required = {
       financial_years: "bookkeeping",
       accounts: "bookkeeping",
+      account: "bookkeeping",
       voucher_series: "bookkeeping",
       locked_period: "settings",
       cost_centers: "costcenter",
@@ -285,8 +288,13 @@ export class FortnoxAccounting implements AccountingProvider {
     actor: AccountingActor,
     company: string,
     financialYear: number,
+    accountNumbers?: readonly number[],
   ): Promise<AccountingReferences> {
     z.number().int().positive().safe().parse(financialYear);
+    const selectedAccounts =
+      accountNumbers === undefined
+        ? undefined
+        : referenceAccountNumbers.parse(accountNumbers).sort((a, b) => a - b);
     const retrievedAt = this.now();
     const years = await this.years(actor, company);
     const selected = years.years.filter((y) => y.id === financialYear);
@@ -295,14 +303,21 @@ export class FortnoxAccounting implements AccountingProvider {
         "CAPABILITY_UNAVAILABLE",
         "financial_year_missing_or_ambiguous",
       );
-    const accounts = await this.list(
-      actor,
-      company,
-      financialYear,
-      "accounts",
-      "Accounts",
-      account,
-    );
+    const accounts = selectedAccounts
+      ? await this.selectedAccounts(
+          actor,
+          company,
+          financialYear,
+          selectedAccounts,
+        )
+      : await this.list(
+          actor,
+          company,
+          financialYear,
+          "accounts",
+          "Accounts",
+          account,
+        );
     const seriesList = await this.list(
       actor,
       company,
@@ -354,6 +369,7 @@ export class FortnoxAccounting implements AccountingProvider {
       complete: [years, accounts, seriesList, costCenters, projects].every(
         (r) => r.complete,
       ),
+      ...(selectedAccounts ? { account_numbers: selectedAccounts } : {}),
       year: { id: y.id, from: y.from, to: y.to },
       locked_through: lock.LockedPeriod.EndDate || null,
       // Actual lock/precision/row rules require the dated G06/G07 evidence packet.
@@ -375,6 +391,49 @@ export class FortnoxAccounting implements AccountingProvider {
         active: d.Status === "ONGOING",
       })),
     };
+  }
+  private async selectedAccounts(
+    actor: AccountingActor,
+    company: string,
+    financialYear: number,
+    numbers: number[],
+  ) {
+    const ctx = await this.context(actor, company, "account");
+    const until = this.now() + 15000;
+    const items: z.infer<typeof account>[] = [];
+    let bytes = 0;
+    for (const number of numbers) {
+      if (this.now() >= until) break;
+      let raw: unknown;
+      try {
+        raw = await this.http.read(
+          ctx,
+          "account",
+          { financialYear, accountNumber: number },
+          until,
+        );
+      } catch (error) {
+        if (
+          error instanceof ProviderError &&
+          error.code === "RATE_LIMITED" &&
+          error.reason === "read_budget"
+        )
+          break;
+        throw error;
+      }
+      if (this.now() >= until) break;
+      bytes += new TextEncoder().encode(JSON.stringify(raw)).length;
+      if (bytes > 262144) break;
+      const item = parseReferenceResponse(
+        z.object({ Account: account }),
+        raw,
+        "account",
+      ).Account;
+      if (item.Number !== number || item.Year !== financialYear)
+        throw new DomainError("COMPANY_FORBIDDEN");
+      items.push(item);
+    }
+    return { items, complete: items.length === numbers.length };
   }
   async submit(
     actor: AccountingActor,
