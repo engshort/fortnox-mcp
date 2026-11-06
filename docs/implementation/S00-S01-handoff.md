@@ -1,5 +1,11 @@
 # S00/S01 verification status and handoff
 
+**2026-11-05 update:** the maintenance implementation is now deployed to the
+existing isolated Worker with its original bindings and database preserved.
+See the [dated deployment and local checks](S00-hosted-maintenance-2026-11-05.md).
+Actual ChatGPT acceptance remains open. The historical baseline below describes
+the earlier run; its "not deployed" statements no longer describe this update.
+
 Recorded **2026-10-18** for [draft PR #11](https://github.com/alex-engvall/fortnox-mcp/pull/11).
 **S00 is partially verified; the S01 foundation is implemented, with final
 acceptance still open.** No installable Fortnox integration or production
