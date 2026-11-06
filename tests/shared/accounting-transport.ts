@@ -1,4 +1,9 @@
-import { Bookkeeping, type StateStore } from "@fortnox-mcp/core";
+import {
+  AccountingValidationError,
+  Bookkeeping,
+  type StateStore,
+  validateVoucher,
+} from "@fortnox-mcp/core";
 import {
   FortnoxAccounting,
   FortnoxConnections,
@@ -7,11 +12,194 @@ import {
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { expect, it } from "vitest";
 import { companyServer } from "../../packages/mcp/src/companies.js";
-import { accountingFixture } from "./accounting.js";
+import { accountingFixture, syntheticReferences } from "./accounting.js";
 
 export function accountingTransportContract(
   fixture: () => Promise<StateStore>,
 ) {
+  it("numeric account information rules stay unknown and provider response failures are classified and redacted through MCP", async () => {
+    const f = await accountingFixture(await fixture());
+    let information: unknown = 0;
+    let lock = "2025-12-31";
+    let requests = 0;
+    const marker = "synthetic-private-provider-value";
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async (input) => {
+        requests++;
+        const url = new URL((input as Request).url);
+        const refs = syntheticReferences(f.a.id);
+        const payload: Record<string, unknown> = {
+          "/3/financialyears": {
+            FinancialYears: [
+              { Id: 7, FromDate: refs.year.from, ToDate: refs.year.to },
+            ],
+          },
+          "/3/accounts": {
+            Accounts: refs.accounts.map((a) => ({
+              Number: a.number,
+              Active: a.active,
+              Year: 7,
+              CostCenterSettings: a.cost_center,
+              ProjectSettings: a.project,
+              TransactionInformationSettings: information,
+            })),
+          },
+          "/3/voucherseries": {
+            VoucherSeriesCollection: [{ Code: "A", Manual: true, Year: 7 }],
+          },
+          "/3/costcenters": { CostCenters: [] },
+          "/3/projects": { Projects: [] },
+          "/3/settings/lockedperiod": { LockedPeriod: { EndDate: lock } },
+        };
+        return Response.json({
+          ...(payload[url.pathname] as object),
+          MetaInformation: { "@CurrentPage": 1, "@TotalPages": 1 },
+        });
+      },
+    });
+    const adapter = new FortnoxAccounting(f.connections, provider, f.gates);
+    const service = new Bookkeeping(f.connections, adapter, f.gates);
+    const refs = await service.references(f.actor, f.a.id, 7);
+    expect(refs.complete).toBe(true);
+    expect(refs.validation_verified).toBe(false);
+    expect(refs.accounts.map((a) => a.information)).toEqual([
+      "UNKNOWN",
+      "UNKNOWN",
+    ]);
+    try {
+      validateVoucher(
+        f.voucher,
+        { ...refs, validation_verified: true },
+        Date.now(),
+      );
+      throw new Error("Unknown rules must block validation");
+    } catch (cause) {
+      expect(cause).toBeInstanceOf(AccountingValidationError);
+      expect((cause as AccountingValidationError).fields).toContainEqual({
+        path: "rows.0.information",
+        rule: "unknown_dimension_rule",
+      });
+    }
+    const server = companyServer({
+      identity: f.actor,
+      connections: f.connections,
+      provider,
+      testMode: true,
+      bookkeeping: service,
+    });
+    const client = new Client({
+      name: "synthetic-reference-client",
+      version: "0",
+    });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    await client.connect(b);
+    try {
+      const read = () =>
+        client.callTool({
+          name: "get_accounting_references",
+          arguments: { company_id: f.a.id, financial_year: 7 },
+        });
+      const ok = await read();
+      expect(ok.isError).not.toBe(true);
+      expect(JSON.stringify(ok.structuredContent)).toContain(
+        '"information":"UNKNOWN"',
+      );
+      information = marker;
+      const bad = await read();
+      expect(bad.isError).toBe(true);
+      expect(bad.structuredContent).toMatchObject({
+        status: "error",
+        error: {
+          code: "UPSTREAM_UNAVAILABLE",
+          reason: "invalid_accounts_response",
+          provider_code: null,
+          fields: [
+            {
+              path: "accounts.*.TransactionInformationSettings",
+              rule: "provider_contract",
+            },
+          ],
+        },
+      });
+      expect(JSON.stringify(bad)).not.toContain(marker);
+      information = 0;
+      lock = marker;
+      const badLock = await read();
+      expect(badLock.structuredContent).toMatchObject({
+        error: {
+          code: "UPSTREAM_UNAVAILABLE",
+          reason: "invalid_locked_period_response",
+          fields: [
+            {
+              path: "locked_period.LockedPeriod.EndDate",
+              rule: "provider_contract",
+            },
+          ],
+        },
+      });
+      expect(JSON.stringify(badLock)).not.toContain(marker);
+      const before = requests;
+      const invalidInput = await client.callTool({
+        name: "get_accounting_references",
+        arguments: { company_id: f.a.id, financial_year: "7" },
+      });
+      expect(invalidInput.isError).toBe(true);
+      expect(requests).toBe(before);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  }, 15000);
+  it("a malformed internal result is never reported as invalid caller input", async () => {
+    const f = await accountingFixture(await fixture());
+    f.provider.references = async (_actor, company) => ({
+      ...syntheticReferences(company),
+      complete: "true" as unknown as boolean,
+    });
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async () => {
+        throw new Error("No provider I/O");
+      },
+    });
+    const server = companyServer({
+      identity: f.actor,
+      connections: f.connections,
+      provider,
+      testMode: true,
+      bookkeeping: f.service,
+    });
+    const client = new Client({
+      name: "synthetic-result-client",
+      version: "0",
+    });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    await client.connect(b);
+    try {
+      const result = await client.callTool({
+        name: "get_accounting_references",
+        arguments: { company_id: f.a.id, financial_year: 7 },
+      });
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toMatchObject({
+        error: {
+          code: "UPSTREAM_UNAVAILABLE",
+          reason: "invalid_tool_result",
+          fields: [],
+        },
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
   it("MCP discovers company-specific year IDs under read-only policy without guessing a year or sending unauthorized requests", async () => {
     const f = await accountingFixture(await fixture());
     const requests: Request[] = [];

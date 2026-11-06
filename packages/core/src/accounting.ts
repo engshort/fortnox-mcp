@@ -60,7 +60,7 @@ export interface AccountingReferences {
   cost_centers: Array<{ code: string; active: boolean }>;
   projects: Array<{ code: string; active: boolean }>;
 }
-export type DimensionRule = "REQUIRED" | "ALLOWED" | "NOTALLOWED";
+export type DimensionRule = "REQUIRED" | "ALLOWED" | "NOTALLOWED" | "UNKNOWN";
 export class AccountingValidationError extends DomainError {
   constructor(readonly fields: ReadonlyArray<{ path: string; rule: string }>) {
     super("VALIDATION_FAILED");
