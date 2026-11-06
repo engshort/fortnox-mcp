@@ -4,6 +4,7 @@ import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { connectionContract } from "../shared/connections.js";
+import { disconnectContract } from "../shared/disconnect.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
@@ -62,3 +63,5 @@ providerContract(async () => (await fixture()).state);
 fortnoxConnectionContract(async () => (await fixture()).state);
 
 userTokenContract(async () => (await fixture()).state);
+
+disconnectContract(async () => (await fixture()).state);

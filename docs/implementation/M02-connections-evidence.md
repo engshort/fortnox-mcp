@@ -49,3 +49,9 @@ The authenticated Company Information response must match the explicit test-tena
 User consent omits service-account parameters and requires an offline refresh token. The token source never falls back to client credentials. It verifies a rotated replacement token's tenant before atomically saving access/refresh/expiry together. Expiry is supplied by the actual provider response, not an assumed lifetime.
 
 Renewal locks are durable and fenced. Credentials are reread after reserving the current snapshot, preventing stale refresh use after another renewal finishes. An uncertain exchange, invalid replacement or persistence failure removes usable credentials and marks reconnection required where storage is available. If storage remains unavailable, the persisted dispatched lease blocks reuse after restart/expiry. No refresh call is retried blindly. Pending leases return a structured rate-limit result instead of issuing a second rotation.
+
+## M06 — disconnect and reconnect (#60)
+
+Disconnect atomically removes credentials/renewal state and advances connection generation and policy version. Every queued provider attempt rechecks durable authorization. A token response already in flight is fenced from saving or reactivating a disconnected connection. An upstream request already dispatched cannot be recalled.
+
+Reconnect repeats PKCE consent and authenticated tenant verification. The same tenant retains its company handle with a new generation; selecting another allowed tenant creates a separate handle and leaves the old connection disconnected. A stale reconnect flow cannot overwrite a later generation. Registration-bound grants never inherit the new connection; a new MCP registration/consent is required. Minimal existing execution-intent metadata is left intact; financial proposal/execution tools remain unavailable and must adopt generation/policy binding in their later scopes.

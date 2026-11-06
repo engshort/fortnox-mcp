@@ -31,6 +31,7 @@ interface Flow {
   secret: Ciphertext;
   claimed: boolean;
   reconnectId?: string;
+  reconnectGeneration?: number;
 }
 const flowSecret = z
   .object({
@@ -69,6 +70,13 @@ export class FortnoxConnections {
     reconnectId?: string,
   ) {
     consentInput.parse(input);
+    const target = reconnectId
+      ? (await this.config.connections.list(owner)).find(
+          (c) => c.id === reconnectId,
+        )
+      : undefined;
+    if (reconnectId && (!target || target.state === "active"))
+      throw new DomainError("CONNECTION_CONFLICT");
     const id = crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
@@ -84,7 +92,9 @@ export class FortnoxConnections {
       expiresAt: this.now() + 600000,
       secret,
       claimed: false,
-      ...(reconnectId ? { reconnectId } : {}),
+      ...(target
+        ? { reconnectId: target.id, reconnectGeneration: target.generation }
+        : {}),
     };
     for (let n = 0; n < 8; n++) {
       const row = await this.config.connections.state.get<Flow[]>(
@@ -297,7 +307,25 @@ export class FortnoxConnections {
         );
         await this.verify(owner, credentials, identity.tenant);
       }
-      if (flow.reconnectId) throw new DomainError("CAPABILITY_UNAVAILABLE");
+      if (flow.reconnectId) {
+        const previous = (await this.config.connections.list(owner)).find(
+          (c) => c.id === flow.reconnectId,
+        );
+        if (
+          !previous ||
+          previous.generation !== flow.reconnectGeneration ||
+          previous.state === "active"
+        )
+          throw new DomainError("CONNECTION_CONFLICT");
+        if (previous.tenant === identity.tenant)
+          return await this.config.connections.reconnect(
+            owner,
+            previous.id,
+            previous.generation,
+            { ...identity, mode: flow.mode },
+            credentials,
+          );
+      }
       return await this.config.connections.add(
         owner,
         { ...identity, mode: flow.mode },
@@ -306,6 +334,25 @@ export class FortnoxConnections {
     } catch (error) {
       if (error instanceof DomainError) throw error;
       throw new DomainError("RECONNECT_REQUIRED");
+    } finally {
+      for (let n = 0; n < 8; n++) {
+        const row = await this.config.connections.state.get<Flow[]>(
+          "fortnox-flows",
+          owner,
+        );
+        if (!row) break;
+        if (
+          await this.config.connections.state.put(
+            "fortnox-flows",
+            owner,
+            row.value.filter(
+              (f) => f.id !== flow.id && f.expiresAt > this.now(),
+            ),
+            row.version,
+          )
+        )
+          break;
+      }
     }
   }
   async token(owner: string, connection: Connection, force = false) {

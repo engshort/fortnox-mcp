@@ -37,3 +37,9 @@ Installationen verifierar företaget via Fortnox innan anslutningen sparas. Serv
 ## Användaranslutning
 
 Välj användaranslutning när servicekonto inte passar. Fortnox begär offlineåtkomst och installationen sparar refresh-token krypterad. Endast en förnyelse per anslutning får pågå åt gången. Om rotationssvaret försvinner, refresh-token blir ogiltig eller ett avbrutet anrop inte kan bevisas säkert, visas återanslutningsbehov. Gamla refresh-token skickas inte igen på chans.
+
+## Koppla från och återanslut
+
+Frånkoppling stoppar nya anrop och tar bort lagrade credentials. Ett anrop som redan skickats till Fortnox kan inte återtas. Sena tokensvar kan inte återaktivera företaget. Eventuella minimala utredningsuppgifter om okända skrivutfall raderas inte genom frånkoppling.
+
+Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Skapa därefter en ny MCP-klientregistrering och godkänn den. Äldre grants och framtida granskningsunderlag återfår inte giltighet genom återanslutningen.

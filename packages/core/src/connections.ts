@@ -307,4 +307,41 @@ export class Connections {
     }
     throw new DomainError("CONNECTION_CONFLICT");
   }
+  async disconnect(owner: string, id: string) {
+    return this.mutate(owner, id, (c) => {
+      c.state = "disconnected";
+      c.generation++;
+      c.policyVersion++;
+      c.secret = null;
+      delete c.renewal;
+    });
+  }
+  async reconnect(
+    owner: string,
+    id: string,
+    generation: number,
+    input: Pick<
+      Connection,
+      "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
+    >,
+    credentials: Credentials,
+  ) {
+    return this.mutate(owner, id, async (c) => {
+      if (
+        c.generation !== generation ||
+        c.state === "active" ||
+        c.tenant !== input.tenant
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      c.generation++;
+      c.policyVersion++;
+      c.mode = input.mode;
+      c.name = input.name;
+      c.organizationNumber = input.organizationNumber;
+      c.scopes = input.scopes;
+      c.state = "active";
+      delete c.renewal;
+      c.secret = await this.vault.seal(credentials, this.binding(owner, c));
+    });
+  }
 }
