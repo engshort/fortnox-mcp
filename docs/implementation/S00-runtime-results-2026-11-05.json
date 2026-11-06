@@ -1,0 +1,309 @@
+{
+  "recorded_on": "2026-11-05",
+  "measured_source": "911ca76889f7bd0c7e152eb109b9e4db93a3ebfd",
+  "final_hardened_source": "e38134d3a3a47b84596562ffe5d5e7fbd388ba5f",
+  "synthetic_only": true,
+  "scope": "Early M23/G09 subset; no ChatGPT/CDN/SIE or production claim",
+  "runs": {
+    "node": [
+      {
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "workload": "small",
+        "files": 2,
+        "bytesPerFile": 1024,
+        "totalFileBytes": 2048,
+        "sha256": [
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1",
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0.92,
+          "decimalMs": 11.97,
+          "validateEncryptStoreMs": 184.19,
+          "decryptReadMs": 3.44,
+          "atomicStateMs": 1.98
+        },
+        "totalMs": 202.84,
+        "runtime": "node",
+        "node": "v24.19.0",
+        "cpuMs": 131.465,
+        "rssBytes": 131596288,
+        "heapUsedBytes": 28839256,
+        "roundTripMs": 204
+      },
+      {
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "workload": "representative",
+        "files": 2,
+        "bytesPerFile": 1048576,
+        "totalFileBytes": 2097152,
+        "sha256": [
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779",
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 1.51,
+          "decimalMs": 8,
+          "validateEncryptStoreMs": 177.05,
+          "decryptReadMs": 107.07,
+          "atomicStateMs": 2.23
+        },
+        "totalMs": 295.91,
+        "runtime": "node",
+        "node": "v24.19.0",
+        "cpuMs": 198.472,
+        "rssBytes": 165076992,
+        "heapUsedBytes": 28989672,
+        "roundTripMs": 298
+      },
+      {
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "workload": "limit",
+        "files": 2,
+        "bytesPerFile": 5242880,
+        "totalFileBytes": 10485760,
+        "sha256": [
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf",
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0.95,
+          "decimalMs": 9.01,
+          "validateEncryptStoreMs": 531.19,
+          "decryptReadMs": 693.08,
+          "atomicStateMs": 2.08
+        },
+        "totalMs": 1236.34,
+        "runtime": "node",
+        "node": "v24.19.0",
+        "cpuMs": 796.639,
+        "rssBytes": 254812160,
+        "heapUsedBytes": 29616648,
+        "roundTripMs": 1305
+      }
+    ],
+    "hosted_worker_first": [
+      {
+        "runtime": "worker",
+        "workload": "small",
+        "httpStatus": 200,
+        "roundTripMs": 635,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 1024,
+        "totalFileBytes": 2048,
+        "sha256": [
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1",
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 104,
+          "decryptReadMs": 24,
+          "atomicStateMs": 112
+        },
+        "totalMs": 240,
+        "uploadMs": 0,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      },
+      {
+        "runtime": "worker",
+        "workload": "representative",
+        "httpStatus": 200,
+        "roundTripMs": 682,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 1048576,
+        "totalFileBytes": 2097152,
+        "sha256": [
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779",
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 314,
+          "decryptReadMs": 47,
+          "atomicStateMs": 118
+        },
+        "totalMs": 479,
+        "uploadMs": 21,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      },
+      {
+        "runtime": "worker",
+        "workload": "limit",
+        "httpStatus": 200,
+        "roundTripMs": 1353,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 5242880,
+        "totalFileBytes": 10485760,
+        "sha256": [
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf",
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 655,
+          "decryptReadMs": 119,
+          "atomicStateMs": 131
+        },
+        "totalMs": 905,
+        "uploadMs": 112,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      }
+    ],
+    "hosted_worker_repeat": [
+      {
+        "runtime": "worker",
+        "workload": "small",
+        "httpStatus": 200,
+        "roundTripMs": 631,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 1024,
+        "totalFileBytes": 2048,
+        "sha256": [
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1",
+          "ea97296532bb1db0a1f11901d8820e501a87fd65f6f95c0374c491f4dd7dc7f1"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 107,
+          "decryptReadMs": 32,
+          "atomicStateMs": 113
+        },
+        "totalMs": 252,
+        "uploadMs": 0,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      },
+      {
+        "runtime": "worker",
+        "workload": "representative",
+        "httpStatus": 200,
+        "roundTripMs": 540,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 1048576,
+        "totalFileBytes": 2097152,
+        "sha256": [
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779",
+          "1f10e54b074da448f6af8b1dfe038e587b7b51d5ea6a03026f71c5c05fb43779"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 162,
+          "decryptReadMs": 61,
+          "atomicStateMs": 119
+        },
+        "totalMs": 342,
+        "uploadMs": 23,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      },
+      {
+        "runtime": "worker",
+        "workload": "limit",
+        "httpStatus": 200,
+        "roundTripMs": 1540,
+        "synthetic": true,
+        "fortnoxEnabled": false,
+        "files": 2,
+        "bytesPerFile": 5242880,
+        "totalFileBytes": 10485760,
+        "sha256": [
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf",
+          "33880c3e88328a2ad4d6148989a5bc4ba089c3ada3acb1b2c94af5b13d0bc5bf"
+        ],
+        "catalogTools": 405,
+        "catalogBytes": 133946,
+        "decimalOperations": 5000,
+        "decimalTotal": "50.00",
+        "concurrentClaims": 16,
+        "acceptedClaims": 1,
+        "timings": {
+          "catalogMs": 0,
+          "decimalMs": 0,
+          "validateEncryptStoreMs": 617,
+          "decryptReadMs": 318,
+          "atomicStateMs": 137
+        },
+        "totalMs": 1072,
+        "uploadMs": 139,
+        "cpuMs": null,
+        "memoryBytes": null,
+        "independentlyVerified": true
+      }
+    ]
+  }
+}

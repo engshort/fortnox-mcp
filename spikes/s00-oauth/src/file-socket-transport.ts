@@ -18,16 +18,50 @@ export interface SocketEgress {
   resolve(hostname: string, signal: AbortSignal): Promise<string[]>;
   connect(address: string): FileSocket;
 }
+export type FileTransportDiagnostic = {
+  stage:
+    | "resolving"
+    | "connecting"
+    | "securing"
+    | "requesting"
+    | "reading"
+    | "response"
+    | "complete"
+    | "failed";
+  status?: number;
+  reason?:
+    | "tls"
+    | "egress_denied"
+    | "http_parser"
+    | "unsupported"
+    | "connection"
+    | "other";
+};
 // The maintained HTTP parser handles framing/chunking. Only a fixed GET is
-// emitted; the socket uses a checked public IP and TLS validates the URL host.
+// emitted; the caller must establish that its runtime honors the requested TLS
+// peer hostname independently of the pinned IP. The public Worker edge does not
+// establish this guarantee and does not use this adapter.
 // No unpinned fetch fallback is permitted if the runtime refuses that socket.
-export function socketFileTransport(egress: SocketEgress): FileTransport {
+export function socketFileTransport(
+  egress: SocketEgress,
+  maximumBytes: number = fileLimits.bytes,
+  report?: (event: FileTransportDiagnostic) => void,
+): FileTransport {
+  const emit = (event: FileTransportDiagnostic) => {
+    try {
+      report?.(event);
+    } catch {
+      /* Operator diagnostics never alter transport. */
+    }
+  };
   return {
     async open(url, signal) {
+      emit({ stage: "resolving" });
       const addresses = await egress.resolve(url.hostname, signal);
       if (!addresses.length || addresses.some((a) => !isPublicAddress(a)))
         throw new FileError("FILE_URL_DENIED");
       signal.throwIfAborted();
+      emit({ stage: "connecting" });
       let socket = egress.connect(addresses[0]);
       const abort = () => {
         void socket.close().catch(() => {});
@@ -37,9 +71,11 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
       try {
         await socket.opened;
         signal.throwIfAborted();
+        emit({ stage: "securing" });
         socket = socket.startTls({ expectedServerHostname: url.hostname });
         await socket.opened;
         signal.throwIfAborted();
+        emit({ stage: "requesting" });
         const writer = socket.writable.getWriter();
         await writer.write(
           new TextEncoder().encode(
@@ -55,6 +91,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
           complete = false;
         const headers = new Headers();
         parser[HTTPParser.kOnHeadersComplete] = (info) => {
+          emit({ stage: "response", status: info.statusCode });
           if (status || info.upgrade || info.statusCode !== 200)
             throw new FileError(
               [401, 403, 404, 410].includes(info.statusCode)
@@ -67,7 +104,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
           const length = headers.get("content-length");
           if (
             length &&
-            (!/^\d+$/.test(length) || Number(length) > fileLimits.bytes)
+            (!/^\d+$/.test(length) || Number(length) > maximumBytes)
           )
             throw new FileError("FILE_TOO_LARGE");
           if (
@@ -78,13 +115,14 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
         };
         parser[HTTPParser.kOnBody] = (chunk, offset, length) => {
           size += length;
-          if (size > fileLimits.bytes) throw new FileError("FILE_TOO_LARGE");
+          if (size > maximumBytes) throw new FileError("FILE_TOO_LARGE");
           chunks.push(Buffer.from(chunk.subarray(offset, offset + length)));
         };
         parser[HTTPParser.kOnMessageComplete] = () => {
           complete = true;
         };
         const reader = socket.readable.getReader();
+        emit({ stage: "reading" });
         try {
           while (!complete) {
             const next = await reader.read();
@@ -94,7 +132,7 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
               break;
             }
             networkBytes += next.value.length;
-            if (networkBytes > fileLimits.bytes + 128 * 1024)
+            if (networkBytes > maximumBytes + 128 * 1024)
               throw new FileError("FILE_TOO_LARGE");
             const parsed = parser.execute(Buffer.from(next.value));
             if (parsed instanceof Error) throw parsed;
@@ -104,7 +142,27 @@ export function socketFileTransport(egress: SocketEgress): FileTransport {
         }
         if (!complete || !status || signal.aborted)
           throw new FileError("FILE_FETCH_FAILED");
+        emit({ stage: "complete" });
         return new Response(Buffer.concat(chunks, size), { status, headers });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const reason = /TLS|SSL|certificate|cert|hostname/i.test(message)
+          ? "tls"
+          : /proxy request failed|cannot connect to the specified address/i.test(
+                message,
+              )
+            ? "egress_denied"
+            : error instanceof Error &&
+                "code" in error &&
+                /^HPE_/.test(String(error.code))
+              ? "http_parser"
+              : /not implemented|not supported/i.test(message)
+                ? "unsupported"
+                : /socket|connection|stream|closed/i.test(message)
+                  ? "connection"
+                  : "other";
+        emit({ stage: "failed", reason });
+        throw error;
       } finally {
         for (const chunk of chunks) chunk.fill(0);
         signal.removeEventListener("abort", abort);

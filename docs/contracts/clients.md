@@ -1,5 +1,10 @@
 # Client compatibility and embedded UI
 
+The [2026-11-06 G03 correction](../implementation/S00-G03-transport-2026-11-06.md)
+verifies scoped two-file relay ingress and exact server readback. Chrome PNG
+download passed, but downloaded PDF bytes differed. The native Worker socket
+assumption was retired; complete client/file acceptance remains open.
+
 **2026-11-05:** [maintenance was deployed](../implementation/S00-hosted-maintenance-2026-11-05.md)
 with original bindings/grants preserved; [review regressions passed again](../implementation/S00-review-acceptance-2026-11-05.md).
 The [optional file probe](../implementation/S00-files-evidence.md) is implemented

@@ -1,5 +1,23 @@
 # Verification gates and known gaps
 
+**2026-11-06:** the [G03 correction](../implementation/S00-G03-transport-2026-11-06.md)
+passed relay ingress and exact server readback for two files, Chrome PNG download
+and accelerated expiry/cleanup. Chrome PDF bytes differed. Native Worker egress
+is unavailable. G03 remains partial and G05 stays open.
+
+**2026-11-05:** [milestone 1 handoff](../implementation/S00-milestone-1-handoff.md)
+records deployed maintenance, locally verified default-off files, actual hosted
+runtime measurements and outstanding acceptance. G01/G02/G03 remain partial,
+G04 retains its closed scope, G05 stays blocked and full G09 stays open.
+Earlier observations below are historical evidence, not new client support.
+
+The [actual ChatGPT follow-up](../implementation/S00-client-acceptance-2026-11-05.md)
+adds scoped live CSP, double-click, consumed-remount and fresh-client refresh
+evidence. Automatic saved-answer loading fails, with explicit retry recovery;
+older registrations reject newly added scopes. Actual file calls return
+`FILE_URL_DENIED`, then `FILE_FETCH_FAILED` after exact source-origin review,
+with no stored bytes. G01–G03 remain partial and G05 remains open.
+
 The [G01/G02 maintenance follow-up](../implementation/S00-client-maintenance-evidence.md)
 implements local diagnostics, review-status recovery and restrictive-CSP browser
 regressions. Actual ChatGPT maintenance/CSP acceptance remains open; no gate is

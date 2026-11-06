@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import { createAdaptorServer } from "@hono/node-server";
+import { fileCodec } from "./file-codec.js";
 import { nodeFileTransport } from "./file-node-transport.js";
 import { fileSchema } from "./file-sql.js";
 import { sqliteFileStore } from "./file-sqlite.js";
@@ -21,6 +22,7 @@ if (import.meta.main) {
           store: sqliteFileStore(database),
           transport: nodeFileTransport,
           validator: fileValidator,
+          codec: fileCodec,
           origins: parseFileOrigins(config.fileOrigins),
         }
       : undefined;

@@ -1,5 +1,11 @@
 # S00 authenticated MCP feasibility probe
 
+The [2026-11-06 G03 correction](../../docs/implementation/S00-G03-transport-2026-11-06.md)
+retires the unsupported pinned-IP/independent-TLS-name native Worker adapter.
+An explicit, short-lived authenticated Node helper is available for the private
+file probe. Earlier socket/transport claims below are historical; they do not
+establish native public-edge TLS hostname verification.
+
 The [2026-11-05 maintenance update](../../docs/implementation/S00-hosted-maintenance-2026-11-05.md)
 is deployed with the original bindings and grants preserved. Actual-host
 acceptance remains open. An additional [default-off file experiment](../../docs/implementation/S00-files-evidence.md)
@@ -115,6 +121,21 @@ It is off by default. Keep stored observability disabled,
 filter a short-lived operator tail to these allowlisted fields with Wrangler
 disk logging disabled, then turn the variable off again. This does not add a
 model-callable diagnostic or change protocol selection.
+
+The same opt-in deadline also gates a separate `s00_file_source` diagnostic,
+bounded to 64 events per isolate. Only a successfully scoped file invocation can
+reach it. It emits a syntactically safe HTTPS DNS hostname, without scheme,
+path, query, credentials, client file ID or original name. This helps the
+operator review an exact origin after a deny; it does not add an origin to the
+allowlist or bypass public pinned DNS/TLS checks. It is off by default along
+with request diagnostics. Use synthetic files only and keep stored logs off.
+
+`s00_file_transport` uses another bounded window to report fixed stage labels
+and an HTTP status, when available. Failure reasons are coarse classifications
+(`tls`, `egress_denied`, `http_parser`, `unsupported`, `connection`, `other`),
+not raw exception text or proof of a specific provider fault. Sink failure does
+not change transport behavior. No exception message, header or byte content is
+emitted, and no unpinned HTTP fallback is introduced.
 
 Fixed protocol/tool schemas are public for ChatGPT's metadata refresh:
 `initialize`, `notifications/initialized` and `tools/list`. All other methods,

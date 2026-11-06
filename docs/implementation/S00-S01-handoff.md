@@ -1,5 +1,9 @@
 # S00/S01 verification status and handoff
 
+For completed 2026-11-05 implementation work and remaining owner-assisted
+acceptance, use the [milestone 1 handoff](S00-milestone-1-handoff.md). It includes
+the measured Worker file budget, current deployed source and G05 blocker.
+
 **2026-11-05 update:** the maintenance implementation is now deployed to the
 existing isolated Worker with its original bindings and database preserved.
 See the [dated deployment and local checks](S00-hosted-maintenance-2026-11-05.md).
