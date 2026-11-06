@@ -31,3 +31,9 @@ Client redirects are an installation allowlist. Company grants are immutable sna
 The shared real-library flow checks DCR redirects, S256 code exchange, wrong verifier, code reuse, resource-bound validation, refresh replacement, access-token revocation, anonymous/mixed batch denial and invalid-token metadata denial. Actual ChatGPT saved-answer/reload and product lifecycle acceptance remain required; #31 is not reopened or re-closed by these local tests.
 
 Observed M02 checks (2026-11-06): root typecheck and six product contract cases passed on Node/SQLite and local workerd/D1. Code-replay testing occurs after refresh: the maintained provider invalidates the affected token family on replay. No live ChatGPT or Fortnox request was made.
+
+## M07 — bounded Fortnox HTTP (#61)
+
+The adapter registers only Company Information and identity GET reads. No arbitrary URL/method/body surface exists; email/eprint and all mutations are unavailable. Fixed API origins/paths, manual redirect handling with explicit 3xx rejection, 5-second attempts, 64-KiB streamed response bounds and a 15-second/three-attempt read budget prevent unbounded fetches. A durable per-client/tenant CAS reserves one request per 210 ms (conservatively below 25 per five seconds). Retries honor numeric Retry-After only within the remaining budget; 401 reacquisition is bounded to one recovery path.
+
+Pagination is endpoint-specific and a shared helper returns explicit partial results with a next-page position. Ten-minute continuations bind owner/company/generation/query; at most 32 are retained per owner, with expiry cleanup on creation. These helpers have synthetic multi-page tests; no additional Fortnox list operation is thereby enabled. Provider errors retain numeric codes only; unknown 403 causes remain `permission_scope_or_license_unknown` rather than inventing a missing license or scope.

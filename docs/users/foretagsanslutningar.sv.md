@@ -23,3 +23,7 @@ Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; 
 Produktens MCP-adress är `/mcp`. Endast fasta protokolluppgifter är offentliga. Företagsanrop kräver ägarens OAuth-godkännande med `mcp:read offline_access`; Fortnox-token kan inte användas som MCP-token.
 
 Godkännandet gäller de företag och anslutningsgenerationer som fanns vid anslutningen. När ett företag läggs till eller återansluts behöver du i denna version skapa en ny MCP-klientregistrering och godkänna den. Äldre registreringar utökas inte automatiskt. ChatGPT-stödet ska verifieras mot den pushade produktversionen, inklusive sparat svar, konversationsomladdning och Reload tools.
+
+## Begränsningar vid läsning
+
+Anrop begränsas separat för varje integration och företag. Vid tillfälliga fel görs högst tre läsförsök inom en begränsad tidsbudget. Ofullständig sidläsning markeras uttryckligen; en continuation gäller i tio minuter och kan inte användas för ett annat företag. Ett okänt behörighetsfel beskrivs som okänt tills scope, licens eller användarrättighet har verifierats. Providerfel återger inga råa svar eller hemligheter.

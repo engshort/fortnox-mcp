@@ -6,6 +6,7 @@ import { d1State } from "../../apps/worker/src/product-storage.js";
 import { connectionContract } from "../shared/connections.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
+import { providerContract } from "../shared/provider.js";
 
 async function fixture() {
   await env.DB.exec(stateSchema.replace(/\n/g, " "));
@@ -53,3 +54,5 @@ ownerContract(fixture);
 connectionContract(async () => (await fixture()).state);
 
 oauthContract(fixture);
+
+providerContract(async () => (await fixture()).state);

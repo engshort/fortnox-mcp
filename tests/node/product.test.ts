@@ -5,6 +5,7 @@ import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { connectionContract } from "../shared/connections.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
+import { providerContract } from "../shared/provider.js";
 
 const opened: DatabaseSync[] = [];
 afterEach(() => {
@@ -36,3 +37,5 @@ ownerContract(fixture);
 connectionContract(async () => (await fixture()).state);
 
 oauthContract(fixture);
+
+providerContract(async () => (await fixture()).state);
