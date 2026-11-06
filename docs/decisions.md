@@ -25,6 +25,7 @@ Approved baseline: 2026-10-18. Product owner: alex-engvall. Details below consol
 | D19 | Swedish default README; English developer material | The public website (`index.html`) and default `README.md` introduce the project in Swedish for business owners across industries. Both link to `README.en.md` for developers. The website uses static GitHub Pages hosting; the MCP server uses its own runtime. Swedish and English discussions are welcome; code and technical reference docs use English. Swedish setup guidance and examples remain available. |
 | D20 | Public prereleases before stable 1.0 | Stable release requires useful breadth plus quality and compatibility evidence. |
 | D21 | Fortnox test environment available through owner | Owner has developer access and can create a test company; no credentials have been supplied or live tests run for this baseline. |
+| D22 | Protected web application: Hono for HTTP routing, React + Vite for owner-facing UI | Reuse the existing portable TypeScript domain/MCP services across Cloudflare Workers and Node.js. Serve built admin assets from the same installation; keep embedded MCP Apps separate and subject to client/CSP/review gates. The public GitHub Pages site remains static. |
 
 ## CLA and commercial-rights decision (2026-10-20)
 
@@ -33,6 +34,35 @@ The owner approved a **Contributor License Agreement with Easy Today AB as the l
 The earlier D02 choice **not** to require a CLA is superseded. Scope: **new intentional contributions accepted under a signed version of [CLA.md](../CLA.md)**, not retroactive rights for already committed code. Implementation requires legal review and verified signing/required checks before enforcement; see [maintainer CLA runbook](maintainers/cla-setup.md). No CLA signatures, third-party GitHub App installation, private premium repository or deployed hosted service are implied by this documentation change.
 
 Rationale: preserve a genuine, unrestricted AGPL Community project while enabling the rights holder to develop sustainable premium products. Alternatives considered were AGPL-only commercial hosting (no proprietary derivative right for third-party code), copyright assignment (more intrusive than necessary) and a fully separate commercial control plane (still a possible architecture, not required by this decision). Migration: none for existing AGPL grants or software; pending external pull requests must be assessed individually when the signing check goes live. Until then, do not merge external contributions on an assumption that future CLA acceptance will retroactively cover them.
+
+
+## D22 — Web application framework (proposed 2026-11-06)
+
+**Owner request and approval:** The product owner requested this framework proposal as a product decision on 2026-11-06. Review and merge of the proposing pull request constitutes approval of D22; opening the PR alone does not. **Effective scope:** subsequent S11/M18 protected setup/admin UI work after approval. This decision does not approve implementation, a release or any unverified host capability.
+
+**Decision**
+
+- **HTTP routing:** Adopt **Hono** incrementally for the product's HTTP routes (owner administration, setup, OAuth callbacks where appropriate, and static assets). Compose the existing Fetch `Request`/`Response` handlers without moving company authorization, accounting rules or MCP protocol responsibilities into routes. Use the same routing composition in Cloudflare Workers and Node.js via the existing `@hono/node-server` adapter. Using the adapter today does **not** mean Hono routing is already in place.
+- **Protected web UI:** Use **React** for interactive owner-only setup and administration, bundled with **Vite** into versioned static assets. Serve those assets from the installation's own origin in both runtimes; do not require a separate frontend server, Node-only SSR, or a centrally hosted control plane. Keep one owner with multiple explicitly authorized companies as the v1 product model.
+- **Embedded MCP Apps:** Treat receipt/voucher review as separate, independently built entry points. React may be reused only if the actual client host accepts the output, its restrictive CSP and the verified approval boundary. Until then, retain the existing self-contained review UI; no React migration may weaken `review_required`, expose a commit capability to the model, or reclassify an unsupported client as supported.
+- **Public website:** Keep `index.html`, `installera/` and `site/` dependency-free static GitHub Pages content under D19. This decision applies to the authenticated web application, not marketing/documentation pages.
+
+**Why this stack**
+
+The project already has a portable TypeScript core, Cloudflare and Node runtime adapters, an HTTP fetch boundary and modest owner-facing web workflows that will become more interactive as company connections, policy settings and review status are added. Hono fits the existing Fetch boundary. React gives those workflows reusable view components, while Vite supplies a static production build without introducing a second application server. This is a targeted UI/routing decision, not a backend rewrite.
+
+**Alternatives considered:** Continue with hand-authored HTML and vanilla TypeScript (smaller now, but more UI state and templating work as the setup/administration flow grows); adopt Next.js or SvelteKit (would introduce a full-stack rendering/server model and duplicate routing responsibilities for no accepted SSR requirement). Do not introduce a React SPA for simple static status pages solely for consistency.
+
+**Required boundaries and acceptance before migration**
+
+- Reuse existing authentication, owner/company authorization, read-only and per-company voucher policies, immutable proposals, one-time approval and unknown-write handling. The browser never becomes the authority for these checks. Admin and secret/policy operations remain unavailable to model-callable MCP tools; no arbitrary Fortnox proxy is added.
+- Keep credentials, refresh tokens and privileged review capabilities out of bundled assets, browser storage, browser logs and model-visible responses. Preserve same-origin protections, secure session cookies, CSRF defenses where relevant, content security policy and strict server-side input validation.
+- Prove equivalent route behavior and authorization across Worker/D1 and Node/SQLite. Check static-asset delivery, OAuth redirects, deploy/package size, Worker resource limits, accessibility, Swedish/English UI and failure/recovery behavior. Independently verify MCP Apps CSP, remount/replay and trusted-review behavior under G02 before replacing the embedded view.
+- Integrate gradually with `packages/ui` and the existing `apps/shared` product application; migrate only after tests preserve behavior. Do not couple the portable domain core to Hono, React, Vite or platform-specific storage.
+
+**Migration impact:** No immediate code or database migration, no change to the published static website, existing MCP tools or production support claims. Today the UI is server-generated HTML/JavaScript; a Hono router and React/Vite application are not implemented by this decision. Future UI PRs must carry the relevant tests, dependency/license checks and S11 documentation.
+
+**Decision interaction:** D22 refines the implementation of D04 (portable TypeScript), D05 (setup wizard), D12 (in-client work and verified review) and D19 (static public website); it does not supersede or relax those decisions.
 
 ## Implementation choices versus unresolved evidence
 
