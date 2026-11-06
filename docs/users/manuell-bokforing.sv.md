@@ -93,6 +93,11 @@ olika konton kan användas i denna avgränsade profil. Okända regler och ännu
 inte verifierade finansiella krav blockerar fortfarande bokföring. Uppdatera
 verktygslistan efter deployment för att se det valfria kontourvalet.
 
+Det separata operatörsprovet av kontodetaljer den 6 november lyckades för två
+faktiskt listade konton per testföretag: urvalen var kompletta och saknade okända
+informationsregler. Det bevisar läskontraktet för dessa konton. Finansiella
+regler och mänsklig granskning återstår fortfarande före bokföring.
+
 Om ett Fortnox-svar har oväntad struktur returneras `UPSTREAM_UNAVAILABLE`
 med operationens fasta felorsak och säkra fältnamn i `fields`. Det behöver
 utredas av operatören; byt inte företag eller års-ID för att försöka komma

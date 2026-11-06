@@ -245,6 +245,38 @@ and 500 unknown information settings. This exercises authenticated connected
 remote tool calls; it does not establish a human review or selected-detail
 behavior on this later implementation.
 
+### Actual selected-detail recheck — 2026-11-06
+
+At **13:02:56 UTC**, the short-lived operator probe exercised source
+`1e8c38b9c8dbb9e642d26566397c323f32c15cb9` in hosted workerd against the
+installation's D1. It selected two active account numbers actually returned by
+each company's catalog, solely for read-contract verification. It made no
+accounting/tax choice, created no proposal and performed no financial write.
+
+| Selected-reference observation | Service test company | User test company |
+| --- | --- | --- |
+| Account details returned / selected | 2 / 2 | 2 / 2 |
+| Complete selected reference bundle | `true` | `true` |
+| Unknown information rules in selected details | 0 | 0 |
+| Financial semantics verified | `false` | `false` |
+| Profile / year discovery | Passed / complete | Passed / complete |
+
+The read used named rules from detail responses, without mapping the catalog's
+missing/numeric information setting. Other required reference collections also
+completed. This establishes bounded positive detail behavior for those four
+reads, not all accounts or all financial semantics. Bearer fingerprints remained
+disjoint. A foreign-company request was denied with zero provider calls; the
+internal missing-scope check also failed closed. The one-use operator endpoint
+and nonce were removed, and the local capability file deleted.
+
+Probe bundle SHA-256:
+`e5e008934b14f4ccbedc88b9f0b74aa987e293c614eb898dcc036122ba7e186e`.
+This probe uses current durable owner/company grants and an internal MCP client;
+it is not a product OAuth-transport or actual ChatGPT UI/review acceptance.
+#92 retains negative provider scope/license/user and applicable lock/year cases;
+#76/#93 retain financial and trusted-review acceptance. Production support and
+financial activation are unchanged.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure
