@@ -308,7 +308,7 @@ async function fixture(worker = false, review = false, files = false) {
       code,
       code_verifier: verifier,
     };
-    return { clientId, exchangeBody };
+    return { clientId, exchangeBody, consentUrl: consent };
   }
   async function exchange(body: Record<string, string>) {
     return req("/auth/oauth2/token", new URLSearchParams(body));
@@ -394,6 +394,13 @@ test("file scope requires separate real OAuth consent on Node and workerd/D1; an
         );
       assert.equal((await call()).status, 401);
       const readGrant = await f.grant();
+      const readConsent = await f.req(
+        `/consent${readGrant.consentUrl.search}`,
+        undefined,
+        f.cookie,
+      );
+      assert.equal(readConsent.status, 200);
+      assert.doesNotMatch(await readConsent.text(), /Filbehörigheten/);
       const readToken = await data(await f.exchange(readGrant.exchangeBody));
       const denied = (await (await call(readToken.access_token)).json()) as {
         result: { isError: boolean; content: Array<{ text: string }> };
@@ -401,6 +408,21 @@ test("file scope requires separate real OAuth consent on Node and workerd/D1; an
       assert.equal(denied.result.isError, true);
       assert.equal(denied.result.content[0].text, "FILE_SCOPE_REQUIRED");
       const fileGrant = await f.grant("mcp:read offline_access mcp:files");
+      const fileConsent = await f.req(
+        `/consent${fileGrant.consentUrl.search}`,
+        undefined,
+        f.cookie,
+      );
+      assert.equal(fileConsent.status, 200);
+      const consentHtml = await fileConsent.text();
+      assert.match(
+        consentHtml,
+        /hämta valda syntetiska filer och läsa tillbaka dem/,
+      );
+      assert.match(consentHtml, /lagras krypterat/);
+      assert.match(consentHtml, /55 minuter/);
+      assert.match(consentHtml, /vid driftavbrott/);
+      assert.doesNotMatch(consentHtml, /Granskningsbehörigheten/);
       const fileToken = await data(await f.exchange(fileGrant.exchangeBody));
       const allowed = (await (await call(fileToken.access_token)).json()) as {
         result: { isError: boolean; content: Array<{ text: string }> };

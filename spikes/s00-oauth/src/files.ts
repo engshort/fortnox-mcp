@@ -33,6 +33,7 @@ export type FileInput = z.infer<typeof fileInputSchema>["files"][number];
 export type FileErrorCode =
   | "FILE_URL_DENIED"
   | "FILE_FETCH_FAILED"
+  | "FILE_TRANSPORT_UNAVAILABLE"
   | "FILE_EXPIRED"
   | "FILE_TOO_LARGE"
   | "FILE_TIMEOUT"
@@ -99,6 +100,8 @@ export interface FileContext {
   codec?: FileCodec;
   maxBytes?: number;
   now?: () => number;
+  // Optional operator-only sink. Never receives paths, query strings or IDs.
+  onSourceHostname?: (hostname: string) => void;
 }
 export function isPublicAddress(value: string) {
   try {
@@ -332,6 +335,18 @@ export function fileService(context: FileContext) {
         await context.store.cleanup(now());
         // Sequential transfers/parsers bound memory to one file at a time.
         for (const input of parsed.data.files) {
+          if (context.onSourceHostname) {
+            try {
+              const candidate = new URL(input.download_url);
+              const safe = approvedFileUrl(input.download_url, [
+                candidate.origin,
+              ]);
+              if (safe.hostname.length <= 253)
+                context.onSourceHostname(safe.hostname);
+            } catch {
+              // Diagnostics cannot change validation or authorize a download.
+            }
+          }
           const { bytes, contentType } = await fetchFile(input, context);
           try {
             const { mime } = await context.validator.validate(bytes);

@@ -310,7 +310,7 @@ test("failed second file removes the first staged file; expiry clears bytes and 
   db.close();
   await rm(dir, { recursive: true, force: true });
 });
-test("pinned socket transport rejects private DNS before connecting and validates TLS host without forwarding credentials", async () => {
+test("socket adapter rejects private DNS, requests the TLS peer name and omits credentials", async () => {
   let target = "",
     tlsHost = "",
     requestText = "";
@@ -340,15 +340,21 @@ test("pinned socket transport rejects private DNS before connecting and validate
       return this;
     },
   });
-  const transport = socketFileTransport({
-    async resolve() {
-      return ["8.8.8.8"];
+  const transport = socketFileTransport(
+    {
+      async resolve() {
+        return ["8.8.8.8"];
+      },
+      connect(address) {
+        target = address;
+        return makeSocket();
+      },
     },
-    connect(address) {
-      target = address;
-      return makeSocket();
+    undefined,
+    () => {
+      throw new Error("diagnostic sink failed");
     },
-  });
+  );
   const result = await fetchFile(
     input(`${fileOrigin}/receipt?opaque=synthetic`),
     { origins: [fileOrigin], transport },
@@ -377,6 +383,43 @@ test("pinned socket transport rejects private DNS before connecting and validate
   );
   assert.equal(connected, false);
 });
+test("socket diagnostics classify failures without exposing exception details", async () => {
+  const events: unknown[] = [];
+  const socket: FileSocket = {
+    opened: Promise.resolve({}),
+    readable: new ReadableStream({
+      start(c) {
+        c.error(new Error("TLS certificate secret-path?signature=secret"));
+      },
+    }),
+    writable: new WritableStream(),
+    async close() {},
+    startTls() {
+      return this;
+    },
+  };
+  const transport = socketFileTransport(
+    {
+      async resolve() {
+        return ["8.8.8.8"];
+      },
+      connect() {
+        return socket;
+      },
+    },
+    undefined,
+    (event) => events.push(event),
+  );
+  await assert.rejects(() =>
+    transport.open(new URL(fileOrigin), new AbortController().signal),
+  );
+  assert.deepEqual(events.at(-1), { stage: "failed", reason: "tls" });
+  assert.doesNotMatch(
+    JSON.stringify(events),
+    /secret|signature|certificate|example/,
+  );
+});
+
 test("actual workerd/D1 stores encrypted files, isolates reads, persists through restart and cleans expired bytes", async () => {
   const dir = await mkdtemp(join(tmpdir(), "s00-file-worker-"));
   const built = await build({
@@ -463,6 +506,14 @@ test("actual workerd/D1 stores encrypted files, isolates reads, persists through
       )?.n,
       0,
     );
+    const socketResult = await call("/ingest", { socket: true });
+    assert.equal(
+      socketResult.error,
+      undefined,
+      "real workerd parses fragmented socket HTTP",
+    );
+    assert.equal(socketResult.files[0].sha256, await digest(pngFixture()));
+    await call("/cleanup", { now: now + fileLimits.ttlMs });
   } finally {
     await mf.dispose();
     await rm(dir, { recursive: true, force: true });
@@ -471,6 +522,8 @@ test("actual workerd/D1 stores encrypted files, isolates reads, persists through
 
 test("MCP file descriptors use complete host schemas, default off, scoped calls and authenticated resources", async () => {
   const f = fixture();
+  const sourceHosts: string[] = [];
+  f.context.onSourceHostname = (hostname) => sourceHosts.push(hostname);
   const connect = async (enabled: boolean, authorized: boolean) => {
     const server = createProbeServer(
       undefined,
@@ -512,6 +565,7 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
     true,
   );
   await denied.close();
+  assert.deepEqual(sourceHosts, [], "unscoped calls cannot emit file sources");
   const allowed = await connect(true, true);
   try {
     const catalog = await allowed.client.listTools();
@@ -527,6 +581,7 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
       arguments: batch,
     });
     assert.notEqual(result.isError, true);
+    assert.deepEqual(sourceHosts, ["files.example.com", "files.example.com"]);
     assert.doesNotMatch(
       JSON.stringify(result),
       /download_url|synthetic-client-file/,
@@ -550,6 +605,50 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
     await noScope.close();
   } finally {
     await allowed.close();
+    f.db.close();
+  }
+});
+
+test("file-source diagnostics omit URL secrets and do not weaken origin checks", async () => {
+  const f = fixture();
+  const hosts: string[] = [];
+  const service = fileService({
+    ...f.context,
+    origins: [],
+    onSourceHostname: (hostname) => hosts.push(hostname),
+  });
+  try {
+    await assert.rejects(
+      () =>
+        service.ingest({
+          files: [input(`${fileOrigin}/private-id?signature=secret`)],
+        }),
+      /FILE_URL_DENIED/,
+    );
+    assert.deepEqual(hosts, ["files.example.com"]);
+    assert.doesNotMatch(
+      JSON.stringify(hosts),
+      /private-id|signature|secret|https/,
+    );
+    for (const url of [
+      "https://user:secret@files.example.com/a",
+      "https://127.0.0.1/a",
+      "file:///secret",
+    ]) {
+      await assert.rejects(
+        () => service.ingest({ files: [input(url)] }),
+        /FILE_URL_DENIED/,
+      );
+    }
+    assert.equal(hosts.length, 1);
+    const throwing = fileService({
+      ...f.context,
+      onSourceHostname() {
+        throw new Error("sink failed");
+      },
+    });
+    assert.equal((await throwing.ingest({ files: [input()] })).files.length, 1);
+  } finally {
     f.db.close();
   }
 });
