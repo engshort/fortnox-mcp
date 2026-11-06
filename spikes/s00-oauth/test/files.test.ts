@@ -310,7 +310,7 @@ test("failed second file removes the first staged file; expiry clears bytes and 
   db.close();
   await rm(dir, { recursive: true, force: true });
 });
-test("pinned socket transport rejects private DNS before connecting and validates TLS host without forwarding credentials", async () => {
+test("socket adapter rejects private DNS, requests the TLS peer name and omits credentials", async () => {
   let target = "",
     tlsHost = "",
     requestText = "";
@@ -506,6 +506,14 @@ test("actual workerd/D1 stores encrypted files, isolates reads, persists through
       )?.n,
       0,
     );
+    const socketResult = await call("/ingest", { socket: true });
+    assert.equal(
+      socketResult.error,
+      undefined,
+      "real workerd parses fragmented socket HTTP",
+    );
+    assert.equal(socketResult.files[0].sha256, await digest(pngFixture()));
+    await call("/cleanup", { now: now + fileLimits.ttlMs });
   } finally {
     await mf.dispose();
     await rm(dir, { recursive: true, force: true });

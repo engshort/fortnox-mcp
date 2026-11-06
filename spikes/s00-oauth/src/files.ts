@@ -33,6 +33,7 @@ export type FileInput = z.infer<typeof fileInputSchema>["files"][number];
 export type FileErrorCode =
   | "FILE_URL_DENIED"
   | "FILE_FETCH_FAILED"
+  | "FILE_TRANSPORT_UNAVAILABLE"
   | "FILE_EXPIRED"
   | "FILE_TOO_LARGE"
   | "FILE_TIMEOUT"

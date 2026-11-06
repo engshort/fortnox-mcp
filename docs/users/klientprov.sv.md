@@ -3,6 +3,13 @@
 Det här är ett utvecklingsprov, inte en färdig Fortnox-anslutning.
 Använd endast påhittade underlag. Inga verifikationer bokförs.
 
+Filhämtningen har fått en separat [transportkorrigering](../implementation/S00-G03-transport-2026-11-06.md).
+Cloudflares publika socketväg saknar den TLS-garanti som det tidigare provet
+antog. Ett uttryckligt valt, autentiserat och kortlivat Node-hjälpprov kan därför
+hämta filerna med kontrollerad DNS och TLS. Behörighet och krypterad lagring
+ligger kvar i Worker. Hjälptjänsten är ingen permanent installation och direkt
+filhämtning från Worker är fortfarande inte godkänd.
+
 ## Anslutning och granskning
 
 Den isolerade provservern uppdaterades den 5 november 2026 med bevarad ägare,

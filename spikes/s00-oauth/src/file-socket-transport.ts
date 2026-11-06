@@ -38,7 +38,9 @@ export type FileTransportDiagnostic = {
     | "other";
 };
 // The maintained HTTP parser handles framing/chunking. Only a fixed GET is
-// emitted; the socket uses a checked public IP and TLS validates the URL host.
+// emitted; the caller must establish that its runtime honors the requested TLS
+// peer hostname independently of the pinned IP. The public Worker edge does not
+// establish this guarantee and does not use this adapter.
 // No unpinned fetch fallback is permitted if the runtime refuses that socket.
 export function socketFileTransport(
   egress: SocketEgress,

@@ -1,5 +1,11 @@
 # S00 authenticated MCP feasibility probe
 
+The [2026-11-06 G03 correction](../../docs/implementation/S00-G03-transport-2026-11-06.md)
+retires the unsupported pinned-IP/independent-TLS-name native Worker adapter.
+An explicit, short-lived authenticated Node helper is available for the private
+file probe. Earlier socket/transport claims below are historical; they do not
+establish native public-edge TLS hostname verification.
+
 The [2026-11-05 maintenance update](../../docs/implementation/S00-hosted-maintenance-2026-11-05.md)
 is deployed with the original bindings and grants preserved. Actual-host
 acceptance remains open. An additional [default-off file experiment](../../docs/implementation/S00-files-evidence.md)

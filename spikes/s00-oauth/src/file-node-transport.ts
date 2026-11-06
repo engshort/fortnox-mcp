@@ -17,6 +17,8 @@ export const nodeFileTransport: FileTransport = {
           method: "GET",
           signal,
           agent: false,
+          rejectUnauthorized: true,
+          servername: url.hostname,
           family: address.family,
           // Pin the actual socket to the already checked address, retaining TLS
           // hostname verification. No incoming headers/cookies are copied.

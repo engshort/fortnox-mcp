@@ -1,5 +1,6 @@
 import { fileCodec } from "../src/file-codec.js";
 import { d1FileStore } from "../src/file-d1.js";
+import { socketFileTransport } from "../src/file-socket-transport.js";
 import { fileValidator } from "../src/file-validation.js";
 import { FileError, fileService } from "../src/files.js";
 
@@ -16,6 +17,7 @@ export default {
       bytes?: number[];
       id?: string;
       mime?: string;
+      socket?: boolean;
     };
     const service = fileService({
       owner: input.owner,
@@ -26,13 +28,45 @@ export default {
       validator: fileValidator,
       codec: fileCodec,
       now: () => input.now,
-      transport: {
-        async open() {
-          return new Response(new Uint8Array(input.bytes ?? []), {
-            headers: { "content-type": input.mime ?? "image/png" },
-          });
-        },
-      },
+      transport: input.socket
+        ? socketFileTransport({
+            async resolve() {
+              return ["8.8.8.8"];
+            },
+            connect() {
+              const head = new TextEncoder().encode(
+                `HTTP/1.1 200 OK\r\nContent-Type: ${input.mime ?? "image/png"}\r\nContent-Length: ${input.bytes?.length ?? 0}\r\n\r\n`,
+              );
+              const wire = new Uint8Array(
+                head.length + (input.bytes?.length ?? 0),
+              );
+              wire.set(head);
+              wire.set(input.bytes ?? [], head.length);
+              const socket = {
+                opened: Promise.resolve({}),
+                readable: new ReadableStream<Uint8Array>({
+                  start(c) {
+                    for (let offset = 0; offset < wire.length; offset += 7)
+                      c.enqueue(wire.slice(offset, offset + 7));
+                    c.close();
+                  },
+                }),
+                writable: new WritableStream<Uint8Array>(),
+                async close() {},
+                startTls() {
+                  return socket;
+                },
+              };
+              return socket;
+            },
+          })
+        : {
+            async open() {
+              return new Response(new Uint8Array(input.bytes ?? []), {
+                headers: { "content-type": input.mime ?? "image/png" },
+              });
+            },
+          },
     });
     try {
       const path = new URL(request.url).pathname;
