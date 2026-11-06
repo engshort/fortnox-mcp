@@ -13,6 +13,12 @@ to an allowed/required/forbidden rule. `complete=true` describes retrieval only.
 Any `UNKNOWN` account rule blocks voucher validation even if another component
 mistakenly marks the reference set verified. Approval cannot override it.
 
+The provider's named `MANDATORY` rule normalizes to the domain's `REQUIRED`
+rule for cost center, project and transaction information. Numeric, omitted or
+null transaction-information settings remain `UNKNOWN`; none means optional or
+forbidden by default. Missing required values are rejected, and supplied
+dimensions must still resolve to active company-bound references.
+
 Validation is executable domain behavior, not an instruction asking the model to be careful. Rules apply to UI, model, batch and developer entry points and cannot be disabled by approval mode.
 
 ## Rule register

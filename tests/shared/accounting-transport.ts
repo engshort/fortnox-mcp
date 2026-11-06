@@ -17,7 +17,7 @@ import { accountingFixture, syntheticReferences } from "./accounting.js";
 export function accountingTransportContract(
   fixture: () => Promise<StateStore>,
 ) {
-  it("numeric account information rules stay unknown and provider response failures are classified and redacted through MCP", async () => {
+  it("numeric or absent information stays unknown, mandatory rules validate explicitly and provider response failures are redacted through MCP", async () => {
     const f = await accountingFixture(await fixture());
     let information: unknown = 0;
     let lock = "2025-12-31";
@@ -42,16 +42,20 @@ export function accountingTransportContract(
               Number: a.number,
               Active: a.active,
               Year: 7,
-              CostCenterSettings: a.cost_center,
-              ProjectSettings: a.project,
+              CostCenterSettings: "MANDATORY",
+              ProjectSettings: "MANDATORY",
               TransactionInformationSettings: information,
             })),
           },
           "/3/voucherseries": {
             VoucherSeriesCollection: [{ Code: "A", Manual: true, Year: 7 }],
           },
-          "/3/costcenters": { CostCenters: [] },
-          "/3/projects": { Projects: [] },
+          "/3/costcenters": {
+            CostCenters: [{ Code: "CENTER_A", Active: true }],
+          },
+          "/3/projects": {
+            Projects: [{ ProjectNumber: "PROJECT_A", Status: "ONGOING" }],
+          },
           "/3/settings/lockedperiod": { LockedPeriod: { EndDate: lock } },
         };
         return Response.json({
@@ -108,6 +112,46 @@ export function accountingTransportContract(
       expect(JSON.stringify(ok.structuredContent)).toContain(
         '"information":"UNKNOWN"',
       );
+      for (const absent of [undefined, null]) {
+        information = absent;
+        const result = await read();
+        expect(result.isError).not.toBe(true);
+        expect(JSON.stringify(result.structuredContent)).toContain(
+          '"information":"UNKNOWN"',
+        );
+      }
+      information = "MANDATORY";
+      const mandatory = await service.references(f.actor, f.a.id, 7);
+      expect(mandatory.accounts[0]).toMatchObject({
+        cost_center: "REQUIRED",
+        project: "REQUIRED",
+      });
+      expect(mandatory.accounts.map((a) => a.information)).toEqual([
+        "REQUIRED",
+        "REQUIRED",
+      ]);
+      expect(() =>
+        validateVoucher(
+          f.voucher,
+          { ...mandatory, validation_verified: true },
+          Date.now(),
+        ),
+      ).toThrow("VALIDATION_FAILED");
+      expect(
+        validateVoucher(
+          {
+            ...f.voucher,
+            rows: f.voucher.rows.map((row) => ({
+              ...row,
+              information: "Synthetic required information",
+              cost_center: "CENTER_A",
+              project: "PROJECT_A",
+            })),
+          },
+          { ...mandatory, validation_verified: true },
+          Date.now(),
+        ).totals.difference,
+      ).toBe("0.00");
       information = marker;
       const bad = await read();
       expect(bad.isError).toBe(true);

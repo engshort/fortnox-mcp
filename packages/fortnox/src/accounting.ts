@@ -35,17 +35,24 @@ const integer = z.union([
     .regex(/^\d{1,12}$/)
     .transform(Number),
 ]);
-const rule = z.enum(["REQUIRED", "ALLOWED", "NOTALLOWED"]);
+const rule = z
+  .enum(["MANDATORY", "ALLOWED", "NOTALLOWED"])
+  .transform((value) =>
+    value === "MANDATORY" ? ("REQUIRED" as const) : value,
+  );
 // List and single-account documentation disagree on this field's representation.
 // A numeric value is observable reference data, never an inferred booking rule.
-const informationRule = z.union([
-  rule,
-  z
-    .number()
-    .int()
-    .safe()
-    .transform(() => "UNKNOWN" as const),
-]);
+const informationRule = z
+  .union([
+    rule,
+    z
+      .number()
+      .int()
+      .safe()
+      .transform(() => "UNKNOWN" as const),
+  ])
+  .nullish()
+  .transform((value) => value ?? ("UNKNOWN" as const));
 const dimension = z.object({
   Code: z.string().regex(/^[A-Za-z0-9_-]{1,32}$/),
   Active: providerBool,

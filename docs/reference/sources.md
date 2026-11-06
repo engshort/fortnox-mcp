@@ -57,6 +57,18 @@ Actual ChatGPT/Claude plan, workspace and UI availability are not established so
 
 ## Supplied specification
 
+Additional local input reviewed on **2026-11-06**: a user-supplied OpenAPI 3.0.3
+snapshot with SHA-256
+`10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7`
+(1,701,157 bytes, 285 paths, 451 operations). It is kept only as ignored private
+documentation input. Acquisition URL/date and redistribution permission are not
+established; no license is declared. This does not replace the older source lock,
+approve G05/#35, or establish live behavior. Its account-list contract makes
+transaction-information settings optional; named account requirements use
+`MANDATORY`. These facts inform independently written parsing and synthetic
+tests, with unknown numeric semantics still blocked. No source copy or generated
+implementation is distributed.
+
 See [source-lock.json](source-lock.json). It was analyzed locally; no live Fortnox requests were made. The source file is not redistributed here because no license field establishes redistribution terms. Resource counts and original classifications are recorded in [resource-inventory.json](resource-inventory.json).
 
 The snapshot contains mixed API families, missing security declarations for most operations, example/demo auth schemes and inconsistent parameter/schema details. Absence of `security` does not mean anonymous access. Never use an embedded demo authorization URL as an endpoint for this integration.

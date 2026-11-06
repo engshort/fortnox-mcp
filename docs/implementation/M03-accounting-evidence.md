@@ -117,6 +117,35 @@ exposed repeated schema paths; diagnostics now deduplicate those paths before
 publication. The complete checks passed after that correction. No live reference
 success or verified numeric-rule semantics is claimed by these tests.
 
+## Optional account settings and provider vocabulary
+
+The next actual reference attempt narrowed the failure to transaction-information
+settings for both test companies. The operator supplied an additional private
+source snapshot (identity in the [source register](../reference/sources.md)).
+Its account-list information setting is optional, and the named account rules
+use `MANDATORY`. The adapter previously required the information setting and
+accepted the internal `REQUIRED` spelling as though it were provider vocabulary.
+
+The independently written parser now normalizes documented `MANDATORY` to
+internal `REQUIRED` across the three account rules. Omitted/null information
+settings remain explicitly `UNKNOWN`, as do unmapped numeric values. Named
+mandatory information/dimensions are enforced; unknown values cannot validate a
+voucher. No missing field is silently treated as allowed. Shared HTTP/MCP tests
+cover omitted/null values, named mandatory requirements, explicit valid inputs
+and unknown-rule blocking. The exact failing wire value remains unobserved until
+actual client recheck; the field-specific error alone does not prove its value.
+
+The raw attachment is ignored local documentation input only. It is not bundled,
+redistributed or used to generate implementation or fixtures. #35 retains its
+separate status; no provider/financial gate closes from a local source check.
+
+Local results for this correction: 91 Node/domain tests and 75 actual
+workerd/D1 tests passed, including omitted/null settings, mandatory information
+and dimensions, required-value rejection and explicit valid input. Root
+typecheck/lint/build, built-artifact checks and Wrangler dry-run passed. The
+private documentation catalog loaded the supplied input as 451 operations and
+680 schemas; no input was bundled into product artifacts.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure

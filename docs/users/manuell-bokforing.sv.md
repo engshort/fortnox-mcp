@@ -70,6 +70,9 @@ En fullständig referensläsning kan innehålla informationsregeln `UNKNOWN`.
 Det betyder att servern har läst en inställning vars betydelse ännu inte är
 verifierad. Ett sådant konto kan inte användas för ett godkänt förslag, även
 om listan är fullständig. Numeriska inställningar översätts inte på chans.
+Saknad informationsinställning visas också som `UNKNOWN`. Fortnox namngivna
+regel `MANDATORY` betyder obligatorisk och visas internt som `REQUIRED`;
+krävd information och dimensioner måste då anges uttryckligen.
 
 Om ett Fortnox-svar har oväntad struktur returneras `UPSTREAM_UNAVAILABLE`
 med operationens fasta felorsak och säkra fältnamn i `fields`. Det behöver
