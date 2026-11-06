@@ -65,6 +65,7 @@ Continuation handles are owner/company/query-bound, bounded and expiring. A hand
 | --- | --- |
 | `AUTH_REQUIRED`, `RECONNECT_REQUIRED` | Authenticate/reconnect through the trusted flow |
 | `COMPANY_FORBIDDEN` | Caller is not authorized for the company; no provider call |
+| `CONNECTION_DISCONNECTED` | A previously authorized connection was explicitly disconnected; no profile or provider call. The old generation stays invalid after reconnection. |
 | `CAPABILITY_UNAVAILABLE` | Missing implementation, scope, license or provider rights; distinguish these causes |
 | `VALIDATION_FAILED` | Structured field/domain violations and remediation |
 | `REVIEW_REQUIRED`, `CLIENT_UNSUPPORTED` | Required approval cannot yet be completed |

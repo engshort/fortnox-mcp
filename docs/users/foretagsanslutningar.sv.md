@@ -14,9 +14,15 @@ För D1: skapa motsvarande engångskod privat, beräkna SHA-256 och sätt en tio
 
 Om bootstrap avbryts efter att koden förbrukats måste operatören utreda befintligt konto och tillstånd; starta inte om genom att radera ägaren. Glömt lösenord återställs genom en ny privat biblioteksgenererad kod, som gäller i tio minuter. Skicka den med det nya lösenordet till samma origins `/auth/reset-password`; koden kan användas en gång och tidigare adminsessioner återkallas. Ägaridentiteten bevaras. E-postutskick och offentlig registrering ingår inte.
 
+För Worker/D1: operatören förbereder privata `.data/product-recovery.json` med `origin`, den befintliga ägarens `ownerId` från installationens lagring och ägarens `email`. `.env` ska innehålla installationens `AUTH_SECRET`. Kör `npm run prepare:product:recovery`, applicera `.data/product-recovery.sql` en gång på rätt D1-databas och kontrollera att exakt en rad ändrades. Vid noll ändringar ska ägaruppgifterna, databasen och kodens giltighet kontrolleras; ägaren ska inte ersättas.
+
+Öppna sedan `<PUBLIC_ORIGIN>/reset-password` och ange koden från `.data/product-recovery-code.txt` och ett nytt lösenord på minst tolv tecken. Logga in igen efter återställningen. Håll båda utdatafilerna privata och ta bort dem efter användning; återimportera inte gammal återställnings-SQL. Koden, lösenordet och callback-adresser med query-parametrar ska inte läggas i chatten.
+
 ## Kryptering och företag
 
 Credentials krypteras med en extern 32-byte-nyckel (base64). Förvara nycklarna separat från databasen och dess backup. Varje nyckel har ett ID; behåll den gamla under en kontrollerad nyckelrotation och verifierad återställning. Saknad eller fel nyckel blockerar åtkomst.
+
+Nyckelkontrollen gäller även privata företagslistor och status, och finns kvar efter frånkoppling när credentials har raderats. Vid flera nyckelversioner måste alla nycklar som fortfarande används finnas kvar. Äldre experimentella anslutningar uppgraderas först när befintliga credentials kan dekrypteras; annars spärras åtkomsten och operatören behöver återställa den korrekta konfigurationen. Radera inte ägaridentiteten eller byt nyckel på chans.
 
 Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; samma Fortnox-tenant kan inte läggas till två gånger. Klientens företagsbehörigheter binds till aktuell anslutningsgeneration. Grundpolicyn är skrivskydd och obligatorisk granskning av framtida manuella verifikationer.
 
@@ -44,4 +50,19 @@ Välj användaranslutning när servicekonto inte passar. Fortnox begär offline�
 
 Frånkoppling stoppar nya anrop och tar bort lagrade credentials. Ett anrop som redan skickats till Fortnox kan inte återtas. Sena tokensvar kan inte återaktivera företaget. Eventuella minimala utredningsuppgifter om okända skrivutfall raderas inte genom frånkoppling.
 
+Ett tidigare behörigt anrop kan få `CONNECTION_DISCONNECTED` direkt efter frånkoppling. Okänt eller obehörigt företag ger `COMPANY_FORBIDDEN`, och ett providerfel som kräver nytt godkännande ger `RECONNECT_REQUIRED`. Inget av felresultaten lämnar en företagsprofil. Andra behöriga företag kan fortfarande läsas.
+
 Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Skapa därefter en ny MCP-klientregistrering och godkänn den. Äldre grants och framtida granskningsunderlag återfår inte giltighet genom återanslutningen.
+
+
+## Vad är verifierat?
+
+Den lokala implementationen och dess syntetiska Node-/workerd-tester är separata från verkliga Fortnox- och ChatGPT-prov. #75 gäller anslutning och företagsläsning. Senare referens-, verifikations- och filoperationer verifieras i #92–#94. Inget ärende stängs genom att enbart flytta krav eller slå på en miljövariabel.
+
+## Om anslutningen misslyckas
+
+Kontrollera att Client ID tillhör rätt integration, att `companyinformation` och `profile` är valda i Fortnox utvecklarportal och att redirect URI är exakt installationens `/admin/fortnox/callback`. Fortnox beskriver `invalid_scope` i sin [felsökningsguide](https://www.fortnox.se/developer/faq); de giltiga namnen finns i [scope-listan](https://www.fortnox.se/developer/guides-and-good-to-know/scopes).
+
+Produktens felresultat kan innehålla `stage`, `reason`, `provider_error` och `provider_status`. De anger ett begränsat felsteg och redigerade felkoder, utan tokens eller providersvar. Återge detta JSON-resultat vid felsökning. Kopiera inte callback-adressen eller dess query-parametrar: där kan det finnas en engångskod och state.
+
+Starta alltid ett nytt försök från administrationen efter en korrigering. En förbrukad kod eller förnyelsetoken skickas inte igen på chans. Ett generiskt eller okänt fel ska inte tolkas som bevis för saknad licens eller behörighet.

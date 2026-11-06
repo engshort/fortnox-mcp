@@ -35,3 +35,13 @@ Behåll providerfunktioner avstängda vid vanlig distribution tills daterad evid
 För en ny D1-installation kan `npm run prepare:product:bootstrap` skapa en privat kod och `.data/product-bootstrap.sql`. Applicera SQL endast på vald testdatabas och kontrollera att exakt en rad ändrades. SQL kan förnya en ännu oanvänd bootstrap, men ersätter aldrig en aktiv eller redan påbörjad ägare. Koden gäller i tio minuter. Samma villkorade SQL kan användas lokalt om en första oanvänd kod har löpt ut.
 
 Efter den privata klient-/providerkörningen: `npm run test:integration` använder `.data/acceptance.json` och kräver `FORTNOX_ACCEPTANCE_CONFIRM=test-companies-only`. `npm run test:clients` kontrollerar en manuellt upprättad klient-evidensfil, vald med `ACCEPTANCE_CONFIG`. Det senare kommandot genomför inga ChatGPT-klick och får inte användas som bevis för osedda klientresultat.
+
+Installationsstyrd lösenordsåterställning i Worker/D1 använder `npm run prepare:product:recovery`, privat ägarkonfiguration och formuläret `/reset-password`. Se [företagsguiden](foretagsanslutningar.sv.md#ägare-och-inloggning). Detta utfärdar ingen ny ägaridentitet och använder inga Fortnox-hemligheter.
+
+## Förberedd separat testinstallation · 2026-11-06
+
+Den separata [produkt-testinstallationen](https://fortnox-mcp-product-test.alexander-c06.workers.dev/setup) är nu upplagd i valt Cloudflare-konto. Den använder egen Worker/D1 och privata secrets från konfigurationen. Den lokala `.env` har kvar sin lokala origin och sina avstängda standardflaggor.
+
+Nästa manuella steg är att etablera ägaren på `/setup`, ansluta de tillåtna testföretagen på `/admin` och prova klienten. Bootstrapkoden finns endast lokalt i `.data/product-bootstrap-code.txt`, gäller i tio minuter och kan förnyas med kommandot ovan medan bootstrap fortfarande är oanvänd. Du behöver inte använda en utgången kod eller radera databasen.
+
+Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-test.alexander-c06.workers.dev/admin/fortnox/callback`. Klientens MCP-adress är `https://fortnox-mcp-product-test.alexander-c06.workers.dev/mcp`. Efter att företag lagts till eller återanslutits kräver denna version en ny MCP-registrering och ett nytt godkännande. Den förberedda installationen innebär inte att dessa manuella prov redan är godkända.

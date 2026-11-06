@@ -2,6 +2,8 @@
 
 The milestone 2 adapter uses versioned CAS records for a bounded 20-company connection set, four pending ten-minute consent flows and 32 ten-minute continuations per owner. SQLite and D1 share the same SQL behavior; credentials and pending PKCE/client secrets use external-key AES-GCM. Node and Worker schedule five-minute temporary-state cleanup. See [implementation and verification limits](../implementation/M02-connections-evidence.md).
 
+An encrypted owner-bound key-check marker protects company metadata even after disconnect deletes all credentials. Private snapshot reads verify that marker and all retained credential key versions. Wrong or missing keys fail closed before list/status metadata is returned. The marker rotates atomically with the connection snapshot. Earlier experimental snapshots acquire it by CAS only after their retained credentials decrypt successfully; snapshots without any cryptographic key proof require operator recovery.
+
 Fortnox is the system of record for financial records and retained receipt attachments. This server stores only what is necessary to connect, enforce policy and recover safely.
 
 ## Data classes and initial defaults

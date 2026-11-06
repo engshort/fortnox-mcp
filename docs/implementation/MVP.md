@@ -78,7 +78,7 @@ No delivery dates or assignees have been invented.
 | [M18 / #72](https://github.com/alex-engvall/fortnox-mcp/issues/72) | Skyddad setup för ägare, företag och ChatGPT | Release | #28 | #55, #56, #60, #62 |
 | [M19 / #73](https://github.com/alex-engvall/fortnox-mcp/issues/73) | Redigerad anslutningsdiagnostik för MVP-flödet | Release | #27 | #61, #62 |
 | [M20 / #74](https://github.com/alex-engvall/fortnox-mcp/issues/74) | Verifiera uppgradering, backup, återställning och rensning | Release | #28 | #57, #60, #65, #68 |
-| [M21 / #75](https://github.com/alex-engvall/fortnox-mcp/issues/75) | G06-delacceptans för MVP:ns provideroperationer | Anslutning | #36 | #61 |
+| [M21 / #75](https://github.com/alex-engvall/fortnox-mcp/issues/75) | G06-delacceptans för anslutning och företagsläsning | Anslutning | #36 | #61 |
 | [M22 / #76](https://github.com/alex-engvall/fortnox-mcp/issues/76) | G07-delacceptans för manuell kvittobokföring | Bokföring | #37 | #63, #64 |
 | [M23 / #77](https://github.com/alex-engvall/fortnox-mcp/issues/77) | G09-delacceptans för vald MVP-drift och två kvitton | Grund | #39 | Existing foundation |
 | [M24 / #78](https://github.com/alex-engvall/fortnox-mcp/issues/78) | Verifiera och paketera första installerbara prereleasen | Release | #29 | #60, #62, #67, #71, #72, #73, #74, #75, #76, #77 |
@@ -113,7 +113,7 @@ do not mistake a synthetic adapter test for live acceptance.
 | G03 #33 | Two real client files and output retrieval, format/size/expiry and ownership checks |
 | G04 #34 | Remains closed for its existing isolated probe; production durability, token concurrency and lifecycle need new evidence |
 | G05 #35 | Parallel source-provenance/distribution blocker; independently written work continues, restricted source/derived distribution does not |
-| G06 #36 | Operation-specific MVP acceptance in #75; full gate remains open |
+| G06 #36 | Connection/read acceptance in #75; later reference, voucher and file acceptance in #92/#93/#94; full gate remains open |
 | G07 #37 | Manual-voucher rule/provider acceptance in #76; full analysis/SIE acceptance remains open |
 | G08 #38 | Lost responses, concurrent submits, restart and partial-link recovery for all enabled financial/file steps |
 | G09 #39 | Measured selected-runtime/two-file acceptance in #77, repeated on the release candidate; broader Node/Worker/SIE gate remains open |
@@ -196,3 +196,8 @@ Prepare reviewable release artifacts and notes; **publishing remains a separate
 maintainer-authorized action**. Recommend test accounts until explicit
 production-readiness evidence exists. No real financial data, raw provider
 payloads, credentials or private signatures belong in public evidence.
+
+
+## Milestone 2 provider acceptance refinement — 2026-11-06
+
+The owner approved limiting M21/#75 to connection/auth and company reads so milestone 2 can close on its own actual acceptance. Original later MVP provider requirements are preserved in [reference acceptance #92](https://github.com/engshort/fortnox-mcp/issues/92), [voucher acceptance #93](https://github.com/engshort/fortnox-mcp/issues/93) and [file acceptance #94](https://github.com/engshort/fortnox-mcp/issues/94), in their implementation milestones. M24/#78 also requires these applicable acceptances. Full G06/#36 and source-rights #35 keep their separate criteria. This changes delivery tracking, not product decisions or permission to activate unverified operations.

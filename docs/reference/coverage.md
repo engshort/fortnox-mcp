@@ -2,6 +2,10 @@
 
 The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap, OAuth, encrypted connections, token lifecycles, disconnect/reconnect and three company tools with shared Node/workerd evidence. Provider operations remain disabled outside explicitly allowlisted test acceptance; the operation ledger distinguishes `implemented_unverified` from verified support.
 
+The built product Worker also has a native-fetch consent regression in isolated workerd/D1 with a synthetic outbound provider. It verifies runtime transport wiring separately from the injected domain transports and does not establish live Fortnox acceptance.
+
+Owner recovery includes a private D1 operator bridge and same-origin form. Native workerd tests verify imported library records, expiry/replay/origin denial, session revocation and stable owner identity; a CLI test verifies private output and redacted logs. Hosted owner redemption remains a separate acceptance step. M07/#61's bounded HTTP-adapter acceptance is complete; broader provider-operation acceptance remains under #75/#36.
+
 The [default-off S00 file probe](../implementation/S00-files-evidence.md) now
 has local Node/workerd/MCP/OAuth evidence for bounded two-file input, encrypted
 temporary storage and authenticated output resources. Actual ChatGPT file
@@ -47,6 +51,12 @@ The supplied OpenAPI 3.0.3 file contains 249 paths, 405 operations and 672 schem
 | Recurring billing | 10 | Extension module |
 | Integration developer | 3 | Partner/developer prerequisites; separate from public documentation-search tools |
 | Time reporting | 2 | Extension module; distinguish from payroll attendance inputs |
+
+## Milestone 2 operation ledger
+
+The [connection/read matrix](mvp-connection-operations.json) records independently written source hashes, fixed operation mappings, authentication, scopes, parameters, side effects and test references. All entries remain `implemented_unverified`; ordinary supported provider coverage is still zero. The test-only path is explicitly bounded to two owner-configured test tenants. `upstreamOperationId` and product rights/license evidence remain unverified where no authorized product source establishes them; missing evidence blocks supported activation.
+
+Later MVP G06 acceptance is preserved in #92 (references), #93 (vouchers) and #94 (files). #75 covers milestone 2 only; full #36 is not closed.
 
 ## Required operation ledger during implementation
 
