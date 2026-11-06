@@ -7,6 +7,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { z } from "zod";
+import type { FileContext } from "./files.js";
 import type { ReviewStore } from "./review.js";
 
 export interface ProbeConfig {
@@ -15,6 +16,7 @@ export interface ProbeConfig {
   ownerId: string;
   database: BetterAuthOptions["database"];
   review?: ReviewStore;
+  files?: Omit<FileContext, "owner" | "secret" | "company">;
 }
 
 export function createProbeAuth(config: ProbeConfig) {
@@ -24,6 +26,7 @@ export function createProbeAuth(config: ProbeConfig) {
     "mcp:read",
     "offline_access",
     ...(config.review ? ["mcp:review"] : []),
+    ...(config.files ? ["mcp:files"] : []),
   ];
   const oauthOptions = {
     loginPage: "/sign-in",

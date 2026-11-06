@@ -1,5 +1,10 @@
 # API coverage plan
 
+The [default-off S00 file probe](../implementation/S00-files-evidence.md) now
+has local Node/workerd/MCP/OAuth evidence for bounded two-file input, encrypted
+temporary storage and authenticated output resources. Actual ChatGPT file
+acceptance remains open. It adds **zero** enabled Fortnox operations.
+
 This is a planning inventory, not a claim of implemented coverage. Machine-readable resource assignments are in [resource-inventory.json](resource-inventory.json); source identity is in [source-lock.json](source-lock.json).
 
 The [S00 synthetic tool](../../spikes/s00-mcp/README.md) has offline transport/schema evidence only. It maps to no Fortnox operation and adds **zero** provider coverage. All provider modules remain disabled and `not_implemented`; the spike does not establish client or hosting acceptance. See the [S00 evidence](../implementation/S00-spike-evidence.md).
