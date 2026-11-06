@@ -27,3 +27,9 @@ Godkännandet gäller de företag och anslutningsgenerationer som fanns vid ansl
 ## Begränsningar vid läsning
 
 Anrop begränsas separat för varje integration och företag. Vid tillfälliga fel görs högst tre läsförsök inom en begränsad tidsbudget. Ofullständig sidläsning markeras uttryckligen; en continuation gäller i tio minuter och kan inte användas för ett annat företag. Ett okänt behörighetsfel beskrivs som okänt tills scope, licens eller användarrättighet har verifierats. Providerfel återger inga råa svar eller hemligheter.
+
+## Servicekonto
+
+Registrera installationens egen integration i Fortnox med endast `companyinformation profile`, aktivera servicekonto och S256 PKCE och ange exakt `<PUBLIC_ORIGIN>/admin/fortnox/callback` som redirect. Du anger Client ID och Client Secret privat i installationens konfiguration. Starta consent i den inloggade administrationen och välj ett tillåtet testföretag i Fortnox.
+
+Installationen verifierar företaget via Fortnox innan anslutningen sparas. Servicekontot förnyar sedan access-token med client credentials och verifierad tenant. Den refresh-token som kan följa med första consent sparas inte för servicekontot. Ett Fortnox-servicekonto ger inga administrativa rättigheter till installationen.

@@ -37,6 +37,9 @@ export class CredentialVault {
     }
   }
   async seal(value: Credentials, binding: string): Promise<Ciphertext> {
+    return this.sealData(connectionCredentials.parse(value), binding);
+  }
+  async sealData(value: unknown, binding: string): Promise<Ciphertext> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const data = await crypto.subtle.encrypt(
       {
@@ -45,9 +48,7 @@ export class CredentialVault {
         additionalData: new TextEncoder().encode(binding),
       },
       await this.key(this.active),
-      new TextEncoder().encode(
-        JSON.stringify(connectionCredentials.parse(value)),
-      ),
+      new TextEncoder().encode(JSON.stringify(value)),
     );
     return {
       key: this.active,
@@ -56,6 +57,9 @@ export class CredentialVault {
     };
   }
   async open(value: Ciphertext, binding: string): Promise<Credentials> {
+    return connectionCredentials.parse(await this.openData(value, binding));
+  }
+  async openData(value: Ciphertext, binding: string): Promise<unknown> {
     try {
       const data = await crypto.subtle.decrypt(
         {
@@ -66,9 +70,7 @@ export class CredentialVault {
         await this.key(value.key),
         decode(value.data),
       );
-      return connectionCredentials.parse(
-        JSON.parse(new TextDecoder().decode(data)),
-      );
+      return JSON.parse(new TextDecoder().decode(data)) as unknown;
     } catch {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     }
@@ -210,6 +212,66 @@ export class Connections {
     )
       throw new DomainError("RECONNECT_REQUIRED");
     return this.vault.open(current.secret, this.binding(owner, current));
+  }
+  async mutate(
+    owner: string,
+    id: string,
+    change: (connection: Connection) => Promise<void> | void,
+  ) {
+    for (let n = 0; n < 8; n++) {
+      const row = await this.snapshot(owner);
+      const c = row?.value.connections.find((c) => c.id === id);
+      if (!row || !c) throw new DomainError("COMPANY_FORBIDDEN");
+      await change(c);
+      if (await this.state.put("connections", owner, row.value, row.version))
+        return c;
+    }
+    throw new DomainError("CONNECTION_CONFLICT");
+  }
+  async renew(
+    owner: string,
+    id: string,
+    generation: number,
+    exchange: (credentials: Credentials, c: Connection) => Promise<Credentials>,
+    force = false,
+    now = Date.now(),
+  ) {
+    const first = (await this.list(owner)).find((c) => c.id === id);
+    if (!first || first.generation !== generation)
+      throw new DomainError("RECONNECT_REQUIRED");
+    const credentials = await this.credentials(owner, first);
+    if (!force && credentials.expiresAt > now + 60000) return credentials;
+    const lock = crypto.randomUUID();
+    const reserved = await this.mutate(owner, id, (c) => {
+      if (c.generation !== generation || c.state !== "active")
+        throw new DomainError("RECONNECT_REQUIRED");
+      if (c.renewal && c.renewal.until > now)
+        throw new DomainError("RATE_LIMITED");
+      c.renewal = { id: lock, until: now + 30000, dispatched: true };
+    });
+    try {
+      const next = connectionCredentials.parse(
+        await exchange(credentials, reserved),
+      );
+      await this.mutate(owner, id, async (c) => {
+        if (
+          c.generation !== generation ||
+          c.state !== "active" ||
+          c.renewal?.id !== lock
+        )
+          throw new DomainError("RECONNECT_REQUIRED");
+        c.secret = await this.vault.seal(next, this.binding(owner, c));
+        delete c.renewal;
+      });
+      return next;
+    } catch {
+      await this.mutate(owner, id, (c) => {
+        if (c.generation === generation && c.renewal?.id === lock) {
+          delete c.renewal;
+        }
+      }).catch(() => {});
+      throw new DomainError("RECONNECT_REQUIRED");
+    }
   }
   async rotateKey(owner: string) {
     for (let n = 0; n < 8; n++) {
