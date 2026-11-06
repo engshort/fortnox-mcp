@@ -13,6 +13,7 @@ export interface ProductEnv extends Partial<ProductBindings> {
   FORTNOX_CLIENT_ID?: string;
   FORTNOX_CLIENT_SECRET?: string;
   FORTNOX_TEST_TENANTS?: string;
+  ACCOUNTING_REFERENCES_ENABLED?: string;
 }
 export default {
   async scheduled(_event: ScheduledController, env: ProductEnv): Promise<void> {

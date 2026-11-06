@@ -33,12 +33,12 @@ export function createProductAuth(config: AuthConfig) {
   const oauthOptions = {
     loginPage: "/sign-in",
     consentPage: "/consent",
-    scopes: ["mcp:read", "offline_access"],
+    scopes: ["mcp:read", "mcp:write", "offline_access"],
     grantTypes: ["authorization_code", "refresh_token"],
     resources: [
       {
         identifier: `${config.origin}/mcp`,
-        allowedScopes: ["mcp:read", "offline_access"],
+        allowedScopes: ["mcp:read", "mcp:write", "offline_access"],
       },
     ],
     resourceSeedMode: "insertOnly",
