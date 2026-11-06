@@ -69,7 +69,10 @@ transaction-information settings optional; named account requirements use
 tests, with unknown numeric semantics still blocked. Its separate account-detail
 contract identifies `AccountController_doShow` (`GET /3/accounts/{Number}`,
 `Account` envelope), with named transaction-information settings. This supports
-an independently implemented selected-account read, not inferred numeric rules. No source copy or generated
+an independently implemented selected-account read, not inferred numeric rules.
+Its voucher payload fields define numeric Debit/Credit and a 100-character
+TransactionInformation limit. These inform independent wire serialization and
+input validation; actual provider financial behavior remains separately gated. No source copy or generated
 implementation is distributed.
 
 See [source-lock.json](source-lock.json). It was analyzed locally; no live Fortnox requests were made. The source file is not redistributed here because no license field establishes redistribution terms. Resource counts and original classifications are recorded in [resource-inventory.json](resource-inventory.json).

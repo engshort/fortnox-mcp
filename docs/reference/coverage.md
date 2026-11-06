@@ -120,3 +120,8 @@ Completeness of an explicit selection is separate from completeness of the full
 chart. Domain validation/preparation/commit derive this selection from voucher
 rows, bounded to 20 distinct accounts. Financial verification and trusted review
 remain disabled pending their own evidence; #92/#76/#93 remain open.
+
+The voucher payload follow-up emits exact decimal JSON number tokens and rejects
+row information over 100 characters, matching the reviewed private source. Its
+HTTP/body tests are synthetic; it adds no provider operation, financial live
+evidence or supported/default-enabled behavior.

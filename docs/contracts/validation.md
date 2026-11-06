@@ -76,3 +76,14 @@ requested number and year. Company/grant/generation checks apply before and
 after provider I/O. Missing/unknown requirements and `validation_verified=false`
 still block validation. More than 20 distinct accounts is outside this bounded
 retrieval profile, even though a voucher may contain up to 100 rows.
+
+## Voucher wire representation
+
+MVP row information is limited to 100 characters, matching the reviewed provider
+payload contract; the voucher description retains its separate 200-character
+limit. Overlong text is rejected before provider dispatch and is never truncated.
+Money stays canonical decimal text in the domain and immutable proposal. The
+provider serializer emits validated fixed-point decimal tokens as JSON numbers,
+without converting through JavaScript Number. All non-monetary text is escaped
+with JSON.stringify. This is a wire-format constraint, not financial live
+acceptance or permission to bypass policy/review.
