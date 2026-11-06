@@ -74,6 +74,13 @@ Saknad informationsinställning visas också som `UNKNOWN`. Fortnox namngivna
 regel `MANDATORY` betyder obligatorisk och visas internt som `REQUIRED`;
 krävd information och dimensioner måste då anges uttryckligen.
 
+Vid det separata operatörsprovet den 6 november 2026 kunde båda testföretagens
+referenser läsas efter rättningen. Varje kontolista nådde gränsen på 500 poster
+och gav `complete=false`; informationsinställningen saknades och redovisades
+som `UNKNOWN`. Ett lyckat läsanrop är därför ännu inte ett godkänt
+bokföringsunderlag. Förslagsflödet kräver fullständiga, verifierade regler för
+de konton som används. Operatörsprovet ersätter inte ett nytt prov i ChatGPT.
+
 Om ett Fortnox-svar har oväntad struktur returneras `UPSTREAM_UNAVAILABLE`
 med operationens fasta felorsak och säkra fältnamn i `fields`. Det behöver
 utredas av operatören; byt inte företag eller års-ID för att försöka komma
