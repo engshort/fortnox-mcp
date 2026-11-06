@@ -116,9 +116,11 @@ export class FortnoxHttp {
     const spec = providerOperations[operation];
     const deadline = this.now() + 15000;
     let renewed = false;
+    let forceRenewal = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       await this.permit(context, deadline);
-      const token = await context.token(renewed);
+      const token = await context.token(forceRenewal);
+      forceRenewal = false;
       await context.assertActive();
       let response: Response;
       try {
@@ -145,6 +147,7 @@ export class FortnoxHttp {
       const text = await boundedResponse(response);
       if (response.status === 401 && !renewed) {
         renewed = true;
+        forceRenewal = true;
         continue;
       }
       if (response.status === 401)

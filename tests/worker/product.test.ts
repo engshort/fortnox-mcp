@@ -4,8 +4,10 @@ import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { connectionContract } from "../shared/connections.js";
+import { consentHttpContract } from "../shared/consent-http.js";
 import { disconnectContract } from "../shared/disconnect.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
+import { maintenanceContract } from "../shared/maintenance.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
@@ -57,6 +59,7 @@ ownerContract(fixture);
 connectionContract(async () => (await fixture()).state);
 
 oauthContract(fixture);
+consentHttpContract(fixture);
 
 providerContract(async () => (await fixture()).state);
 
@@ -65,3 +68,5 @@ fortnoxConnectionContract(async () => (await fixture()).state);
 userTokenContract(async () => (await fixture()).state);
 
 disconnectContract(async () => (await fixture()).state);
+
+maintenanceContract(async () => (await fixture()).state);

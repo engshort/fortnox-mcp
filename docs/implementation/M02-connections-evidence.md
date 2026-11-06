@@ -55,3 +55,24 @@ Renewal locks are durable and fenced. Credentials are reread after reserving the
 Disconnect atomically removes credentials/renewal state and advances connection generation and policy version. Every queued provider attempt rechecks durable authorization. A token response already in flight is fenced from saving or reactivating a disconnected connection. An upstream request already dispatched cannot be recalled.
 
 Reconnect repeats PKCE consent and authenticated tenant verification. The same tenant retains its company handle with a new generation; selecting another allowed tenant creates a separate handle and leaves the old connection disconnected. A stale reconnect flow cannot overwrite a later generation. Registration-bound grants never inherit the new connection; a new MCP registration/consent is required. Minimal existing execution-intent metadata is left intact; financial proposal/execution tools remain unavailable and must adopt generation/policy binding in their later scopes.
+
+
+## M08 — company tools, runtime and private configuration (#62)
+
+The product server exposes strict `list_companies` and `get_connection_status` contracts and an explicitly opt-in test-only `get_company_profile`. Each call resolves the database-backed MCP identity and immutable company generation grant. Every provider attempt, including retry, rechecks current connection state. Profile responses check DatabaseNumber against the selected verified tenant; only modeled fields reach the client. No raw credentials/provider error messages are returned.
+
+`dev:product` starts a distinct loopback Node/SQLite product entry. The separate `apps/worker/wrangler.product.jsonc` entry is disabled by default; it never reuses S00 resources. `.env.example` documents configuration; actual `.env` and editor swap files are ignored. A ready private .env was generated locally and owner-populated values validated without printing any values or sending provider requests. HTTPS hosting and actual consent remain separate.
+
+Expired temporary consent/continuation state is cleaned at Node startup/every five minutes and by the Worker five-minute scheduled handler. Cleanup preserves unresolved financial metadata. The local tests verify the cleanup function, not actual hosted scheduling.
+
+`test:integration` now runs opt-in two-company reads through authenticated MCP using `.data/acceptance.json` with private `origin`, `accessToken`, two `companyIds` and `serverCommit`. Set `FORTNOX_ACCEPTANCE_CONFIRM=test-companies-only`. It prints aggregate results only; the supplied source commit must be verified against deployment separately. `test:clients` validates a private manual evidence record (set `ACCEPTANCE_CONFIG`): serverCommit, observedAt, client, runtime, limitations and checks for ownerLogin, oauthConsent, listTwoCompanies, readBothProfiles, wrongCompanyDenied, refreshAfterExpiry, revocation, renewableReconnect, savedAnswer, conversationReload and reloadTools. Record validation does not execute or prove a browser action. Missing evidence fails with a nonzero exit.
+
+### Observed offline verification — 2026-11-06
+
+Node 24.19.0, npm 11.9.0. Root typecheck, lint and build passed. `npm test`: **58 Node/domain tests and 46 actual local workerd/D1 tests** passed, including the shared sixteen-case product contract, modern SDK 2 and legacy HTTP access to two synthetic companies. `npm run test:build`: **six built-artifact cases** passed with dynamic code generation disabled, including actual Node startup/migrations/bootstrap. Product Wrangler dry-run passed (about 3,464 KiB / 615 KiB gzip); this is bundle evidence, not hosted CPU acceptance. The product deploy target's newer compatibility date still requires hosted verification; shared local regression uses the foundation test configuration.
+
+A runtime dependency audit initially found transitive Zod 4.6.5. Root Zod is now explicitly pinned to the project's existing 4.6.7; `npm audit --omit=dev` reports zero findings. Development-only toolchain audit findings remain separate from product runtime support. No broad dependency upgrade was performed.
+
+Actual product Fortnox consent/expiry/revocation/two-tenant reads, Cloudflare deployment/scheduling and ChatGPT saved-answer/reload/Reload tools have not yet been verified. These open requirements prevent closing live-acceptance issues or marking operations verified. No merge, release or production account was used.
+
+S00 reuse regression: rebuilding the probe's ignored Worker bundle and running its existing `npm test` passed all **47** cases. The first run used a stale pre-main bundle and failed one file-consent copy assertion; rebuilding resolved it without changing probe source. No probe deployment or live account action was performed.

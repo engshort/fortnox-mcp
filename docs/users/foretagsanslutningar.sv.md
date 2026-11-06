@@ -1,5 +1,7 @@
 # Säkra företagsanslutningar
 
+Börja med [ENV-konfigurationen](env.sv.md) för privata värden och startkommandon.
+
 Detta är produktimplementation under verifiering. Använd en separat testinstallation och uttryckligen tillåtna testföretag. Fortnox-operationer är avstängda tills deras klient- och providerevidens är godkänd.
 
 ## Ägare och inloggning

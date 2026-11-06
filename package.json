@@ -30,7 +30,11 @@
     "test:integration": "node scripts/acceptance.mjs fortnox",
     "test:clients": "node scripts/acceptance.mjs clients",
     "build": "node scripts/build.mjs",
-    "test:build": "node --disallow-code-generation-from-strings --test tests/build.test.mjs"
+    "test:build": "node --disallow-code-generation-from-strings --test tests/build.test.mjs && node --test tests/product-worker-native.test.mjs",
+    "dev:product": "node --env-file-if-exists=.env --import tsx apps/node/src/product-main.ts",
+    "dev:product:worker": "wrangler dev --config apps/worker/wrangler.product.jsonc --local --ip 127.0.0.1",
+    "prepare:product:bootstrap": "node scripts/product-bootstrap.mjs",
+    "prepare:product:recovery": "node --env-file-if-exists=.env --import tsx scripts/product-recovery.ts"
   },
   "cloudflare": {
     "bindings": {
@@ -43,6 +47,7 @@
     "@biomejs/biome": "2.5.15",
     "@cloudflare/vitest-plugin": "1.4.4",
     "@cloudflare/workers-types": "5.20261018.1",
+    "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@types/node": "24.19.2",
     "esbuild": "0.28.2",
@@ -59,6 +64,7 @@
     "@modelcontextprotocol/server": "2.3.1",
     "better-auth": "1.7.10",
     "better-call": "1.4.2",
-    "oauth4webapi": "3.8.8"
+    "oauth4webapi": "3.8.8",
+    "zod": "4.6.7"
   }
 }

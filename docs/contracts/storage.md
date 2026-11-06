@@ -1,5 +1,7 @@
 # Operational storage and retention
 
+The milestone 2 adapter uses versioned CAS records for a bounded 20-company connection set, four pending ten-minute consent flows and 32 ten-minute continuations per owner. SQLite and D1 share the same SQL behavior; credentials and pending PKCE/client secrets use external-key AES-GCM. Node and Worker schedule five-minute temporary-state cleanup. See [implementation and verification limits](../implementation/M02-connections-evidence.md).
+
 Fortnox is the system of record for financial records and retained receipt attachments. This server stores only what is necessary to connect, enforce policy and recover safely.
 
 ## Data classes and initial defaults

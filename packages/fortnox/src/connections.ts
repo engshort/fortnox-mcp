@@ -15,6 +15,50 @@ const server: oauth.AuthorizationServer = {
   token_endpoint: "https://apps.fortnox.se/oauth-v1/token",
   code_challenge_methods_supported: ["S256"],
 };
+export type ConsentStage =
+  | "flow_validation"
+  | "flow_decryption"
+  | "authorization_response"
+  | "code_exchange"
+  | "code_response"
+  | "initial_credentials"
+  | "tenant_verification"
+  | "service_exchange"
+  | "service_response"
+  | "service_credentials"
+  | "service_tenant_verification"
+  | "connection_storage";
+const publicOAuthErrors = new Set([
+  "invalid_request",
+  "invalid_client",
+  "invalid_grant",
+  "unauthorized_client",
+  "invalid_scope",
+  "access_denied",
+  "unsupported_grant_type",
+  "unsupported_response_type",
+  "server_error",
+  "temporarily_unavailable",
+]);
+// Retain only fixed diagnostics. Never attach the library error, cause or body.
+export class FortnoxConsentError extends DomainError {
+  readonly providerError?: string;
+  readonly providerStatus?: number;
+  constructor(
+    readonly stage: ConsentStage,
+    error: unknown,
+  ) {
+    super(error instanceof DomainError ? error.code : "RECONNECT_REQUIRED");
+    if (
+      error instanceof oauth.AuthorizationResponseError ||
+      error instanceof oauth.ResponseBodyError
+    ) {
+      if (publicOAuthErrors.has(error.error)) this.providerError = error.error;
+      if (error instanceof oauth.ResponseBodyError)
+        this.providerStatus = error.status;
+    }
+  }
+}
 export const consentInput = z
   .object({
     mode: z.enum(["service", "user"]),
@@ -254,6 +298,7 @@ export class FortnoxConnections {
       }
     }
     if (!flow) throw new DomainError("AUTH_REQUIRED");
+    let stage: ConsentStage = "flow_decryption";
     try {
       const input = flowSecret.parse(
         await this.config.connections.vault.openData(
@@ -265,12 +310,14 @@ export class FortnoxConnections {
         client_id: input.clientId,
         token_endpoint_auth_method: "client_secret_basic",
       };
+      stage = "authorization_response";
       const params = oauth.validateAuthResponse(
         server,
         client,
         callback,
         flow.state,
       );
+      stage = "code_exchange";
       const response = await oauth.authorizationCodeGrantRequest(
         server,
         client,
@@ -280,16 +327,21 @@ export class FortnoxConnections {
         input.verifier,
         { [oauth.customFetch]: this.upstream() },
       );
-      const initial = this.credentials(
-        input,
-        await oauth.processAuthorizationCodeResponse(server, client, response),
-        flow.mode,
+      stage = "code_response";
+      const initialTokens = await oauth.processAuthorizationCodeResponse(
+        server,
+        client,
+        response,
       );
+      stage = "initial_credentials";
+      const initial = this.credentials(input, initialTokens, flow.mode);
+      stage = "tenant_verification";
       const identity = await this.verify(owner, initial);
       let credentials = initial;
       if (flow.mode === "user" && !initial.refreshToken)
         throw new DomainError("RECONNECT_REQUIRED");
       if (flow.mode === "service") {
+        stage = "service_exchange";
         const grant = await oauth.clientCredentialsGrantRequest(
           server,
           client,
@@ -300,13 +352,18 @@ export class FortnoxConnections {
             headers: { TenantId: identity.tenant },
           },
         );
-        credentials = this.credentials(
-          input,
-          await oauth.processClientCredentialsResponse(server, client, grant),
-          "service",
+        stage = "service_response";
+        const serviceTokens = await oauth.processClientCredentialsResponse(
+          server,
+          client,
+          grant,
         );
+        stage = "service_credentials";
+        credentials = this.credentials(input, serviceTokens, "service");
+        stage = "service_tenant_verification";
         await this.verify(owner, credentials, identity.tenant);
       }
+      stage = "connection_storage";
       if (flow.reconnectId) {
         const previous = (await this.config.connections.list(owner)).find(
           (c) => c.id === flow.reconnectId,
@@ -332,8 +389,7 @@ export class FortnoxConnections {
         credentials,
       );
     } catch (error) {
-      if (error instanceof DomainError) throw error;
-      throw new DomainError("RECONNECT_REQUIRED");
+      throw new FortnoxConsentError(stage, error);
     } finally {
       for (let n = 0; n < 8; n++) {
         const row = await this.config.connections.state.get<Flow[]>(

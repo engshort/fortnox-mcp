@@ -1,24 +1,42 @@
-import { Connections, CredentialVault } from "@fortnox-mcp/core";
-import { McpServer } from "@modelcontextprotocol/server";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { expect, it } from "vitest";
+import { createProductApplication } from "../../apps/shared/product.js";
 import type { AuthConfig, Owner } from "../../apps/shared/product-auth.js";
-import { createProductGateway } from "../../apps/shared/product-gateway.js";
-import { keyA } from "./connections.js";
+import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 
 export function oauthContract(fixture: () => Promise<AuthConfig>) {
   it("product OAuth validates PKCE/resource/redirect, rotates refresh and revokes access", async () => {
     const config = await fixture();
     const callback = "https://client.example.invalid/callback";
-    const app = createProductGateway(
+    let providerCalls = 0;
+    const app = createProductApplication(
       {
-        ...config,
+        origin: config.origin,
+        secret: config.secret,
+        keys: { a: keyA },
+        activeKey: "a",
         redirects: [callback],
-        connections: new Connections(
-          config.state,
-          new CredentialVault({ a: keyA }, "a"),
-        ),
+        testMode: true,
+        clientId: "synthetic-client",
+        clientSecret: "synthetic-client-secret",
+        testTenants: ["100001", "100002"],
       },
-      () => new McpServer({ name: "synthetic-product-test", version: "0" }),
+      config,
+      async (input) => {
+        providerCalls++;
+        const request = input as Request;
+        const a = request.headers.get("authorization") === "Bearer synthetic-A";
+        return Response.json({
+          CompanyInformation: {
+            DatabaseNumber: a ? "100001" : "100002",
+            CompanyName: a ? "Synthetic A" : "Synthetic B",
+            OrganizationNumber: "000000-0000",
+          },
+        });
+      },
     );
     const seeded = await app.auth.api.signUpEmail({
       body: {
@@ -38,6 +56,16 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         tokenHash: "",
       },
       null,
+    );
+    const companyA = await app.connections.add(
+      seeded.response.user.id,
+      syntheticCompany,
+      { ...syntheticCredentials, accessToken: "synthetic-A" },
+    );
+    const companyB = await app.connections.add(
+      seeded.response.user.id,
+      { ...syntheticCompany, tenant: "100002", name: "Synthetic B" },
+      { ...syntheticCredentials, accessToken: "synthetic-B" },
     );
     const cookie = seeded.headers
       .getSetCookie()
@@ -167,6 +195,119 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     });
     expect(claims.ownerId).toBe(seeded.response.user.id);
     expect(claims.clientId).toBe(client);
+    expect(
+      (
+        await req("/admin", undefined, {
+          authorization: `Bearer ${tokens.access_token}`,
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await req(
+          "/admin/fortnox/start",
+          { mode: "service" },
+          {
+            authorization: `Bearer ${tokens.access_token}`,
+            origin: config.origin,
+          },
+        )
+      ).status,
+    ).toBe(401);
+    const call = async (name: string, args: unknown, protocol = "2025-11-25") =>
+      req(
+        "/mcp",
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        },
+        {
+          authorization: `Bearer ${tokens.access_token}`,
+          accept: "application/json, text/event-stream",
+          "mcp-protocol-version": protocol,
+        },
+      );
+    const listed = await call("list_companies", {});
+    expect(listed.status).toBe(200);
+    const listBody = (await listed.json()) as {
+      result: { structuredContent: { data: { companies: unknown[] } } };
+    };
+    expect(listBody.result.structuredContent.data.companies).toHaveLength(2);
+    for (const c of [companyA, companyB]) {
+      const profile = await call("get_company_profile", { company_id: c.id });
+      expect(profile.status).toBe(200);
+      const body = (await profile.json()) as {
+        result: {
+          structuredContent: {
+            status: string;
+            company_id: string;
+            data: { name: string };
+          };
+        };
+      };
+      expect(body.result.structuredContent.status).toBe("ok");
+      expect(body.result.structuredContent.company_id).toBe(c.id);
+      expect(body.result.structuredContent.data.name).toBe(c.name);
+    }
+    expect(providerCalls).toBe(2);
+    const denied = await call("get_company_profile", {
+      company_id: crypto.randomUUID(),
+    });
+    expect(await denied.text()).toContain("COMPANY_FORBIDDEN");
+    expect(providerCalls).toBe(2);
+    const modern = new Client(
+      { name: "synthetic-modern", version: "0" },
+      { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+    );
+    try {
+      await modern.connect(
+        new StreamableHTTPClientTransport(new URL(`${config.origin}/mcp`), {
+          fetch: (url, init) => app.fetch(new Request(url, init)),
+          requestInit: {
+            headers: { authorization: `Bearer ${tokens.access_token}` },
+          },
+        }),
+      );
+      expect(modern.getProtocolEra()).toBe("modern");
+      expect((await modern.listTools()).tools.map((t) => t.name)).toContain(
+        "list_companies",
+      );
+      const modernResult = await modern.callTool({
+        name: "get_connection_status",
+        arguments: { company_id: companyB.id },
+      });
+      expect(JSON.stringify(modernResult.structuredContent)).toContain(
+        companyB.id,
+      );
+    } finally {
+      await modern.close();
+    }
+    await app.connections.disconnect(seeded.response.user.id, companyA.id);
+    expect(
+      await (
+        await call("get_company_profile", { company_id: companyA.id })
+      ).text(),
+    ).toContain("CONNECTION_DISCONNECTED");
+    expect(providerCalls).toBe(2);
+    const remaining = (await (await call("list_companies", {})).json()) as {
+      result: {
+        structuredContent: { data: { companies: { company_id: string }[] } };
+      };
+    };
+    expect(
+      remaining.result.structuredContent.data.companies.map(
+        (c) => c.company_id,
+      ),
+    ).toEqual([companyB.id]);
+    const available = (await (
+      await call("get_company_profile", { company_id: companyB.id })
+    ).json()) as {
+      result: { structuredContent: { status: string; company_id: string } };
+    };
+    expect(available.result.structuredContent.status).toBe("ok");
+    expect(available.result.structuredContent.company_id).toBe(companyB.id);
     const refreshed = await req(
       "/auth/oauth2/token",
       new URLSearchParams({

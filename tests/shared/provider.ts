@@ -8,6 +8,45 @@ import {
 } from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 export function providerContract(fixture: () => Promise<StateStore>) {
+  it("recovers a 401 once and does not force another token rotation on a subsequent 5xx", async () => {
+    const state = await fixture();
+    let now = 10000;
+    let requests = 0;
+    let rotations = 0;
+    const http = new FortnoxHttp({
+      state,
+      now: () => now,
+      sleep: async (ms) => {
+        now += ms;
+      },
+      random: () => 0,
+      fetch: async () => {
+        requests++;
+        return requests === 1
+          ? new Response("{}", { status: 401 })
+          : requests === 2
+            ? new Response("{}", { status: 503 })
+            : Response.json({ ok: true });
+      },
+    });
+    const context: ProviderContext = {
+      owner: "owner",
+      company: "A",
+      generation: 1,
+      tenant: "100001",
+      clientId: "client",
+      assertActive: async () => {},
+      token: async (force) => {
+        if (force) rotations++;
+        return "synthetic-token";
+      },
+    };
+    await expect(http.read(context, "company_information")).resolves.toEqual({
+      ok: true,
+    });
+    expect(requests).toBe(3);
+    expect(rotations).toBe(1);
+  });
   it("paces shared tenant reads, bounds retries and keeps other tenants independent", async () => {
     const state = await fixture();
     let now = 10000;

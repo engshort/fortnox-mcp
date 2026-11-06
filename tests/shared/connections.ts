@@ -83,10 +83,14 @@ export function connectionContract(fixture: () => Promise<StateStore>) {
       for (const vault of [
         new CredentialVault({}, "a"),
         new CredentialVault({ a: keyB }, "a"),
-      ])
+      ]) {
+        await expect(
+          new Connections(state, vault).list("owner"),
+        ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
         await expect(
           new Connections(state, vault).credentials("owner", c),
         ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      }
       if (!c.secret) throw new Error("Missing fixture ciphertext");
       await expect(
         service.vault.open(c.secret, service.binding("other-owner", c)),
@@ -95,6 +99,16 @@ export function connectionContract(fixture: () => Promise<StateStore>) {
         state,
         new CredentialVault({ a: keyA, b: keyB }, "b"),
       );
+      const second = await next.add(
+        "owner",
+        { ...syntheticCompany, tenant: "100002", name: "Synthetic B" },
+        { ...syntheticCredentials, accessToken: "synthetic-B-token" },
+      );
+      await expect(
+        new Connections(state, new CredentialVault({ b: keyB }, "b")).list(
+          "owner",
+        ),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
       await next.rotateKey("owner");
       expect((await next.list("owner"))[0]?.secret?.key).toBe("b");
       expect(
@@ -103,6 +117,55 @@ export function connectionContract(fixture: () => Promise<StateStore>) {
           new CredentialVault({ b: keyB }, "b"),
         ).credentials("owner", c),
       ).toEqual(syntheticCredentials);
+      await next.disconnect("owner", c.id);
+      await next.disconnect("owner", second.id);
+      const onlyNewKey = new Connections(
+        state,
+        new CredentialVault({ b: keyB }, "b"),
+      );
+      expect((await onlyNewKey.list("owner"))[0]?.state).toBe("disconnected");
+      await expect(
+        new Connections(state, new CredentialVault({ b: keyA }, "b")).list(
+          "owner",
+        ),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+    });
+    it("upgrades an earlier encrypted snapshot by CAS without changing handles, generations or grants", async () => {
+      const state = await fixture();
+      const service = new Connections(
+        state,
+        new CredentialVault({ a: keyA }, "a"),
+      );
+      const c = await service.add(
+        "owner",
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      await service.grant("owner", "client", [c.id]);
+      const row = await state.get<{ connections: (typeof c)[] }>(
+        "connections",
+        "owner",
+      );
+      if (!row) throw new Error("Missing synthetic snapshot");
+      await state.put(
+        "connections",
+        "owner",
+        { connections: row.value.connections },
+        row.version,
+      );
+      await expect(
+        new Connections(state, new CredentialVault({ a: keyB }, "a")).list(
+          "owner",
+        ),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      expect(
+        (await service.authorize("owner", "client", c.id)).generation,
+      ).toBe(1);
+      expect((await service.list("owner"))[0]?.id).toBe(c.id);
+      expect(
+        (await state.get<{ keyCheck?: unknown }>("connections", "owner"))?.value
+          .keyCheck,
+      ).toBeDefined();
     });
   });
 }

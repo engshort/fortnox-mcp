@@ -9,6 +9,55 @@ import {
 
 export function ownerContract(fixture: () => Promise<AuthConfig>) {
   describe("product owner boundary", () => {
+    it("rejects a persisted expired admin session after recreating the handler", async () => {
+      const config = await fixture();
+      const app = createAdmin(config);
+      const created = await app.auth.api.signUpEmail({
+        body: {
+          email: "expiry@example.invalid",
+          name: "Synthetic owner",
+          password: "Synthetic-expiry-password",
+        },
+        returnHeaders: true,
+      });
+      await config.state.put<Owner>(
+        "installation",
+        "owner",
+        {
+          phase: "active",
+          ownerId: created.response.user.id,
+          expiresAt: 0,
+          tokenHash: "",
+        },
+        null,
+      );
+      const cookie = created.headers
+        .getSetCookie()
+        .map((c) => c.split(";")[0])
+        .join("; ");
+      const headers = new Headers({ cookie });
+      const session = await app.auth.api.getSession({ headers });
+      if (!session) throw new Error("Missing synthetic owner session");
+      expect(
+        (await app.fetch(new Request(`${config.origin}/admin`, { headers })))
+          .status,
+      ).toBe(200);
+      await (await app.auth.$context).internalAdapter.updateSession(
+        session.session.token,
+        { expiresAt: new Date(Date.now() - 1000) },
+      );
+      const restarted = createAdmin(config);
+      expect(
+        (
+          await restarted.fetch(
+            new Request(`${config.origin}/admin`, { headers }),
+          )
+        ).status,
+      ).toBe(401);
+      expect(
+        (await config.state.get<Owner>("installation", "owner"))?.value.ownerId,
+      ).toBe(created.response.user.id);
+    });
     it("claims one owner, rejects replay and keeps password login after recreation", async () => {
       const config = await fixture();
       const token = "synthetic-bootstrap-code-with-enough-entropy";

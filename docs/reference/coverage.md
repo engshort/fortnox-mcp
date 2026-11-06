@@ -1,6 +1,6 @@
 # API coverage plan
 
-The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap and durable session boundaries. Provider operations remain disabled; each delivery records local verification separately from live acceptance.
+The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap, OAuth, encrypted connections, token lifecycles, disconnect/reconnect and three company tools with shared Node/workerd evidence. Provider operations remain disabled outside explicitly allowlisted test acceptance; the operation ledger distinguishes `implemented_unverified` from verified support.
 
 The [default-off S00 file probe](../implementation/S00-files-evidence.md) now
 has local Node/workerd/MCP/OAuth evidence for bounded two-file input, encrypted

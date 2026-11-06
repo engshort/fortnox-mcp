@@ -93,6 +93,7 @@ export interface Connection {
 }
 export interface ConnectionSet {
   connections: Connection[];
+  keyCheck?: Ciphertext;
 }
 export interface CompanyGrant {
   ownerId: string;
@@ -106,8 +107,54 @@ export class Connections {
   binding(owner: string, c: Pick<Connection, "id" | "generation" | "mode">) {
     return JSON.stringify([owner, c.id, c.generation, c.mode]);
   }
+  private keyBinding(owner: string) {
+    return JSON.stringify([owner, "connection-set-key-check"]);
+  }
+  private async save(
+    owner: string,
+    value: ConnectionSet,
+    expected: number | null,
+  ) {
+    const keyCheck = await this.vault.sealData(
+      { purpose: "connection-set-key-check" },
+      this.keyBinding(owner),
+    );
+    return this.state.put(
+      "connections",
+      owner,
+      { ...value, keyCheck },
+      expected,
+    );
+  }
   async snapshot(owner: string) {
-    return await this.state.get<ConnectionSet>("connections", owner);
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const row = await this.state.get<ConnectionSet>("connections", owner);
+      if (!row) return null;
+      if (row.value.keyCheck) {
+        try {
+          z.object({ purpose: z.literal("connection-set-key-check") })
+            .strict()
+            .parse(
+              await this.vault.openData(
+                row.value.keyCheck,
+                this.keyBinding(owner),
+              ),
+            );
+        } catch {
+          throw new DomainError("CAPABILITY_UNAVAILABLE");
+        }
+        for (const c of row.value.connections)
+          if (c.secret) await this.vault.open(c.secret, this.binding(owner, c));
+        return row;
+      }
+      // Upgrade earlier experimental snapshots only after proving the key.
+      const encrypted = row.value.connections.filter((c) => c.secret);
+      if (!encrypted.length) throw new DomainError("CAPABILITY_UNAVAILABLE");
+      for (const c of encrypted)
+        if (c.secret) await this.vault.open(c.secret, this.binding(owner, c));
+      if (await this.save(owner, row.value, row.version)) continue;
+    }
+    throw new DomainError("CONNECTION_CONFLICT");
   }
   async list(owner: string) {
     return (await this.snapshot(owner))?.value.connections ?? [];
@@ -142,8 +189,7 @@ export class Connections {
         this.binding(owner, connection),
       );
       if (
-        await this.state.put(
-          "connections",
+        await this.save(
           owner,
           { connections: [...connections, connection] },
           row?.version ?? null,
@@ -164,8 +210,17 @@ export class Connections {
     if (
       grant?.value.ownerId !== owner ||
       !connection ||
-      grant.value.companies[company] !== connection.generation
+      !Object.hasOwn(grant.value.companies, company)
     )
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const grantedGeneration = grant.value.companies[company];
+    if (
+      connection.state === "disconnected" &&
+      (grantedGeneration === connection.generation ||
+        grantedGeneration === connection.generation - 1)
+    )
+      throw new DomainError("CONNECTION_DISCONNECTED");
+    if (grantedGeneration !== connection.generation)
       throw new DomainError("COMPANY_FORBIDDEN");
     if (active && connection.state !== "active")
       throw new DomainError("RECONNECT_REQUIRED");
@@ -223,8 +278,7 @@ export class Connections {
       const c = row?.value.connections.find((c) => c.id === id);
       if (!row || !c) throw new DomainError("COMPANY_FORBIDDEN");
       await change(c);
-      if (await this.state.put("connections", owner, row.value, row.version))
-        return c;
+      if (await this.save(owner, row.value, row.version)) return c;
     }
     throw new DomainError("CONNECTION_CONFLICT");
   }
@@ -302,8 +356,7 @@ export class Connections {
             await this.vault.open(c.secret, this.binding(owner, c)),
             this.binding(owner, c),
           );
-      if (await this.state.put("connections", owner, row.value, row.version))
-        return;
+      if (await this.save(owner, row.value, row.version)) return;
     }
     throw new DomainError("CONNECTION_CONFLICT");
   }

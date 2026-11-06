@@ -70,7 +70,7 @@ export function createAdmin(config: AuthConfig) {
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
     if (
       request.method === "GET" &&
-      ["/setup", "/sign-in", "/admin"].includes(url.pathname)
+      ["/setup", "/sign-in", "/admin", "/reset-password"].includes(url.pathname)
     ) {
       if (url.pathname === "/admin") {
         try {
@@ -79,6 +79,12 @@ export function createAdmin(config: AuthConfig) {
           return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
         }
       }
+      if (url.pathname === "/reset-password")
+        return safeResponse(
+          '<!doctype html><html lang="sv"><meta charset="utf-8"><title>Återställ lösenord</title><h1>Återställ lösenord</h1><p>Engångskoden kräver installationsåtkomst och gäller i tio minuter.</p><form id="login"><label>Engångskod <input name="token" autocomplete="off" required></label><label>Nytt lösenord <input name="newPassword" type="password" minlength="12" maxlength="128" required></label><button>Återställ lösenord</button></form><p id="status" role="status"></p><a href="/sign-in">Logga in</a><script src="/admin.js"></script></html>',
+          200,
+          "text/html; charset=utf-8",
+        );
       return safeResponse(
         `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><form id="login"><label>E-post <input name="email" type="email" required></label><label>Lösenord <input name="password" type="password" minlength="12" required></label>${url.pathname === "/setup" ? '<label>Engångskod <input name="token" autocomplete="off" required></label>' : ""}<button>Logga in</button></form><p id="status" role="status"></p><a href="/admin">Administration</a><script src="/admin.js"></script></html>`,
         200,
@@ -87,7 +93,7 @@ export function createAdmin(config: AuthConfig) {
     }
     if (request.method === "GET" && url.pathname === "/admin.js")
       return safeResponse(
-        `document.querySelector('#login')?.addEventListener('submit',async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const r=await fetch(location.pathname==='/setup'?'/admin/bootstrap':'/auth/sign-in/email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(r.ok&&location.search){location.assign('/auth/oauth2/authorize'+location.search);return;}document.querySelector('#status').textContent=r.ok?'Inloggad. Öppna administrationen.':'Inloggningen misslyckades.';});`,
+        `document.querySelector('#login')?.addEventListener('submit',async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const reset=location.pathname==='/reset-password';const r=await fetch(reset?'/auth/reset-password':location.pathname==='/setup'?'/admin/bootstrap':'/auth/sign-in/email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(r.ok&&location.search&&!reset){location.assign('/auth/oauth2/authorize'+location.search);return;}document.querySelector('#status').textContent=r.ok?(reset?'Lösenordet är återställt. Logga in igen.':'Inloggad. Öppna administrationen.'):'Åtgärden misslyckades.';});`,
         200,
         "text/javascript",
       );

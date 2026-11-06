@@ -35,6 +35,9 @@ export function disconnectContract(fixture: () => Promise<StateStore>) {
     expect((await service.list("owner"))[0]?.secret).toBeNull();
     await expect(
       service.authorize("owner", "old-client", c.id),
+    ).rejects.toThrow("CONNECTION_DISCONNECTED");
+    await expect(
+      service.authorize("owner", "unknown-client", c.id),
     ).rejects.toThrow("COMPANY_FORBIDDEN");
     const resumed = await service.reconnect(
       "owner",

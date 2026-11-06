@@ -1,5 +1,7 @@
 # Documentation map
 
+Milestone 2: [product implementation and acceptance](implementation/M02-connections-evidence.md), [Swedish ENV guide](users/env.sv.md) and [company connection guide](users/foretagsanslutningar.sv.md). Product/provider live acceptance is pending; operations remain disabled outside an explicit allowlisted test run.
+
 Start with the [milestone 1 handoff](implementation/S00-milestone-1-handoff.md)
 for current acceptance, runtime limits and the [G05 evidence packet](implementation/S00-source-rights-request.md).
 

@@ -46,3 +46,8 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: npx wrangler deploy --dry-run --config wrangler.jsonc --outdir dist/cloudflare-installation
+
+      - name: Validate disabled product Worker bundle
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx wrangler deploy --dry-run --config apps/worker/wrangler.product.jsonc --outdir dist/cloudflare-product
