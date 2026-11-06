@@ -1,5 +1,10 @@
 # S00 actual ChatGPT acceptance — 2026-11-05
 
+This is the dated first run. The [2026-11-06 transport correction](S00-G03-transport-2026-11-06.md)
+supersedes its G03 blocker: explicit Node relay ingress/server hashes passed,
+while exact Chrome PDF delivery remains unaccepted. Native Worker egress is
+unavailable. G05 remains open.
+
 Scope: G01–G03. **Partial; the gates remain open.** G05 remains open by the
 owner's instruction. No Fortnox operation, merge or release is authorized here.
 

@@ -1,5 +1,10 @@
 # Verification gates and known gaps
 
+**2026-11-06:** the [G03 correction](../implementation/S00-G03-transport-2026-11-06.md)
+passed relay ingress and exact server readback for two files, Chrome PNG download
+and accelerated expiry/cleanup. Chrome PDF bytes differed. Native Worker egress
+is unavailable. G03 remains partial and G05 stays open.
+
 **2026-11-05:** [milestone 1 handoff](../implementation/S00-milestone-1-handoff.md)
 records deployed maintenance, locally verified default-off files, actual hosted
 runtime measurements and outstanding acceptance. G01/G02/G03 remain partial,

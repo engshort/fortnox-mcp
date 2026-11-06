@@ -4,6 +4,11 @@ Recorded **2026-11-05**. **Implemented and locally verified; actual ChatGPT
 two-file input/output acceptance remains open.** Tracks
 [G03 #33](https://github.com/engshort/fortnox-mcp/issues/33).
 
+**2026-11-06:** the [transport correction](S00-G03-transport-2026-11-06.md)
+retires the unsupported native Worker TLS assumption. Explicit bounded Node
+relay ingress, exact MCP readback, Chrome PNG download and accelerated cleanup
+passed. Chrome PDF bytes differed. G03 remains partial; earlier results are dated.
+
 ## Behavior and interfaces
 
 The consent page now describes the capabilities in the verified signed OAuth
@@ -26,7 +31,7 @@ declared but optional. Each result includes actual byte length, SHA-256,
 expiry, an authenticated resource URI and explicitly synthetic receipt/voucher
 references. The original bytes can be read through MCP with the same owner,
 company, expiry and file-scope checks. Actual ChatGPT rendering/download of
-these resource results is still unverified.
+these results is now partially tested in the correction above.
 
 Limits after G09 measurements: one or two files, **1 MiB each on Workers**
 and 5 MiB each on Node, a 15-second total DNS/body deadline,
@@ -39,12 +44,12 @@ not a general receipt parser or OCR service.
 Only exact operator-reviewed HTTPS origins are accepted; the allowlist starts
 empty. IP literals, local names, credentials, custom ports, redirects and
 non-public DNS answers are denied. Node pins the checked DNS result in its HTTPS
-socket while retaining TLS hostname verification. The Worker uses bounded
-DNS-over-HTTPS, a pinned public Cloudflare TCP socket and TLS with the expected
-hostname. A maintained HTTP parser handles framing; no incoming credentials
-are forwarded. There is no unpinned fetch fallback. Cloudflare socket restrictions
-can make some client CDN origins unusable; verify the actual origin before
-enabling this path. Socket fixtures do not prove hosted CDN compatibility.
+socket while explicitly verifying the TLS hostname. The Worker no longer uses
+the unsupported pinned-IP/independent-TLS-name socket adapter. It requires an
+explicit, separately authenticated and expiring Node relay for this experiment;
+otherwise transport is unavailable. No credentials are forwarded to the source.
+There is no automatic or unpinned fallback. Socket fixtures do not establish
+public-edge TLS identity verification.
 
 ## Temporary state
 

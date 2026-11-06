@@ -57,8 +57,11 @@ kan fysisk rensning fördröjas, men utgångna referenser ger inte åtkomst.
 Ny hämtning efter expiry kräver ny filinput.
 
 `synthetic-receipt` och `synthetic-voucher` är testreferenser, inte poster i
-Fortnox. Filanropen i Chrome gav först `FILE_URL_DENIED`. Med exakt den
-observerade filvärden tillåten gav de `FILE_FETCH_FAILED` vid svarsläsning;
-inga filbytes lagrades. Filprovet är åter avstängt och inga filvärdar är tillåtna. Faktiskt
-filstöd i ChatGPT är ännu inte verifierat.
+Fortnox. Omprovet den 6 november lyckades med två filer via den uttryckliga
+Node-vägen; serverns storlekar och hashvärden matchade originalen. PNG-filen
+som laddades ned i Chrome matchade också. PDF-nedladdningen ändrade bytes och
+är underkänd, trots att klientens text påstod annat. Utgångna testreferenser
+nekades och bakgrundsrensningen tog bort posterna efter ett accelererat prov;
+55 minuters naturlig retention är inte uppmätt. Filprovet och hjälptjänsten är
+avstängda igen. Fullständigt filstöd i ChatGPT är ännu inte godkänt.
 [Tekniskt underlag och kvarstående prov](../implementation/S00-files-evidence.md).
