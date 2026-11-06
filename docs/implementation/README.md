@@ -1,5 +1,10 @@
 # Implementation queue
 
+The [milestone 1 handoff](S00-milestone-1-handoff.md) records the 2026-11-05
+maintenance, file implementation, actual runtime measurements and remaining
+ChatGPT/rights acceptance. No full scope or product module is accepted by that
+synthetic implementation alone.
+
 For the first installable receipt/bookkeeping prerelease, use the bounded
 [MVP delivery plan](MVP.md) and [tracker #54](https://github.com/alex-engvall/fortnox-mcp/issues/54).
 Its small PR tasks reuse the scopes and gates below; they do not replace full

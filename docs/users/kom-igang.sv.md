@@ -1,5 +1,10 @@
 # Kom igång — förberedelser
 
+För utvecklingsproven finns [svenska instruktioner för syntetiska klientprov](klientprov.sv.md).
+Filfunktionen är avstängd från början och faktiskt ChatGPT-filstöd är ännu inte
+verifierat. Provens nya Worker-gräns är 1 MiB per fil efter runtime-mätning;
+det ändrar inte testinstallationens status nedan.
+
 En samlad [status för S00 och S01](../implementation/S00-S01-handoff.md) visar
 vad som har verifierats, vad som återstår och vilka delar som är blockerade.
 Det tekniska testprotokollet är på engelska; en färdig Fortnox-koppling är
