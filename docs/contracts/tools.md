@@ -4,8 +4,17 @@ Milestone 2 adds implemented experimental `list_companies`, `get_connection_stat
 
 Most names below are proposed public contracts to finalize in S03. The opt-in
 [local documentation entry](../developer-tools.md) implements `search_api_docs`
-and `read_api_doc` plus `describe_api_operation`, with no provider operation. Other product tools remain
+and `read_api_doc` plus `describe_api_operation`, with no provider operation. Other planned families remain
 unimplemented. The isolated [S00 spike](../../spikes/s00-mcp/README.md) exposes only `read_synthetic_status`, a fixed company-independent fixture with strict input/output schemas and read-only, non-destructive, idempotent, closed-world annotations. It is not a provider operation or public product contract.
+
+Milestone 3's opt-in `list_financial_years({ company_id })` discovers actual
+provider year IDs and ISO date ranges without requiring a year ID first.
+It uses the current owner/client/company/generation grant and `mcp:read`.
+It is read-only, bounded to five pages/500 entries and explicitly reports
+`complete=false` when partial. Read permission is rechecked after provider I/O.
+`get_accounting_references({ company_id, financial_year })` then requires an
+explicit returned year ID; no current-year default or guessed calendar-year
+mapping exists. Both remain experimental test capabilities under #92.
 
 ## Tool design
 

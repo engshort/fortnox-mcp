@@ -7,7 +7,11 @@ operation. Använd endast uttryckligen tillåtna testföretag.
 
 ## När funktionen är verifierad
 
-1. Ange företagets opaka ID och räkenskapsårets ID. Läs konton, år, serier,
+1. Lista företagets faktiska år med `list_financial_years` och dess opaka
+   `company_id`. Välj ett returnerat års-ID efter datumintervallet; ett
+   kalenderår, exempelvis 2026, är inte automatiskt ett års-ID. Använd sedan
+   `get_accounting_references` med samma företag och valt `financial_year`.
+   Läs konton, år, serier,
    låst period och dimensioner. Det finns inget globalt aktuellt företag.
 2. Ange datum, serie, beskrivning, SEK och vanliga debet-/kreditrader. Belopp
    anges som decimaltext, exempelvis `"125.00"`. Servern hittar inte på konto,
@@ -55,6 +59,12 @@ Behåll hemligheter i befintlig privat `.env`; se [ENV-guiden](env.sv.md).
 Ny variabel: `ACCOUNTING_REFERENCES_ENABLED=false`. Referensprov får endast
 slås på i den separata tillåtna tvåföretagsinstallationen. Flaggan aktiverar
 inte bokföring och godkänner inga providerregler.
+
+Efter en uppdatering som lägger till årsläsningen: uppdatera verktygslistan
+(Refresh/Reload tools) i den redan godkända klienten. Ett nytt verktyg medför
+ingen automatisk utökning av företag eller scopes. Börja med att lista år
+för vart och ett av de två företagen. Tom eller ofullständig lista ger ingen
+grund för att gissa års-ID eller godkänna ett bokföringsförslag.
 
 En privat mall finns lokalt i `.data/milestone-3-acceptance.json` (0600,
 ignorerad av Git). Fyll i testinstallationens `origin`, dess exakta

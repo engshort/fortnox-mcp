@@ -54,7 +54,7 @@ export const providerOperations = {
 } as const;
 export type ProviderOperation = keyof typeof providerOperations;
 export interface ProviderReadParameters {
-  financialYear: number;
+  financialYear?: number;
   page?: number;
   voucher?: { series: string; number: number };
 }
@@ -178,7 +178,7 @@ export class FortnoxHttp {
     if (!["company_information", "identity"].includes(operation)) {
       const params = z
         .object({
-          financialYear: z.number().int().positive().safe(),
+          financialYear: z.number().int().positive().safe().optional(),
           page: z.number().int().min(1).max(10000).optional(),
           voucher: z
             .object({
@@ -192,7 +192,11 @@ export class FortnoxHttp {
         .parse(parameters);
       if ((operation === "voucher") !== Boolean(params.voucher))
         throw new DomainError("VALIDATION_FAILED");
-      url.searchParams.set("financialyear", String(params.financialYear));
+      if (operation !== "financial_years") {
+        if (params.financialYear === undefined)
+          throw new DomainError("VALIDATION_FAILED");
+        url.searchParams.set("financialyear", String(params.financialYear));
+      }
       if (params.voucher)
         url.pathname += `/${params.voucher.series}/${params.voucher.number}`;
       if (params.page !== undefined) {

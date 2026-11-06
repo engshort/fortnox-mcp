@@ -3,6 +3,7 @@ import {
   type AccountingGates,
   type AccountingProvider,
   type AccountingReferences,
+  type AccountingYears,
   accountingDate,
   type Connections,
   DomainError,
@@ -43,11 +44,13 @@ const project = z.object({
   ProjectNumber: z.string().regex(/^[A-Za-z0-9_-]{1,32}$/),
   Status: z.enum(["NOTSTARTED", "ONGOING", "COMPLETED"]),
 });
-const year = z.object({
-  Id: integer,
-  FromDate: z.string(),
-  ToDate: z.string(),
-});
+const year = z
+  .object({
+    Id: integer.refine((id) => id > 0),
+    FromDate: accountingDate,
+    ToDate: accountingDate,
+  })
+  .refine((y) => y.FromDate <= y.ToDate);
 const account = z.object({
   Number: integer,
   Active: providerBool,
@@ -61,7 +64,13 @@ const series = z.object({
   Manual: providerBool,
   Year: integer,
 });
-const meta = z.object({ CurrentPage: integer, TotalPages: integer }).optional();
+const meta = z
+  .object({
+    "@CurrentPage": integer,
+    "@TotalPages": integer,
+    "@TotalResources": integer.optional(),
+  })
+  .optional();
 
 export class FortnoxAccounting implements AccountingProvider {
   readonly http: FortnoxHttp;
@@ -124,7 +133,7 @@ export class FortnoxAccounting implements AccountingProvider {
   private async list<T>(
     actor: AccountingActor,
     company: string,
-    financialYear: number,
+    financialYear: number | undefined,
     operation: ProviderOperation,
     envelope: string,
     schema: z.ZodType<T>,
@@ -140,21 +149,63 @@ export class FortnoxAccounting implements AccountingProvider {
             await this.http.read(
               ctx,
               operation,
-              { financialYear, page },
+              {
+                ...(financialYear === undefined ? {} : { financialYear }),
+                page,
+              },
               until,
             ),
           );
         const items = z.array(schema).max(100).parse(raw[envelope]);
         const m = raw.MetaInformation;
         // Missing pagination metadata cannot establish complete reference data.
-        if (!m || m.CurrentPage !== page || m.TotalPages < page)
+        const empty =
+          m &&
+          page === 1 &&
+          items.length === 0 &&
+          m["@TotalResources"] === 0 &&
+          m["@TotalPages"] === 0 &&
+          [0, 1].includes(m["@CurrentPage"]);
+        if (
+          !m ||
+          (!empty && (m["@CurrentPage"] !== page || m["@TotalPages"] < page))
+        )
           throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_pagination");
-        return { items, next: page < m.TotalPages ? page + 1 : null };
+        return { items, next: page < m["@TotalPages"] ? page + 1 : null };
       },
       { pages: 5, items: 500, bytes: 262144, until },
       1,
       this.now,
     );
+  }
+  async years(
+    actor: AccountingActor,
+    company: string,
+  ): Promise<AccountingYears> {
+    const retrievedAt = this.now();
+    const result = await this.list(
+      actor,
+      company,
+      undefined,
+      "financial_years",
+      "FinancialYears",
+      year,
+    );
+    if (new Set(result.items.map((y) => y.Id)).size !== result.items.length)
+      throw new ProviderError(
+        "UPSTREAM_UNAVAILABLE",
+        "ambiguous_financial_years",
+      );
+    return {
+      company_id: company,
+      retrieved_at: retrievedAt,
+      complete: result.complete,
+      years: result.items.map((y) => ({
+        id: y.Id,
+        from: y.FromDate,
+        to: y.ToDate,
+      })),
+    };
   }
   async references(
     actor: AccountingActor,
@@ -163,15 +214,8 @@ export class FortnoxAccounting implements AccountingProvider {
   ): Promise<AccountingReferences> {
     z.number().int().positive().safe().parse(financialYear);
     const retrievedAt = this.now();
-    const years = await this.list(
-      actor,
-      company,
-      financialYear,
-      "financial_years",
-      "FinancialYears",
-      year,
-    );
-    const selected = years.items.filter((y) => y.Id === financialYear);
+    const years = await this.years(actor, company);
+    const selected = years.years.filter((y) => y.id === financialYear);
     if (selected.length !== 1)
       throw new ProviderError(
         "CAPABILITY_UNAVAILABLE",
@@ -190,7 +234,7 @@ export class FortnoxAccounting implements AccountingProvider {
       company,
       financialYear,
       "voucher_series",
-      "VoucherSeries",
+      "VoucherSeriesCollection",
       series,
     );
     const costCenters = await this.list(
@@ -236,7 +280,7 @@ export class FortnoxAccounting implements AccountingProvider {
       complete: [years, accounts, seriesList, costCenters, projects].every(
         (r) => r.complete,
       ),
-      year: { id: y.Id, from: y.FromDate, to: y.ToDate },
+      year: { id: y.id, from: y.from, to: y.to },
       locked_through: lock.LockedPeriod.EndDate || null,
       // Actual lock/precision/row rules require the dated G06/G07 evidence packet.
       validation_verified: false,
