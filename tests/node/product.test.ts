@@ -4,6 +4,7 @@ import { afterEach } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { connectionContract } from "../shared/connections.js";
 import { ownerContract } from "../shared/product-auth.js";
+import { oauthContract } from "../shared/product-oauth.js";
 
 const opened: DatabaseSync[] = [];
 afterEach(() => {
@@ -13,7 +14,11 @@ afterEach(() => {
 async function fixture() {
   const db = new DatabaseSync(":memory:");
   opened.push(db);
-  for (const file of ["0002_product_state.sql", "0003_product_auth.sql"])
+  for (const file of [
+    "0002_product_state.sql",
+    "0003_product_auth.sql",
+    "0004_product_oauth.sql",
+  ])
     db.exec(
       readFileSync(
         new URL(`../../apps/worker/migrations/${file}`, import.meta.url),
@@ -29,3 +34,5 @@ async function fixture() {
 }
 ownerContract(fixture);
 connectionContract(async () => (await fixture()).state);
+
+oauthContract(fixture);

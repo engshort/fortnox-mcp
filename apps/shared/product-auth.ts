@@ -1,4 +1,11 @@
+import {
+  getOAuthProviderApi,
+  type OAuthOptions,
+  oauthProvider,
+} from "@better-auth/oauth-provider";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
+import { createAuthEndpoint } from "better-auth/api";
+import { z } from "zod";
 import type { StateStore } from "./state.js";
 
 export interface Owner {
@@ -23,6 +30,31 @@ export async function hashToken(token: string) {
   ).join("");
 }
 export function createProductAuth(config: AuthConfig) {
+  const oauthOptions = {
+    loginPage: "/sign-in",
+    consentPage: "/consent",
+    scopes: ["mcp:read", "offline_access"],
+    grantTypes: ["authorization_code", "refresh_token"],
+    resources: [
+      {
+        identifier: `${config.origin}/mcp`,
+        allowedScopes: ["mcp:read", "offline_access"],
+      },
+    ],
+    resourceSeedMode: "insertOnly",
+    clientRegistrationDefaultResources: [`${config.origin}/mcp`],
+    allowDynamicClientRegistration: true,
+    allowUnauthenticatedClientRegistration: true,
+    clientRegistrationRequirePKCE: true,
+    accessTokenExpiresIn: 300,
+    codeExpiresIn: 600,
+    refreshTokenExpiresIn: 86400,
+    refreshTokenReuseInterval: 0,
+    disableJwtPlugin: true,
+    clientPrivileges: () => false,
+    resourcePrivileges: () => false,
+  } satisfies OAuthOptions<string[]>;
+
   return betterAuth({
     baseURL: config.origin,
     basePath: "/auth",
@@ -43,6 +75,48 @@ export function createProductAuth(config: AuthConfig) {
     session: { expiresIn: 86400, cookieCache: { enabled: false } },
     rateLimit: { enabled: true, storage: "database", window: 60, max: 10 },
     advanced: { useSecureCookies: config.origin.startsWith("https:") },
+    plugins: [
+      oauthProvider(oauthOptions),
+      {
+        id: "product-token-validation",
+        endpoints: {
+          verifyProductToken: createAuthEndpoint.serverOnly(
+            { method: "POST", body: z.object({ token: z.string().max(4096) }) },
+            async (ctx) => {
+              const claims = await getOAuthProviderApi(
+                ctx,
+                oauthOptions,
+              ).requireActiveAccessToken(ctx.body.token);
+              const owner = await config.state.get<Owner>(
+                "installation",
+                "owner",
+              );
+              const audience = Array.isArray(claims.aud)
+                ? claims.aud
+                : [claims.aud];
+              if (
+                owner?.value.phase !== "active" ||
+                claims.sub !== owner.value.ownerId ||
+                claims.iss !== `${config.origin}/auth` ||
+                !audience.includes(`${config.origin}/mcp`) ||
+                claims.cnf ||
+                typeof claims.client_id !== "string" ||
+                typeof claims.scope !== "string" ||
+                !claims.scope.split(" ").includes("mcp:read")
+              )
+                throw ctx.error("UNAUTHORIZED", {
+                  message: "Invalid authorization",
+                });
+              return ctx.json({
+                ownerId: owner.value.ownerId,
+                clientId: claims.client_id,
+                scopes: claims.scope.split(" "),
+              });
+            },
+          ),
+        },
+      },
+    ],
   });
 }
 export type ProductAuth = ReturnType<typeof createProductAuth>;

@@ -87,7 +87,7 @@ export function createAdmin(config: AuthConfig) {
     }
     if (request.method === "GET" && url.pathname === "/admin.js")
       return safeResponse(
-        `document.querySelector('#login')?.addEventListener('submit',async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const r=await fetch(location.pathname==='/setup'?'/admin/bootstrap':'/auth/sign-in/email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});document.querySelector('#status').textContent=r.ok?'Inloggad. Öppna administrationen.':'Inloggningen misslyckades.';});`,
+        `document.querySelector('#login')?.addEventListener('submit',async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const r=await fetch(location.pathname==='/setup'?'/admin/bootstrap':'/auth/sign-in/email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(r.ok&&location.search){location.assign('/auth/oauth2/authorize'+location.search);return;}document.querySelector('#status').textContent=r.ok?'Inloggad. Öppna administrationen.':'Inloggningen misslyckades.';});`,
         200,
         "text/javascript",
       );

@@ -182,7 +182,11 @@ export class Connections {
         "company-grants",
         grantId,
       );
-      if (prior && prior.value.ownerId !== owner)
+      if (
+        prior &&
+        (prior.value.ownerId !== owner ||
+          JSON.stringify(prior.value.companies) !== JSON.stringify(companies))
+      )
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         await this.state.put(

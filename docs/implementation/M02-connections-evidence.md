@@ -21,3 +21,13 @@ The portable core owns the connection policy and vault. SQLite/D1 share one boun
 AES-256-GCM uses a fresh 96-bit nonce and authenticated owner/company/generation/mode binding. Key IDs select external deployment keys; decrypt failures disclose no ciphertext or credentials. Rotation decrypts/re-encrypts a complete bounded snapshot and commits by CAS, retaining the previous snapshot on failure. Keep both keys until rotation and restore have been verified; remove the retired key afterward. Read-only and `review_required` are immutable defaults in this read-only milestone.
 
 Local checks cover A/B and owner isolation, duplicate tenants, wrong/missing keys, ciphertext binding, key rotation and persistence across recreated services. A separate Node test closes and reopens the actual SQLite file. No financial record replica is stored. Hosted backup/restore and the full M20 lifecycle remain later acceptance.
+
+## M02 — product MCP OAuth (#56)
+
+Better Auth/provider 1.7.10 and MCP server 2.3.1 provide separate owner-bound OAuth and modern/legacy HTTP transports. Access tokens expire in five minutes, authorization codes in ten minutes and refresh tokens in one day. Every private request performs database-backed token verification plus issuer/resource/owner/scope checks. Invalid supplied credentials never fall back to public discovery; mixed private/public batches require authentication.
+
+Client redirects are an installation allowlist. Company grants are immutable snapshots per OAuth client registration; adding or reconnecting a company requires a new registration/consent in this version. This deliberate restriction prevents an old access or refresh token inheriting a new connection generation. Existing consent can be reused only for the original snapshot. Public metadata contains no company identities. Administrative/password routes remain distinct from OAuth token endpoints.
+
+The shared real-library flow checks DCR redirects, S256 code exchange, wrong verifier, code reuse, resource-bound validation, refresh replacement, access-token revocation, anonymous/mixed batch denial and invalid-token metadata denial. Actual ChatGPT saved-answer/reload and product lifecycle acceptance remain required; #31 is not reopened or re-closed by these local tests.
+
+Observed M02 checks (2026-11-06): root typecheck and six product contract cases passed on Node/SQLite and local workerd/D1. Code-replay testing occurs after refresh: the maintained provider invalidates the affected token family on replay. No live ChatGPT or Fortnox request was made.

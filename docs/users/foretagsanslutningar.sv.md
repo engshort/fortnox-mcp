@@ -17,3 +17,9 @@ Om bootstrap avbryts efter att koden förbrukats måste operatören utreda befin
 Credentials krypteras med en extern 32-byte-nyckel (base64). Förvara nycklarna separat från databasen och dess backup. Varje nyckel har ett ID; behåll den gamla under en kontrollerad nyckelrotation och verifierad återställning. Saknad eller fel nyckel blockerar åtkomst.
 
 Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; samma Fortnox-tenant kan inte läggas till två gånger. Klientens företagsbehörigheter binds till aktuell anslutningsgeneration. Grundpolicyn är skrivskydd och obligatorisk granskning av framtida manuella verifikationer.
+
+## Anslut AI-klienten
+
+Produktens MCP-adress är `/mcp`. Endast fasta protokolluppgifter är offentliga. Företagsanrop kräver ägarens OAuth-godkännande med `mcp:read offline_access`; Fortnox-token kan inte användas som MCP-token.
+
+Godkännandet gäller de företag och anslutningsgenerationer som fanns vid anslutningen. När ett företag läggs till eller återansluts behöver du i denna version skapa en ny MCP-klientregistrering och godkänna den. Äldre registreringar utökas inte automatiskt. ChatGPT-stödet ska verifieras mot den pushade produktversionen, inklusive sparat svar, konversationsomladdning och Reload tools.
