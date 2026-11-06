@@ -9,8 +9,55 @@ export const providerOperations = {
     effect: "read",
   },
   identity: { method: "GET", path: "/3/me", scope: "profile", effect: "read" },
+  financial_years: {
+    method: "GET",
+    path: "/3/financialyears",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  accounts: {
+    method: "GET",
+    path: "/3/accounts",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  voucher_series: {
+    method: "GET",
+    path: "/3/voucherseries",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  locked_period: {
+    method: "GET",
+    path: "/3/settings/lockedperiod",
+    scope: "settings",
+    effect: "read",
+  },
+  cost_centers: {
+    method: "GET",
+    path: "/3/costcenters",
+    scope: "costcenter",
+    effect: "read",
+  },
+  projects: {
+    method: "GET",
+    path: "/3/projects",
+    scope: "project",
+    effect: "read",
+  },
+  voucher: {
+    method: "GET",
+    path: "/3/vouchers",
+    scope: "bookkeeping",
+    effect: "read",
+  },
 } as const;
 export type ProviderOperation = keyof typeof providerOperations;
+export interface ProviderReadParameters {
+  financialYear: number;
+  page?: number;
+  voucher?: { series: string; number: number };
+}
 export interface ProviderContext {
   owner: string;
   company: string;
@@ -39,6 +86,17 @@ export interface HttpOptions {
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+}
+// Preserve the original JSON number lexemes for monetary record readback. String
+// tokens (including escaped quotes) are left intact; JSON.parse still validates
+// the complete grammar. Never round provider money through an IEEE-754 number.
+export function parseExactProviderJson(text: string): unknown {
+  return JSON.parse(
+    text.replace(
+      /"(?:\\.|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g,
+      (token) => (token.startsWith('"') ? token : JSON.stringify(token)),
+    ),
+  );
 }
 export async function boundedResponse(response: Response, max = 65536) {
   const reader = response.body?.getReader();
@@ -79,7 +137,7 @@ export class FortnoxHttp {
       options.sleep ??
       ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
-  private async permit(context: ProviderContext, deadline: number) {
+  async permit(context: ProviderContext, deadline: number) {
     const id = JSON.stringify([context.clientId, context.tenant]);
     for (let tries = 0; tries < 64; tries++) {
       await context.assertActive();
@@ -110,11 +168,39 @@ export class FortnoxHttp {
   async read(
     context: ProviderContext,
     operation: ProviderOperation,
+    parameters?: ProviderReadParameters,
+    until?: number,
   ): Promise<unknown> {
     if (!Object.hasOwn(providerOperations, operation))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const spec = providerOperations[operation];
-    const deadline = this.now() + 15000;
+    const url = new URL(`https://api.fortnox.se${spec.path}`);
+    if (!["company_information", "identity"].includes(operation)) {
+      const params = z
+        .object({
+          financialYear: z.number().int().positive().safe(),
+          page: z.number().int().min(1).max(10000).optional(),
+          voucher: z
+            .object({
+              series: z.string().regex(/^[A-Z0-9]{1,8}$/),
+              number: z.number().int().positive().safe(),
+            })
+            .strict()
+            .optional(),
+        })
+        .strict()
+        .parse(parameters);
+      if ((operation === "voucher") !== Boolean(params.voucher))
+        throw new DomainError("VALIDATION_FAILED");
+      url.searchParams.set("financialyear", String(params.financialYear));
+      if (params.voucher)
+        url.pathname += `/${params.voucher.series}/${params.voucher.number}`;
+      if (params.page !== undefined) {
+        url.searchParams.set("page", String(params.page));
+        url.searchParams.set("limit", "100");
+      }
+    } else if (parameters) throw new DomainError("VALIDATION_FAILED");
+    const deadline = Math.min(this.now() + 15000, until ?? Infinity);
     let renewed = false;
     let forceRenewal = false;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -125,7 +211,7 @@ export class FortnoxHttp {
       let response: Response;
       try {
         response = await this.options.fetch(
-          new Request(`https://api.fortnox.se${spec.path}`, {
+          new Request(url, {
             method: spec.method,
             headers: {
               Authorization: `Bearer ${token}`,
@@ -174,7 +260,10 @@ export class FortnoxHttp {
       }
       let body: unknown;
       try {
-        body = JSON.parse(text);
+        body =
+          operation === "voucher"
+            ? parseExactProviderJson(text)
+            : JSON.parse(text);
       } catch {
         throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_json");
       }

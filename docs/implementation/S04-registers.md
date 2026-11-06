@@ -1,6 +1,8 @@
 # S04 — Registers and reference data
 
-Status: not started. Depends on S03.
+Status: [milestone 3](M03-accounting-evidence.md) implements bounded accounting
+reference reads behind an explicit test flag, with provider evidence still open
+in #92. Broader register maintenance remains unimplemented. Depends on S03.
 
 ## Deliver
 
