@@ -29,6 +29,8 @@
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:integration": "node scripts/acceptance.mjs fortnox",
     "test:clients": "node scripts/acceptance.mjs clients",
+    "test:accounting": "node scripts/accounting-acceptance.mjs reads",
+    "test:accounting:record": "node scripts/accounting-acceptance.mjs record",
     "build": "node scripts/build.mjs",
     "test:build": "node --disallow-code-generation-from-strings --test tests/build.test.mjs && node --test tests/product-worker-native.test.mjs",
     "dev:product": "node --env-file-if-exists=.env --import tsx apps/node/src/product-main.ts",

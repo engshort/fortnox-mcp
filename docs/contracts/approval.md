@@ -1,5 +1,11 @@
 # Manual-voucher approval policy
 
+The [milestone 3 service/view](../implementation/M03-accounting-evidence.md)
+implements immutable encrypted proposals and one-time UI-only capabilities.
+Product reviewed execution stays disabled pending G02/#32 and operation-specific
+G06/G07 evidence. Persisting a proposal is a mutation: read-only permits pure
+validation, not preparation or booking.
+
 ## Policy
 
 Per company:

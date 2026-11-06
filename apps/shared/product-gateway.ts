@@ -79,7 +79,7 @@ export function createProductGateway(
         JSON.stringify({
           resource: `${config.origin}/mcp`,
           authorization_servers: [`${config.origin}/auth`],
-          scopes_supported: ["mcp:read", "offline_access"],
+          scopes_supported: ["mcp:read", "mcp:write", "offline_access"],
           bearer_methods_supported: ["header"],
         }),
       );
@@ -108,7 +108,7 @@ export function createProductGateway(
         return challenge();
       }
       return safeResponse(
-        '<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>Klienten får läsa de anslutna testföretagen. Inga skrivverktyg aktiveras. Förnybar åtkomst kräver mcp:read och offline_access.</p><button id="accept">Godkänn läsåtkomst till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>',
+        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring kräver separat aktiverad operation, företagets aktuella policy och granskning där den krävs." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><button id="accept">Godkänn begärda behörigheter till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
         200,
         "text/html; charset=utf-8",
       );

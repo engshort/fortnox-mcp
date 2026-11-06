@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
+import { accountingContract } from "../shared/accounting.js";
+import { accountingMigrationContract } from "../shared/accounting-migration.js";
+import { accountingTransportContract } from "../shared/accounting-transport.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
 import { disconnectContract } from "../shared/disconnect.js";
@@ -53,3 +56,22 @@ userTokenContract(async () => (await fixture()).state);
 disconnectContract(async () => (await fixture()).state);
 
 maintenanceContract(async () => (await fixture()).state);
+accountingContract(async () => (await fixture()).state);
+accountingTransportContract(async () => (await fixture()).state);
+accountingMigrationContract(async () => {
+  const { database } = await fixture();
+  return {
+    execute: async (sql) => database.exec(sql),
+    all: async (sql) => database.prepare(sql).all(),
+    migrate: async () =>
+      database.exec(
+        readFileSync(
+          new URL(
+            "../../apps/worker/migrations/0005_accounting_scope.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      ),
+  };
+});

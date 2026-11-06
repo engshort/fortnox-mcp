@@ -82,6 +82,7 @@ const flowSecret = z
     clientId: z.string(),
     clientSecret: z.string(),
     verifier: z.string(),
+    scopes: z.array(z.string()).optional(),
   })
   .strict();
 export interface FortnoxConfig {
@@ -90,6 +91,7 @@ export interface FortnoxConfig {
   fetch: typeof fetch;
   testTenants: readonly string[];
   now?: () => number;
+  scopes?: readonly string[];
 }
 export const companyInformation = z.object({
   CompanyInformation: z.object({
@@ -103,6 +105,23 @@ export class FortnoxConnections {
   readonly now: () => number;
   constructor(readonly config: FortnoxConfig) {
     this.now = config.now ?? Date.now;
+    if (
+      config.scopes &&
+      (!config.scopes.includes("companyinformation") ||
+        !config.scopes.includes("profile") ||
+        config.scopes.some(
+          (s) =>
+            ![
+              "companyinformation",
+              "profile",
+              "bookkeeping",
+              "settings",
+              "costcenter",
+              "project",
+            ].includes(s),
+        ))
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
   }
   private redirect() {
     return `${this.config.origin}/admin/fortnox/callback`;
@@ -125,7 +144,12 @@ export class FortnoxConnections {
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
     const secret = await this.config.connections.vault.sealData(
-      { clientId: input.clientId, clientSecret: input.clientSecret, verifier },
+      {
+        clientId: input.clientId,
+        clientSecret: input.clientSecret,
+        verifier,
+        scopes: this.config.scopes ?? ["companyinformation", "profile"],
+      },
       JSON.stringify([owner, id, session]),
     );
     const flow: Flow = {
@@ -160,7 +184,9 @@ export class FortnoxConnections {
           client_id: input.clientId,
           response_type: "code",
           redirect_uri: this.redirect(),
-          scope: "companyinformation profile",
+          scope: (this.config.scopes ?? ["companyinformation", "profile"]).join(
+            " ",
+          ),
           access_type: "offline",
           ...(input.mode === "service" ? { account_type: "service" } : {}),
           state,
@@ -207,13 +233,13 @@ export class FortnoxConnections {
     input: Pick<Credentials, "clientId" | "clientSecret">,
     tokens: oauth.TokenEndpointResponse,
     mode: "service" | "user",
+    requested: readonly string[] = ["companyinformation", "profile"],
   ): Credentials {
     const scopes = tokens.scope?.split(/\s+/);
     if (
       scopes &&
-      (!scopes.includes("companyinformation") ||
-        !scopes.includes("profile") ||
-        scopes.some((s) => !["companyinformation", "profile"].includes(s)))
+      (requested.some((s) => !scopes.includes(s)) ||
+        scopes.some((s) => !requested.includes(s)))
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (
@@ -232,7 +258,12 @@ export class FortnoxConnections {
         : {}),
     };
   }
-  async verify(owner: string, credentials: Credentials, tenant?: string) {
+  async verify(
+    owner: string,
+    credentials: Credentials,
+    tenant?: string,
+    scopes: readonly string[] = ["companyinformation", "profile"],
+  ) {
     const context: ProviderContext = {
       owner,
       company: "activation",
@@ -261,7 +292,7 @@ export class FortnoxConnections {
       tenant: actual,
       name: identity.CompanyName,
       organizationNumber: identity.OrganizationNumber ?? "",
-      scopes: ["companyinformation", "profile"],
+      scopes: [...scopes],
     };
   }
   async finish(owner: string, session: string, callback: URL) {
@@ -334,9 +365,15 @@ export class FortnoxConnections {
         response,
       );
       stage = "initial_credentials";
-      const initial = this.credentials(input, initialTokens, flow.mode);
+      const requested = input.scopes ?? ["companyinformation", "profile"];
+      const initial = this.credentials(
+        input,
+        initialTokens,
+        flow.mode,
+        requested,
+      );
       stage = "tenant_verification";
-      const identity = await this.verify(owner, initial);
+      const identity = await this.verify(owner, initial, undefined, requested);
       let credentials = initial;
       if (flow.mode === "user" && !initial.refreshToken)
         throw new DomainError("RECONNECT_REQUIRED");
@@ -346,7 +383,7 @@ export class FortnoxConnections {
           server,
           client,
           oauth.ClientSecretBasic(input.clientSecret),
-          { scope: "companyinformation profile" },
+          { scope: requested.join(" ") },
           {
             [oauth.customFetch]: this.upstream(),
             headers: { TenantId: identity.tenant },
@@ -359,7 +396,12 @@ export class FortnoxConnections {
           grant,
         );
         stage = "service_credentials";
-        credentials = this.credentials(input, serviceTokens, "service");
+        credentials = this.credentials(
+          input,
+          serviceTokens,
+          "service",
+          requested,
+        );
         stage = "service_tenant_verification";
         await this.verify(owner, credentials, identity.tenant);
       }
@@ -436,6 +478,7 @@ export class FortnoxConnections {
               credentials,
               await oauth.processRefreshTokenResponse(server, client, response),
               "user",
+              connection.scopes,
             );
             if (
               !next.refreshToken ||
@@ -449,7 +492,7 @@ export class FortnoxConnections {
             server,
             client,
             oauth.ClientSecretBasic(credentials.clientSecret),
-            { scope: "companyinformation profile" },
+            { scope: connection.scopes.join(" ") },
             {
               [oauth.customFetch]: this.upstream(),
               headers: { TenantId: connection.tenant },
@@ -463,6 +506,7 @@ export class FortnoxConnections {
               response,
             ),
             "service",
+            connection.scopes,
           );
           await this.verify(owner, next, connection.tenant);
           return next;

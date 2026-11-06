@@ -195,6 +195,64 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     });
     expect(claims.ownerId).toBe(seeded.response.user.id);
     expect(claims.clientId).toBe(client);
+    expect(claims.scopes).not.toContain("mcp:write");
+    for (const path of [
+      "/admin/fortnox/policy",
+      "/admin/fortnox/attest-reference",
+    ]) {
+      expect(
+        (
+          await req(
+            path,
+            { company_id: companyA.id },
+            {
+              authorization: `Bearer ${tokens.access_token}`,
+              origin: config.origin,
+            },
+          )
+        ).status,
+      ).toBe(401);
+    }
+    const policyChange = {
+      company_id: companyA.id,
+      policy_version: 1,
+      review: "client_managed",
+      read_only: false,
+    };
+    expect(
+      (
+        await req("/admin/fortnox/policy", policyChange, {
+          cookie,
+          origin: "https://foreign.invalid",
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await req("/admin/fortnox/policy", policyChange, {
+          cookie,
+          origin: config.origin,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await req("/admin/fortnox/policy", policyChange, {
+          cookie,
+          origin: config.origin,
+        })
+      ).status,
+    ).toBe(400);
+    const current = await app.connections.list(seeded.response.user.id);
+    expect(current.find((c) => c.id === companyA.id)?.policyVersion).toBe(2);
+    expect(current.find((c) => c.id === companyB.id)?.readOnly).toBe(true);
+    expect(
+      (
+        await app.auth.api.verifyProductToken({
+          body: { token: tokens.access_token },
+        })
+      ).scopes,
+    ).not.toContain("mcp:write");
     expect(
       (
         await req("/admin", undefined, {
@@ -320,6 +378,13 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     expect(refreshed.status).toBe(200);
     const replacement = (await refreshed.json()) as typeof tokens;
     expect(replacement.refresh_token).not.toBe(tokens.refresh_token);
+    expect(
+      (
+        await app.auth.api.verifyProductToken({
+          body: { token: replacement.access_token },
+        })
+      ).scopes,
+    ).not.toContain("mcp:write");
     expect(
       (
         await req(

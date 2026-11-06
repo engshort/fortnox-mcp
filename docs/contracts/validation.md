@@ -1,5 +1,11 @@
 # Validation and accounting invariants
 
+The [milestone 3 implementation](../implementation/M03-accounting-evidence.md)
+enforces a narrow new-voucher profile with exact cents, ordinary unsigned rows,
+explicit company/year and fresh complete references. Unverified precision, lock
+boundaries, corrections and foreign references fail closed. Its rule-to-test
+matrix does not replace financial live acceptance under #76.
+
 Validation is executable domain behavior, not an instruction asking the model to be careful. Rules apply to UI, model, batch and developer entry points and cannot be disabled by approval mode.
 
 ## Rule register

@@ -1,4 +1,8 @@
-import { type Connections, DomainError } from "@fortnox-mcp/core";
+import {
+  type Bookkeeping,
+  type Connections,
+  DomainError,
+} from "@fortnox-mcp/core";
 import {
   companyInformation,
   type FortnoxConnections,
@@ -8,6 +12,7 @@ import {
 import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
+import { registerAccounting } from "./accounting.js";
 export interface CompanyIdentity {
   ownerId: string;
   clientId: string;
@@ -20,8 +25,8 @@ const summary = z
     name: z.string(),
     state: z.enum(["active", "reconnect_required", "disconnected"]),
     mode: z.enum(["service", "user"]),
-    read_only: z.literal(true),
-    manual_vouchers: z.literal("review_required"),
+    read_only: z.boolean(),
+    manual_vouchers: z.enum(["review_required", "client_managed"]),
   })
   .strict();
 const evidence = z
@@ -89,6 +94,7 @@ export function companyServer(context: {
   connections: Connections;
   provider: FortnoxConnections;
   testMode: boolean;
+  bookkeeping?: Bookkeeping;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -293,5 +299,7 @@ export function companyServer(context: {
           };
         }),
     );
+  if (context.bookkeeping?.gates.references)
+    registerAccounting(server, context.bookkeeping, context.identity);
   return server;
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { BookkeepingState } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
 
@@ -85,8 +86,9 @@ export interface Connection {
   scopes: string[];
   generation: number;
   policyVersion: number;
-  review: "review_required";
-  readOnly: true;
+  review: "review_required" | "client_managed";
+  readOnly: boolean;
+  bookkeeping?: BookkeepingState;
   state: "active" | "reconnect_required" | "disconnected";
   secret: Ciphertext | null;
   renewal?: { id: string; until: number; dispatched: boolean };
@@ -145,6 +147,20 @@ export class Connections {
         }
         for (const c of row.value.connections)
           if (c.secret) await this.vault.open(c.secret, this.binding(owner, c));
+        for (const c of row.value.connections)
+          for (const p of c.bookkeeping?.proposals ?? [])
+            await this.vault.openData(
+              p.body,
+              JSON.stringify([
+                owner,
+                c.id,
+                "voucher-proposal",
+                p.id,
+                p.hash,
+                p.generation,
+                p.policy,
+              ]),
+            );
         return row;
       }
       // Upgrade earlier experimental snapshots only after proving the key.
@@ -350,12 +366,28 @@ export class Connections {
     for (let n = 0; n < 8; n++) {
       const row = await this.snapshot(owner);
       if (!row) return;
-      for (const c of row.value.connections)
+      for (const c of row.value.connections) {
         if (c.secret)
           c.secret = await this.vault.seal(
             await this.vault.open(c.secret, this.binding(owner, c)),
             this.binding(owner, c),
           );
+        for (const p of c.bookkeeping?.proposals ?? []) {
+          const binding = JSON.stringify([
+            owner,
+            c.id,
+            "voucher-proposal",
+            p.id,
+            p.hash,
+            p.generation,
+            p.policy,
+          ]);
+          p.body = await this.vault.sealData(
+            await this.vault.openData(p.body, binding),
+            binding,
+          );
+        }
+      }
       if (await this.save(owner, row.value, row.version)) return;
     }
     throw new DomainError("CONNECTION_CONFLICT");
@@ -367,6 +399,7 @@ export class Connections {
       c.policyVersion++;
       c.secret = null;
       delete c.renewal;
+      if (c.bookkeeping) c.bookkeeping.proposals = [];
     });
   }
   async reconnect(
@@ -393,8 +426,33 @@ export class Connections {
       c.organizationNumber = input.organizationNumber;
       c.scopes = input.scopes;
       c.state = "active";
+      c.readOnly = true;
+      c.review = "review_required";
       delete c.renewal;
       c.secret = await this.vault.seal(credentials, this.binding(owner, c));
+    });
+  }
+
+  // Called only from owner-session administration; never exposed as an MCP tool.
+  async setAccountingPolicy(
+    owner: string,
+    id: string,
+    expectedVersion: number,
+    review: Connection["review"],
+    readOnly: boolean,
+  ) {
+    if (
+      !["review_required", "client_managed"].includes(review) ||
+      typeof readOnly !== "boolean"
+    )
+      throw new DomainError("VALIDATION_FAILED");
+    return this.mutate(owner, id, (c) => {
+      if (c.state !== "active" || c.policyVersion !== expectedVersion)
+        throw new DomainError("CONNECTION_CONFLICT");
+      c.policyVersion++;
+      c.review = review;
+      c.readOnly = readOnly;
+      if (c.bookkeeping) c.bookkeeping.proposals = [];
     });
   }
 }

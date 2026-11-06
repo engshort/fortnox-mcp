@@ -1,5 +1,16 @@
-import { Connections, CredentialVault, DomainError } from "@fortnox-mcp/core";
-import { FortnoxConnections, FortnoxConsentError } from "@fortnox-mcp/fortnox";
+import {
+  Bookkeeping,
+  Connections,
+  CredentialVault,
+  DomainError,
+  proposalReference,
+  voucherReference,
+} from "@fortnox-mcp/core";
+import {
+  FortnoxAccounting,
+  FortnoxConnections,
+  FortnoxConsentError,
+} from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { boundedJson, safeResponse } from "./admin.js";
@@ -16,6 +27,7 @@ export interface ProductSettings {
   clientId: string;
   clientSecret: string;
   testTenants: string[];
+  accountingReferences?: boolean;
 }
 export function productSettings(
   env: Record<string, string | undefined>,
@@ -66,6 +78,8 @@ export function productSettings(
     clientId: env.FORTNOX_CLIENT_ID ?? "",
     clientSecret: env.FORTNOX_CLIENT_SECRET ?? "",
     testTenants,
+    accountingReferences:
+      testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true",
   };
 }
 const escapeHtml = (s: string) =>
@@ -109,6 +123,16 @@ export function createProductApplication(
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
+    scopes: settings.accountingReferences
+      ? [
+          "companyinformation",
+          "profile",
+          "bookkeeping",
+          "settings",
+          "costcenter",
+          "project",
+        ]
+      : ["companyinformation", "profile"],
   });
   const config = {
     ...runtime,
@@ -117,12 +141,25 @@ export function createProductApplication(
     redirects: settings.redirects,
     connections,
   };
+  // G02/#32 and G06/G07 require current, operation-specific evidence. An ENV flag
+  // must not be able to turn an unverified host or provider into an approved one.
+  const accountingGates = {
+    references: settings.accountingReferences === true && settings.testMode,
+    writes: false,
+    reviewHost: false,
+  };
+  const bookkeeping = new Bookkeeping(
+    connections,
+    new FortnoxAccounting(connections, provider, accountingGates),
+    accountingGates,
+  );
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
       connections,
       provider,
       testMode: settings.testMode,
+      bookkeeping,
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -139,7 +176,7 @@ export function createProductApplication(
       );
     if (url.pathname === "/admin/connections.js" && request.method === "GET")
       return safeResponse(
-        `const status=document.querySelector('#status');for(const form of document.querySelectorAll('form[data-action]'))form.addEventListener('submit',async e=>{e.preventDefault();const input=Object.fromEntries(new FormData(form));const r=await fetch(form.dataset.action,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else if(r.ok)location.reload();else status.textContent='Åtgärden misslyckades: '+(d.error||'Okänt fel');});`,
+        `const status=document.querySelector('#status');for(const form of document.querySelectorAll('form[data-action]'))form.addEventListener('submit',async e=>{e.preventDefault();let input=Object.fromEntries(new FormData(form));if(form.dataset.action.endsWith('/policy')){input.policy_version=Number(input.policy_version);input.read_only=input.read_only==='true';}if(form.dataset.action.endsWith('/attest-reference')){input={proposal:{company_id:input.company_id,proposal_id:input.proposal_id,proposal_hash:input.proposal_hash},reference:{financial_year:Number(input.financial_year),series:input.series,number:Number(input.number)}};}const r=await fetch(form.dataset.action,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else if(r.ok)location.reload();else status.textContent='Åtgärden misslyckades: '+(d.error||'Okänt fel');});`,
         200,
         "text/javascript",
       );
@@ -159,14 +196,28 @@ export function createProductApplication(
       }
       if (request.method === "GET" && url.pathname === "/admin") {
         const companies = await connections.list(session.user.id);
+        const investigations = companies
+          .flatMap((c) =>
+            (c.bookkeeping?.executions ?? [])
+              .filter(
+                (e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state) &&
+                  e.generation === c.generation,
+              )
+              .map(
+                (e) =>
+                  `<section><h3>${escapeHtml(c.name)}</h3><p>Okänt utfall: ${escapeHtml(e.id)}. Kontrollera den faktiska verifikationen i Fortnox. Datum och belopp räcker inte som identitetsbevis.</p><form data-action="/admin/fortnox/attest-reference"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="proposal_id" value="${escapeHtml(e.id)}"><input type="hidden" name="proposal_hash" value="${escapeHtml(e.hash)}"><label>Fortnox räkenskapsårs-ID <input type="number" min="1" name="financial_year" required></label><label>Verifierad serie <input name="series" pattern="[A-Z0-9]{1,8}" required></label><label>Verifierat verifikationsnummer <input type="number" min="1" name="number" required></label><button>Registrera kontrollerad referens för avstämning</button></form><p>Referensen skickar ingen ny bokföring. Kör avstämning; endast exakt matchning löser utfallet.</p></section>`,
+              ),
+          )
+          .join("");
         const rows = companies
           .map(
             (c) =>
-              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : ""}</li>`,
+              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : `<form data-action="/admin/fortnox/policy"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="policy_version" value="${c.policyVersion}"><label>Manuella verifikationer <select name="review"><option value="review_required" ${c.review === "review_required" ? "selected" : ""}>Mänsklig granskning krävs</option><option value="client_managed" ${c.review === "client_managed" ? "selected" : ""}>Klientens godkännanden</option></select></label><label>Åtkomst <select name="read_only"><option value="true" ${c.readOnly ? "selected" : ""}>Skrivskyddad</option><option value="false" ${!c.readOnly ? "selected" : ""}>Tillåt verifierade skrivoperationer</option></select></label><button>Spara policy och ogiltigförklara gamla förslag</button></form>`}<p>Policyversion ${c.policyVersion}. Ändring aktiverar ingen overifierad operation.</p></li>`,
           )
           .join("");
         return safeResponse(
-          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>Testinstallation. Bokföring och filer är avstängda. Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form><p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
+          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>Testinstallation. Bokföring och filer är avstängda. Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
           200,
           "text/html; charset=utf-8",
         );
@@ -182,6 +233,40 @@ export function createProductApplication(
               .strict()
               .parse(body);
             await connections.disconnect(session.user.id, input.company_id);
+            return safeResponse('{"ok":true}');
+          }
+          if (url.pathname === "/admin/fortnox/policy") {
+            const input = z
+              .object({
+                company_id: z.string().uuid(),
+                policy_version: z.number().int().positive().safe(),
+                review: z.enum(["review_required", "client_managed"]),
+                read_only: z.boolean(),
+              })
+              .strict()
+              .parse(body);
+            await connections.setAccountingPolicy(
+              session.user.id,
+              input.company_id,
+              input.policy_version,
+              input.review,
+              input.read_only,
+            );
+            return safeResponse('{"ok":true}');
+          }
+          if (url.pathname === "/admin/fortnox/attest-reference") {
+            const input = z
+              .object({
+                proposal: proposalReference,
+                reference: voucherReference,
+              })
+              .strict()
+              .parse(body);
+            await bookkeeping.attestReference(
+              session.user.id,
+              input.proposal,
+              input.reference,
+            );
             return safeResponse('{"ok":true}');
           }
           if (url.pathname === "/admin/fortnox/start") {
@@ -241,5 +326,11 @@ export function createProductApplication(
       return safeResponse('{"error":"REQUEST_FAILED"}', 503);
     }
   }
-  return { fetch: fetchRequest, connections, provider, auth: gateway.auth };
+  return {
+    fetch: fetchRequest,
+    connections,
+    provider,
+    bookkeeping,
+    auth: gateway.auth,
+  };
 }

@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "scope": "milestone-3-only",
+  "reviewedAt": "2026-11-06",
+  "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
+  "sourceHashes": {
+    "packages/core/src/accounting.ts": "7da14961f13caee2843d8eb6da0dc29e876163d849f4de2b5f49e8627e854439",
+    "packages/core/src/bookkeeping.ts": "27f7621e815b02d0f5d78f75cd546cbc465813cd7dbf53e848e12b2175cbf39b",
+    "packages/core/src/connections.ts": "162fdd66d91550d9004ac89bfeee8a1bb583063694cf4c4702ee641c9d6b74d7",
+    "packages/fortnox/src/accounting.ts": "510ef7fb149aaef636bab15bd3772a0e627a11d5a733cec346d1cddcee10ae86",
+    "packages/fortnox/src/http.ts": "1c7e5633045b61b2edb2435b3b0c2d8f6ed58b6ec78ad3605df3eb6e490ccf01",
+    "packages/mcp/src/accounting.ts": "1e57a350e620f0c129f313995a21ecd1280bd05097955286b84066f51a984a1b",
+    "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
+  },
+  "gates": {
+    "referenceOperations": "#92",
+    "voucherOperations": "#93",
+    "financialRules": "#76",
+    "trustedHost": "#32",
+    "fullG06": "#36 remains open",
+    "fullG07": "#37 remains open",
+    "sourceRights": "#35 remains separate"
+  },
+  "operations": [
+    {
+      "localId": "financial_years",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/financialyears",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "FinancialYears",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "accounts",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/accounts",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "Accounts",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "voucher_series",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/voucherseries",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "VoucherSeries",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "locked_period",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/settings/lockedperiod",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "settings",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "LockedPeriod.EndDate (unverified live envelope)",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "cost_centers",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/costcenters",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "costcenter",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "CostCenters",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "projects",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/projects",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "project",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "Projects",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "voucher_read",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/vouchers/{series}/{number}",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "Voucher",
+      "effect": "read",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "common bounded read adapter; at most three attempts, manual redirect rejection",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    },
+    {
+      "localId": "voucher_create",
+      "upstreamOperationId": null,
+      "method": "POST",
+      "path": "/3/vouchers",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
+      "providerScope": "bookkeeping",
+      "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
+      "parameters": {
+        "financialyear": "required explicit positive integer",
+        "pagination": "bounded page/limit for lists; absent for single-record/write calls",
+        "recordIdentity": "exact typed series/number for voucher_read; no provider URL"
+      },
+      "responseEnvelope": "Voucher",
+      "effect": "creates accounting record",
+      "validation": "strict modeled envelopes; unknown semantics block booking; V01-V11/V13 narrow creation profile",
+      "retry": "one POST only; unknown on uncertain dispatch; exact-reference readback/reconciliation",
+      "primaryReferences": [
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters",
+        "https://apps.fortnox.se/apidocs"
+      ],
+      "syntheticTests": [
+        "tests/shared/accounting.ts",
+        "tests/shared/accounting-transport.ts",
+        "tests/node/accounting-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "dated authorized test-company operation response and negative permissions",
+        "actual precision/lock/row semantics where applicable",
+        "applicable product ChatGPT/runtime evidence"
+      ],
+      "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
+    }
+  ]
+}

@@ -1,5 +1,12 @@
 # Test strategy and evidence
 
+Milestone 3 shared `accounting.ts` and `accounting-transport.ts` contracts run in
+Node and actual local workerd/D1: exact validation, isolation, encrypted review,
+one-time intents, failures, policy/disconnect races, key rotation, recovery and
+default-off MCP schemas. `tests/node/accounting-restart.test.ts` reopens SQLite
+and restarts actual workerd/D1 for these records. These synthetic checks do not
+establish live G02/G06/G07 gates; see [accounting evidence](implementation/M03-accounting-evidence.md).
+
 The [S00 file-probe record](implementation/S00-files-evidence.md) adds observable
 two-file round trips, private-address/redirect/timeout rejection, format bounds,
 real OAuth scope denial/revocation, encrypted SQLite/D1 isolation, concurrent

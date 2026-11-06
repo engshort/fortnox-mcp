@@ -1,6 +1,9 @@
 # S06 — Accounting invariants and manual review
 
-Status: not started. Depends on S04 and verified G02 review mechanism.
+Status: milestone 3's bounded creation/review implementation has synthetic
+Node/workerd evidence; actual provider/financial/client acceptance remains open.
+See [M03 evidence and rule matrix](M03-accounting-evidence.md). Broader S06 and
+verified G02 remain requirements, not implied by this slice.
 
 ## Deliver
 
