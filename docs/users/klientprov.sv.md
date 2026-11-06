@@ -21,7 +21,8 @@ schemalagd rensning och klientstöd. `mcp:files` kräver ett nytt samtycke;
 granskningsbehörigheten ger inte automatiskt filåtkomst.
 
 Välj högst två syntetiska PNG-, JPEG- eller enkla okomprimerade PDF-filer,
-högst 5 MiB vardera och tio sidor per PDF. PNG måste vara 8-bitars utan
+högst **1 MiB vardera på Workers**, 5 MiB på Node och tio sidor per PDF.
+Worker-gränsen sänktes efter faktisk mätning av minnesbehovet. PNG måste vara 8-bitars utan
 interlacing; bilder får ha högst två miljoner pixlar. Lösenordsskyddade eller
 komprimerade PDF:er stöds inte i detta begränsade prov. Hämtningen får ta högst
 15 sekunder. En bild som syns i konversationen innebär inte automatiskt att

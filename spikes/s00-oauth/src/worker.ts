@@ -1,10 +1,14 @@
 import { diagnosticWindow, type McpRequestDiagnostic } from "./diagnostics.js";
+import { fileCodec } from "./file-codec.js";
 import { d1FileStore } from "./file-d1.js";
 import { fileValidator } from "./file-validation.js";
+import { workerFileByteBudget } from "./file-worker-budget.js";
 import { workerFileTransport } from "./file-worker-transport.js";
 import { parseFileOrigins } from "./files.js";
 import { createProbeHandler } from "./http.js";
 import { d1ReviewStore } from "./review.js";
+import { d1RuntimeReviews } from "./runtime-d1.js";
+import { handleRuntimeRequest } from "./runtime-http.js";
 
 interface Env {
   AUTH_DB: D1Database;
@@ -17,6 +21,8 @@ interface Env {
   PROBE_SYNTHETIC_FILES?: string;
   PROBE_FILE_ORIGINS?: string;
   PROBE_FILE_CLEANUP?: string;
+  PROBE_RUNTIME_TOKEN?: string;
+  PROBE_RUNTIME_UNTIL?: string;
 }
 let diagnosticConfig: string | undefined;
 let emitDiagnostic: ((event: McpRequestDiagnostic) => void) | undefined;
@@ -24,6 +30,20 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!env.AUTH_SECRET || !env.OWNER_ID || !env.PROBE_ORIGIN)
       return new Response("Probe not provisioned", { status: 503 });
+    const runtime = await handleRuntimeRequest(request, {
+      origin: env.PROBE_ORIGIN,
+      token: env.PROBE_RUNTIME_TOKEN,
+      until: env.PROBE_RUNTIME_UNTIL,
+      context: {
+        owner: env.OWNER_ID,
+        secret: env.AUTH_SECRET,
+        files: d1FileStore(env.AUTH_DB),
+        reviews: d1RuntimeReviews(env.AUTH_DB),
+        validator: fileValidator,
+        codec: fileCodec,
+      },
+    });
+    if (runtime) return runtime;
     const key = JSON.stringify([
       env.PROBE_PROTOCOL_DIAGNOSTICS,
       env.PROBE_PROTOCOL_DIAGNOSTICS_UNTIL,
@@ -48,7 +68,9 @@ export default {
               store: d1FileStore(env.AUTH_DB),
               transport: workerFileTransport,
               validator: fileValidator,
+              codec: fileCodec,
               origins: parseFileOrigins(env.PROBE_FILE_ORIGINS),
+              maxBytes: workerFileByteBudget,
             },
           }
         : {}),

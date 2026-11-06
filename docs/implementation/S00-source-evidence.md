@@ -1,5 +1,10 @@
 # S00 source provenance and redistribution (G05)
 
+**2026-11-05:** the official legal page and linked developer agreement were
+reviewed again. The [owner evidence/request packet](S00-source-rights-request.md)
+records missing acquisition evidence, unsent questions and the unchanged
+distribution block. No specification was acquired or permission inferred.
+
 Status on 2026-10-18: **precisely blocked for vendored/generated redistribution**.
 The project may continue its independently written synthetic probes. No
 Fortnox specification or generated provider implementation is redistributed.

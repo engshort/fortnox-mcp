@@ -1,3 +1,4 @@
+import { fileCodec } from "../src/file-codec.js";
 import { d1FileStore } from "../src/file-d1.js";
 import { fileValidator } from "../src/file-validation.js";
 import { FileError, fileService } from "../src/files.js";
@@ -23,6 +24,7 @@ export default {
       origins: [fileOrigin],
       store: d1FileStore(env.DB),
       validator: fileValidator,
+      codec: fileCodec,
       now: () => input.now,
       transport: {
         async open() {

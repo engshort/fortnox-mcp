@@ -554,6 +554,38 @@ test("MCP file descriptors use complete host schemas, default off, scoped calls 
   }
 });
 
+test("runtime byte budgets reject oversized ingress and stored output before decoding chunks", async () => {
+  const f = fixture();
+  try {
+    const limited = fileService({ ...f.context, maxBytes: 16 });
+    await assert.rejects(
+      () => limited.ingest({ files: [input()] }),
+      /FILE_TOO_LARGE/,
+    );
+    assert.equal(
+      f.db.prepare("SELECT count(*) AS n FROM s00_files").get()?.n,
+      0,
+    );
+    const prepared = await f.service.ingest({ files: [input()] });
+    assert.equal(
+      await f.context.store.get(
+        prepared.files[0].id,
+        f.context.owner,
+        f.context.company,
+        now,
+        16,
+      ),
+      null,
+    );
+    await assert.rejects(
+      () => limited.read(prepared.files[0].id),
+      /FILE_UNAVAILABLE/,
+    );
+  } finally {
+    f.db.close();
+  }
+});
+
 test("file download deadline aborts a stalled body without staging bytes", async () => {
   const f = fixture();
   let aborted = false,

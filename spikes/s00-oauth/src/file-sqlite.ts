@@ -11,7 +11,12 @@ import {
   removeChunksSql,
   removeFilesSql,
 } from "./file-sql.js";
-import type { FileRecord, FileStore, SealedChunk } from "./files.js";
+import {
+  type FileRecord,
+  type FileStore,
+  fileLimits,
+  type SealedChunk,
+} from "./files.js";
 
 export function sqliteFileStore(db: DatabaseSync): FileStore {
   const transaction = (work: () => void) => {
@@ -40,14 +45,14 @@ export function sqliteFileStore(db: DatabaseSync): FileStore {
       });
       return inserted;
     },
-    async get(id, owner, company, now) {
-      const record = db.prepare(readFileSql).get(id, owner, company, now) as
-        | FileRecord
-        | undefined;
+    async get(id, owner, company, now, maxBytes = fileLimits.bytes) {
+      const record = db
+        .prepare(readFileSql)
+        .get(id, owner, company, now, maxBytes) as FileRecord | undefined;
       if (!record) return null;
       const chunks = db
         .prepare(readChunksSql)
-        .all(id, owner, company, now) as unknown as SealedChunk[];
+        .all(id, owner, company, now, maxBytes) as unknown as SealedChunk[];
       return { record, chunks };
     },
     async removeWorkflow(workflow, owner, company) {

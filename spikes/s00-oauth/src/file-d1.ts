@@ -10,7 +10,12 @@ import {
   removeChunksSql,
   removeFilesSql,
 } from "./file-sql.js";
-import type { FileRecord, FileStore, SealedChunk } from "./files.js";
+import {
+  type FileRecord,
+  type FileStore,
+  fileLimits,
+  type SealedChunk,
+} from "./files.js";
 
 export function d1FileStore(db: D1Database): FileStore {
   return {
@@ -28,15 +33,15 @@ export function d1FileStore(db: D1Database): FileStore {
       const results = await db.batch(statements);
       return results[2].meta.changes === 1;
     },
-    async get(id, owner, company, now) {
+    async get(id, owner, company, now, maxBytes = fileLimits.bytes) {
       const record = await db
         .prepare(readFileSql)
-        .bind(id, owner, company, now)
+        .bind(id, owner, company, now, maxBytes)
         .first<FileRecord>();
       if (!record) return null;
       const chunks = await db
         .prepare(readChunksSql)
-        .bind(id, owner, company, now)
+        .bind(id, owner, company, now, maxBytes)
         .all<SealedChunk>();
       return { record, chunks: chunks.results };
     },

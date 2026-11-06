@@ -20,7 +20,8 @@ references. The original bytes can be read through MCP with the same owner,
 company, expiry and file-scope checks. Actual ChatGPT rendering/download of
 these resource results is still unverified.
 
-Limits: one or two files, 5 MiB each, a 15-second total DNS/body deadline,
+Limits after G09 measurements: one or two files, **1 MiB each on Workers**
+and 5 MiB each on Node, a 15-second total DNS/body deadline,
 two million image pixels and ten PDF pages. The bounded probe accepts decoded
 JPEG, 8-bit non-interlaced PNG with CRC/decode validation and plain PDF 1.0–1.7.
 Compressed/object-stream PDFs, encryption, embedded actions and unsupported

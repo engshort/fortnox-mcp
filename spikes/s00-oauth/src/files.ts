@@ -69,6 +69,7 @@ export interface FileStore {
     owner: string,
     company: string,
     now: number,
+    maxBytes?: number,
   ): Promise<{ record: FileRecord; chunks: SealedChunk[] } | null>;
   removeWorkflow(
     workflow: string,
@@ -83,6 +84,10 @@ export interface FileTransport {
 export interface FileValidator {
   validate(bytes: Uint8Array): Promise<{ mime: string; pages?: number }>;
 }
+export interface FileCodec {
+  encode(bytes: Uint8Array): string;
+  decode(text: string): Uint8Array;
+}
 export interface FileContext {
   owner: string;
   company: string;
@@ -91,6 +96,8 @@ export interface FileContext {
   store: FileStore;
   transport: FileTransport;
   validator: FileValidator;
+  codec?: FileCodec;
+  maxBytes?: number;
   now?: () => number;
 }
 export function isPublicAddress(value: string) {
@@ -196,7 +203,12 @@ const aad = (record: FileRecord, index: number) =>
       index,
     ]),
   );
-async function seal(record: FileRecord, bytes: Uint8Array, key: CryptoKey) {
+async function seal(
+  record: FileRecord,
+  bytes: Uint8Array,
+  key: CryptoKey,
+  codec: FileCodec,
+) {
   const chunks: SealedChunk[] = [];
   for (let offset = 0; offset < bytes.length; offset += fileLimits.chunkBytes) {
     const index = chunks.length,
@@ -208,16 +220,23 @@ async function seal(record: FileRecord, bytes: Uint8Array, key: CryptoKey) {
     );
     chunks.push({
       index,
-      iv: encode(iv),
-      data: encode(new Uint8Array(encrypted)),
+      iv: codec.encode(iv),
+      data: codec.encode(new Uint8Array(encrypted)),
     });
   }
   return chunks;
 }
 export async function fetchFile(
   input: FileInput,
-  context: Pick<FileContext, "origins" | "transport">,
+  context: Pick<FileContext, "origins" | "transport" | "maxBytes">,
 ) {
+  const maximum = context.maxBytes ?? fileLimits.bytes;
+  if (
+    !Number.isSafeInteger(maximum) ||
+    maximum < 1 ||
+    maximum > fileLimits.bytes
+  )
+    throw new FileError("FILE_UNAVAILABLE");
   const url = approvedFileUrl(input.download_url, context.origins);
   const controller = new AbortController();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
@@ -245,10 +264,7 @@ export async function fetchFile(
         );
       }
       const length = response.headers.get("content-length");
-      if (
-        length &&
-        (!/^\d+$/.test(length) || Number(length) > fileLimits.bytes)
-      ) {
+      if (length && (!/^\d+$/.test(length) || Number(length) > maximum)) {
         void response.body?.cancel().catch(() => {});
         throw new FileError("FILE_TOO_LARGE");
       }
@@ -260,7 +276,7 @@ export async function fetchFile(
         const chunk = await reader.read();
         if (chunk.done) break;
         size += chunk.value.byteLength;
-        if (size > fileLimits.bytes) throw new FileError("FILE_TOO_LARGE");
+        if (size > maximum) throw new FileError("FILE_TOO_LARGE");
         chunks.push(chunk.value);
       }
       if (controller.signal.aborted) throw new FileError("FILE_TIMEOUT");
@@ -295,6 +311,7 @@ export async function fetchFile(
 }
 export function fileService(context: FileContext) {
   const now = context.now ?? Date.now;
+  const codec = context.codec ?? { encode, decode };
   return {
     async ingest(input: unknown) {
       const parsed = fileInputSchema.safeParse(input);
@@ -339,7 +356,7 @@ export function fileService(context: FileContext) {
             if (
               !(await context.store.put(
                 record,
-                await seal(record, bytes, key),
+                await seal(record, bytes, key, codec),
                 now(),
               ))
             )
@@ -384,9 +401,12 @@ export function fileService(context: FileContext) {
         context.owner,
         context.company,
         now(),
+        context.maxBytes ?? fileLimits.bytes,
       );
       if (!stored) throw new FileError("FILE_UNAVAILABLE");
       const { record, chunks } = stored;
+      if (record.bytes > (context.maxBytes ?? fileLimits.bytes))
+        throw new FileError("FILE_TOO_LARGE");
       if (
         record.expires <= now() ||
         chunks.length !== record.chunks ||
@@ -404,11 +424,11 @@ export function fileService(context: FileContext) {
             await crypto.subtle.decrypt(
               {
                 name: "AES-GCM",
-                iv: decode(chunk.iv),
+                iv: new Uint8Array(codec.decode(chunk.iv)),
                 additionalData: aad(record, index),
               },
               key,
-              decode(chunk.data),
+              new Uint8Array(codec.decode(chunk.data)),
             ),
           );
           bytes.set(decoded, offset);
@@ -423,7 +443,7 @@ export function fileService(context: FileContext) {
           throw new Error("Invalid file");
         return {
           mime: record.mime,
-          blob: encode(bytes),
+          blob: codec.encode(bytes),
           sha256: record.hash,
           bytes: record.bytes,
         };
