@@ -43,3 +43,9 @@ Pagination is endpoint-specific and a shared helper returns explicit partial res
 The original oauth4webapi 3.8.8 mechanism is integrated with encrypted, owner/admin-session-bound, ten-minute PKCE flows. Four pending flows per owner are allowed; expired entries are removed when a new flow starts. A callback must match the configured origin/path, state and initiating session; a durable CAS claims it before token exchange. Errors never serialize library objects or provider response bodies.
 
 The authenticated Company Information response must match the explicit test-tenant allowlist before client-credentials issuance. The new client-credentials token is verified against that same tenant before storage. Service refresh tokens from code exchange are deliberately discarded. Renewal uses a durable fenced lease and atomic replacement; service-account identity is never installation-owner identity. This adds no production authorization and does not expand G04's historical probe evidence.
+
+## M05 — user refresh rotation (#59)
+
+User consent omits service-account parameters and requires an offline refresh token. The token source never falls back to client credentials. It verifies a rotated replacement token's tenant before atomically saving access/refresh/expiry together. Expiry is supplied by the actual provider response, not an assumed lifetime.
+
+Renewal locks are durable and fenced. Credentials are reread after reserving the current snapshot, preventing stale refresh use after another renewal finishes. An uncertain exchange, invalid replacement or persistence failure removes usable credentials and marks reconnection required where storage is available. If storage remains unavailable, the persisted dispatched lease blocks reuse after restart/expiry. No refresh call is retried blindly. Pending leases return a structured rate-limit result instead of issuing a second rotation.

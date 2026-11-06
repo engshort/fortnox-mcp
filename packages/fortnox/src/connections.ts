@@ -69,8 +69,6 @@ export class FortnoxConnections {
     reconnectId?: string,
   ) {
     consentInput.parse(input);
-    if (input.mode !== "service")
-      throw new DomainError("CAPABILITY_UNAVAILABLE");
     const id = crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
@@ -110,7 +108,7 @@ export class FortnoxConnections {
           redirect_uri: this.redirect(),
           scope: "companyinformation profile",
           access_type: "offline",
-          account_type: "service",
+          ...(input.mode === "service" ? { account_type: "service" } : {}),
           state,
           code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
           code_challenge_method: "S256",
@@ -278,24 +276,27 @@ export class FortnoxConnections {
         flow.mode,
       );
       const identity = await this.verify(owner, initial);
-      if (flow.mode !== "service")
-        throw new DomainError("CAPABILITY_UNAVAILABLE");
-      const grant = await oauth.clientCredentialsGrantRequest(
-        server,
-        client,
-        oauth.ClientSecretBasic(input.clientSecret),
-        { scope: "companyinformation profile" },
-        {
-          [oauth.customFetch]: this.upstream(),
-          headers: { TenantId: identity.tenant },
-        },
-      );
-      const credentials = this.credentials(
-        input,
-        await oauth.processClientCredentialsResponse(server, client, grant),
-        "service",
-      );
-      await this.verify(owner, credentials, identity.tenant);
+      let credentials = initial;
+      if (flow.mode === "user" && !initial.refreshToken)
+        throw new DomainError("RECONNECT_REQUIRED");
+      if (flow.mode === "service") {
+        const grant = await oauth.clientCredentialsGrantRequest(
+          server,
+          client,
+          oauth.ClientSecretBasic(input.clientSecret),
+          { scope: "companyinformation profile" },
+          {
+            [oauth.customFetch]: this.upstream(),
+            headers: { TenantId: identity.tenant },
+          },
+        );
+        credentials = this.credentials(
+          input,
+          await oauth.processClientCredentialsResponse(server, client, grant),
+          "service",
+        );
+        await this.verify(owner, credentials, identity.tenant);
+      }
       if (flow.reconnectId) throw new DomainError("CAPABILITY_UNAVAILABLE");
       return await this.config.connections.add(
         owner,
@@ -318,8 +319,29 @@ export class FortnoxConnections {
             client_id: credentials.clientId,
             token_endpoint_auth_method: "client_secret_basic",
           };
-          if (connection.mode !== "service")
-            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          if (connection.mode === "user") {
+            if (!credentials.refreshToken)
+              throw new DomainError("RECONNECT_REQUIRED");
+            const response = await oauth.refreshTokenGrantRequest(
+              server,
+              client,
+              oauth.ClientSecretBasic(credentials.clientSecret),
+              credentials.refreshToken,
+              { [oauth.customFetch]: this.upstream() },
+            );
+            const next = this.credentials(
+              credentials,
+              await oauth.processRefreshTokenResponse(server, client, response),
+              "user",
+            );
+            if (
+              !next.refreshToken ||
+              next.refreshToken === credentials.refreshToken
+            )
+              throw new DomainError("RECONNECT_REQUIRED");
+            await this.verify(owner, next, connection.tenant);
+            return next;
+          }
           const response = await oauth.clientCredentialsGrantRequest(
             server,
             client,

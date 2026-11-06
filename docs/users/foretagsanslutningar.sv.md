@@ -33,3 +33,7 @@ Anrop begränsas separat för varje integration och företag. Vid tillfälliga f
 Registrera installationens egen integration i Fortnox med endast `companyinformation profile`, aktivera servicekonto och S256 PKCE och ange exakt `<PUBLIC_ORIGIN>/admin/fortnox/callback` som redirect. Du anger Client ID och Client Secret privat i installationens konfiguration. Starta consent i den inloggade administrationen och välj ett tillåtet testföretag i Fortnox.
 
 Installationen verifierar företaget via Fortnox innan anslutningen sparas. Servicekontot förnyar sedan access-token med client credentials och verifierad tenant. Den refresh-token som kan följa med första consent sparas inte för servicekontot. Ett Fortnox-servicekonto ger inga administrativa rättigheter till installationen.
+
+## Användaranslutning
+
+Välj användaranslutning när servicekonto inte passar. Fortnox begär offlineåtkomst och installationen sparar refresh-token krypterad. Endast en förnyelse per anslutning får pågå åt gången. Om rotationssvaret försvinner, refresh-token blir ogiltig eller ett avbrutet anrop inte kan bevisas säkert, visas återanslutningsbehov. Gamla refresh-token skickas inte igen på chans.

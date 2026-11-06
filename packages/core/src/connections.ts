@@ -239,6 +239,23 @@ export class Connections {
     const first = (await this.list(owner)).find((c) => c.id === id);
     if (!first || first.generation !== generation)
       throw new DomainError("RECONNECT_REQUIRED");
+    if (
+      first.mode === "user" &&
+      first.renewal?.dispatched &&
+      first.renewal.until <= now
+    ) {
+      await this.mutate(owner, id, (c) => {
+        if (
+          c.generation === generation &&
+          c.renewal?.id === first.renewal?.id
+        ) {
+          c.state = "reconnect_required";
+          c.secret = null;
+          delete c.renewal;
+        }
+      });
+      throw new DomainError("RECONNECT_REQUIRED");
+    }
     const credentials = await this.credentials(owner, first);
     if (!force && credentials.expiresAt > now + 60000) return credentials;
     const lock = crypto.randomUUID();
@@ -251,7 +268,7 @@ export class Connections {
     });
     try {
       const next = connectionCredentials.parse(
-        await exchange(credentials, reserved),
+        await exchange(await this.credentials(owner, reserved), reserved),
       );
       await this.mutate(owner, id, async (c) => {
         if (
@@ -267,6 +284,8 @@ export class Connections {
     } catch {
       await this.mutate(owner, id, (c) => {
         if (c.generation === generation && c.renewal?.id === lock) {
+          c.state = "reconnect_required";
+          c.secret = null;
           delete c.renewal;
         }
       }).catch(() => {});

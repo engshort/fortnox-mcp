@@ -7,6 +7,7 @@ import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
+import { userTokenContract } from "../shared/user-tokens.js";
 
 const opened: DatabaseSync[] = [];
 afterEach(() => {
@@ -42,3 +43,5 @@ oauthContract(fixture);
 providerContract(async () => (await fixture()).state);
 
 fortnoxConnectionContract(async () => (await fixture()).state);
+
+userTokenContract(async () => (await fixture()).state);
