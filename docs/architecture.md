@@ -26,6 +26,14 @@ Workspace structure (created in S01; responsibilities expand in later scopes):
 | `apps/shared` | Portable SQL adapter shared by runtime-specific SQLite/D1 bindings |
 | `tests` | Synthetic contract, integration and client acceptance evidence |
 
+## Web application and HTTP routing (D22)
+
+The **planned**, protected owner web application uses React with a Vite production build. Its static assets are served from the same origin as the installation on both Cloudflare Workers and Node.js. Hono will compose product HTTP routes around the existing Fetch-based handlers; it must not replace the MCP SDK, move policies into UI routes, or introduce a second backend. The current `@hono/node-server` adapter is not itself a Hono router.
+
+Keep distinct entry points and trust boundaries for the owner setup/admin app and embedded MCP Apps receipt/voucher review. The embedded views must remain compatible with actual host CSP, model/UI visibility and server-enforced review acceptance under G02 before any framework migration. Existing HTML-based views may remain in place until verified replacements are ready.
+
+The dependency-free public GitHub Pages website (`index.html`, `installera/`, `site/`) is **outside** this decision. See [D22](decisions.md#d22--web-application-framework-proposed-2026-11-06) and [S11](implementation/S11-setup-deployment.md) for decision and acceptance details.
+
 ## Runtime choices
 
 Use the official TypeScript MCP SDK release that passes the supported-client matrix. MCP `2026-07-28` and older client negotiation/compatibility must be evaluated explicitly in S00; a newer protocol must not strand the first ChatGPT target. Pin exact dependency versions and runtime compatibility settings in S01; do not use an untested floating `latest` in release artifacts.
