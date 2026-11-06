@@ -100,3 +100,13 @@ Permitted statuses: `not_implemented`, `implemented_unverified`, `verified`, `bl
 ## Source updates
 
 Compare new authorized snapshots against the locked hash. Review added/removed operations, parameters, schemas, security and side-effect descriptions. New write operations remain disabled until classified and tested. Keep versioned overlays for provider-documentation discrepancies with dated evidence. Source updates cannot silently weaken policy or broaden granted access.
+
+## Milestone 3 hosted reference recheck
+
+The [dated two-company operator evidence](../implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06)
+records actual hosted workerd/D1 reads at source `e9f5a62`, separate service/user
+token renewal and a foreign-company denial without provider I/O. Both reference
+results were partial at the 500-account budget and contained unknown information
+rules. This is bounded positive provider evidence, not supported financial
+coverage or a product OAuth/ChatGPT reference acceptance. #92/#76/#93 remain open;
+no operation changes to `verified` or default-enabled status.

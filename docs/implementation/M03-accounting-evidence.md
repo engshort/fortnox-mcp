@@ -146,6 +146,62 @@ typecheck/lint/build, built-artifact checks and Wrangler dry-run passed. The
 private documentation catalog loaded the supplied input as 451 operations and
 680 schemas; no input was bundled into product artifacts.
 
+## Hosted two-company read recheck — 2026-11-06
+
+[PR #100](https://github.com/engshort/fortnox-mcp/pull/100) was squash-merged as
+`e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d` after all three PR workflows passed
+on head `1266a30eb1fe12ced432288eb03dfcc289f3d155`:
+[S01](https://github.com/engshort/fortnox-mcp/actions/runs/42217753272),
+[S00](https://github.com/engshort/fortnox-mcp/actions/runs/42217753160) and
+[S00 OAuth](https://github.com/engshort/fortnox-mcp/actions/runs/42217753129).
+The same source was deployed in the existing allowlisted product test
+installation. Product bundle SHA-256:
+`fff2dcd97c38b2c7c88b27500a5ca6224af0f57de25808f4897075c6bce5e765`.
+D1, five secret bindings and the maintenance schedule were preserved.
+Post-deployment health/metadata passed; unauthenticated administration,
+reference reads and mixed public/private MCP batches returned 401. Financial
+write tools remain absent.
+
+At **12:32:42 UTC**, a private operator probe ran the same company MCP server,
+domain services, provider adapter and native outbound fetch in actual hosted
+workerd against the installation's D1. It used a short-lived, one-use operator
+capability and the existing owner's current company grants/generations. It did
+**not** exercise the product OAuth transport or an actual ChatGPT conversation.
+Its independently tested temporary endpoint was removed after the run, together
+with its one-use nonce. No financial write was permitted or attempted. Token
+renewal used the shared durable connection coordination and persisted replacement
+tokens; it did not copy tokens into a separate test database.
+
+| Observation | Service test company | User test company |
+| --- | --- | --- |
+| Profile and full year discovery | Passed | Passed |
+| Reference result | `ok`, `complete=false` | `ok`, `complete=false` |
+| Accounts returned before the bounded limit | 500 | 500 |
+| Information setting | Omitted on all returned accounts; `UNKNOWN` | Omitted on all returned accounts; `UNKNOWN` |
+| Manual series / cost centres / projects returned | 1 / 0 / 0 | 1 / 0 / 0 |
+| Financial semantics | `validation_verified=false` | `validation_verified=false` |
+| Forced token renewal followed by profile read | Passed | Passed |
+
+The account-list field is now **observed omitted**, rather than merely suspected
+from documentation. Account retrieval reached the configured five-page/500-item
+budget; it makes no claim about the full account count. This bounded partial
+result cannot validate a voucher. Named settings from individual account detail
+responses and numeric-rule meanings were not verified by this list probe.
+
+Bearer-token fingerprints were disjoint across the two company paths; only the
+boolean result was retained in redacted evidence. A foreign company reference
+request returned `COMPANY_FORBIDDEN` with **zero** provider calls. Removing the
+internal actor's `mcp:read` scope was also denied. That internal check does not
+prove an actual provider 403, absent license or restricted provider user.
+Exactly two token endpoint calls occurred during the forced-renewal recheck;
+this does not establish natural-expiry, revocation or lost-response recovery.
+
+#92 remains open for complete/applicable reference data, individual account
+rules, negative provider permissions/licenses, broken-year and lock-boundary
+cases, and an actual ChatGPT reference recheck on this revision. #76/#93 and G02
+remain open for their independent financial and trusted-review acceptance.
+This evidence does not enable bookkeeping or claim that milestone 3 is complete.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure

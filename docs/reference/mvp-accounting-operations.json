@@ -53,11 +53,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "positive bounded test-company read; broader acceptance pending"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
       "discoveryTool": "list_financial_years",
@@ -94,11 +102,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "partial account list with unknown information rules; financial validation unverified"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition",
       "unverifiedInformationRule": "Numeric, omitted or null information settings are UNKNOWN and block financial validation; provider MANDATORY normalizes to internal REQUIRED.",
@@ -143,11 +159,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "positive bounded test-company read; broader acceptance pending"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
     },
@@ -182,11 +206,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "positive bounded test-company read; broader acceptance pending"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
     },
@@ -221,11 +253,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "positive bounded test-company read; broader acceptance pending"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
     },
@@ -260,11 +300,19 @@
         "tests/shared/accounting-transport.ts",
         "tests/node/accounting-restart.test.ts"
       ],
-      "liveEvidence": null,
+      "liveEvidence": {
+        "record": "docs/implementation/M03-accounting-evidence.md#hosted-two-company-read-recheck--2026-11-06",
+        "observedAt": "2026-11-06T12:32:42.051Z",
+        "serverCommit": "e9f5a6226d8e0a8c0ef2d2019377d07e57d2194d",
+        "runtime": "hosted workerd/D1",
+        "boundary": "one-use operator capability, current owner/company grant, internal MCP; not product OAuth or ChatGPT",
+        "result": "positive bounded test-company read; broader acceptance pending"
+      },
       "missingEvidence": [
-        "dated authorized test-company operation response and negative permissions",
-        "actual precision/lock/row semantics where applicable",
-        "applicable product ChatGPT/runtime evidence"
+        "complete applicable reference data and individual account rules",
+        "negative provider scope/license/user permissions and relevant lock/year boundaries",
+        "actual product ChatGPT reference recheck on this revision",
+        "actual precision/lock/row semantics where applicable"
       ],
       "activation": "test references opt-in only; financial writes and verified review host hard-disabled in product composition"
     },
