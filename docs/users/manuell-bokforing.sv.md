@@ -66,6 +66,16 @@ ingen automatisk utökning av företag eller scopes. Börja med att lista år
 för vart och ett av de två företagen. Tom eller ofullständig lista ger ingen
 grund för att gissa års-ID eller godkänna ett bokföringsförslag.
 
+En fullständig referensläsning kan innehålla informationsregeln `UNKNOWN`.
+Det betyder att servern har läst en inställning vars betydelse ännu inte är
+verifierad. Ett sådant konto kan inte användas för ett godkänt förslag, även
+om listan är fullständig. Numeriska inställningar översätts inte på chans.
+
+Om ett Fortnox-svar har oväntad struktur returneras `UPSTREAM_UNAVAILABLE`
+med operationens fasta felorsak och säkra fältnamn i `fields`. Det behöver
+utredas av operatören; byt inte företag eller års-ID för att försöka komma
+runt felet. Råa providersvar eller credentials behövs inte i felrapporten.
+
 En privat mall finns lokalt i `.data/milestone-3-acceptance.json` (0600,
 ignorerad av Git). Fyll i testinstallationens `origin`, dess exakta
 `serverCommit`, en kortlivad **MCP**-`accessToken` med läsrätt samt två

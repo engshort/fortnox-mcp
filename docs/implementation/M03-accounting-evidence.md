@@ -85,6 +85,38 @@ running with local-port permission. Browser behavior was not changed or rerun.
 Hosted follow-up deployment and actual reference results are recorded separately
 against their exact source in #63/#92.
 
+## Provider reference contract follow-up
+
+The owner's actual reference reads failed with an undifferentiated
+`VALIDATION_FAILED` after successful year discovery. A provider Zod error was
+being reported as caller input validation. Reference decoding now reports
+`UPSTREAM_UNAVAILABLE` with fixed operation-specific reasons and at most eight
+deduplicated, allowlisted schema paths. Numeric row indices become wildcards;
+no provider value or raw exception is exposed. Internal output schema failure
+is separately `invalid_tool_result`.
+
+The official API reference's account-list sample documents a numeric
+`TransactionInformationSettings`, while its single-account shape uses a named
+rule. The previous parser accepted only the named form. This documented mismatch
+is reproducible synthetically; it is a candidate explanation for the live
+failure, not a claim that its exact field was observed live. A safe integer in
+this field is now represented as `UNKNOWN` in reference reads. No numeric-to-rule
+mapping is assumed. The domain independently rejects unknown rules before
+preparation/submission, including if a reference set is incorrectly marked
+verified. Complete retrieval does not mean verified financial semantics.
+
+Shared Node/workerd tests exercise numeric settings through the actual HTTP
+adapter and MCP serialization, unknown-rule rejection, redaction of malformed
+provider fields/lock dates, strict caller inputs and malformed internal results.
+Actual reference rechecks, G02 and financial/provider gates remain required.
+
+Local follow-up results on 2026-11-06: 91 Node/domain tests and 75 actual local
+workerd/D1 tests passed. Root typecheck/lint/build, six no-eval artifact tests,
+native Worker/CLI checks and Wrangler dry-run passed. An initial new assertion
+exposed repeated schema paths; diagnostics now deduplicate those paths before
+publication. The complete checks passed after that correction. No live reference
+success or verified numeric-rule semantics is claimed by these tests.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure

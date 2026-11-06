@@ -37,7 +37,7 @@ const error = z
       .strict(),
   })
   .strict();
-const dimensionRule = z.enum(["REQUIRED", "ALLOWED", "NOTALLOWED"]);
+const dimensionRule = z.enum(["REQUIRED", "ALLOWED", "NOTALLOWED", "UNKNOWN"]);
 export const referencesOutput = z
   .object({
     company_id: z.string().uuid(),
@@ -126,12 +126,15 @@ export function registerAccounting(
   ) => {
     try {
       const value = await action();
-      const result = schema.parse({
+      const parsed = schema.safeParse({
         status: "ok",
         company_id: company,
         data: value,
         retrieved_at: new Date().toISOString(),
       });
+      if (!parsed.success)
+        throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_tool_result");
+      const result = parsed.data;
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }],
         structuredContent: result as Record<string, unknown>,
@@ -151,7 +154,10 @@ export function registerAccounting(
                 ? "VALIDATION_FAILED"
                 : "UPSTREAM_UNAVAILABLE",
           fields:
-            cause instanceof AccountingValidationError ? cause.fields : [],
+            cause instanceof AccountingValidationError ||
+            cause instanceof ProviderError
+              ? cause.fields
+              : [],
           correlation_id: crypto.randomUUID(),
         },
       });

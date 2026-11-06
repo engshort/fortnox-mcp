@@ -76,6 +76,7 @@ export class ProviderError extends DomainError {
       | "RATE_LIMITED",
     readonly reason: string,
     readonly providerCode: string | null = null,
+    readonly fields: ReadonlyArray<{ path: string; rule: string }> = [],
   ) {
     super(code);
   }

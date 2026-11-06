@@ -12,6 +12,12 @@ the documented `@CurrentPage`/`@TotalPages` pagination fields and
 `VoucherSeriesCollection` envelope. This adds no provider operation to the
 eight-operation accounting ledger and establishes no live financial acceptance.
 
+The subsequent provider-contract follow-up preserves numeric account information
+settings as explicitly `UNKNOWN`, blocking financial validation, and separates
+provider/output schema errors from caller input errors. Diagnostics expose only
+bounded known field paths, never provider values. This establishes no financial
+rule mapping and promotes no operation to verified support.
+
 The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap, OAuth, encrypted connections, token lifecycles, disconnect/reconnect and three company tools with shared Node/workerd evidence. Provider operations remain disabled outside explicitly allowlisted test acceptance; the operation ledger distinguishes `implemented_unverified` from verified support.
 
 The built product Worker also has a native-fetch consent regression in isolated workerd/D1 with a synthetic outbound provider. It verifies runtime transport wiring separately from the injected domain transports and does not establish live Fortnox acceptance.

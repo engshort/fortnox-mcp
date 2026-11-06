@@ -16,6 +16,14 @@ It is read-only, bounded to five pages/500 entries and explicitly reports
 explicit returned year ID; no current-year default or guessed calendar-year
 mapping exists. Both remain experimental test capabilities under #92.
 
+Provider reference schema failures return `UPSTREAM_UNAVAILABLE`, a fixed
+operation-specific reason and bounded, deduplicated schema field paths in
+`error.fields`. They are not invalid caller input. Paths contain only known
+schema names and wildcard indices; provider values, raw Zod issues/messages,
+request headers and raw payloads are never reflected. Internal output-schema
+failures use `invalid_tool_result`. Numeric information settings may be shown as
+`UNKNOWN`; they can never authorize a voucher.
+
 ## Tool design
 
 Expose focused tools with accurate side-effect annotations. Separate listing/reading, preparation, creation, updating, sending, booking and cancellation. A generic `execute(method, url, body)` tool is not exposed. The 405 upstream operations must be reviewed, not blindly published as 405 equally trusted tools.

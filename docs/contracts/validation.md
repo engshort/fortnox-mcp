@@ -6,6 +6,13 @@ explicit company/year and fresh complete references. Unverified precision, lock
 boundaries, corrections and foreign references fail closed. Its rule-to-test
 matrix does not replace financial live acceptance under #76.
 
+Reference reads can report `information: "UNKNOWN"` when the provider's account
+list returns a numeric transaction-information setting whose meaning is not
+verified. This preserves an observed unknown; it does not map any numeric value
+to an allowed/required/forbidden rule. `complete=true` describes retrieval only.
+Any `UNKNOWN` account rule blocks voucher validation even if another component
+mistakenly marks the reference set verified. Approval cannot override it.
+
 Validation is executable domain behavior, not an instruction asking the model to be careful. Rules apply to UI, model, batch and developer entry points and cannot be disabled by approval mode.
 
 ## Rule register

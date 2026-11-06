@@ -36,6 +36,16 @@ const integer = z.union([
     .transform(Number),
 ]);
 const rule = z.enum(["REQUIRED", "ALLOWED", "NOTALLOWED"]);
+// List and single-account documentation disagree on this field's representation.
+// A numeric value is observable reference data, never an inferred booking rule.
+const informationRule = z.union([
+  rule,
+  z
+    .number()
+    .int()
+    .safe()
+    .transform(() => "UNKNOWN" as const),
+]);
 const dimension = z.object({
   Code: z.string().regex(/^[A-Za-z0-9_-]{1,32}$/),
   Active: providerBool,
@@ -57,7 +67,7 @@ const account = z.object({
   Year: integer,
   CostCenterSettings: rule,
   ProjectSettings: rule,
-  TransactionInformationSettings: rule,
+  TransactionInformationSettings: informationRule,
 });
 const series = z.object({
   Code: z.string(),
@@ -71,6 +81,60 @@ const meta = z
     "@TotalResources": integer.optional(),
   })
   .optional();
+
+const responseFieldNames = new Set([
+  "MetaInformation",
+  "@CurrentPage",
+  "@TotalPages",
+  "@TotalResources",
+  "Number",
+  "Active",
+  "Year",
+  "CostCenterSettings",
+  "ProjectSettings",
+  "TransactionInformationSettings",
+  "Code",
+  "Manual",
+  "ProjectNumber",
+  "Status",
+  "Id",
+  "FromDate",
+  "ToDate",
+  "LockedPeriod",
+  "EndDate",
+]);
+function parseReferenceResponse<T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+  operation: ProviderOperation,
+): T {
+  const parsed = schema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  const paths = new Set(
+    parsed.error.issues
+      .slice(0, 8)
+      .map((issue) =>
+        [
+          operation,
+          ...issue.path
+            .slice(0, 6)
+            .map((part) =>
+              typeof part === "number"
+                ? "*"
+                : responseFieldNames.has(String(part))
+                  ? String(part)
+                  : "field",
+            ),
+        ].join("."),
+      ),
+  );
+  throw new ProviderError(
+    "UPSTREAM_UNAVAILABLE",
+    `invalid_${operation}_response`,
+    null,
+    [...paths].map((path) => ({ path, rule: "provider_contract" })),
+  );
+}
 
 export class FortnoxAccounting implements AccountingProvider {
   readonly http: FortnoxHttp;
@@ -142,21 +206,24 @@ export class FortnoxAccounting implements AccountingProvider {
     const until = this.now() + 15000;
     return readPages(
       async (page) => {
-        const raw = z
-          .object({ MetaInformation: meta })
-          .catchall(z.unknown())
-          .parse(
-            await this.http.read(
-              ctx,
-              operation,
-              {
-                ...(financialYear === undefined ? {} : { financialYear }),
-                page,
-              },
-              until,
-            ),
-          );
-        const items = z.array(schema).max(100).parse(raw[envelope]);
+        const raw = parseReferenceResponse(
+          z.object({ MetaInformation: meta }).catchall(z.unknown()),
+          await this.http.read(
+            ctx,
+            operation,
+            {
+              ...(financialYear === undefined ? {} : { financialYear }),
+              page,
+            },
+            until,
+          ),
+          operation,
+        );
+        const items = parseReferenceResponse(
+          z.array(schema).max(100),
+          raw[envelope],
+          operation,
+        );
         const m = raw.MetaInformation;
         // Missing pagination metadata cannot establish complete reference data.
         const empty =
@@ -253,19 +320,19 @@ export class FortnoxAccounting implements AccountingProvider {
       "Projects",
       project,
     );
-    const lock = z
-      .object({
+    const lock = parseReferenceResponse(
+      z.object({
         LockedPeriod: z.object({
           EndDate: accountingDate.or(z.literal("")).nullable().optional(),
         }),
-      })
-      .parse(
-        await this.http.read(
-          await this.context(actor, company, "locked_period"),
-          "locked_period",
-          { financialYear },
-        ),
-      );
+      }),
+      await this.http.read(
+        await this.context(actor, company, "locked_period"),
+        "locked_period",
+        { financialYear },
+      ),
+      "locked_period",
+    );
     if (
       accounts.items.some((a) => a.Year !== financialYear) ||
       seriesList.items.some((s) => s.Year !== financialYear)
