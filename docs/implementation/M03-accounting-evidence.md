@@ -55,6 +55,36 @@ Changing policy or obtaining `mcp:write` cannot enable an unverified operation.
 Additional Fortnox scopes require fresh consent; existing connections/tokens
 and MCP grants are never silently broadened.
 
+## Reference discovery follow-up
+
+The live test exposed a missing first step: a client could request references
+only if it already knew an internal fiscal-year ID. `list_financial_years`
+now reads actual IDs/date ranges under the same durable company grant before
+year-specific reads. It needs no selected year and never substitutes a calendar
+year for a provider ID. The provider's financial-years list is company-scoped;
+its request omits the unrelated `financialyear` filter. Other reference and
+voucher reads retain mandatory explicit fiscal-year context.
+
+The [official human-readable API reference](https://api.fortnox.se/apidocs),
+checked on 2026-11-06, documents prefixed pagination fields and the
+`VoucherSeriesCollection` list envelope. The independently written adapter and
+synthetic fixtures now match those field names. Empty-page completion requires
+explicit zero total resources/pages; missing metadata or incompatible shapes
+continue to fail closed. Duplicate year IDs, invalid date ranges and unknown
+financial semantics are rejected. Shared Node/workerd tests cover discovery,
+two-company token/ID isolation, strict MCP inputs, default-off registration,
+bounded pages and authorization before/after I/O. Actual provider responses
+and financial acceptance remain separate; this change does not enable writes.
+
+Follow-up local checks on 2026-11-06: 89 Node/domain tests and 73 actual local
+workerd/D1 tests passed, including four shared year-discovery cases. Root
+typecheck/lint/build, the six no-eval artifact checks, native Worker transport,
+private operator CLI and product Wrangler dry-run passed. Initial restricted
+execution could not bind local test ports; the complete suite passed after
+running with local-port permission. Browser behavior was not changed or rerun.
+Hosted follow-up deployment and actual reference results are recorded separately
+against their exact source in #63/#92.
+
 ## Durable proposals and execution
 
 `packages/core/src/bookkeeping.ts` is the single domain service for pure
@@ -172,7 +202,8 @@ second write; completed remount kept its confirmed result after local review exp
 artifacts. Browser plugin was unavailable; the existing pinned Playwright 1.64.1
 and Chromium were used. This is not real-device or actual ChatGPT evidence.
 
-Automated results are recorded in the PR/issues against the pushed source.
+Original milestone implementation checkpoint (before the discovery follow-up):
+automated results are recorded in the PR/issues against the pushed source.
 Observed locally on 2026-11-06, Node 24.19.0/npm 11.9.0:
 
 | Check | Result |

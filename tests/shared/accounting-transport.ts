@@ -12,6 +12,191 @@ import { accountingFixture } from "./accounting.js";
 export function accountingTransportContract(
   fixture: () => Promise<StateStore>,
 ) {
+  it("MCP discovers company-specific year IDs under read-only policy without guessing a year or sending unauthorized requests", async () => {
+    const f = await accountingFixture(await fixture());
+    const requests: Request[] = [];
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async (input) => {
+        const request = input as Request;
+        requests.push(request);
+        const url = new URL(request.url);
+        expect(url.pathname).toBe("/3/financialyears");
+        expect(url.searchParams.has("financialyear")).toBe(false);
+        expect(url.searchParams.get("page")).toBe("1");
+        const b =
+          request.headers.get("authorization") === "Bearer synthetic-token-B";
+        return Response.json({
+          FinancialYears: [
+            { Id: b ? 9 : 7, FromDate: "2025-07-01", ToDate: "2026-06-30" },
+          ],
+          MetaInformation: { "@CurrentPage": 1, "@TotalPages": 1 },
+        });
+      },
+    });
+    const gates = { references: true, writes: false, reviewHost: false };
+    const service = new Bookkeeping(
+      f.connections,
+      new FortnoxAccounting(f.connections, provider, gates),
+      gates,
+    );
+    const server = companyServer({
+      identity: f.actor,
+      connections: f.connections,
+      provider,
+      testMode: true,
+      bookkeeping: service,
+    });
+    const client = new Client({ name: "synthetic-years-client", version: "0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    await client.connect(b);
+    try {
+      const tool = (await client.listTools()).tools.find(
+        (t) => t.name === "list_financial_years",
+      );
+      expect(tool?.annotations?.readOnlyHint).toBe(true);
+      for (const [company, id] of [
+        [f.a.id, 7],
+        [f.b.id, 9],
+      ] as const) {
+        const result = await client.callTool({
+          name: "list_financial_years",
+          arguments: { company_id: company },
+        });
+        expect(result.isError).not.toBe(true);
+        expect(result.structuredContent).toMatchObject({
+          status: "ok",
+          company_id: company,
+          data: { company_id: company, complete: true, years: [{ id }] },
+        });
+      }
+      const before = requests.length;
+      const denied = await client.callTool({
+        name: "list_financial_years",
+        arguments: { company_id: crypto.randomUUID() },
+      });
+      expect(denied.structuredContent).toMatchObject({
+        status: "error",
+        error: { code: "COMPANY_FORBIDDEN" },
+      });
+      await expect(
+        service.years({ ...f.actor, scopes: [] }, f.a.id),
+      ).rejects.toThrow("AUTH_REQUIRED");
+      expect(requests).toHaveLength(before);
+      const extra = await client.callTool({
+        name: "list_financial_years",
+        arguments: { company_id: f.a.id, financial_year: 2026 },
+      });
+      expect(extra.isError).toBe(true);
+      expect(requests).toHaveLength(before);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+  it("year discovery bounds pagination and rejects duplicate identities and invalid dates", async () => {
+    const f = await accountingFixture(await fixture());
+    let mode = "bounded";
+    let requests = 0;
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async (input) => {
+        requests++;
+        const page = Number(
+          new URL((input as Request).url).searchParams.get("page"),
+        );
+        return Response.json({
+          FinancialYears:
+            mode === "bounded"
+              ? Array.from({ length: 100 }, (_, i) => ({
+                  Id: page * 100 + i,
+                  FromDate: "2025-07-01",
+                  ToDate: "2026-06-30",
+                }))
+              : mode === "duplicate"
+                ? [7, 7].map((Id) => ({
+                    Id,
+                    FromDate: "2025-07-01",
+                    ToDate: "2026-06-30",
+                  }))
+                : [{ Id: 7, FromDate: "2026-02-30", ToDate: "2025-01-01" }],
+          MetaInformation: {
+            "@CurrentPage": page,
+            "@TotalPages": mode === "bounded" ? 6 : 1,
+          },
+        });
+      },
+    });
+    const adapter = new FortnoxAccounting(f.connections, provider, f.gates);
+    const result = await adapter.years(f.actor, f.a.id);
+    expect(result.complete).toBe(false);
+    expect(result.years).toHaveLength(500);
+    expect(requests).toBe(5);
+    mode = "duplicate";
+    await expect(adapter.years(f.actor, f.a.id)).rejects.toThrow(
+      "UPSTREAM_UNAVAILABLE",
+    );
+    mode = "invalid";
+    await expect(adapter.years(f.actor, f.a.id)).rejects.toThrow();
+  }, 15000);
+  it("year discovery accepts explicitly empty metadata and rejects missing or unprefixed pagination", async () => {
+    const f = await accountingFixture(await fixture());
+    let pagination: unknown = {
+      "@CurrentPage": 0,
+      "@TotalPages": 0,
+      "@TotalResources": 0,
+    };
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections: f.connections,
+      testTenants: ["100001", "100002"],
+      fetch: async () =>
+        Response.json({
+          FinancialYears: [],
+          ...(pagination ? { MetaInformation: pagination } : {}),
+        }),
+    });
+    const adapter = new FortnoxAccounting(f.connections, provider, f.gates);
+    expect(await adapter.years(f.actor, f.a.id)).toMatchObject({
+      company_id: f.a.id,
+      complete: true,
+      years: [],
+    });
+    pagination = undefined;
+    await expect(adapter.years(f.actor, f.a.id)).rejects.toThrow(
+      "UPSTREAM_UNAVAILABLE",
+    );
+    pagination = { CurrentPage: 1, TotalPages: 1 };
+    await expect(adapter.years(f.actor, f.a.id)).rejects.toThrow();
+    pagination = { "@CurrentPage": 1, "@TotalPages": 0, "@TotalResources": 1 };
+    await expect(adapter.years(f.actor, f.a.id)).rejects.toThrow(
+      "UPSTREAM_UNAVAILABLE",
+    );
+  });
+  it("year discovery rechecks connection state after provider I/O and rejects foreign-company results", async () => {
+    const f = await accountingFixture(await fixture());
+    const original = f.provider.years;
+    f.provider.years = async (actor, company) => ({
+      ...(await original(actor, company)),
+      company_id: f.b.id,
+    });
+    await expect(f.service.years(f.actor, f.a.id)).rejects.toThrow(
+      "COMPANY_FORBIDDEN",
+    );
+    f.provider.years = async (actor, company) => {
+      const result = await original(actor, company);
+      await f.connections.disconnect(actor.ownerId, company);
+      return result;
+    };
+    await expect(f.service.years(f.actor, f.a.id)).rejects.toThrow(
+      "CONNECTION_DISCONNECTED",
+    );
+  });
   it("numeric provider amounts retain exact JSON lexemes beyond IEEE-754 cents without altering strings", () => {
     const quote = 'amount 123.45 "unchanged"';
     const text =
@@ -145,6 +330,7 @@ export function accountingTransportContract(
       try {
         const names = (await client.listTools()).tools.map((t) => t.name);
         expect(names.includes("get_accounting_references")).toBe(references);
+        expect(names.includes("list_financial_years")).toBe(references);
         expect(names).not.toContain("commit_reviewed_vouchers");
         expect(names).not.toContain("create_manual_voucher");
       } finally {
@@ -167,11 +353,13 @@ export function accountingTransportContract(
         const u = new URL(request.url);
         urls.push(u.href);
         expect(u.origin).toBe("https://api.fortnox.se");
-        expect(u.searchParams.get("financialyear")).toBe("7");
+        expect(u.searchParams.get("financialyear")).toBe(
+          u.pathname === "/3/financialyears" ? null : "7",
+        );
         expect(request.redirect).toBe("manual");
         const meta = {
-          CurrentPage: Number(u.searchParams.get("page")),
-          TotalPages: u.pathname === "/3/accounts" ? totalPages : 1,
+          "@CurrentPage": Number(u.searchParams.get("page")),
+          "@TotalPages": u.pathname === "/3/accounts" ? totalPages : 1,
         };
         const payload: Record<string, unknown> = {
           "/3/financialyears": {
@@ -192,7 +380,7 @@ export function accountingTransportContract(
             ],
           },
           "/3/voucherseries": {
-            VoucherSeries: [{ Code: "A", Manual: true, Year: 7 }],
+            VoucherSeriesCollection: [{ Code: "A", Manual: true, Year: 7 }],
           },
           "/3/costcenters": { CostCenters: [] },
           "/3/projects": {

@@ -6,6 +6,12 @@ and the [accounting ledger](mvp-accounting-operations.json) separate synthetic
 Node/workerd behavior from missing actual provider/ChatGPT acceptance. All new
 provider operations remain `implemented_unverified`; product booking is disabled.
 
+The reference follow-up adds `list_financial_years` so the caller can discover
+real company-specific year IDs before requesting references. It also corrects
+the documented `@CurrentPage`/`@TotalPages` pagination fields and
+`VoucherSeriesCollection` envelope. This adds no provider operation to the
+eight-operation accounting ledger and establishes no live financial acceptance.
+
 The [milestone 2 product work](../implementation/M02-connections-evidence.md) adds owner/bootstrap, OAuth, encrypted connections, token lifecycles, disconnect/reconnect and three company tools with shared Node/workerd evidence. Provider operations remain disabled outside explicitly allowlisted test acceptance; the operation ledger distinguishes `implemented_unverified` from verified support.
 
 The built product Worker also has a native-fetch consent regression in isolated workerd/D1 with a synthetic outbound provider. It verifies runtime transport wiring separately from the injected domain transports and does not establish live Fortnox acceptance.

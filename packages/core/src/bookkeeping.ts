@@ -22,7 +22,14 @@ export interface AccountingActor {
   clientId: string;
   scopes: readonly string[];
 }
+export interface AccountingYears {
+  company_id: string;
+  retrieved_at: number;
+  complete: boolean;
+  years: Array<{ id: number; from: string; to: string }>;
+}
 export interface AccountingProvider {
+  years(actor: AccountingActor, company: string): Promise<AccountingYears>;
   references(
     actor: AccountingActor,
     company: string,
@@ -114,6 +121,14 @@ export class Bookkeeping {
     if (write && (!this.gates.writes || c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;
+  }
+  async years(actor: AccountingActor, company: string) {
+    await this.authorize(actor, company);
+    const result = await this.provider.years(actor, company);
+    await this.authorize(actor, company);
+    if (result.company_id !== company)
+      throw new DomainError("COMPANY_FORBIDDEN");
+    return result;
   }
   async references(actor: AccountingActor, company: string, year: number) {
     await this.authorize(actor, company);

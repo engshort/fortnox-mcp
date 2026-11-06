@@ -92,7 +92,12 @@ export async function accountingFixture(state: StateStore) {
   );
   const b = await connections.add(
     actor.ownerId,
-    { ...syntheticCompany, tenant: "100002", name: "Synthetic B" },
+    {
+      ...syntheticCompany,
+      tenant: "100002",
+      name: "Synthetic B",
+      scopes: [...a.scopes],
+    },
     { ...syntheticCredentials, accessToken: "synthetic-token-B" },
   );
   await connections.grant(actor.ownerId, actor.clientId, [a.id, b.id]);
@@ -106,6 +111,12 @@ export async function accountingFixture(state: StateStore) {
   let calls = 0;
   const vouchers = new Map<number, VoucherInput>();
   const provider: AccountingProvider = {
+    years: async (_actor, company) => ({
+      company_id: company,
+      retrieved_at: Date.now(),
+      complete: true,
+      years: [{ id: 7, from: "2025-07-01", to: "2026-06-30" }],
+    }),
     references: async (_actor, company) => syntheticReferences(company),
     submit: async (_actor, voucher, before) => {
       await before();

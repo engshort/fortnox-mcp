@@ -1,6 +1,7 @@
 import {
   type AccountingActor,
   AccountingValidationError,
+  accountingDate,
   type Bookkeeping,
   DomainError,
   proposalReference,
@@ -176,6 +177,42 @@ export function registerAccounting(
   const refsSchema = envelope(referencesOutput),
     proposalSchema = envelope(publicProposal),
     executionSchema = envelope(execution);
+  const yearsSchema = envelope(
+    z
+      .object({
+        company_id: z.string().uuid(),
+        retrieved_at: z.number().int(),
+        complete: z.boolean(),
+        years: z
+          .array(
+            z
+              .object({
+                id: z.number().int().positive().safe(),
+                from: accountingDate,
+                to: accountingDate,
+              })
+              .strict(),
+          )
+          .max(500),
+      })
+      .strict(),
+  );
+  server.registerTool(
+    "list_financial_years",
+    {
+      title: "List a company's available fiscal years",
+      description:
+        "Read actual fiscal-year IDs and date ranges for an explicit company before selecting a year for accounting references. Never infer an ID from a calendar year. Bounded results report complete=false when partial.",
+      inputSchema: z.object({ company_id: z.string().uuid() }).strict(),
+      outputSchema: yearsSchema,
+      annotations: { ...annotations, openWorldHint: true },
+      _meta: { securitySchemes },
+    },
+    (input) =>
+      reply(yearsSchema, input.company_id, () =>
+        service.years(who(), input.company_id),
+      ),
+  );
   const validationSchema = envelope(
     z
       .object({
