@@ -26,3 +26,20 @@ verifikation med saknad bilaga behöver en reparerad länk, ingen ny verifikatio
 De exakta manuella klientproven finns i
 [utvecklarens verifieringsunderlag](../implementation/M04-receipts-evidence.md#human-client-acceptance-pending).
 Använd endast uttryckligen tillåtna testföretag och syntetiska kvitton i dessa prov.
+
+## Granska varje kvitto
+
+Förberedelser kan samla upp till tio kvitton, med högst två filer per uppladdningsanrop
+och tolv tillfälliga filer åt gången. Förbered ett nytt förslag med de uppgifter du faktiskt har kontrollerat i klienten.
+Varje kvitto får egen status, egna rader och egna totaler. `needs_input` betyder
+att uppgifter saknas, ett villkor är overifierat eller underlaget inte längre
+fungerar. Servern fyller inte i luckorna. Ett likadant filinnehåll ger en
+företagsbunden dubblettkandidat; kontrollera den innan du uttryckligen anger att
+det är en separat transaktion.
+
+Granskningskortet visar företag, underlagets identitet, datum, år, serie, samtliga
+rader och differens per kvitto. Knappen gäller bara det kvittot. Ändras underlag,
+poster eller urval krävs ett nytt förslag och ny granskning. Ett gammalt kort
+skapar inget nytt godkännande när det läses in igen. Saknad kapabilitet eller
+osäker status gör bokföringsknappen inaktiv. Bokföring är fortfarande avstängd i
+produktinstallationen medan gransknings- och providerkraven återstår.

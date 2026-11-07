@@ -4,9 +4,10 @@ import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw
 import receiptSchema from "../../apps/worker/migrations/0006_receipt_files.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { d1ReceiptFiles } from "../../apps/worker/src/receipt-storage.js";
+import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
 
-receiptFilesContract(async () => {
+async function receiptFixture() {
   const execute = async (schema: string) =>
     env.DB.exec(schema.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "));
   await execute(stateSchema);
@@ -30,4 +31,6 @@ receiptFilesContract(async () => {
           .results,
       }),
   };
-});
+}
+receiptFilesContract(receiptFixture);
+receiptBatchesContract(receiptFixture);

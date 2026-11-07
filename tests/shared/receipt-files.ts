@@ -72,6 +72,7 @@ export async function fileFixture(input: ReceiptFixture) {
       now += ms;
     },
     now: () => now,
+    bookings: f.calls,
     calls: () => calls,
     source: (fn: typeof source) => {
       source = fn;
@@ -301,16 +302,16 @@ export function receiptFilesContract(fixture: () => Promise<ReceiptFixture>) {
       }),
     ).resolves.toBeDefined();
   });
-  it("atomically enforces a durable four-file owner budget under competing ingestion", async () => {
+  it("atomically enforces a durable bounded owner budget under competing ingestion", async () => {
     const f = await fileFixture(await fixture());
     const results = await Promise.allSettled(
-      Array.from({ length: 3 }, () =>
+      Array.from({ length: receiptFileLimits.activeFiles / 2 + 1 }, () =>
         f.service.ingest(f.actor, f.a.id, f.files),
       ),
     );
     expect(results.some((r) => r.status === "rejected")).toBe(true);
     const raw = JSON.parse(await f.raw());
-    expect(raw.files.length).toBeLessThanOrEqual(4);
+    expect(raw.files.length).toBeLessThanOrEqual(receiptFileLimits.activeFiles);
     expect(raw.chunks.length).toBe(raw.files.length);
   });
   it("expires immediately on read and physically removes encrypted chunks during cleanup", async () => {

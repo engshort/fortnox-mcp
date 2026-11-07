@@ -8,6 +8,7 @@ import {
   ReceiptFileError,
   type ReceiptFileStore,
   ReceiptFiles,
+  Receipts,
   voucherReference,
 } from "@fortnox-mcp/core";
 import { fileValidator } from "@fortnox-mcp/files";
@@ -176,6 +177,9 @@ export function createProductApplication(
         false,
       )
     : undefined;
+  const receipts = receiptFiles
+    ? new Receipts(bookkeeping, receiptFiles, false)
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
@@ -184,6 +188,7 @@ export function createProductApplication(
       testMode: settings.testMode,
       bookkeeping,
       ...(receiptFiles ? { receiptFiles } : {}),
+      ...(receipts ? { receipts } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -357,5 +362,6 @@ export function createProductApplication(
     bookkeeping,
     auth: gateway.auth,
     receiptFiles,
+    receipts,
   };
 }

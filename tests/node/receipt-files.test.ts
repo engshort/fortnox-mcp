@@ -3,6 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { sqliteReceiptFiles } from "../../apps/node/src/receipt-storage.js";
+import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
 
 const opened: DatabaseSync[] = [];
@@ -10,7 +11,7 @@ afterEach(() => {
   for (const db of opened) db.close();
   opened.length = 0;
 });
-receiptFilesContract(async () => {
+async function receiptFixture() {
   const db = new DatabaseSync(":memory:");
   opened.push(db);
   for (const name of [
@@ -34,4 +35,6 @@ receiptFilesContract(async () => {
         chunks: db.prepare("SELECT * FROM receipt_chunks").all(),
       }),
   };
-});
+}
+receiptFilesContract(receiptFixture);
+receiptBatchesContract(receiptFixture);

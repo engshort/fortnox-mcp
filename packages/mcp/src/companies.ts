@@ -3,6 +3,7 @@ import {
   type Connections,
   DomainError,
   type ReceiptFiles,
+  type Receipts,
 } from "@fortnox-mcp/core";
 import {
   companyInformation,
@@ -15,6 +16,7 @@ import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/valida
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
 import { registerReceiptFiles } from "./receipt-files.js";
+import { registerReceipts } from "./receipts.js";
 export interface CompanyIdentity {
   ownerId: string;
   clientId: string;
@@ -98,6 +100,7 @@ export function companyServer(context: {
   testMode: boolean;
   bookkeeping?: Bookkeeping;
   receiptFiles?: ReceiptFiles;
+  receipts?: Receipts;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -306,5 +309,7 @@ export function companyServer(context: {
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.receiptFiles)
     registerReceiptFiles(server, context.receiptFiles, context.identity);
+  if (context.receipts)
+    registerReceipts(server, context.receipts, context.identity);
   return server;
 }

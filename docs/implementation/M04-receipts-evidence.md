@@ -48,6 +48,58 @@ reads immediately. Scheduler outages can delay deletion until recovery. Retain
 old key versions until temporary files have expired and cleanup has completed;
 connection key rotation alone does not reencrypt staged file chunks.
 
+## M15: immutable per-item preparation and review
+
+The receipt service prepares up to ten explicitly interpreted items, each with a
+company/workflow/file reference and its own exact-money voucher validation. It
+never pools totals or infers accounts, tax, dates or missing amounts. Missing
+facts, invalid/unverified vouchers or expired/unreadable files return per-item
+`needs_input`; unauthorized companies fail closed before foreign proposals are
+created. Same-company file hashes produce duplicate candidates. An explicit
+separate-transaction resolution permits legitimate duplicates rather than banning
+all matching hashes. This is bounded local candidate detection, not a guarantee
+against rescans or duplicates outside retention.
+
+Each canonical voucher hash and encrypted proposal authenticated data now bind
+batch, item, workflow, file and SHA-256. Old ordinary proposals retain their
+original hash/format. The server stores no cleartext voucher in batch metadata;
+only encrypted proposals and bounded operational references/state. Four batch
+manifests per company, twelve pending receipt proposals and twelve staged files
+per owner allow the ten-item recovery scenario; ordinary preparation retains its
+eight-proposal ceiling. All share the existing bounded connection snapshot.
+The M14 four-file capacity above describes its original commit; M15 raises that
+bounded limit to twelve and reruns the concurrency contract.
+
+Receipt-bound proposals cannot execute through ordinary manual-voucher routes.
+The existing accounting service requires an internal receipt guard before claim
+and immediately before dispatch, as well as the same company-specific policy,
+capability, fresh references and one-time durable intent. Both proposal and review expiry are capped by the actual staged-file expiry. File expiry or a changed
+company/generation/policy/hash invalidates the review. A concurrent preparation
+rechecks duplicate candidates at the durable batch claim rather than losing a
+warning from a stale snapshot. No model argument supplies
+a replacement voucher or human approval.
+
+`prepare_receipt_batch` returns separate immutable items/totals and UI-only
+capabilities in `_meta`; `get_receipt_batch` never creates a new capability. Both
+start disabled in the product. The embedded view renders every receipt's own
+company, file identity/hash, date/year/series, rows, warnings and totals. It uses
+text nodes, restrictive script/style hashes, no external network and no browser
+storage. Per-item controls never approve a pooled batch. Missing capability,
+status failure, stale review or a changed selection disables execution. The
+upload/book/link dispatcher is the subsequent M16/M17 scope; this preparatory
+commit does not enable or claim that provider flow.
+
+Local Chromium QA used the actual review HTML in a sandboxed loopback host at
+`http://127.0.0.1:8795/`. Browser plugin was unavailable; the already installed
+Playwright/Chromium was used. Desktop 1280×900 and mobile-sized 390×844 rendering,
+page identity/nonblank/no overlay, correct Swedish text, two separate totals,
+keyboard single-item selection, double-click suppression, remount without private
+capability and status-failure disabling passed with zero page/console errors.
+Screenshots and the temporary harness/results remain outside Git under `/tmp`.
+The mobile table scrolls within its row container; the page has no horizontal
+overflow. This trusted synthetic host is not actual ChatGPT, a real phone, or
+proof of physical human presence. G02 remains unchanged.
+
 ## Verification and remaining work
 
 The shared Node/actual-local-workerd contract tests two independent PNG/JPEG byte
@@ -57,8 +109,7 @@ content; PDF restrictions; private URLs/IPs; redirects and oversized responses.
 `tests/node/receipt-restart.test.ts` closes/reopens SQLite and restarts actual
 workerd/D1, recovers both original files without refetch and deletes expired bytes.
 
-M15 immutable per-item review, M16 provider operations and M17 step recovery are
-still being implemented. No test result here establishes those scopes, actual
+M16 provider operations and M17 step recovery are still being implemented. No test result here establishes those scopes, actual
 client file transfer, provider file rights or G08. M14 verification on 2026-11-07: root `typecheck`, `lint`, `build` and `test:build`
 passed (six original artifact cases and two native product/recovery cases). The
 full root suite passed 106 Node cases and 90 workerd cases before the final two
@@ -99,3 +150,14 @@ only `download_url` and `file_id`. This is documentation evidence, not client pr
 provides transactional ordered execution; actual local D1 tests cover this adapter.
 The project-authored S00 format/transport mechanisms are reused with the same
 pinned MIT/BSD libraries. No provider specification or generated code is copied.
+
+M15 automated checks, 2026-11-07: the full root suite passed **118 Node** and
+**100 actual local workerd/D1** cases, including the ten-item preparation scenario,
+per-item acceptance with an internal guard, rejection of swapped capabilities and
+ordinary-route bypass, independent imbalance, missing facts, duplicate resolution,
+expiry, policy changes and foreign inputs. Root typecheck/lint passed. Build and
+all eight built-artifact/native cases passed on the final source, including the
+expiry binding and concurrent duplicate-warning guard. The final shared subset
+passed 21 cases in Node and the same 21 in actual workerd/D1.
+The accounting ledger source fingerprints were updated; every provider operation
+retains its prior unverified status and dated live-evidence boundary.

@@ -135,3 +135,10 @@ evidence or supported/default-enabled behavior.
 ## Milestone 4 receipt implementation (in progress, 2026-11-07)
 
 M14 adds default-off product file staging and authenticated output with Node/SQLite and local workerd/D1 behavioral tests, separate encrypted temporary storage and restart/expiry cleanup. Actual two-file ChatGPT acceptance remains pending. No Fortnox file operation or financial write is activated or counted as verified provider coverage. M15–M17, G08/#38 and file-specific G06/#94 remain in progress; [evidence and human test steps](../implementation/M04-receipts-evidence.md).
+
+M15 adds separate receipt proposals/totals and a default-off embedded review view.
+Receipt identities participate in canonical hashes and encrypted bindings; ordinary
+voucher entry points cannot bypass the internal receipt guard. Synthetic Node,
+workerd/D1 and desktop/mobile-sized Chromium results do not establish new provider
+coverage or actual-host acceptance. Existing accounting operation source hashes
+are updated without changing their unverified statuses or dated live evidence.

@@ -4,7 +4,9 @@ Milestone 4 adds separate encrypted temporary file manifests/chunks through migr
 
 Milestone 3 stores encrypted proposals and minimal intents within the connection
 CAS snapshot, atomically checking policy/generation/hash and consumption. Eight
-pending proposals and 32 intents per company share the existing size bound.
+ordinary pending proposals and 32 intents per company share the existing size bound.
+Receipt preparation allows twelve total pending proposals and four bounded batch
+manifests per company, while staged file capacity is twelve per owner.
 Expired bodies and old terminal metadata are cleaned; unknown outcomes survive.
 See [retention and recovery](../implementation/M03-accounting-evidence.md#encryption-bounds-and-retention).
 

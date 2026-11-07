@@ -6,6 +6,13 @@ Product reviewed execution stays disabled pending G02/#32 and operation-specific
 G06/G07 evidence. Persisting a proposal is a mutation: read-only permits pure
 validation, not preparation or booking.
 
+Milestone 4 adds receipt-bound voucher hashes and encrypted proposal bindings for
+the exact batch/item/workflow/file identity and SHA-256. Each item has its own
+capability and totals. The ordinary voucher routes reject a receipt proposal
+without the internal file guard; the guard runs again before dispatch. See
+[receipt evidence](../implementation/M04-receipts-evidence.md#m15-immutable-per-item-preparation-and-review).
+The preparatory UI does not activate the later upload/book/link dispatcher.
+
 ## Policy
 
 Per company:

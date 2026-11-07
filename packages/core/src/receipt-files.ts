@@ -12,7 +12,7 @@ export const receiptFileLimits = {
   timeoutMs: 15_000,
   ttlMs: 55 * 60_000,
   chunkBytes: 32 * 1024,
-  activeFiles: 4,
+  activeFiles: 12,
 } as const;
 export const clientFile = z
   .object({
