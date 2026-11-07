@@ -131,3 +131,7 @@ The voucher payload follow-up emits exact decimal JSON number tokens and rejects
 row information over 100 characters, matching the reviewed private source. Its
 HTTP/body tests are synthetic; it adds no provider operation, financial live
 evidence or supported/default-enabled behavior.
+
+## Milestone 4 receipt implementation (in progress, 2026-11-07)
+
+M14 adds default-off product file staging and authenticated output with Node/SQLite and local workerd/D1 behavioral tests, separate encrypted temporary storage and restart/expiry cleanup. Actual two-file ChatGPT acceptance remains pending. No Fortnox file operation or financial write is activated or counted as verified provider coverage. M15–M17, G08/#38 and file-specific G06/#94 remain in progress; [evidence and human test steps](../implementation/M04-receipts-evidence.md).

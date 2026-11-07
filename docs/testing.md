@@ -1,5 +1,7 @@
 # Test strategy and evidence
 
+Milestone 4 adds a shared product receipt-file contract in Node/SQLite and actual local workerd/D1, plus two-file restart/expiry recovery. It checks authenticated MCP resource bytes, default-off discovery, content checks, encryption/tampering, generation/policy isolation, competing capacity and failed-workflow cleanup. These tests do not establish actual client file transfer or Fortnox file-operation acceptance; see [receipt evidence](implementation/M04-receipts-evidence.md).
+
 Milestone 3 shared `accounting.ts` and `accounting-transport.ts` contracts run in
 Node and actual local workerd/D1: exact validation, isolation, encrypted review,
 one-time intents, failures, policy/disconnect races, key rotation, recovery and

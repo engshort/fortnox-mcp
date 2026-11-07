@@ -4,6 +4,7 @@ import {
   productSettings,
 } from "../../shared/product.js";
 import { d1State } from "./product-storage.js";
+import { d1ReceiptFiles } from "./receipt-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
   PUBLIC_ORIGIN?: string;
   AUTH_SECRET?: string;
@@ -18,7 +19,10 @@ export interface ProductEnv extends Partial<ProductBindings> {
 export default {
   async scheduled(_event: ScheduledController, env: ProductEnv): Promise<void> {
     if (env.DB && env.PRODUCT_ENABLED === "true")
-      await cleanupProduct(d1State(env.DB));
+      await Promise.all([
+        cleanupProduct(d1State(env.DB)),
+        d1ReceiptFiles(env.DB).cleanup(Date.now()),
+      ]);
   },
   async fetch(request: Request, env: ProductEnv): Promise<Response> {
     if (env.PRODUCT_ENABLED !== "true" || !env.DB)
@@ -28,6 +32,7 @@ export default {
       return await createProductApplication(settings, {
         database: env.DB,
         state: d1State(env.DB),
+        receiptFiles: d1ReceiptFiles(env.DB),
       }).fetch(request);
     } catch {
       return new Response("Product configuration unavailable", {

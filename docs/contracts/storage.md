@@ -1,5 +1,7 @@
 # Operational storage and retention
 
+Milestone 4 adds separate encrypted temporary file manifests/chunks through migration `0006_receipt_files.sql`. Owner capacity is atomically bounded; references expire in 55 minutes and Node/Worker cleanup physically deletes bytes. Old encryption key versions must remain until file cleanup completes. See [receipt evidence](../implementation/M04-receipts-evidence.md).
+
 Milestone 3 stores encrypted proposals and minimal intents within the connection
 CAS snapshot, atomically checking policy/generation/hash and consumption. Eight
 pending proposals and 32 intents per company share the existing size bound.

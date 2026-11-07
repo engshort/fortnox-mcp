@@ -1,11 +1,16 @@
 import {
   Bookkeeping,
+  type ClientFile,
   Connections,
   CredentialVault,
   DomainError,
   proposalReference,
+  ReceiptFileError,
+  type ReceiptFileStore,
+  ReceiptFiles,
   voucherReference,
 } from "@fortnox-mcp/core";
+import { fileValidator } from "@fortnox-mcp/files";
 import {
   FortnoxAccounting,
   FortnoxConnections,
@@ -111,7 +116,12 @@ function connectionFailure(error: unknown, stage: string) {
 }
 export function createProductApplication(
   settings: ProductSettings,
-  runtime: Pick<AuthConfig, "database" | "state">,
+  runtime: Pick<AuthConfig, "database" | "state"> & {
+    receiptFiles?: ReceiptFileStore;
+    fileSource?: (
+      input: ClientFile,
+    ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
+  },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
 ) {
   const connections = new Connections(
@@ -153,6 +163,19 @@ export function createProductApplication(
     new FortnoxAccounting(connections, provider, accountingGates),
     accountingGates,
   );
+  const receiptFiles = runtime.receiptFiles
+    ? new ReceiptFiles(
+        connections,
+        runtime.receiptFiles,
+        runtime.fileSource ??
+          (async () => {
+            throw new ReceiptFileError("FILE_TRANSPORT_UNAVAILABLE");
+          }),
+        fileValidator,
+        // G03/#33 and product file acceptance are not established by an ENV flag.
+        false,
+      )
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
@@ -160,6 +183,7 @@ export function createProductApplication(
       provider,
       testMode: settings.testMode,
       bookkeeping,
+      ...(receiptFiles ? { receiptFiles } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -332,5 +356,6 @@ export function createProductApplication(
     provider,
     bookkeeping,
     auth: gateway.auth,
+    receiptFiles,
   };
 }

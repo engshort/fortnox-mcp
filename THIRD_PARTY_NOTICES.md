@@ -4,7 +4,7 @@ Project-authored code and documentation use AGPL-3.0-only. This does not grant r
 
 ## S00 optional file-probe dependencies (2026-11-05)
 
-These exact versions are confined to the experimental OAuth/file package:
+These exact versions are used by the experimental OAuth/file package. Milestone 4 also reuses `pdf-lib`, `pngjs`, `jpeg-js`, `ipaddr.js` and development-only `@types/pngjs` in the bounded product file adapter; `http-parser-js` remains probe-only:
 
 | Package | Version | License |
 | --- | --- | --- |

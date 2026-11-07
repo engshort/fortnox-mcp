@@ -1,0 +1,21 @@
+{
+  "name": "@fortnox-mcp/files",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts"
+  },
+  "dependencies": {
+    "@fortnox-mcp/core": "0.0.0",
+    "ipaddr.js": "2.2.0",
+    "jpeg-js": "0.4.4",
+    "pdf-lib": "1.17.1",
+    "pngjs": "7.0.0"
+  },
+  "devDependencies": {
+    "@types/pngjs": "6.0.5"
+  }
+}

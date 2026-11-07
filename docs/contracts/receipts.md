@@ -1,5 +1,7 @@
 # Receipts, files and batch recovery
 
+The [milestone 4 product adapter](../implementation/M04-receipts-evidence.md) is in progress. Bounded encrypted staging/readback is implemented behind a default-off gate; this does not establish actual client or Fortnox file support.
+
 The isolated [S00 file probe](../implementation/S00-files-evidence.md) implements
 a default-off synthetic subset of file ingress/egress. Its intentionally narrower
 format limits and local evidence do not establish product receipt support or

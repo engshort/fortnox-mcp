@@ -1,6 +1,6 @@
 # S07 — Multi-receipt ingestion and recovery
 
-Status: not started. Depends on S06 and G03 client-file evidence.
+Status: in progress; [milestone 4 evidence](M04-receipts-evidence.md). Depends on S06 and G03 client-file evidence.
 
 ## Deliver
 
