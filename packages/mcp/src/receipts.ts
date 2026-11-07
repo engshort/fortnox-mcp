@@ -3,9 +3,13 @@ import {
   DomainError,
   proposalReference,
   type Receipts,
+  type ReceiptWorkflow,
   receiptBatchInput,
   receiptBatchReference,
   receiptFileReference,
+  receiptItemReference,
+  receiptResumeInput,
+  receiptReviewInput,
   voucherInput,
 } from "@fortnox-mcp/core";
 import { receiptReviewHtml } from "@fortnox-mcp/ui";
@@ -97,6 +101,7 @@ export function registerReceipts(
   server: McpServer,
   service: Receipts,
   identity: AccountingActor | null,
+  workflow?: ReceiptWorkflow,
 ) {
   if (!service.enabled) return;
   const actor = () => {
@@ -206,5 +211,80 @@ export function registerReceipts(
       _meta: { securitySchemes },
     },
     (input) => reply(() => service.view(actor(), input)),
+  );
+  if (!workflow?.enabled || !service.bookkeeping.gates.writes) return;
+  const writeAnnotations = {
+    ...annotations,
+    readOnlyHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  };
+  server.registerTool(
+    "commit_reviewed_receipt_item",
+    {
+      title: "Execute only this reviewed receipt",
+      description:
+        "App-only execution of one immutable reviewed receipt. Upload, voucher and link have separate durable outcomes; no model approval or replacement content.",
+      inputSchema: receiptReviewInput,
+      outputSchema: result,
+      annotations: writeAnnotations,
+      _meta: { securitySchemes, ui: { visibility: ["app"] } },
+    },
+    (input) => reply(() => workflow.commit(actor(), input)),
+  );
+  server.registerTool(
+    "create_receipt_item",
+    {
+      title: "Execute a client-managed receipt",
+      description:
+        "Only an owner-selected company policy of client_managed permits this route. review_required cannot be bypassed; the same file/financial validation and durable intents apply.",
+      inputSchema: receiptItemReference,
+      outputSchema: result,
+      annotations: writeAnnotations,
+      _meta: { securitySchemes },
+    },
+    (input) => reply(() => workflow.commit(actor(), input, "client")),
+  );
+  server.registerTool(
+    "resume_receipt_batch",
+    {
+      title: "Reconcile and repair selected receipt items",
+      description:
+        "Read durable outcomes and exact positive provider evidence. Repair only a remaining link after a successful voucher. Never upload again or create a voucher; untouched/pre-voucher items require explicit review/execution.",
+      inputSchema: receiptResumeInput,
+      outputSchema: result,
+      annotations: writeAnnotations,
+      _meta: { securitySchemes },
+    },
+    (input) => reply(() => workflow.resume(actor(), input)),
+  );
+  server.registerTool(
+    "review_receipt_item_again",
+    {
+      title: "Prepare a fresh review of the same immutable receipt",
+      description:
+        "Only before any voucher execution and while the original file/proposal remain valid. Rotate the UI-only capability; this does not approve, upload or book. Existing executions cannot be replaced.",
+      inputSchema: receiptItemReference,
+      outputSchema: result,
+      annotations: { ...writeAnnotations, openWorldHint: false },
+      _meta: { securitySchemes, ui: { resourceUri } },
+    },
+    async (input) => {
+      let capabilities: Record<string, string> = {};
+      const response = await reply(async () => {
+        const { capabilities: secret, ...view } = await workflow.renewReview(
+          actor(),
+          input,
+        );
+        capabilities = secret;
+        return view;
+      });
+      return {
+        ...response,
+        ...(Object.keys(capabilities).length
+          ? { _meta: { receiptReview: { capabilities } } }
+          : {}),
+      };
+    },
   );
 }

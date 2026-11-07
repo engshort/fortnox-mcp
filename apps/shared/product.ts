@@ -10,6 +10,7 @@ import {
   type ReceiptFileStore,
   ReceiptFiles,
   Receipts,
+  ReceiptWorkflow,
   voucherReference,
 } from "@fortnox-mcp/core";
 import { fileValidator } from "@fortnox-mcp/files";
@@ -201,6 +202,9 @@ export function createProductApplication(
         { upload: false, link: false, retrieve: false },
       )
     : undefined;
+  const receiptWorkflow = receiptAttachments
+    ? new ReceiptWorkflow(receiptAttachments, false)
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
@@ -211,6 +215,7 @@ export function createProductApplication(
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
       ...(receiptAttachments ? { receiptAttachments } : {}),
+      ...(receiptWorkflow ? { receiptWorkflow } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -386,5 +391,6 @@ export function createProductApplication(
     receiptFiles,
     receipts,
     receiptAttachments,
+    receiptWorkflow,
   };
 }

@@ -91,8 +91,14 @@ export interface VoucherExecution {
   dispatched: boolean;
   receipt?: ReceiptProposalBinding;
   reference?: VoucherReference;
+  attachmentComplete?: boolean;
   code?: string;
 }
+export const retainVoucherExecution = (e: VoucherExecution, now: number) =>
+  e.state === "submitting" ||
+  e.state === "outcome_unknown" ||
+  (Boolean(e.receipt) && e.state === "succeeded" && !e.attachmentComplete) ||
+  e.created > now - 2592000000;
 export interface BookkeepingState {
   proposals: VoucherProposal[];
   executions: VoucherExecution[];
@@ -352,6 +358,60 @@ export class Bookkeeping {
       code: null,
     };
   }
+  // The receipt coordinator checks this before any upload. This never records
+  // approval or permits a voucher write; commit still consumes its durable intent.
+  async assertReview(actor: AccountingActor, input: unknown) {
+    const ref = reviewCommitInput.parse(input);
+    const current = await this.proposal(actor, {
+      company_id: ref.company_id,
+      proposal_id: ref.proposal_id,
+      proposal_hash: ref.proposal_hash,
+    });
+    await this.authorize(actor, ref.company_id, true);
+    if (!this.gates.reviewHost) throw new DomainError("CLIENT_UNSUPPORTED");
+    if (
+      current.c.review !== "review_required" ||
+      current.p.reviewExpires <= this.now() ||
+      (await accountingHash(ref.capability)) !== current.p.capabilityHash
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    return current;
+  }
+  // Re-review the same still-live immutable receipt after a pre-voucher interruption.
+  // A fresh UI-only capability is not approval and cannot replace an execution.
+  async renewReceiptReview(
+    actor: AccountingActor,
+    input: ProposalReference,
+    receiptGuard: () => Promise<void>,
+  ) {
+    const { c, p } = await this.proposal(actor, input);
+    await this.authorize(actor, c.id, true);
+    if (!p.receipt || c.review !== "review_required")
+      throw new DomainError("INTENT_CONFLICT");
+    await receiptGuard();
+    const capability = btoa(
+      String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))),
+    )
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const hash = await accountingHash(capability);
+    await this.connections.mutate(actor.ownerId, c.id, (current) => {
+      this.check(current, p, actor, p.hash);
+      const saved = current.bookkeeping?.proposals.find((v) => v.id === p.id);
+      if (
+        current.readOnly ||
+        current.review !== "review_required" ||
+        !saved ||
+        saved.capabilityHash !== p.capabilityHash ||
+        current.bookkeeping?.executions.some((e) => e.id === p.id)
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      saved.capabilityHash = hash;
+      saved.reviewExpires = Math.min(this.now() + 900000, saved.expires);
+    });
+    return capability;
+  }
   async commit(
     actor: AccountingActor,
     input: unknown,
@@ -371,14 +431,7 @@ export class Bookkeeping {
     if (p.receipt && !receiptGuard) throw new DomainError("INTENT_CONFLICT");
     if (p.receipt) await receiptGuard?.();
     if (mode === "review") {
-      if (!this.gates.reviewHost) throw new DomainError("CLIENT_UNSUPPORTED");
-      if (
-        c.review !== "review_required" ||
-        p.reviewExpires <= this.now() ||
-        !("capability" in ref) ||
-        (await accountingHash(ref.capability)) !== p.capabilityHash
-      )
-        throw new DomainError("INTENT_CONFLICT");
+      await this.assertReview(actor, ref);
     } else if (c.review !== "client_managed")
       throw new DomainError("CLIENT_UNSUPPORTED");
     // Current company-bound references immediately before the one durable claim.
@@ -402,6 +455,7 @@ export class Bookkeeping {
         !ledger ||
         !saved ||
         saved.hash !== p.hash ||
+        saved.capabilityHash !== p.capabilityHash ||
         ledger.executions.some((e) => e.id === p.id)
       )
         throw new DomainError("INTENT_CONFLICT");
@@ -414,11 +468,8 @@ export class Bookkeeping {
       )
         throw new DomainError("OUTCOME_UNKNOWN");
       // Never evict unknown outcomes to make room for new work.
-      ledger.executions = ledger.executions.filter(
-        (e) =>
-          e.state === "outcome_unknown" ||
-          e.state === "submitting" ||
-          e.created > this.now() - 2592000000,
+      ledger.executions = ledger.executions.filter((e) =>
+        retainVoucherExecution(e, this.now()),
       );
       if (ledger.executions.length >= 32)
         throw new DomainError("CAPABILITY_UNAVAILABLE");

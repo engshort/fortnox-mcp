@@ -248,6 +248,14 @@ export class Receipts {
         current.receiptBatches = current.receiptBatches.filter(
           (b) =>
             b.expires > this.now() ||
+            current.bookkeeping?.executions.some(
+              (e) =>
+                e.receipt?.batch_id === b.id &&
+                (["submitting", "outcome_unknown"].includes(e.state) ||
+                  (e.state === "succeeded" &&
+                    b.items.find((i) => i.id === e.receipt?.item_id)?.steps.link
+                      .state !== "succeeded")),
+            ) ||
             b.items.some((i) =>
               Object.values(i.steps).some((s) =>
                 ["submitting", "outcome_unknown"].includes(s.state),
@@ -375,7 +383,7 @@ export class Receipts {
         state = steps.upload.state === "succeeded" ? "partial" : "failed";
         reason = steps.voucher.code;
         nextAction = "inspect_rejection_and_prepare_new_review";
-      } else if (expired) {
+      } else if (expired && item.state === "prepared") {
         state = "needs_input";
         reason = "FILE_EXPIRED";
         nextAction = "reattach_and_review";
@@ -383,6 +391,19 @@ export class Receipts {
         state = "failed";
         reason = steps.upload.code;
         nextAction = "retry_proven_unapplied_step";
+      }
+      const proposal = c.bookkeeping?.proposals.find(
+        (p) => p.id === item.proposal?.proposal_id,
+      );
+      if (
+        !execution &&
+        !expired &&
+        proposal &&
+        proposal.reviewExpires <= this.now()
+      ) {
+        state = "needs_input";
+        reason = "REVIEW_EXPIRED";
+        nextAction = "review_same_immutable_item_again";
       }
       if (!execution && !expired && item.proposal) {
         const read = await this.bookkeeping.proposal(actor, item.proposal);

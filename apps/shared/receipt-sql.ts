@@ -103,6 +103,18 @@ export function sqlReceiptFiles(db: ReceiptSql): ReceiptFileStore {
       }));
       return { record, chunks };
     },
+    async remove(id, owner, company) {
+      await db.batch([
+        {
+          sql: "DELETE FROM receipt_chunks WHERE file_id IN (SELECT id FROM receipt_files WHERE id=? AND owner=? AND company=?)",
+          values: [id, owner, company],
+        },
+        {
+          sql: "DELETE FROM receipt_files WHERE id=? AND owner=? AND company=?",
+          values: [id, owner, company],
+        },
+      ]);
+    },
     async removeWorkflow(workflow, owner, company) {
       await db.batch([
         {

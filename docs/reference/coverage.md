@@ -151,3 +151,10 @@ in Node and actual local workerd/D1. Every operation is `implemented_unverified`
 unsupported and disabled by default; actual format/size/license/user-right and
 linked-binary availability evidence remains pending under #94. No operation is
 promoted by mocked multipart or byte-round-trip success.
+
+M17 connects the separate steps under the same reviewed/client-managed financial
+policy. Selected-item resume never uploads or creates a voucher; it reconciles
+exact known references and repairs only a successful voucher's remaining link.
+Fresh review rotates UI-only capabilities without approving them. Recovery and
+retention tests, including ten-item partial results and restart, do not promote
+the four file operations or satisfy live G08/#38 acceptance.

@@ -5,6 +5,7 @@ import {
   type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
+  type ReceiptWorkflow,
 } from "@fortnox-mcp/core";
 import {
   companyInformation,
@@ -104,6 +105,7 @@ export function companyServer(context: {
   receiptFiles?: ReceiptFiles;
   receipts?: Receipts;
   receiptAttachments?: ReceiptAttachments;
+  receiptWorkflow?: ReceiptWorkflow;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -313,7 +315,12 @@ export function companyServer(context: {
   if (context.receiptFiles)
     registerReceiptFiles(server, context.receiptFiles, context.identity);
   if (context.receipts)
-    registerReceipts(server, context.receipts, context.identity);
+    registerReceipts(
+      server,
+      context.receipts,
+      context.identity,
+      context.receiptWorkflow,
+    );
   if (context.receiptAttachments)
     registerReceiptAttachments(
       server,

@@ -58,3 +58,25 @@ Skicka inte verifikationen igen. `outcome_unknown` betyder att ett anrop kan ha
 lyckats trots att svaret saknas; kontrollera Fortnox och sparad status innan något
 försök görs. Omladdning eller omstart gör inte ett okänt utfall säkert att skicka om.
 Produktens filoperationer är fortsatt avstängda tills de separata proven är klara.
+
+## Efter ett avbrott
+
+1. Välj samma företag och läs batchens sparade status. Varje kvitto har egna
+   resultat för uppladdning, verifikation och bilagelänk, samt ett nästa steg.
+2. Finns verifikationen redan men länken saknas, använd **Reparera endast
+   bilagelänken**. Den skapar ingen ny verifikation eller upload.
+3. Vid okänt utfall används **Utred sparad status**. En saknad träff bevisar inte
+   att ett tidigare anrop misslyckades. Om den exakta referensen saknas behöver
+   installationsägaren kontrollera Fortnox; ange inte en gissad referens.
+4. Om bara uppladdningen hann bli klar och ingen bokföring skickades, välj
+   **Granska samma förslag igen** och granska raderna på nytt. Detta skapar bara
+   en ny granskningsknapp. Bokföring kräver ett nytt uttryckligt klick.
+5. Har filen gått ut eller uppgifterna ändrats behöver du bifoga underlaget igen
+   och förbereda ett nytt förslag. Kontrollera först att inget tidigare utfall
+   fortfarande är okänt. Lyckade och osäkra verifikationer skickas aldrig om
+   automatiskt av återupptagningsverktyget.
+
+Färdiga tillfälliga filer rensas när inget kvarvarande förslag behöver dem;
+resterande filer har samma tidsgräns som tidigare. Fortnox behåller sitt eget
+underlag. Lokalt kvarvarande fel- och återhämtningsuppgifter är inga behörigheter
+att göra nya anrop efter frånkoppling eller ändrad policy.

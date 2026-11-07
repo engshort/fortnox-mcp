@@ -143,6 +143,50 @@ provider evidence; there is no guessed archive fallback. This commit adds no
 financial dispatcher or supported/default-enabled provider coverage. M17 connects
 the separate steps under the existing human-review policy.
 
+## M17: execution and safe per-item recovery
+
+`ReceiptWorkflow` coordinates upload → the existing accounting service → link.
+Review mode validates the UI-only capability before uploading and again inside
+the financial service. The same company policy, fresh financial references,
+file/hash binding and durable voucher intent govern every financial entry point.
+An explicitly owner-selected `client_managed` company has a separate model tool;
+it cannot downgrade another company's `review_required` policy. All product
+workflow/provider/host gates remain false.
+
+`commit_reviewed_receipt_item` is app-only metadata plus the existing server-side
+capability contract; visibility alone is not evidence of human presence.
+`resume_receipt_batch` takes an explicit immutable company/batch/hash and 1–10
+distinct item IDs. It never uploads or creates a voucher. It can reconcile an
+uncertain voucher by an already trusted exact provider reference, reconcile an
+uncertain link by positive exact evidence, or repair a pending/proven-unapplied
+link after a successful voucher. Missing provider records and unknown answers
+never permit another financial submission.
+
+If the process stops after upload but before financial dispatch, resume leaves
+the voucher untouched. `review_receipt_item_again` can rotate a capability for
+the same unexecuted, still-live immutable proposal, returning it only in `_meta`.
+It does not approve anything. The person must review and click again; a prior
+capability becomes invalid. Existing successful, failed or uncertain voucher
+executions cannot be replaced through this route. Expired files require new
+attachment/preparation instead. The durable claim compares the currently saved
+capability hash so a concurrent renewal cannot leave an old review usable.
+
+Results include each step's state/reference, requested/completed/partial/failed/
+unknown/needs-input/prepared counts and a next action. Invalid inputs retain their
+own reason when another file expires. Unknown financial outcomes outrank expiry.
+One item's error cannot turn the whole batch into success or authorize another
+item. The review view shows step results and separates status investigation,
+link-only repair and fresh review; none is an automatic approval on remount.
+
+Unresolved upload claims and financial reconciliation context are never evicted
+to make capacity. Successful voucher references with unfinished attachment repair
+also survive normal 30-day execution retention. A completed link marks that
+operational hold resolved. Four receipt batches and 32 voucher executions remain
+hard capacity limits, failing closed when unresolved work fills them. Completed
+temporary bytes are deleted per file only when every retained reference to that
+file is completed; other items keep their bytes until completion or the existing
+55-minute expiry/scheduled cleanup. No local cleanup reverses Fortnox effects.
+
 ## Verification and remaining work
 
 The shared Node/actual-local-workerd contract tests two independent PNG/JPEG byte
@@ -152,8 +196,8 @@ content; PDF restrictions; private URLs/IPs; redirects and oversized responses.
 `tests/node/receipt-restart.test.ts` closes/reopens SQLite and restarts actual
 workerd/D1, recovers both original files without refetch and deletes expired bytes.
 
-M17 orchestration/recovery is still being implemented. Synthetic M16 tests do not
-establish actual client file transfer, provider file rights or G08.
+M17 local verification is complete. Synthetic tests do not establish actual
+client file transfer, provider file rights or live G08 acceptance.
 M14 verification on 2026-11-07: root `typecheck`, `lint`, `build` and `test:build`
 passed (six original artifact cases and two native product/recovery cases). The
 full root suite passed 106 Node cases and 90 workerd cases before the final two
@@ -253,3 +297,24 @@ Typecheck, lint, build and all eight built-artifact/native tests passed on the
 final M16 source. Product Wrangler dry-run and relative documentation file targets
 were checked; no test installation was deployed and no actual Fortnox file was
 uploaded, linked or retrieved. No provider or human acceptance is inferred.
+
+
+M17 automated checks, 2026-11-07: the full root suite passed **150 Node** and
+**125 actual local workerd/D1** cases. Eight receipt restart cases cover both
+SQLite and restarted workerd/D1: original bytes/expiry, uncertain uploads, partial
+link repair and uncertain financial writes. The final concurrent capability
+rotation case then passed in the shared receipt subset (**46 cases per runtime**,
+plus both source-ledger cases in Node). Old review rotation after validation but
+before claim cannot dispatch a voucher.
+
+Root typecheck/lint/build, all eight built-artifact/native cases and both Wrangler
+dry-runs passed. The existing OAuth package's typecheck/lint and **all 26 Chromium
+browser cases** passed, including eight product receipt desktop/mobile cases and
+18 existing review regressions. Receipt cases use the actual product HTML under
+its restrictive CSP, Swedish outcome/actions, original per-item totals, keyboard
+selection, link-only repair, public remount, explicit re-review, status/selection
+failure and the real 15-second bridge timeout. No relevant page/console errors;
+screenshots were inspected and remain outside Git in the temporary directory.
+This synthetic host is not actual ChatGPT or a physical mobile device. Relative
+documentation file targets and whitespace passed. No deployment or actual
+Fortnox write was performed; live #38/#94 and host/file/financial gates remain open.

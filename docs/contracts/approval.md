@@ -49,4 +49,11 @@ Clients without the verified UI/review mechanism may read and prepare proposals.
 
 Expired/stale proposals require renewed preparation/review. Upstream record changes can invalidate a proposal. A timeout after submission enters `outcome_unknown` and is reconciled; the user is not asked to click the same commit repeatedly.
 
+M17 permits explicit re-review of an unexecuted immutable receipt while its
+original file/proposal are still live. It rotates the UI-only capability and
+invalidates the old one at the durable claim. Rotation is not approval: a new
+human action is still required. Existing executions cannot be replaced. Receipt
+resume never creates a voucher, even when upload succeeded before an interruption;
+it can only reconcile exact evidence or repair a successful voucher's link.
+
 Acceptance evidence records client/version, protocol version, UI mechanism, server checks, host assumptions and adversarial test outcomes. See [verification gates](../reference/verification-gates.md).

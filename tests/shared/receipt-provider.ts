@@ -65,13 +65,21 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         token: request.headers.get("authorization"),
       });
       if (request.method === "POST" && url.pathname === "/3/inbox") {
-        const current = await f.receipts.item(f.actor, ref);
-        expect(current.item.steps.upload.state).toBe("submitting");
         uploads++;
         expect(url.search).toBe("?path=Inbox_v");
         const form = await request.formData();
         const file = form.get("file");
         if (!(file instanceof File)) throw new Error("fixture multipart");
+        const current = await f.connections.authorize(
+          f.actor.ownerId,
+          f.actor.clientId,
+          f.a.id,
+        );
+        const idFromName = file.name.match(/^receipt-(.+)\.png$/)?.[1];
+        const selected = current.receiptBatches
+          ?.flatMap((b) => b.items)
+          .find((i) => i.file.file_id === idFromName);
+        expect(selected?.steps.upload.state).toBe("submitting");
         expect(file.type).toBe("image/png");
         expect(file.name).not.toContain("private-name");
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -90,8 +98,6 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         request.method === "POST" &&
         url.pathname === "/3/voucherfileconnections"
       ) {
-        const current = await f.receipts.item(f.actor, ref);
-        expect(current.item.steps.link.state).toBe("submitting");
         links++;
         expect(url.searchParams.get("financialyear")).toBe("7");
         const body = (await request.json()) as {
@@ -102,11 +108,24 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
             VoucherYear: number;
           };
         };
+        const current = await f.connections.authorize(
+          f.actor.ownerId,
+          f.actor.clientId,
+          f.a.id,
+        );
+        const selected = current.receiptBatches
+          ?.flatMap((b) => b.items)
+          .find(
+            (i) =>
+              i.steps.upload.state === "succeeded" &&
+              i.steps.upload.reference === body.VoucherFileConnection.FileId,
+          );
+        expect(selected?.steps.link.state).toBe("submitting");
         expect(body.VoucherFileConnection).toMatchObject({
           VoucherSeries: "A",
           VoucherYear: 7,
-          VoucherNumber: "1",
         });
+        expect(body.VoucherFileConnection.VoucherNumber).toMatch(/^[1-9]\d*$/);
         const value = { VoucherFileConnection: body.VoucherFileConnection };
         if (linkStatus === 201)
           connections.set(body.VoucherFileConnection.FileId, value);

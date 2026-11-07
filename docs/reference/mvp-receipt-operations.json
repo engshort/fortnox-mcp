@@ -5,12 +5,16 @@
   "sourceStrategy": "Independent implementation; private provider input is documentation only, not redistributed or used for generated source.",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/receipt-files.ts": "ee9afc522667bae6feaf89c0a22766a26a89e43a2515217bdae7ec375293384f",
-    "packages/core/src/receipts.ts": "1e06a92eb04e3eb82ab294bcfe9b3a87b9f4337720a5451a5f40c2aad1d5ee0c",
+    "packages/core/src/receipt-files.ts": "5222a69ea830da613e836b89d33d1f9e797dc199328730b55733efd8d7297834",
+    "packages/core/src/receipts.ts": "ab686a5c51eb2aa9d33111dc7d790c3a24ca4a3c8839357f72f03bbd1f16f8a4",
     "packages/core/src/receipt-provider.ts": "750bebd12e3a2c2b366fb8d5eff2019dbbde3848ba68025faa41f0bde1e1213f",
     "packages/fortnox/src/receipt-files.ts": "24b53ed679a31e8d80be5c51afa167f9109dba9add3fc92613126b31156865fe",
     "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
-    "packages/mcp/src/receipt-attachments.ts": "a07e8e9efdfb2d1049a70f3e86aaf2c7531fb604f6ca19bf57dde7f621b68bc4"
+    "packages/mcp/src/receipt-attachments.ts": "a07e8e9efdfb2d1049a70f3e86aaf2c7531fb604f6ca19bf57dde7f621b68bc4",
+    "packages/core/src/receipt-workflow.ts": "9881396bd096039e54b7d0d89cddb0378d1c8038d729bf3247f64e7704d831d5",
+    "packages/core/src/bookkeeping.ts": "338517dc88ec0fa1cd7f6b8326644f71b874c9660019fe2595425d20705c76a3",
+    "packages/mcp/src/receipts.ts": "2627e71a5a2e0880d947a08f09cd0fdb042320d3c5554ec480c673488a07a2ee",
+    "packages/ui/src/receipt-review.ts": "6b813f8ab1f12557a62343a4c698bba3c209a889e4768c3ddc97cb8035929134"
   },
   "gates": {
     "provider": "#94",

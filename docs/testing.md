@@ -12,6 +12,19 @@ is synthetic proven-unapplied evidence for linking only; the same upload status
 remains unknown. No fixture establishes real provider rejection semantics or
 endpoint format/license limits. The receipt source ledger pins that boundary.
 
+M17 adds shared workflow cases for ten separately reviewed items (eight completed,
+two failed links), selected link-only recovery, mixed invalid/expired/unknown
+outcomes, financial result-storage failure, lost answers, concurrency, explicit
+client-managed policy, capability rotation and retention of unresolved financial
+context. SQLite and actual workerd/D1 restart cases repair only links or preserve
+uncertain financial outcomes without another upload/source/financial call.
+The existing OAuth package's `npm run test:browser` now also serves the actual
+receipt HTML in its synthetic loopback host. Desktop/mobile Chromium cases cover
+per-item keyboard execution, link repair, public-only remount, explicit re-review,
+status/selection failure and real bridge timeout without resubmission. The product
+HTML has its own restrictive CSP; no actual ChatGPT or human-presence evidence is
+inferred. Existing synthetic review browser cases remain in the same suite.
+
 Milestone 3 shared `accounting.ts` and `accounting-transport.ts` contracts run in
 Node and actual local workerd/D1: exact validation, isolation, encrypted review,
 one-time intents, failures, policy/disconnect races, key rotation, recovery and

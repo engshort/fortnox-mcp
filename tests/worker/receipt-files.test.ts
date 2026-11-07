@@ -7,6 +7,7 @@ import { d1ReceiptFiles } from "../../apps/worker/src/receipt-storage.js";
 import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
 import { receiptProviderContract } from "../shared/receipt-provider.js";
+import { receiptWorkflowContract } from "../shared/receipt-workflow.js";
 
 async function receiptFixture() {
   const execute = async (schema: string) =>
@@ -37,3 +38,5 @@ receiptFilesContract(receiptFixture);
 receiptBatchesContract(receiptFixture);
 
 receiptProviderContract(receiptFixture);
+
+receiptWorkflowContract(receiptFixture);

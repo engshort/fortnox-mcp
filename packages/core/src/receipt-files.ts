@@ -83,6 +83,7 @@ export interface ReceiptFileStore {
     owner: string,
     company: string,
   ): Promise<{ record: ReceiptFileRecord; chunks: ReceiptChunk[] } | null>;
+  remove(id: string, owner: string, company: string): Promise<void>;
   removeWorkflow(
     workflow: string,
     owner: string,

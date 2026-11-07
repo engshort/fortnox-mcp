@@ -6,6 +6,7 @@ import { sqliteReceiptFiles } from "../../apps/node/src/receipt-storage.js";
 import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
 import { receiptProviderContract } from "../shared/receipt-provider.js";
+import { receiptWorkflowContract } from "../shared/receipt-workflow.js";
 
 const opened: DatabaseSync[] = [];
 afterEach(() => {
@@ -41,3 +42,5 @@ receiptFilesContract(receiptFixture);
 receiptBatchesContract(receiptFixture);
 
 receiptProviderContract(receiptFixture);
+
+receiptWorkflowContract(receiptFixture);

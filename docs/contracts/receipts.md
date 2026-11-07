@@ -67,3 +67,14 @@ stateDiagram-v2
 Use company-scoped original-file hashes, execution intent IDs, provider references and reconciliation state. A duplicate file hash is a warning/candidate, not a universal ban: two legitimate transactions may have similar data, and the same document may need a corrected link. Conversely, a rescan may have a different hash. Show candidates and require explicit resolution instead of claiming perfect duplicate detection.
 
 Batch results include requested/completed/partial/failed/unknown counts, per-item reasons, next actions and provider identifiers. Retrying only the failed items must not resend completed or unknown items. Never balance different receipts against one another to hide an individually invalid voucher.
+
+The default-off M17 coordinator uses the same accounting execution service for
+both reviewed and explicitly client-managed receipts. Resume accepts selected
+item IDs and can only reconcile or repair links after successful vouchers. It
+never uploads or creates a voucher. An upload-only interruption requires a new
+explicit review of the same live immutable proposal before financial dispatch.
+Re-review rotates UI-only capability metadata without approving or replacing any
+existing execution. Old capabilities fail the durable claim after rotation.
+Unresolved financial context and successful vouchers awaiting link repair survive
+ordinary retention. Completed bytes are removed per file, preserving other
+pending references; scheduled expiry remains the cleanup fallback.

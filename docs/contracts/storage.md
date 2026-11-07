@@ -9,6 +9,14 @@ original filename or duplicate receipt bytes. Late responses can record minimal
 reconciliation evidence without restoring a disconnected connection. Deleting
 local state never reverses an upload, voucher or link in Fortnox.
 
+M17 marks a successful voucher's attachment hold complete only after its exact
+link succeeds. Uncertain executions and successful vouchers awaiting link repair
+are retained beyond the ordinary 30-day execution window, within the existing
+32-record capacity. Their receipt batch cannot be evicted merely because its
+preparation lifetime expired. No expired encrypted proposal or receipt bytes are
+kept for this hold. Completed bytes are deleted per file after all retained
+references are completed; other references and expiry cleanup remain independent.
+
 Milestone 3 stores encrypted proposals and minimal intents within the connection
 CAS snapshot, atomically checking policy/generation/hash and consumption. Eight
 ordinary pending proposals and 32 intents per company share the existing size bound.
