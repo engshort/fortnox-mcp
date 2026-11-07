@@ -5,6 +5,7 @@ import {
   CredentialVault,
   DomainError,
   proposalReference,
+  ReceiptAttachments,
   ReceiptFileError,
   type ReceiptFileStore,
   ReceiptFiles,
@@ -16,6 +17,7 @@ import {
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxReceiptFiles,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -159,9 +161,14 @@ export function createProductApplication(
     writes: false,
     reviewHost: false,
   };
+  const accountingProvider = new FortnoxAccounting(
+    connections,
+    provider,
+    accountingGates,
+  );
   const bookkeeping = new Bookkeeping(
     connections,
-    new FortnoxAccounting(connections, provider, accountingGates),
+    accountingProvider,
     accountingGates,
   );
   const receiptFiles = runtime.receiptFiles
@@ -180,6 +187,20 @@ export function createProductApplication(
   const receipts = receiptFiles
     ? new Receipts(bookkeeping, receiptFiles, false)
     : undefined;
+  const receiptAttachments = receipts
+    ? new ReceiptAttachments(
+        receipts,
+        new FortnoxReceiptFiles(connections, provider, accountingProvider, {
+          upload: false,
+          link: false,
+          connectionRead: false,
+          inboxRead: false,
+          formats: [],
+          rejectedWithoutEffect: { inbox_upload: [], voucher_file_link: [] },
+        }),
+        { upload: false, link: false, retrieve: false },
+      )
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
@@ -189,6 +210,7 @@ export function createProductApplication(
       bookkeeping,
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
+      ...(receiptAttachments ? { receiptAttachments } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -363,5 +385,6 @@ export function createProductApplication(
     auth: gateway.auth,
     receiptFiles,
     receipts,
+    receiptAttachments,
   };
 }

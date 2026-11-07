@@ -2,7 +2,14 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { Connections, CredentialVault, ReceiptFiles } from "@fortnox-mcp/core";
+import {
+  Bookkeeping,
+  Connections,
+  CredentialVault,
+  ReceiptAttachments,
+  ReceiptFiles,
+  Receipts,
+} from "@fortnox-mcp/core";
 import { fileValidator } from "@fortnox-mcp/files";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { expect, it } from "vitest";
@@ -13,6 +20,7 @@ import { d1ReceiptFiles } from "../../apps/worker/src/receipt-storage.js";
 import { keyA } from "../shared/connections.js";
 import { fileFixture, type ReceiptFixture } from "../shared/receipt-files.js";
 import { pngFixture } from "../shared/receipt-fixtures.js";
+import { attachmentFixture } from "../shared/receipt-provider.js";
 
 const schemas = [
   "0002_product_state.sql",
@@ -108,6 +116,125 @@ it("restarts actual workerd/D1 and recovers both encrypted files without refetch
     runtime = new Miniflare(options);
     const next = await runtime.getD1Database("DB");
     await verify(
+      {
+        state: d1State(next),
+        files: d1ReceiptFiles(next),
+        raw: async () => "",
+      },
+      record,
+    );
+  } finally {
+    await runtime.dispose();
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 20000);
+
+async function uncertainUpload(fixture: ReceiptFixture) {
+  const f = await attachmentFixture(fixture);
+  f.mode({ loseUpload: true });
+  expect((await f.attachments.upload(f.actor, f.ref)).state).toBe(
+    "outcome_unknown",
+  );
+  return {
+    actor: f.actor,
+    ref: f.ref,
+    p: f.p,
+    provider: f.provider,
+    gates: f.receipts.bookkeeping.gates,
+  };
+}
+async function verifyUncertainUpload(
+  fixture: ReceiptFixture,
+  record: Awaited<ReturnType<typeof uncertainUpload>>,
+) {
+  let calls = 0;
+  const unexpected = async () => {
+    calls++;
+    throw new Error("Unexpected resend");
+  };
+  const connections = new Connections(
+    fixture.state,
+    new CredentialVault({ a: keyA }, "a"),
+  );
+  const files = new ReceiptFiles(
+    connections,
+    fixture.files,
+    unexpected,
+    fileValidator,
+    true,
+  );
+  const receipts = new Receipts(
+    new Bookkeeping(connections, record.provider, record.gates),
+    files,
+    true,
+  );
+  const attachments = new ReceiptAttachments(
+    receipts,
+    {
+      upload: unexpected,
+      link: unexpected,
+      connection: unexpected,
+      retrieve: unexpected,
+    },
+    { upload: true, link: true, retrieve: true },
+  );
+  expect((await attachments.upload(record.actor, record.ref)).state).toBe(
+    "outcome_unknown",
+  );
+  const view = await receipts.view(record.actor, {
+    company_id: record.ref.company_id,
+    batch_id: record.ref.batch_id,
+    batch_hash: record.ref.batch_hash,
+  });
+  expect(view.items[0]?.state).toBe("outcome_unknown");
+  expect(view.items[0]?.next_action).toBe("reconcile_before_resending");
+  expect(calls).toBe(0);
+}
+it("reopens SQLite without resending a receipt upload whose accepted response was lost", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "m4-upload-sqlite-"));
+  let db = new DatabaseSync(join(dir, "test.sqlite"));
+  const fixture = () => ({
+    state: sqliteState(db),
+    files: sqliteReceiptFiles(db),
+    raw: async () => "",
+  });
+  try {
+    for (const schema of schemas) db.exec(schema);
+    const record = await uncertainUpload(fixture());
+    db.close();
+    db = new DatabaseSync(join(dir, "test.sqlite"));
+    await verifyUncertainUpload(fixture(), record);
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+it("restarts actual workerd/D1 without resending an unknown receipt upload", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "m4-upload-d1-"));
+  const options = convertV4MiniflareOptions({
+    name: "m4-upload-restart",
+    modules: true,
+    script: "export default {fetch(){return new Response('synthetic')}}",
+    compatibilityDate: "2026-10-18",
+    d1Databases: { DB: "m4-upload-restart" },
+    resourcePersistencePath: dir,
+  });
+  let runtime = new Miniflare(options);
+  try {
+    const db = await runtime.getD1Database("DB");
+    for (const schema of schemas)
+      await db.exec(
+        schema.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "),
+      );
+    const record = await uncertainUpload({
+      state: d1State(db),
+      files: d1ReceiptFiles(db),
+      raw: async () => "",
+    });
+    await runtime.dispose();
+    runtime = new Miniflare(options);
+    const next = await runtime.getD1Database("DB");
+    await verifyUncertainUpload(
       {
         state: d1State(next),
         files: d1ReceiptFiles(next),

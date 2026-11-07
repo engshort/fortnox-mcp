@@ -327,13 +327,64 @@ export class Receipts {
           null;
       let state: string = item.state,
         reason = item.reason;
-      if (
+      let nextAction = "review_or_supply_input";
+      const steps = { ...item.steps };
+      const execution = item.proposal
+        ? c.bookkeeping?.executions.find(
+            (e) =>
+              e.id === item.proposal?.proposal_id &&
+              e.hash === item.proposal.proposal_hash &&
+              e.generation === c.generation &&
+              e.client === actor.clientId,
+          )
+        : undefined;
+      if (execution) {
+        if (execution.state === "succeeded" && execution.reference)
+          steps.voucher = {
+            state: "succeeded",
+            reference: JSON.stringify(execution.reference),
+          };
+        else if (execution.state === "failed")
+          steps.voucher = {
+            state: "failed",
+            code: execution.code ?? "PROVIDER_REJECTED",
+          };
+        else
+          steps.voucher = {
+            state: "outcome_unknown",
+            ...(execution.reference
+              ? { reference: JSON.stringify(execution.reference) }
+              : {}),
+          };
+      }
+      const uncertain = Object.values(steps).some((s) =>
+        ["submitting", "outcome_unknown"].includes(s.state),
+      );
+      const expired =
         (item.fileExpires > 0 && item.fileExpires <= this.now()) ||
-        batch.expires <= this.now()
-      ) {
+        batch.expires <= this.now();
+      if (uncertain) {
+        state = "outcome_unknown";
+        reason = "reconciliation_required";
+        nextAction = "reconcile_before_resending";
+      } else if (steps.voucher.state === "succeeded") {
+        state = steps.link.state === "succeeded" ? "completed" : "partial";
+        nextAction = state === "completed" ? "none" : "repair_link_only";
+        reason = steps.link.state === "failed" ? steps.link.code : null;
+      } else if (steps.voucher.state === "failed") {
+        state = steps.upload.state === "succeeded" ? "partial" : "failed";
+        reason = steps.voucher.code;
+        nextAction = "inspect_rejection_and_prepare_new_review";
+      } else if (expired) {
         state = "needs_input";
         reason = "FILE_EXPIRED";
-      } else if (item.proposal) {
+        nextAction = "reattach_and_review";
+      } else if (steps.upload.state === "failed") {
+        state = "failed";
+        reason = steps.upload.code;
+        nextAction = "retry_proven_unapplied_step";
+      }
+      if (!execution && !expired && item.proposal) {
         const read = await this.bookkeeping.proposal(actor, item.proposal);
         voucher = read.voucher;
         const debit = sumAmounts(
@@ -365,7 +416,8 @@ export class Receipts {
               (p) => p.id === item.proposal?.proposal_id,
             )?.reviewExpires ?? null)
           : null,
-        steps: item.steps,
+        steps,
+        next_action: nextAction,
       });
     }
     return {
@@ -377,6 +429,15 @@ export class Receipts {
       execution_available:
         this.bookkeeping.gates.writes && this.bookkeeping.gates.reviewHost,
       items,
+      counts: {
+        requested: items.length,
+        completed: items.filter((i) => i.state === "completed").length,
+        partial: items.filter((i) => i.state === "partial").length,
+        failed: items.filter((i) => i.state === "failed").length,
+        unknown: items.filter((i) => i.state === "outcome_unknown").length,
+        needs_input: items.filter((i) => i.state === "needs_input").length,
+        prepared: items.filter((i) => i.state === "prepared").length,
+      },
     };
   }
   // File checking is repeated at claim and immediately before voucher dispatch.

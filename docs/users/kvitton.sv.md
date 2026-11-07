@@ -43,3 +43,18 @@ poster eller urval krävs ett nytt förslag och ny granskning. Ett gammalt kort
 skapar inget nytt godkännande när det läses in igen. Saknad kapabilitet eller
 osäker status gör bokföringsknappen inaktiv. Bokföring är fortfarande avstängd i
 produktinstallationen medan gransknings- och providerkraven återstår.
+
+## Underlag i Fortnox
+
+När flödet har verifierats och aktiverats laddas varje underlag upp separat och
+länkas till just sin verifierade verifikation. Hämtning kräver åtkomst till både
+företaget och den bokföringspost som bilagan hör till. En länk är ingen offentlig
+nedladdningsadress. Befintliga anslutningar får inte filbehörigheter automatiskt;
+ett nytt medgivande kan behövas.
+
+`partial` betyder att något steg är klart men arbete återstår. `repair_link_only`
+betyder att verifikationen redan finns och endast bilagans länk ska repareras.
+Skicka inte verifikationen igen. `outcome_unknown` betyder att ett anrop kan ha
+lyckats trots att svaret saknas; kontrollera Fortnox och sparad status innan något
+försök görs. Omladdning eller omstart gör inte ett okänt utfall säkert att skicka om.
+Produktens filoperationer är fortsatt avstängda tills de separata proven är klara.

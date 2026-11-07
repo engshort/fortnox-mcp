@@ -6,6 +6,7 @@
   "name": "@fortnox-mcp/fortnox",
   "exports": "./src/index.ts",
   "dependencies": {
-    "@fortnox-mcp/core": "0.0.0"
+    "@fortnox-mcp/core": "0.0.0",
+    "@fortnox-mcp/files": "0.0.0"
   }
 }

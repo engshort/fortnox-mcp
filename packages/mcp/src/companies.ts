@@ -2,6 +2,7 @@ import {
   type Bookkeeping,
   type Connections,
   DomainError,
+  type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
 } from "@fortnox-mcp/core";
@@ -15,6 +16,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
 export interface CompanyIdentity {
@@ -101,6 +103,7 @@ export function companyServer(context: {
   bookkeeping?: Bookkeeping;
   receiptFiles?: ReceiptFiles;
   receipts?: Receipts;
+  receiptAttachments?: ReceiptAttachments;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -311,5 +314,11 @@ export function companyServer(context: {
     registerReceiptFiles(server, context.receiptFiles, context.identity);
   if (context.receipts)
     registerReceipts(server, context.receipts, context.identity);
+  if (context.receiptAttachments)
+    registerReceiptAttachments(
+      server,
+      context.receiptAttachments,
+      context.identity,
+    );
   return server;
 }

@@ -39,6 +39,17 @@ export const receiptBatchOutput = z
     batch_hash: z.string().regex(/^[a-f0-9]{64}$/),
     expires_at: z.number().int(),
     execution_available: z.boolean(),
+    counts: z
+      .object({
+        requested: z.number().int(),
+        completed: z.number().int(),
+        partial: z.number().int(),
+        failed: z.number().int(),
+        unknown: z.number().int(),
+        needs_input: z.number().int(),
+        prepared: z.number().int(),
+      })
+      .strict(),
     items: z
       .array(
         z
@@ -60,6 +71,7 @@ export const receiptBatchOutput = z
               .strict()
               .nullable(),
             review_expires_at: z.number().int().nullable(),
+            next_action: z.string(),
             steps: z
               .object({ upload: step, voucher: step, link: step })
               .strict(),

@@ -5,6 +5,7 @@ import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { sqliteReceiptFiles } from "../../apps/node/src/receipt-storage.js";
 import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
+import { receiptProviderContract } from "../shared/receipt-provider.js";
 
 const opened: DatabaseSync[] = [];
 afterEach(() => {
@@ -38,3 +39,5 @@ async function receiptFixture() {
 }
 receiptFilesContract(receiptFixture);
 receiptBatchesContract(receiptFixture);
+
+receiptProviderContract(receiptFixture);

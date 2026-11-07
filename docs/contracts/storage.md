@@ -2,6 +2,13 @@
 
 Milestone 4 adds separate encrypted temporary file manifests/chunks through migration `0006_receipt_files.sql`. Owner capacity is atomically bounded; references expire in 55 minutes and Node/Worker cleanup physically deletes bytes. Old encryption key versions must remain until file cleanup completes. See [receipt evidence](../implementation/M04-receipts-evidence.md).
 
+M16 keeps only upload/link attempt state and opaque provider references in the
+existing connection snapshot. The claim is persisted before the provider write;
+an interrupted claim remains uncertain after restart. It retains no source URL,
+original filename or duplicate receipt bytes. Late responses can record minimal
+reconciliation evidence without restoring a disconnected connection. Deleting
+local state never reverses an upload, voucher or link in Fortnox.
+
 Milestone 3 stores encrypted proposals and minimal intents within the connection
 CAS snapshot, atomically checking policy/generation/hash and consumption. Eight
 ordinary pending proposals and 32 intents per company share the existing size bound.

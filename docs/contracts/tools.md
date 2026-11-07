@@ -110,3 +110,16 @@ integers, 1000–9999). No provider URL, implicit account or company is accepted
 Its output echoes the sorted `account_numbers` when present; completeness then
 covers that selection, not the entire chart. Without it, existing bounded list
 behavior is preserved. This read adds no approval or financial write capability.
+
+### Receipt attachment operations
+
+M16 adds default-off `upload_receipt_file` and `link_receipt_attachment` tools
+with strict company/batch/hash/item inputs. They mutate file/link state only;
+neither accepts a replacement voucher, URL or model-supplied approval. Successful,
+failed-with-proven-no-effect and unknown step outcomes are distinct.
+`get_receipt_attachment` and the authenticated attachment resource require an
+explicit company, fiscal year, voucher series/number and opaque provider file ID.
+They verify the owning voucher and exact file relationship and return bounded
+original bytes. Discovery omission never replaces execution-time authorization.
+Provider contracts and missing evidence are in the
+[receipt-operation ledger](../reference/mvp-receipt-operations.json).

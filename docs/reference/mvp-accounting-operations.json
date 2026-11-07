@@ -7,8 +7,8 @@
     "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
     "packages/core/src/bookkeeping.ts": "7fd81035ab51d6d189d9e44c3e16f9e82a772ce3d5c67904e329f53cf49ff9fb",
     "packages/core/src/connections.ts": "0ebeb0bd1fd738bb75f3d38fd2878db05af795c6a969c0924f58f8e2127be4ff",
-    "packages/fortnox/src/accounting.ts": "020bd2e4d45257d08446324955944e0404736f59cc2b5b3e22e8a0b729838f0e",
-    "packages/fortnox/src/http.ts": "3680dc912c40998d5217d7d67648f5c734e476df04e2bf669eafc1b5a5eb8ff9",
+    "packages/fortnox/src/accounting.ts": "c662c2d0dcc8c15690466c25a4ee6295ffb839682a6f6cc9fa96923ff1070b04",
+    "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
   },

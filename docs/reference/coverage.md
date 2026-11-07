@@ -142,3 +142,12 @@ voucher entry points cannot bypass the internal receipt guard. Synthetic Node,
 workerd/D1 and desktop/mobile-sized Chromium results do not establish new provider
 coverage or actual-host acceptance. Existing accounting operation source hashes
 are updated without changing their unverified statuses or dated live evidence.
+
+M16 adds four fixed file operations in a separate
+[receipt-operation ledger](mvp-receipt-operations.json): Inbox upload/read and
+voucher-file connection create/read. Durable claims, exact owning-record checks,
+bounded binary output and link-only repair are covered with synthetic providers
+in Node and actual local workerd/D1. Every operation is `implemented_unverified`,
+unsupported and disabled by default; actual format/size/license/user-right and
+linked-binary availability evidence remains pending under #94. No operation is
+promoted by mocked multipart or byte-round-trip success.

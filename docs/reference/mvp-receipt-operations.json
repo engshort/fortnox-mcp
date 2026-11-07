@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "scope": "milestone-4-file-operations-only",
+  "reviewedAt": "2026-11-07",
+  "sourceStrategy": "Independent implementation; private provider input is documentation only, not redistributed or used for generated source.",
+  "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+  "sourceHashes": {
+    "packages/core/src/receipt-files.ts": "ee9afc522667bae6feaf89c0a22766a26a89e43a2515217bdae7ec375293384f",
+    "packages/core/src/receipts.ts": "1e06a92eb04e3eb82ab294bcfe9b3a87b9f4337720a5451a5f40c2aad1d5ee0c",
+    "packages/core/src/receipt-provider.ts": "750bebd12e3a2c2b366fb8d5eff2019dbbde3848ba68025faa41f0bde1e1213f",
+    "packages/fortnox/src/receipt-files.ts": "24b53ed679a31e8d80be5c51afa167f9109dba9add3fc92613126b31156865fe",
+    "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
+    "packages/mcp/src/receipt-attachments.ts": "a07e8e9efdfb2d1049a70f3e86aaf2c7531fb604f6ca19bf57dde7f621b68bc4"
+  },
+  "gates": {
+    "provider": "#94",
+    "recovery": "#38",
+    "clientFiles": "#33",
+    "reviewHost": "#32",
+    "financial": "#76",
+    "fullG06": "#36 remains open",
+    "sourceRights": "#35 remains separate"
+  },
+  "operations": [
+    {
+      "localId": "inbox_upload",
+      "upstreamOperationId": "InboxController_doCreate",
+      "method": "POST",
+      "path": "/3/inbox",
+      "providerScope": "inbox",
+      "effect": "file_write",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
+      "contract": "fixed Inbox_v, multipart file, generated name, File.Id; locally bounded 1 MiB, provider limits/formats unverified",
+      "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
+      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "primaryReferences": [
+        "https://apps.fortnox.se/apidocs#tag/Inbox",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers"
+      ],
+      "syntheticTests": [
+        "tests/shared/receipt-provider.ts",
+        "tests/node/receipt-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "actual allowed test-company scope/license/user-rights negative and positive cases",
+        "actual provider format/size and byte-readback contract, including linked-file availability",
+        "applicable actual client/host evidence and fault recovery on exact server source"
+      ],
+      "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
+    },
+    {
+      "localId": "voucher_file_link",
+      "upstreamOperationId": "VoucherFileConnectionController_doCreate",
+      "method": "POST",
+      "path": "/3/voucherfileconnections",
+      "providerScope": "connectfile",
+      "effect": "attachment_write",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
+      "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
+      "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
+      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "primaryReferences": [
+        "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers"
+      ],
+      "syntheticTests": [
+        "tests/shared/receipt-provider.ts",
+        "tests/node/receipt-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "actual allowed test-company scope/license/user-rights negative and positive cases",
+        "actual provider format/size and byte-readback contract, including linked-file availability",
+        "applicable actual client/host evidence and fault recovery on exact server source"
+      ],
+      "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
+    },
+    {
+      "localId": "voucher_file_read",
+      "upstreamOperationId": "VoucherFileConnectionController_doShow",
+      "method": "GET",
+      "path": "/3/voucherfileconnections/{FileId}",
+      "providerScope": "connectfile",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
+      "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
+      "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
+      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "primaryReferences": [
+        "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers"
+      ],
+      "syntheticTests": [
+        "tests/shared/receipt-provider.ts",
+        "tests/node/receipt-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "actual allowed test-company scope/license/user-rights negative and positive cases",
+        "actual provider format/size and byte-readback contract, including linked-file availability",
+        "applicable actual client/host evidence and fault recovery on exact server source"
+      ],
+      "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
+    },
+    {
+      "localId": "inbox_read",
+      "upstreamOperationId": "InboxController_doShow",
+      "method": "GET",
+      "path": "/3/inbox/{Id}",
+      "providerScope": "inbox",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
+      "contract": "owning voucher plus exact connection before and after bounded binary read; content validation, authenticated MCP resource",
+      "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
+      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "primaryReferences": [
+        "https://apps.fortnox.se/apidocs#tag/Inbox",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers"
+      ],
+      "syntheticTests": [
+        "tests/shared/receipt-provider.ts",
+        "tests/node/receipt-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "actual allowed test-company scope/license/user-rights negative and positive cases",
+        "actual provider format/size and byte-readback contract, including linked-file availability",
+        "applicable actual client/host evidence and fault recovery on exact server source"
+      ],
+      "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
+    }
+  ]
+}

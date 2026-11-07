@@ -2,6 +2,16 @@
 
 Milestone 4 adds a shared product receipt-file contract in Node/SQLite and actual local workerd/D1, plus two-file restart/expiry recovery. It checks authenticated MCP resource bytes, default-off discovery, content checks, encryption/tampering, generation/policy isolation, competing capacity and failed-workflow cleanup. These tests do not establish actual client file transfer or Fortnox file-operation acceptance; see [receipt evidence](implementation/M04-receipts-evidence.md).
 
+The shared M16 provider cases use actual multipart requests with synthetic bytes
+and fixed mocked Fortnox endpoints. They check durable claims before dispatch,
+lost responses, upload/link concurrency, successful voucher preservation during
+link repair, exact positive reconciliation, late disconnect responses, provider
+scope/format gates and authenticated binary/resource readback. SQLite and actual
+workerd/D1 restart cases retain unknown upload outcomes without replay. HTTP 400
+is synthetic proven-unapplied evidence for linking only; the same upload status
+remains unknown. No fixture establishes real provider rejection semantics or
+endpoint format/license limits. The receipt source ledger pins that boundary.
+
 Milestone 3 shared `accounting.ts` and `accounting-transport.ts` contracts run in
 Node and actual local workerd/D1: exact validation, isolation, encrypted review,
 one-time intents, failures, policy/disconnect races, key rotation, recovery and

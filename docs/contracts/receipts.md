@@ -16,7 +16,12 @@ actual ChatGPT transfer. [Swedish probe instructions](../users/klientprov.sv.md)
 5. Upload/link/book in the verified order supported by Fortnox, preserving individual outcomes.
 6. Return provider references and evidence; clear temporary file data under retention policy.
 
-The exact upload-vs-book order is tested in S07. Fortnox writes are not an atomic transaction across file upload, voucher creation and attachment linking. Never claim automatic rollback. A voucher created successfully with a failed attachment link is a partially completed item that needs link repair, not another voucher.
+The default-off product adapter implements upload, voucher and link as separate
+steps. Their complete orchestration is M17; actual provider order/availability
+remains subject to #94 evidence. Fortnox writes are not an atomic transaction
+across these steps. Never claim automatic rollback. A voucher created
+successfully with a failed attachment link is a partially completed item that
+needs link repair, not another voucher.
 
 ## File ingress and egress
 
@@ -27,6 +32,14 @@ Bind file references to owner, company, workflow and expiry. Verify media type u
 Downloads from approved client file origins must reject private/link-local/metadata IPs, unsafe redirects and credential forwarding. Use short-lived references, bounded streaming, and delete temporary bytes. Do not put expiring download URLs or original document text in logs.
 
 Retrieve existing Fortnox attachments only after checking the company's owning record and connection. Return host-supported file handles or authenticated downloads, not publicly accessible permanent links. Upload/link scopes and Fortnox file format limits are endpoint-specific verification requirements.
+
+M16 exposes default-off typed upload/link/read tools and a company/year/voucher/file
+resource. Its [operation ledger](../reference/mvp-receipt-operations.json) records
+the fixed provider endpoints and unverified scope/license/format boundaries.
+Every upload/link stores a durable step claim before dispatch. Successful or
+uncertain steps are never automatically repeated; a restart leaves an unfinished
+claim uncertain. Exact positive relationship evidence may resolve an uncertain
+link. A missing record is insufficient proof to resend an uncertain write.
 
 ## Per-item state machine
 
