@@ -86,3 +86,17 @@ Testinstallationen kan förberedas med ett uttryckligen valt tillfälligt Node-r
 för filhämtningen; se [ENV-guiden](env.sv.md#förbered-filtransport-för-kvittoprovet).
 Direkt filhämtning från Worker är inte tillgänglig. Reläet är en separat testhjälp,
 aktiverar inte bokföring och ska stängas efter provet.
+
+## Kontrollera återhämtningen i testinstallationen
+
+Operatören kan använda `npm run test:receipts:status` med en privat konfiguration
+och `RECEIPT_ACCEPTANCE_CONFIRM=test-companies-only`. Kommandot läser de två
+tillåtna företagens valda batchar och jämför separata statusar och antal med det
+förväntade läget. Det godkänner, laddar upp, länkar eller bokför ingenting.
+
+Ett lyckat statusprov bevisar inte att Fortnox bara innehåller en verifikation.
+Kontrollera även de exakta posterna i Fortnox före och efter återhämtning.
+`npm run test:receipts:record` kontrollerar en ifylld manuell rapport, inte om
+proven faktiskt utfördes. Ej genomförda prov ska ligga kvar som `not_run`.
+Se [G08-provens exakta steg](../implementation/M04-G08-recovery.md) för mallar,
+fel- och omstartsfall, källidentitet, begränsningar och kvarvarande manuella prov.

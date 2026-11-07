@@ -1,0 +1,70 @@
+{
+  "serverCommit": "0000000000000000000000000000000000000000",
+  "observedAt": "RECORD_ACTUAL_UTC",
+  "client": "RECORD_ACTUAL_CLIENT_AND_VERSION",
+  "runtime": "RECORD_ACTUAL_RUNTIME_AND_VERSION",
+  "deployment": "RECORD_ACTUAL_TEST_DEPLOYMENT",
+  "limitations": "RECORD_LIMITATIONS_AND_UNTESTED_BOUNDARIES",
+  "scenarios": [
+    {
+      "id": "lostUploadAnswer",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "lostVoucherAnswer",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "concurrentSubmit",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "restartUnknown",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "knownUnappliedLinkRepair",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "lostLinkAnswer",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "tenItemPartial",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "mixedItemOutcomes",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "lateDisconnectAnswer",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    },
+    {
+      "id": "resultStorageFailure",
+      "result": "not_run",
+      "observedAt": "RECORD_ACTUAL_UTC",
+      "privateEvidenceRef": "RECORD_PRIVATE_REDACTED_EVIDENCE_LOCATION"
+    }
+  ]
+}

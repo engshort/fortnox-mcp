@@ -31,6 +31,8 @@
     "test:clients": "node scripts/acceptance.mjs clients",
     "test:accounting": "node scripts/accounting-acceptance.mjs reads",
     "test:accounting:record": "node scripts/accounting-acceptance.mjs record",
+    "test:receipts:status": "node scripts/receipt-recovery-acceptance.mjs status",
+    "test:receipts:record": "node scripts/receipt-recovery-acceptance.mjs record",
     "build": "node scripts/build.mjs",
     "test:build": "node --disallow-code-generation-from-strings --test tests/build.test.mjs && node --test tests/product-worker-native.test.mjs",
     "dev:product": "node --env-file-if-exists=.env --import tsx apps/node/src/product-main.ts",

@@ -2,6 +2,8 @@
 
 Milestone 4: [receipt implementation/evidence](implementation/M04-receipts-evidence.md) and [Swedish receipt guide](users/kvitton.sv.md). In progress; file and financial activation gates remain closed.
 
+G08 preparation: [recovery scenario matrix, read-only status check and pending actual test session](implementation/M04-G08-recovery.md).
+
 Milestone 3: [reviewed accounting implementation/evidence](implementation/M03-accounting-evidence.md), [Swedish accounting guide](users/manuell-bokforing.sv.md) and [operation matrix](reference/mvp-accounting-operations.json). Provider booking and trusted-host execution remain disabled pending dated acceptance.
 
 Milestone 2: [product implementation and acceptance](implementation/M02-connections-evidence.md), [Swedish ENV guide](users/env.sv.md) and [company connection guide](users/foretagsanslutningar.sv.md). Product/provider live acceptance is pending; operations remain disabled outside an explicit allowlisted test run.

@@ -1,5 +1,12 @@
 # Verification gates and known gaps
 
+**2026-11-07:** milestone 4 has a [G08 recovery packet](../implementation/M04-G08-recovery.md)
+with shared Node/workerd restart/failure evidence, actual-product MCP status
+contract checks and explicit pending test-company procedures. Its opt-in utility
+only reads status; operator-report validation grants no acceptance. G08 remains
+open until actual provider recovery evidence is reviewed. File/host/financial
+gates retain their independent prerequisites.
+
 **2026-11-06:** the [G03 correction](../implementation/S00-G03-transport-2026-11-06.md)
 passed relay ingress and exact server readback for two files, Chrome PNG download
 and accelerated expiry/cleanup. Chrome PDF bytes differed. Native Worker egress
