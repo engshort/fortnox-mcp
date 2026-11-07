@@ -289,6 +289,17 @@ and zero unknown rules. All six selected account-rule values per company were
 client read evidence, separate from the directly observed hosted operator probe;
 it does not prove a human approval action, voucher validation or creation.
 
+### Owner-reported synthetic review and completed-card recovery — 2026-11-07
+
+The [separate S00 review recheck](S00-review-acceptance-2026-11-07.md) records
+the owner's actual ChatGPT card/approval and reopening of the completed card
+against source `1198f7746049bc3115f680836b5b22a2ad8e5545`. Independent read-only
+D1 checks found the same single consumed synthetic record before and after
+the reported remount. No Fortnox credentials or financial action exist in
+that installation. This establishes that bounded review scenario, not product
+voucher execution or all G02 host cases. #32/#76/#93 remain open; product
+`reviewHost=false`, `writes=false` and `validation_verified=false` are preserved.
+
 ## Voucher payload contract follow-up
 
 The privately supplied source describes voucher payload Debit/Credit as JSON

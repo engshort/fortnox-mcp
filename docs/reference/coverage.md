@@ -52,6 +52,12 @@ The local [G01/G02 maintenance follow-up](../implementation/S00-client-maintenan
 adds synthetic review status/recovery and browser regression coverage. It still
 enables **zero** Fortnox operations and does not establish actual-host acceptance.
 
+The [2026-11-07 owner review recheck](../implementation/S00-review-acceptance-2026-11-07.md)
+adds actual ChatGPT synthetic approval and completed-card recovery reports,
+corroborated by the same single consumed D1 record. Remaining host scenarios
+keep G02 open. This changes no provider operation to `verified` and enables
+no product bookkeeping.
+
 ## Snapshot inventory
 
 The opt-in [S10 local documentation tools](../developer-tools.md) add search and

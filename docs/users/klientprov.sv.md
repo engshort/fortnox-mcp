@@ -24,6 +24,28 @@ Om svaret på ett godkännande försvinner: använd **Kontrollera status**.
 Skicka inte samma godkännande igen när utfallet är okänt. En saknad eller
 utgången referens bevisar inte att en tidigare åtgärd misslyckades.
 
+### Det separata granskningsprovet
+
+Den 7 november bekräftade ägaren att granskningskortet visades i den separata
+testappen, att ett testgodkännande registrerades och att det efter omladdning
+visades som redan registrerat med avstängd knapp. Databaskontroller visade samma
+enda konsumerade testpost. Det här är ett syntetiskt prov; inga Fortnox-åtgärder
+utfördes och produktens bokföringsskrivningar är fortfarande avstängda.
+
+Testappen använder en egen inloggning med operatörens privata engångskod, inte
+produktinstallationens e-post och lösenord. Koden gäller i fem minuter och
+fungerar en gång. Starta anslutningen från rätt testapp i ChatGPT. När sidan
+visar **Inloggad. Fortsätt anslutningen i ChatGPT**, återgå till appen och
+fortsätt dess samtyckesflöde. Starta anslutningen igen därifrån om flödet inte
+fortsätter. Skicka inga koder eller URL-parametrar i konversationen.
+
+Anropa `prepare_synthetic_review` för att visa ett nytt syntetiskt kort.
+Granska innehållet innan du godkänner. För omladdningsprovet öppnar du i stället
+det befintliga sparade svaret: ett nytt förberedelseanrop provar ett annat
+förslag. Ett redan registrerat kort ska förbli färdigt och får inte användas
+för att skicka ett nytt godkännande. Fullständigt klientstöd är ännu inte
+godkänt; [teknisk evidens och kvarstående prov](../implementation/S00-review-acceptance-2026-11-07.md).
+
 ## Två filer
 
 Filprovet är avstängt från början. Operatören kontrollerar först säker hämtning,
