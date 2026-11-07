@@ -65,14 +65,18 @@ test("separate totals and keyboard execution, then link-only repair and saved-ca
   await expect(app.locator('button[data-commit="item-2"]')).toBeEnabled();
   await app.locator('button[data-repair="item-1"]').click();
   await expect(app.getByText("Status: Klart", { exact: true })).toBeVisible();
-  expect(await stats(page)).toEqual({ commits: 1, repairs: 1, renewals: 0 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 1, repairs: 1, renewals: 0 });
   await page.evaluate(() =>
     (window as unknown as { receiptHarness: Host }).receiptHarness.remount(),
   );
   await expect(app.getByText("Status: Klart", { exact: true })).toBeVisible();
   await expect(app.locator('button[data-commit="item-1"]')).toBeDisabled();
   await expect(app.locator('button[data-commit="item-2"]')).toBeDisabled();
-  expect(await stats(page)).toEqual({ commits: 1, repairs: 1, renewals: 0 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 1, repairs: 1, renewals: 0 });
   const frame = page.frames().find((f) => f.url().endsWith("/receipt-widget"));
   expect(frame).toBeDefined();
   expect(
@@ -95,12 +99,16 @@ test("remount requires a new explicit review and never approves during capabilit
   await expect(app.locator('button[data-commit="item-1"]')).toBeDisabled();
   await app.locator('button[data-renew="item-1"]').click();
   await expect(app.locator('button[data-commit="item-1"]')).toBeEnabled();
-  expect(await stats(page)).toEqual({ commits: 0, repairs: 0, renewals: 1 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 0, repairs: 0, renewals: 1 });
   await app.locator('button[data-commit="item-1"]').click();
   await expect(
     app.getByText("Status: Delvis klart", { exact: true }),
   ).toBeVisible();
-  expect(await stats(page)).toEqual({ commits: 1, repairs: 0, renewals: 1 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 1, repairs: 0, renewals: 1 });
 });
 test("status failure and changed selection disable commit, repair and renewal", async ({
   page,
@@ -125,7 +133,9 @@ test("status failure and changed selection disable commit, repair and renewal", 
   );
   await app.getByRole("button", { name: "Kontrollera status" }).click();
   await expect(app.locator('button[data-commit="item-1"]')).toBeDisabled();
-  expect(await stats(page)).toEqual({ commits: 0, repairs: 0, renewals: 0 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 0, repairs: 0, renewals: 0 });
 });
 test("lost commit answer times out without retry and status investigation cannot create another voucher", async ({
   page,
@@ -146,5 +156,7 @@ test("lost commit answer times out without retry and status investigation cannot
   await expect(
     app.getByText("Status: Okänt utfall", { exact: true }),
   ).toBeVisible();
-  expect(await stats(page)).toEqual({ commits: 1, repairs: 1, renewals: 0 });
+  await expect
+    .poll(() => stats(page))
+    .toEqual({ commits: 1, repairs: 1, renewals: 0 });
 });

@@ -318,3 +318,16 @@ screenshots were inspected and remain outside Git in the temporary directory.
 This synthetic host is not actual ChatGPT or a physical mobile device. Relative
 documentation file targets and whitespace passed. No deployment or actual
 Fortnox write was performed; live #38/#94 and host/file/financial gates remain open.
+
+
+M17 first-head CI follow-up: S01 and S00 passed at `1261a88`; the OAuth/browser
+job passed 24/26 cases and exposed a timing error in the new lost-answer browser
+assertion on both viewports. The test checked an unchanged visible status and
+read the parent's counter before its asynchronous postMessage handler ran.
+Receipt browser assertions now poll the observable bridge counters instead of
+assuming click completion means RPC completion. No product execution or retry
+rule was changed. CI acceptance is assessed on the follow-up commit separately.
+The follow-up's OAuth package typecheck/lint and all eight receipt browser cases
+passed locally after that change; runtime source and operation fingerprints are
+unchanged. The original full regression results above remain scoped to their
+recorded source.
