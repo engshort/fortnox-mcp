@@ -1,5 +1,10 @@
 # S00 embedded review experiment (G02)
 
+The [2026-11-07 owner recheck](S00-review-acceptance-2026-11-07.md) records a
+separate deployment's actual ChatGPT approval and completed-card remount,
+corroborated by the same single consumed D1 record. Full host acceptance remains
+open; this does not activate product bookkeeping.
+
 Status on 2026-10-18: **local server boundary and a live ChatGPT review/click
 verified; restrictive-CSP and reload/replay acceptance remain open**. This default-off addition to the isolated OAuth probe
 records synthetic test approvals only. It has no Fortnox connection and cannot

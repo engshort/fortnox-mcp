@@ -10,6 +10,7 @@ for current acceptance, runtime limits and the [G05 evidence packet](implementat
 Current S00 follow-up: [G03 transport correction and Chrome results](implementation/S00-G03-transport-2026-11-06.md),
 [maintenance deployment](implementation/S00-hosted-maintenance-2026-11-05.md),
 [review recheck](implementation/S00-review-acceptance-2026-11-05.md),
+[owner review/remount recheck](implementation/S00-review-acceptance-2026-11-07.md),
 [default-off file probe](implementation/S00-files-evidence.md) and
 [Swedish synthetic-client instructions](users/klientprov.sv.md).
 
