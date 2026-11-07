@@ -49,6 +49,14 @@ Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-tes
 
 ## Förbered filtransport för kvittoprovet
 
+För nytt Fortnox-medgivande till filprovet finns även
+`FORTNOX_RECEIPT_CONSENT=false` i mallen. `true` kräver både testläge med de två
+tillåtna testföretagen och `ACCOUNTING_REFERENCES_ENABLED=true`. Då begär nästa
+ägarinitierade medgivande de fasta tilläggen `inbox connectfile`. Befintliga
+anslutningar eller MCP-medgivanden utökas inte. Valet aktiverar inga filskrivningar,
+bokföringsverktyg eller godkänd granskningsvy. Se
+[providerprovets förutsättningar](../implementation/M04-G06-files.md).
+
 De nya fälten i `.env.example` är för en separat tillåten testinstallation.
 `RECEIPT_FILE_TRANSPORT=none` är standard. `node-direct` använder den lokala
 Node-serverns DNS-låsta hämtning; Worker kan endast använda ett uttryckligen valt,

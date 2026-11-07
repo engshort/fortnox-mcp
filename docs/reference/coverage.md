@@ -164,3 +164,11 @@ source preparation, with shared Node/workerd two-file byte/isolation tests and
 Node helper/CLI privacy/capacity tests. Native Worker source egress remains
 unsupported; no ordinary Worker fetch fallback is added. ENV transport settings
 activate no tool or provider operation and promote no live/client evidence.
+
+File-specific G06/#94 now has a [provider packet](../implementation/M04-G06-files.md)
+and opt-in original-byte MCP readback checker. Explicit test consent may request
+`inbox connectfile` only on a new owner-initiated flow; existing connection scopes
+and MCP grants never widen automatically. The flag enables no operation. Shared
+Node/workerd consent/lifecycle tests and bounded-byte reader tests preserve all
+four `implemented_unverified`/unsupported/default-off statuses and missing actual
+scope/license/rights/format/post-link/client evidence.

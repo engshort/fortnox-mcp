@@ -41,7 +41,28 @@ export interface ProductSettings {
   clientSecret: string;
   testTenants: string[];
   accountingReferences?: boolean;
+  receiptProviderConsent?: boolean;
   receiptSource?: ReceiptSourceSettings;
+}
+export function requestedFortnoxScopes(
+  settings: Pick<
+    ProductSettings,
+    "testMode" | "accountingReferences" | "receiptProviderConsent"
+  >,
+) {
+  if (
+    settings.receiptProviderConsent &&
+    (!settings.testMode || !settings.accountingReferences)
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  return [
+    "companyinformation",
+    "profile",
+    ...(settings.accountingReferences
+      ? ["bookkeeping", "settings", "costcenter", "project"]
+      : []),
+    ...(settings.receiptProviderConsent ? ["inbox", "connectfile"] : []),
+  ];
 }
 export function productSettings(
   env: Record<string, string | undefined>,
@@ -82,6 +103,14 @@ export function productSettings(
     throw new Error(
       "Two distinct test tenants and private integration configuration required",
     );
+  const accountingReferences =
+    testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
+  const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
+  requestedFortnoxScopes({
+    testMode,
+    accountingReferences,
+    receiptProviderConsent,
+  });
   return {
     origin: origin.origin,
     secret,
@@ -92,8 +121,8 @@ export function productSettings(
     clientId: env.FORTNOX_CLIENT_ID ?? "",
     clientSecret: env.FORTNOX_CLIENT_SECRET ?? "",
     testTenants,
-    accountingReferences:
-      testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true",
+    accountingReferences,
+    receiptProviderConsent,
     receiptSource: receiptSourceSettings(env, testMode),
   };
 }
@@ -143,16 +172,7 @@ export function createProductApplication(
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: settings.accountingReferences
-      ? [
-          "companyinformation",
-          "profile",
-          "bookkeeping",
-          "settings",
-          "costcenter",
-          "project",
-        ]
-      : ["companyinformation", "profile"],
+    scopes: requestedFortnoxScopes(settings),
   });
   const config = {
     ...runtime,

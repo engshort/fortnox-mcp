@@ -20,10 +20,12 @@
     "packages/files/src/relay-transport.ts": "080ea22c9b26a47d5c6432a56eee302953f27294984196d5b2934e658707f316",
     "packages/files/src/relay-node.ts": "08ff01b501e873eef18d94fe70c02c22c5fe2ac8cd85cd6cfd885f5df9e4d26f",
     "packages/files/src/source.ts": "a199c6ce5cbdaecc0ad118b9e83c788aa0fad9e556ce84df265dbb89aa6a1456",
-    "apps/worker/src/product.ts": "aa5437eb12f948914effb10c099d2e09b688e4c79214e46620492ffcf3fdc628",
+    "apps/worker/src/product.ts": "ad5a6cf004dbd937449d388118da79a32048333a6fd531d5218e55feeaffbc95",
     "apps/node/src/product-main.ts": "db5d2be3af165444b8142c07255a49b3bb985bf02829af6714f12d13c3f7a1db",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
-    "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078"
+    "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
+    "apps/shared/product.ts": "9419843ab43484c5377b163ea7ec82429186010da9b1315843b47b230cf7b11e",
+    "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875"
   },
   "gates": {
     "provider": "#94",
@@ -48,7 +50,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "fixed Inbox_v, multipart file, generated name, File.Id; locally bounded 1 MiB, provider limits/formats unverified",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "licenseAndRights": "Endpoint scope inbox, any license per official scope table; actual user right and provider format/size evidence unverified. Receipt preparation also requires the financial-reference prerequisites.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Inbox",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -79,7 +81,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -110,7 +112,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -141,7 +143,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "owning voucher plus exact connection before and after bounded binary read; content validation, authenticated MCP resource",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Inbox: any license; connectfile: Bokföring or Anläggning or Arkivplats; actual user rights/test-installation licenses unverified",
+      "licenseAndRights": "Endpoint scope inbox, any license per official scope table. This product read additionally requires connectfile relationship and bookkeeping owning-voucher access; actual combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Inbox",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -159,5 +161,22 @@
       ],
       "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
     }
-  ]
+  ],
+  "consentPreparation": {
+    "environment": "FORTNOX_RECEIPT_CONSENT",
+    "enabledByDefault": false,
+    "requires": [
+      "explicit two-tenant test mode",
+      "accounting reference consent",
+      "new owner-initiated provider consent"
+    ],
+    "requestedAdditionalScopes": [
+      "inbox",
+      "connectfile"
+    ],
+    "broadensExistingConnectionsOrMcpGrants": false,
+    "enablesFileOrFinancialOperations": false
+  },
+  "acceptancePacket": "docs/implementation/M04-G06-files.md",
+  "readbackUtility": "scripts/receipt-provider-acceptance.mjs"
 }

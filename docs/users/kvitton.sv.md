@@ -100,3 +100,9 @@ Kontrollera även de exakta posterna i Fortnox före och efter återhämtning.
 proven faktiskt utfördes. Ej genomförda prov ska ligga kvar som `not_run`.
 Se [G08-provens exakta steg](../implementation/M04-G08-recovery.md) för mallar,
 fel- och omstartsfall, källidentitet, begränsningar och kvarvarande manuella prov.
+
+`npm run test:receipts:attachments` kan separat jämföra de auktoriserade
+MCP-bilagornas identitet, typ, längd och SHA-256 med de ursprungliga lokala
+testfilerna. Det anropar bara läsverktyg och gör inga fil- eller bokföringsändringar.
+Det ersätter inte en faktisk nedladdningskontroll i ChatGPT. Mall och exakta steg
+finns i [filoperationernas verifieringsunderlag](../implementation/M04-G06-files.md).

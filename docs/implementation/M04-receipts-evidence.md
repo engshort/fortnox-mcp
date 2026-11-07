@@ -4,6 +4,11 @@ In progress, 2026-11-07. Tracks M14–M17 (#68–#71), G08/#38 and the
 file-operation slice of G06/#94. Full G06/#36, G02/#32, G03/#33 and financial
 G07/#37 retain their independent acceptance. No release or production account.
 
+Prepared acceptance packets: [G08 recovery](M04-G08-recovery.md) and
+[file-specific G06](M04-G06-files.md), including opt-in read-only checks and
+explicit pending actual client/provider scenarios. Neither packet grants live
+acceptance or enables product writes.
+
 ## M14: bounded product file adapter
 
 `ReceiptFiles` authorizes the current owner/client grant, explicit company,

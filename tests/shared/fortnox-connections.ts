@@ -7,6 +7,129 @@ import { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
+  it("requests receipt scopes only through fresh consent and retains stored scope sets through both token lifecycles", async () => {
+    const connections = new Connections(
+      await fixture(),
+      new CredentialVault({ a: keyA }, "a"),
+    );
+    const old = await connections.add(
+      "owner",
+      { ...syntheticCompany, mode: "service" },
+      syntheticCredentials,
+    );
+    await connections.grant("owner", "old-client", [old.id]);
+    const scopes = [
+      "companyinformation",
+      "profile",
+      "bookkeeping",
+      "settings",
+      "costcenter",
+      "project",
+      "inbox",
+      "connectfile",
+    ];
+    const requested: string[] = [];
+    const transport: typeof fetch = async (input, init) => {
+      const request = new Request(input, init),
+        url = new URL(request.url);
+      if (url.pathname === "/oauth-v1/token") {
+        const body = new URLSearchParams(await request.text()),
+          grant = body.get("grant_type");
+        const user =
+          body.get("code") === "user-code" || grant === "refresh_token";
+        const scope =
+          grant === "client_credentials"
+            ? (body.get("scope") ?? "")
+            : scopes.join(" ");
+        if (grant === "client_credentials") requested.push(scope);
+        return Response.json({
+          access_token: user ? "synthetic-user-B" : "synthetic-service-A",
+          token_type: "bearer",
+          expires_in: 3600,
+          scope,
+          ...(user
+            ? {
+                refresh_token:
+                  grant === "refresh_token"
+                    ? "synthetic-refresh-B2"
+                    : "synthetic-refresh-B1",
+              }
+            : {}),
+        });
+      }
+      expect(url.pathname).toBe("/3/companyinformation");
+      const user =
+        request.headers.get("authorization") === "Bearer synthetic-user-B";
+      return Response.json({
+        CompanyInformation: {
+          DatabaseNumber: user ? "100002" : "100001",
+          CompanyName: user ? "Synthetic B" : "Synthetic A",
+        },
+      });
+    };
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections,
+      testTenants: ["100001", "100002"],
+      scopes,
+      fetch: transport,
+    });
+    await provider.token("owner", old, true);
+    expect(requested[0]).toBe("companyinformation profile");
+    expect(
+      (await connections.authorize("owner", "old-client", old.id)).scopes,
+    ).toEqual(["companyinformation", "profile"]);
+    const finish = async (
+      mode: "user" | "service",
+      code: string,
+      reconnectId?: string,
+    ) => {
+      const url = new URL(
+        await provider.start(
+          "owner",
+          `session-${mode}`,
+          {
+            mode,
+            clientId: "synthetic-client",
+            clientSecret: "synthetic-client-secret",
+          },
+          reconnectId,
+        ),
+      );
+      expect(url.searchParams.get("scope")).toBe(scopes.join(" "));
+      const callback = new URL(
+        "https://product.example.invalid/admin/fortnox/callback",
+      );
+      callback.search = new URLSearchParams({
+        code,
+        state: url.searchParams.get("state") ?? "",
+      }).toString();
+      return provider.finish("owner", `session-${mode}`, callback);
+    };
+    await finish("user", "user-code");
+    let b = (await connections.list("owner")).find(
+      (c) => c.tenant === "100002",
+    );
+    if (!b) throw new Error("fixture");
+    expect(b.scopes).toEqual(scopes);
+    await provider.token("owner", b, true);
+    b = (await connections.list("owner")).find((c) => c.id === b?.id);
+    expect(b?.scopes).toEqual(scopes);
+    await expect(
+      connections.authorize("owner", "old-client", b?.id ?? ""),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await connections.disconnect("owner", old.id);
+    await finish("service", "service-code", old.id);
+    const a = (await connections.list("owner")).find((c) => c.id === old.id);
+    if (!a) throw new Error("fixture");
+    expect(a.scopes).toEqual(scopes);
+    expect(a.generation).toBeGreaterThan(old.generation);
+    await provider.token("owner", a, true);
+    expect(requested.at(-1)).toBe(scopes.join(" "));
+    await expect(
+      connections.authorize("owner", "old-client", old.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+  });
   it("binds service consent to owner/session, verifies tenant and excludes service refresh tokens", async () => {
     const state = await fixture();
     const connections = new Connections(
