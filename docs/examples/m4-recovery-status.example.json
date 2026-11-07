@@ -1,0 +1,39 @@
+{
+  "origin": "https://REPLACE-WITH-SEPARATE-TEST-INSTALLATION",
+  "serverCommit": "0000000000000000000000000000000000000000",
+  "accessToken": "REPLACE_PRIVATELY",
+  "companyIds": [
+    "00000000-0000-4000-8000-000000000001",
+    "00000000-0000-4000-8000-000000000002"
+  ],
+  "snapshots": [
+    {
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "batch_id": "10000000-0000-4000-8000-000000000001",
+      "batch_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedCounts": {
+        "requested": 2,
+        "completed": 0,
+        "partial": 0,
+        "failed": 0,
+        "unknown": 0,
+        "needs_input": 0,
+        "prepared": 2
+      }
+    },
+    {
+      "company_id": "00000000-0000-4000-8000-000000000002",
+      "batch_id": "10000000-0000-4000-8000-000000000002",
+      "batch_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedCounts": {
+        "requested": 2,
+        "completed": 0,
+        "partial": 0,
+        "failed": 0,
+        "unknown": 0,
+        "needs_input": 0,
+        "prepared": 2
+      }
+    }
+  ]
+}

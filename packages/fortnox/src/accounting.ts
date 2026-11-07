@@ -23,6 +23,7 @@ import {
   type ProviderContext,
   ProviderError,
   type ProviderOperation,
+  providerOperations,
   readPages,
 } from "./http.js";
 
@@ -189,18 +190,7 @@ export class FortnoxAccounting implements AccountingProvider {
       actor.clientId,
       company,
     );
-    const required = {
-      financial_years: "bookkeeping",
-      accounts: "bookkeeping",
-      account: "bookkeeping",
-      voucher_series: "bookkeeping",
-      locked_period: "settings",
-      cost_centers: "costcenter",
-      projects: "project",
-      voucher: "bookkeeping",
-      company_information: "companyinformation",
-      identity: "profile",
-    }[operation];
+    const required = providerOperations[operation].scope;
     if (!this.gates.references || !actor.scopes.includes("mcp:read"))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!c.scopes.includes(required))

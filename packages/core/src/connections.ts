@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { BookkeepingState } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
+import type { ReceiptBatch } from "./receipts.js";
 
 export const connectionCredentials = z
   .object({
@@ -89,6 +90,7 @@ export interface Connection {
   review: "review_required" | "client_managed";
   readOnly: boolean;
   bookkeeping?: BookkeepingState;
+  receiptBatches?: ReceiptBatch[];
   state: "active" | "reconnect_required" | "disconnected";
   secret: Ciphertext | null;
   renewal?: { id: string; until: number; dispatched: boolean };
@@ -159,6 +161,7 @@ export class Connections {
                 p.hash,
                 p.generation,
                 p.policy,
+                ...(p.receipt ? [p.receipt] : []),
               ]),
             );
         return row;
@@ -381,6 +384,7 @@ export class Connections {
             p.hash,
             p.generation,
             p.policy,
+            ...(p.receipt ? [p.receipt] : []),
           ]);
           p.body = await this.vault.sealData(
             await this.vault.openData(p.body, binding),

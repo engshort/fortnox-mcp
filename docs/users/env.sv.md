@@ -45,3 +45,39 @@ Den separata [produkt-testinstallationen](https://fortnox-mcp-product-test.alexa
 Nästa manuella steg är att etablera ägaren på `/setup`, ansluta de tillåtna testföretagen på `/admin` och prova klienten. Bootstrapkoden finns endast lokalt i `.data/product-bootstrap-code.txt`, gäller i tio minuter och kan förnyas med kommandot ovan medan bootstrap fortfarande är oanvänd. Du behöver inte använda en utgången kod eller radera databasen.
 
 Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-test.alexander-c06.workers.dev/admin/fortnox/callback`. Klientens MCP-adress är `https://fortnox-mcp-product-test.alexander-c06.workers.dev/mcp`. Efter att företag lagts till eller återanslutits kräver denna version en ny MCP-registrering och ett nytt godkännande. Den förberedda installationen innebär inte att dessa manuella prov redan är godkända.
+
+
+## Förbered filtransport för kvittoprovet
+
+För nytt Fortnox-medgivande till filprovet finns även
+`FORTNOX_RECEIPT_CONSENT=false` i mallen. `true` kräver både testläge med de två
+tillåtna testföretagen och `ACCOUNTING_REFERENCES_ENABLED=true`. Då begär nästa
+ägarinitierade medgivande de fasta tilläggen `inbox connectfile`. Befintliga
+anslutningar eller MCP-medgivanden utökas inte. Valet aktiverar inga filskrivningar,
+bokföringsverktyg eller godkänd granskningsvy. Se
+[providerprovets förutsättningar](../implementation/M04-G06-files.md).
+
+De nya fälten i `.env.example` är för en separat tillåten testinstallation.
+`RECEIPT_FILE_TRANSPORT=none` är standard. `node-direct` använder den lokala
+Node-serverns DNS-låsta hämtning; Worker kan endast använda ett uttryckligen valt,
+tillfälligt `node-relay`. Inställningarna aktiverar inga fil- eller bokföringsverktyg.
+
+- `RECEIPT_FILE_ORIGINS`: exakt observerade och granskade HTTPS-källor, kommaseparerade,
+  högst fyra. Inga jokertecken, lokala adresser eller gissade källor.
+- `RECEIPT_FILE_RELAY_ORIGIN`: reläets exakta tillfälliga HTTPS-root hos
+  `trycloudflare.com`, utan sökväg eller frågeparametrar.
+- `RECEIPT_FILE_RELAY_TOKEN`: ett separat 64-teckens hexvärde. På Worker är det en
+  secret. Återanvänd inte ägarens, OAuths eller krypteringens hemligheter.
+- `RECEIPT_FILE_RELAY_UNTIL`: samma UTC-sluttid som reläet, högst 15 minuter framåt.
+
+När klientprovet ska börja skapar `npm run prepare:receipt-relay` den privata filen
+`.data/product-file-relay.json` från de granskade lokala källorna. Befintlig fil
+skrivs inte över. `npm run dev:receipt-relay` startar bara den tillfälliga hjälpen
+på loopback:8796 och stänger den när tiden går ut. Den laddar inga Fortnox- eller
+OAuth-uppgifter. Tolv hämtningar tillåts per session; felaktiga försök kan förbruka
+en hämtning. En ny reläsession ändrar aldrig ett sparat bokföringsutfall.
+
+Se [operatörens teststeg](../implementation/M04-receipts-evidence.md#operator-preparation-requires-the-later-human-test-session)
+för tunnel, privat Worker-konfiguration och avveckling. Efter provet stängs filinput
+av, transporten återställs till `none` och testets relähemlighet tas bort. Denna
+förberedelse är inte ett godkänt liveprov eller stöd för direkt Worker-hämtning.

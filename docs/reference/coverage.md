@@ -131,3 +131,44 @@ The voucher payload follow-up emits exact decimal JSON number tokens and rejects
 row information over 100 characters, matching the reviewed private source. Its
 HTTP/body tests are synthetic; it adds no provider operation, financial live
 evidence or supported/default-enabled behavior.
+
+## Milestone 4 receipt implementation (in progress, 2026-11-07)
+
+M14 adds default-off product file staging and authenticated output with Node/SQLite and local workerd/D1 behavioral tests, separate encrypted temporary storage and restart/expiry cleanup. Actual two-file ChatGPT acceptance remains pending. No Fortnox file operation or financial write is activated or counted as verified provider coverage. M15–M17, G08/#38 and file-specific G06/#94 remain in progress; [evidence and human test steps](../implementation/M04-receipts-evidence.md).
+
+M15 adds separate receipt proposals/totals and a default-off embedded review view.
+Receipt identities participate in canonical hashes and encrypted bindings; ordinary
+voucher entry points cannot bypass the internal receipt guard. Synthetic Node,
+workerd/D1 and desktop/mobile-sized Chromium results do not establish new provider
+coverage or actual-host acceptance. Existing accounting operation source hashes
+are updated without changing their unverified statuses or dated live evidence.
+
+M16 adds four fixed file operations in a separate
+[receipt-operation ledger](mvp-receipt-operations.json): Inbox upload/read and
+voucher-file connection create/read. Durable claims, exact owning-record checks,
+bounded binary output and link-only repair are covered with synthetic providers
+in Node and actual local workerd/D1. Every operation is `implemented_unverified`,
+unsupported and disabled by default; actual format/size/license/user-right and
+linked-binary availability evidence remains pending under #94. No operation is
+promoted by mocked multipart or byte-round-trip success.
+
+M17 connects the separate steps under the same reviewed/client-managed financial
+policy. Selected-item resume never uploads or creates a voucher; it reconciles
+exact known references and repairs only a successful voucher's remaining link.
+Fresh review rotates UI-only capabilities without approving them. Recovery and
+retention tests, including ten-item partial results and restart, do not promote
+the four file operations or satisfy live G08/#38 acceptance.
+
+The M14 follow-up ports S00's temporary authenticated Node file relay into product
+source preparation, with shared Node/workerd two-file byte/isolation tests and
+Node helper/CLI privacy/capacity tests. Native Worker source egress remains
+unsupported; no ordinary Worker fetch fallback is added. ENV transport settings
+activate no tool or provider operation and promote no live/client evidence.
+
+File-specific G06/#94 now has a [provider packet](../implementation/M04-G06-files.md)
+and opt-in original-byte MCP readback checker. Explicit test consent may request
+`inbox connectfile` only on a new owner-initiated flow; existing connection scopes
+and MCP grants never widen automatically. The flag enables no operation. Shared
+Node/workerd consent/lifecycle tests and bounded-byte reader tests preserve all
+four `implemented_unverified`/unsupported/default-off statuses and missing actual
+scope/license/rights/format/post-link/client evidence.

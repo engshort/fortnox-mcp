@@ -1,15 +1,28 @@
 import {
   Bookkeeping,
+  type ClientFile,
   Connections,
   CredentialVault,
   DomainError,
   proposalReference,
+  ReceiptAttachments,
+  ReceiptFileError,
+  type ReceiptFileStore,
+  ReceiptFiles,
+  Receipts,
+  ReceiptWorkflow,
   voucherReference,
 } from "@fortnox-mcp/core";
+import {
+  fileValidator,
+  type ReceiptSourceSettings,
+  receiptSourceSettings,
+} from "@fortnox-mcp/files";
 import {
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxReceiptFiles,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -28,6 +41,28 @@ export interface ProductSettings {
   clientSecret: string;
   testTenants: string[];
   accountingReferences?: boolean;
+  receiptProviderConsent?: boolean;
+  receiptSource?: ReceiptSourceSettings;
+}
+export function requestedFortnoxScopes(
+  settings: Pick<
+    ProductSettings,
+    "testMode" | "accountingReferences" | "receiptProviderConsent"
+  >,
+) {
+  if (
+    settings.receiptProviderConsent &&
+    (!settings.testMode || !settings.accountingReferences)
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  return [
+    "companyinformation",
+    "profile",
+    ...(settings.accountingReferences
+      ? ["bookkeeping", "settings", "costcenter", "project"]
+      : []),
+    ...(settings.receiptProviderConsent ? ["inbox", "connectfile"] : []),
+  ];
 }
 export function productSettings(
   env: Record<string, string | undefined>,
@@ -68,6 +103,14 @@ export function productSettings(
     throw new Error(
       "Two distinct test tenants and private integration configuration required",
     );
+  const accountingReferences =
+    testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
+  const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
+  requestedFortnoxScopes({
+    testMode,
+    accountingReferences,
+    receiptProviderConsent,
+  });
   return {
     origin: origin.origin,
     secret,
@@ -78,8 +121,9 @@ export function productSettings(
     clientId: env.FORTNOX_CLIENT_ID ?? "",
     clientSecret: env.FORTNOX_CLIENT_SECRET ?? "",
     testTenants,
-    accountingReferences:
-      testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true",
+    accountingReferences,
+    receiptProviderConsent,
+    receiptSource: receiptSourceSettings(env, testMode),
   };
 }
 const escapeHtml = (s: string) =>
@@ -111,7 +155,12 @@ function connectionFailure(error: unknown, stage: string) {
 }
 export function createProductApplication(
   settings: ProductSettings,
-  runtime: Pick<AuthConfig, "database" | "state">,
+  runtime: Pick<AuthConfig, "database" | "state"> & {
+    receiptFiles?: ReceiptFileStore;
+    fileSource?: (
+      input: ClientFile,
+    ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
+  },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
 ) {
   const connections = new Connections(
@@ -123,16 +172,7 @@ export function createProductApplication(
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: settings.accountingReferences
-      ? [
-          "companyinformation",
-          "profile",
-          "bookkeeping",
-          "settings",
-          "costcenter",
-          "project",
-        ]
-      : ["companyinformation", "profile"],
+    scopes: requestedFortnoxScopes(settings),
   });
   const config = {
     ...runtime,
@@ -148,11 +188,49 @@ export function createProductApplication(
     writes: false,
     reviewHost: false,
   };
-  const bookkeeping = new Bookkeeping(
+  const accountingProvider = new FortnoxAccounting(
     connections,
-    new FortnoxAccounting(connections, provider, accountingGates),
+    provider,
     accountingGates,
   );
+  const bookkeeping = new Bookkeeping(
+    connections,
+    accountingProvider,
+    accountingGates,
+  );
+  const receiptFiles = runtime.receiptFiles
+    ? new ReceiptFiles(
+        connections,
+        runtime.receiptFiles,
+        runtime.fileSource ??
+          (async () => {
+            throw new ReceiptFileError("FILE_TRANSPORT_UNAVAILABLE");
+          }),
+        fileValidator,
+        // G03/#33 and product file acceptance are not established by an ENV flag.
+        false,
+      )
+    : undefined;
+  const receipts = receiptFiles
+    ? new Receipts(bookkeeping, receiptFiles, false)
+    : undefined;
+  const receiptAttachments = receipts
+    ? new ReceiptAttachments(
+        receipts,
+        new FortnoxReceiptFiles(connections, provider, accountingProvider, {
+          upload: false,
+          link: false,
+          connectionRead: false,
+          inboxRead: false,
+          formats: [],
+          rejectedWithoutEffect: { inbox_upload: [], voucher_file_link: [] },
+        }),
+        { upload: false, link: false, retrieve: false },
+      )
+    : undefined;
+  const receiptWorkflow = receiptAttachments
+    ? new ReceiptWorkflow(receiptAttachments, false)
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
@@ -160,6 +238,10 @@ export function createProductApplication(
       provider,
       testMode: settings.testMode,
       bookkeeping,
+      ...(receiptFiles ? { receiptFiles } : {}),
+      ...(receipts ? { receipts } : {}),
+      ...(receiptAttachments ? { receiptAttachments } : {}),
+      ...(receiptWorkflow ? { receiptWorkflow } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
@@ -332,5 +414,9 @@ export function createProductApplication(
     provider,
     bookkeeping,
     auth: gateway.auth,
+    receiptFiles,
+    receipts,
+    receiptAttachments,
+    receiptWorkflow,
   };
 }

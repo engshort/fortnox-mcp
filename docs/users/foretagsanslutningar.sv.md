@@ -1,5 +1,13 @@
 # Säkra företagsanslutningar
 
+Kvittoprovets nya `inbox connectfile` begärs endast med det uttryckliga testvalet
+`FORTNOX_RECEIPT_CONSENT`; se [ENV-guiden](env.sv.md). Det utökar inte gamla
+anslutningar. När det faktiska filprovet ska genomföras behövs nytt ägarinitierat
+medgivande för respektive tillåtet testföretag och aktuella MCP-behörigheter.
+Samma tenant behåller handtaget men får en ny anslutningsgeneration vid
+återanslutning. Kontrollera först olösta utfall och följ
+[filprovets förutsättningar](../implementation/M04-G06-files.md).
+
 Börja med [ENV-konfigurationen](env.sv.md) för privata värden och startkommandon.
 
 Detta är produktimplementation under verifiering. Använd en separat testinstallation och uttryckligen tillåtna testföretag. Fortnox-operationer är avstängda tills deras klient- och providerevidens är godkänd.

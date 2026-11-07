@@ -6,6 +6,13 @@ Product reviewed execution stays disabled pending G02/#32 and operation-specific
 G06/G07 evidence. Persisting a proposal is a mutation: read-only permits pure
 validation, not preparation or booking.
 
+Milestone 4 adds receipt-bound voucher hashes and encrypted proposal bindings for
+the exact batch/item/workflow/file identity and SHA-256. Each item has its own
+capability and totals. The ordinary voucher routes reject a receipt proposal
+without the internal file guard; the guard runs again before dispatch. See
+[receipt evidence](../implementation/M04-receipts-evidence.md#m15-immutable-per-item-preparation-and-review).
+The preparatory UI does not activate the later upload/book/link dispatcher.
+
 ## Policy
 
 Per company:
@@ -41,5 +48,12 @@ If the available platform cannot meet that boundary, keep `review_required` exec
 Clients without the verified UI/review mechanism may read and prepare proposals. Final manual booking returns `CLIENT_UNSUPPORTED` in review mode. The owner may deliberately select client-managed mode; a tool cannot do that for them.
 
 Expired/stale proposals require renewed preparation/review. Upstream record changes can invalidate a proposal. A timeout after submission enters `outcome_unknown` and is reconciled; the user is not asked to click the same commit repeatedly.
+
+M17 permits explicit re-review of an unexecuted immutable receipt while its
+original file/proposal are still live. It rotates the UI-only capability and
+invalidates the old one at the durable claim. Rotation is not approval: a new
+human action is still required. Existing executions cannot be replaced. Receipt
+resume never creates a voucher, even when upload succeeded before an interruption;
+it can only reconcile exact evidence or repair a successful voucher's link.
 
 Acceptance evidence records client/version, protocol version, UI mechanism, server checks, host assumptions and adversarial test outcomes. See [verification gates](../reference/verification-gates.md).
