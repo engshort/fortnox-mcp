@@ -1,7 +1,7 @@
 import { chmod, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { fetchFile } from "@fortnox-mcp/files";
+import { receiptFileSource, receiptSourceSettings } from "@fortnox-mcp/files";
 import { nodeFileTransport } from "@fortnox-mcp/files/node";
 import { createAdaptorServer } from "@hono/node-server";
 import { cleanupProduct } from "../../shared/maintenance.js";
@@ -76,8 +76,11 @@ const app = createProductApplication(settings, {
   database: db,
   state,
   receiptFiles,
-  fileSource: (input) =>
-    fetchFile(input, { origins: [], transport: nodeFileTransport }),
+  fileSource: receiptFileSource(
+    settings.receiptSource ?? receiptSourceSettings({}, false),
+    "node",
+    nodeFileTransport,
+  ),
 });
 const port = Number(process.env.PORT ?? 8787);
 if (!Number.isInteger(port) || port < 1 || port > 65535)

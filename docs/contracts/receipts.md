@@ -33,6 +33,13 @@ Downloads from approved client file origins must reject private/link-local/metad
 
 Retrieve existing Fortnox attachments only after checking the company's owning record and connection. Return host-supported file handles or authenticated downloads, not publicly accessible permanent links. Upload/link scopes and Fortnox file format limits are endpoint-specific verification requirements.
 
+The M14 transport follow-up permits an explicitly selected temporary Node relay
+for product test preparation. Its independent bearer/deadline, exact helper/source
+origins and DNS-pinned Node source fetch are separate from MCP company/grant
+authorization and encrypted SQLite/D1 staging. Worker has no direct source-fetch
+fallback. This helper-assisted route is not native Worker egress or proof of actual
+client transfer. Source settings alone enable no file or financial tool.
+
 M16 exposes default-off typed upload/link/read tools and a company/year/voucher/file
 resource. Its [operation ledger](../reference/mvp-receipt-operations.json) records
 the fixed provider endpoints and unverified scope/license/format boundaries.

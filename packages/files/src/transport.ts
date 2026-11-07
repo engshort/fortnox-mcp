@@ -36,6 +36,7 @@ export function approvedFileUrl(value: string, origins: readonly string[]) {
     url.hash ||
     url.port ||
     !host.includes(".") ||
+    host.includes("*") ||
     host.endsWith(".") ||
     /(?:^|\.)(?:localhost|local|internal|invalid|test)$/.test(host) ||
     ipaddr.isValid(host) ||

@@ -14,7 +14,16 @@
     "packages/core/src/receipt-workflow.ts": "9881396bd096039e54b7d0d89cddb0378d1c8038d729bf3247f64e7704d831d5",
     "packages/core/src/bookkeeping.ts": "338517dc88ec0fa1cd7f6b8326644f71b874c9660019fe2595425d20705c76a3",
     "packages/mcp/src/receipts.ts": "2627e71a5a2e0880d947a08f09cd0fdb042320d3c5554ec480c673488a07a2ee",
-    "packages/ui/src/receipt-review.ts": "6b813f8ab1f12557a62343a4c698bba3c209a889e4768c3ddc97cb8035929134"
+    "packages/ui/src/receipt-review.ts": "6b813f8ab1f12557a62343a4c698bba3c209a889e4768c3ddc97cb8035929134",
+    "packages/files/src/transport.ts": "e424a64656aee5d26c6cdf439c8f6085b588d3a74905d5778c5902d53c136821",
+    "packages/files/src/node.ts": "e4a5b0d209ac0defb73b34eb57284921d453577de565381eeadf7f960e3b8b87",
+    "packages/files/src/relay-transport.ts": "080ea22c9b26a47d5c6432a56eee302953f27294984196d5b2934e658707f316",
+    "packages/files/src/relay-node.ts": "08ff01b501e873eef18d94fe70c02c22c5fe2ac8cd85cd6cfd885f5df9e4d26f",
+    "packages/files/src/source.ts": "a199c6ce5cbdaecc0ad118b9e83c788aa0fad9e556ce84df265dbb89aa6a1456",
+    "apps/worker/src/product.ts": "aa5437eb12f948914effb10c099d2e09b688e4c79214e46620492ffcf3fdc628",
+    "apps/node/src/product-main.ts": "db5d2be3af165444b8142c07255a49b3bb985bf02829af6714f12d13c3f7a1db",
+    "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
+    "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078"
   },
   "gates": {
     "provider": "#94",

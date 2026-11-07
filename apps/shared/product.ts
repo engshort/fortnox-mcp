@@ -13,7 +13,11 @@ import {
   ReceiptWorkflow,
   voucherReference,
 } from "@fortnox-mcp/core";
-import { fileValidator } from "@fortnox-mcp/files";
+import {
+  fileValidator,
+  type ReceiptSourceSettings,
+  receiptSourceSettings,
+} from "@fortnox-mcp/files";
 import {
   FortnoxAccounting,
   FortnoxConnections,
@@ -37,6 +41,7 @@ export interface ProductSettings {
   clientSecret: string;
   testTenants: string[];
   accountingReferences?: boolean;
+  receiptSource?: ReceiptSourceSettings;
 }
 export function productSettings(
   env: Record<string, string | undefined>,
@@ -89,6 +94,7 @@ export function productSettings(
     testTenants,
     accountingReferences:
       testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true",
+    receiptSource: receiptSourceSettings(env, testMode),
   };
 }
 const escapeHtml = (s: string) =>

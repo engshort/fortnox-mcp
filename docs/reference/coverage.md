@@ -158,3 +158,9 @@ exact known references and repairs only a successful voucher's remaining link.
 Fresh review rotates UI-only capabilities without approving them. Recovery and
 retention tests, including ten-item partial results and restart, do not promote
 the four file operations or satisfy live G08/#38 acceptance.
+
+The M14 follow-up ports S00's temporary authenticated Node file relay into product
+source preparation, with shared Node/workerd two-file byte/isolation tests and
+Node helper/CLI privacy/capacity tests. Native Worker source egress remains
+unsupported; no ordinary Worker fetch fallback is added. ENV transport settings
+activate no tool or provider operation and promote no live/client evidence.

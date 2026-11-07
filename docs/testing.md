@@ -1,5 +1,13 @@
 # Test strategy and evidence
 
+The M14 product relay follow-up adds shared Node/actual-workerd cases for two
+original file bytes through the explicit helper protocol, company authorization,
+missing/unsafe/expired configuration, direct-Worker/fallback denial and bounded
+late/oversized responses. Separate Node cases verify helper authentication,
+concurrent attempt capacity, strict inputs, redirects and private CLI session
+generation/error redaction. These tests establish no actual tunnel, native Worker
+egress or ChatGPT file acceptance.
+
 Milestone 4 adds a shared product receipt-file contract in Node/SQLite and actual local workerd/D1, plus two-file restart/expiry recovery. It checks authenticated MCP resource bytes, default-off discovery, content checks, encryption/tampering, generation/policy isolation, competing capacity and failed-workflow cleanup. These tests do not establish actual client file transfer or Fortnox file-operation acceptance; see [receipt evidence](implementation/M04-receipts-evidence.md).
 
 The shared M16 provider cases use actual multipart requests with synthetic bytes

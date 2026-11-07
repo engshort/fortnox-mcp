@@ -80,3 +80,9 @@ Färdiga tillfälliga filer rensas när inget kvarvarande förslag behöver dem;
 resterande filer har samma tidsgräns som tidigare. Fortnox behåller sitt eget
 underlag. Lokalt kvarvarande fel- och återhämtningsuppgifter är inga behörigheter
 att göra nya anrop efter frånkoppling eller ändrad policy.
+
+
+Testinstallationen kan förberedas med ett uttryckligen valt tillfälligt Node-relä
+för filhämtningen; se [ENV-guiden](env.sv.md#förbered-filtransport-för-kvittoprovet).
+Direkt filhämtning från Worker är inte tillgänglig. Reläet är en separat testhjälp,
+aktiverar inte bokföring och ska stängas efter provet.

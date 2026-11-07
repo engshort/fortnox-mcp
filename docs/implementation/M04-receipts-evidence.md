@@ -32,9 +32,10 @@ Only exact reviewed HTTPS origins can enter the source adapter. IP literals,
 local names, credentials, custom ports, redirects and non-public DNS answers are
 rejected. The Node transport pins checked DNS results to the socket while keeping
 TLS hostname verification and forwarding no incoming cookies/credentials. Worker
-source access has no unpinned fallback: without a separately verified secure
-transport it returns `FILE_TRANSPORT_UNAVAILABLE`. Existing S00's failed direct
-Worker TLS approach is not reused.
+source access has no unpinned fallback. The later M14 follow-up below ports the
+explicit temporary Node relay from S00; without it the Worker returns
+`FILE_TRANSPORT_UNAVAILABLE`. The failed direct Worker TLS approach is not reused,
+and native Worker source egress remains unsupported.
 
 Authenticated MCP resources provide original bytes without a public permanent
 URL. Output format support in actual ChatGPT still requires the human test below.
@@ -331,3 +332,84 @@ The follow-up's OAuth package typecheck/lint and all eight receipt browser cases
 passed locally after that change; runtime source and operation fingerprints are
 unchanged. The original full regression results above remain scoped to their
 recorded source.
+
+
+## M14 follow-up: explicit temporary product file relay
+
+After M17, all three CI workflows passed on `7ceea6e`; the asynchronous browser
+assertion correction passed in actual CI as well as locally. This follow-up
+addresses the remaining product transport preparation under #68/#33, independently
+of #38/#94 live provider acceptance.
+
+The product now ports S00's [explicit Node relay mechanism](S00-G03-transport-2026-11-06.md).
+This is a separate, short-lived development helper, not native Worker egress or a
+permanent hosted file service. The Worker selects `node-relay` explicitly; `none`
+and Node-only `node-direct` never fall back to ordinary Worker source fetch.
+`RECEIPT_FILE_ORIGINS` is an exact reviewed HTTPS list; literal wildcard hosts are
+now rejected during configuration rather than left to fail DNS. The helper URL
+must be an exact root `https://…trycloudflare.com` origin, with no custom port,
+credentials, path or query. Both Worker and helper validate source origins.
+
+The helper uses the existing DNS-pinned Node HTTPS transport, retains no bytes on
+disk and forwards no incoming cookies/credentials to the source. Its separate
+256-bit bearer session lasts at most 15 minutes, with twelve attempted downloads,
+8 KiB JSON bodies, a five-second input deadline and the product's 1 MiB/15-second
+source budget. Twelve attempts allow ten-item preparation inside the existing
+bounded file capacity. Concurrent body readers reserve capacity before source
+access. Browser Origin, unauthorized requests, extra fields and arbitrary headers
+are denied. Late session responses are discarded; redirects are rejected on both
+hops. Errors are fixed codes without URLs, source signatures, tokens or content.
+The process-local helper count is only a bounded development-session budget;
+company authorization, grants, encrypted files and write intents remain durable
+in the product's SQLite/D1 stores.
+
+`prepare:receipt-relay` creates a new mode-0600 private session file without
+printing credentials or replacing an existing file. `dev:receipt-relay` reads
+only that private configuration and binds loopback:8796, closing at session
+expiry. It does not load Fortnox/OAuth credentials. The CLI rejects public,
+malformed, stale or oversized configuration without echoing it. No helper,
+tunnel or deployment is started by configuring the product source settings.
+All product file/provider/workflow gates still remain false; these ENV settings
+cannot assert client, host or provider acceptance or widen grants.
+
+### Operator preparation (requires the later human test session)
+
+1. Observe/review the actual client file source origins privately; no wildcard or
+   guessed host. Put only those exact origins in `RECEIPT_FILE_ORIGINS` in the
+   ignored local ENV file. Keep product file/provider activation disabled.
+2. Run `npm run prepare:receipt-relay` immediately before the test. It creates
+   `.data/product-file-relay.json`, containing only an independent random `token`,
+   UTC `until` and the reviewed comma-separated `origins`. Do not share its token.
+3. Run `npm run dev:receipt-relay`. Use an official temporary Cloudflare Tunnel
+   for loopback:8796 and place its exact HTTPS root in
+   `RECEIPT_FILE_RELAY_ORIGIN`. Privately set the Worker secret
+   `RECEIPT_FILE_RELAY_TOKEN` and matching `RECEIPT_FILE_RELAY_UNTIL` from the
+   session file, plus the same reviewed source origins. Select `node-relay` only
+   in the separate allowlisted test installation. This config alone enables no
+   tool; activation still needs its reviewed test build and applicable evidence.
+4. Verify unauthorized helper health is denied. With authorized health, check the
+   short deadline and remaining attempts. Then execute the two-file client steps
+   above, distinguishing helper-assisted transfer from native Worker support.
+5. At completion/expiry, disable ingress, select `none`, remove helper settings and
+   secret, stop helper/tunnel and delete only this test's private session file.
+   Keep scheduled file cleanup running. Never delete unresolved financial state.
+
+No actual relay-assisted product/ChatGPT or PDF download acceptance is inferred
+from source wiring or synthetic round trips. S00's prior PDF client-byte mismatch
+remains an explicit G03 acceptance gap.
+
+M14 relay-follow-up verification, 2026-11-07: the full root suite passed
+**161 Node** and **130 actual local workerd/D1** cases. The receipt subset has
+50 shared cases per runtime, including two-file relay staging/readback, current
+company authorization and default/invalid/late/bounded transport cases. A final
+Node helper/transport interoperability test was then added; the helper/CLI subset
+and exact source-ledger check passed **8 Node cases**. The seven helper cases
+cover the actual Request protocol, thirteen competing requests for twelve
+attempts, authorization/input denial, size/redirect/expiry rejection, private
+configuration failures and no-overwrite/private-session creation with redacted
+output. Root typecheck/lint/build, all eight artifact/native tests and both
+Wrangler dry-runs passed. Relative file targets and whitespace were checked.
+No product relay/tunnel was started, deployed or exercised with actual client
+files. Existing S00 and product UI code is unchanged; CI regression is assessed
+on the pushed follow-up source. The Hono and Zod direct declarations reuse the
+exact already-installed pins, with no version upgrade.

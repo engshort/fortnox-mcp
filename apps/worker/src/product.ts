@@ -1,3 +1,4 @@
+import { receiptFileSource, receiptSourceSettings } from "@fortnox-mcp/files";
 import { cleanupProduct } from "../../shared/maintenance.js";
 import {
   createProductApplication,
@@ -15,6 +16,11 @@ export interface ProductEnv extends Partial<ProductBindings> {
   FORTNOX_CLIENT_SECRET?: string;
   FORTNOX_TEST_TENANTS?: string;
   ACCOUNTING_REFERENCES_ENABLED?: string;
+  RECEIPT_FILE_TRANSPORT?: string;
+  RECEIPT_FILE_ORIGINS?: string;
+  RECEIPT_FILE_RELAY_ORIGIN?: string;
+  RECEIPT_FILE_RELAY_TOKEN?: string;
+  RECEIPT_FILE_RELAY_UNTIL?: string;
 }
 export default {
   async scheduled(_event: ScheduledController, env: ProductEnv): Promise<void> {
@@ -33,6 +39,10 @@ export default {
         database: env.DB,
         state: d1State(env.DB),
         receiptFiles: d1ReceiptFiles(env.DB),
+        fileSource: receiptFileSource(
+          settings.receiptSource ?? receiptSourceSettings({}, false),
+          "worker",
+        ),
       }).fetch(request);
     } catch {
       return new Response("Product configuration unavailable", {
