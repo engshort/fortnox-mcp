@@ -8,7 +8,7 @@ RUN npm install --global npm@11.9.0 --ignore-scripts --no-audit --no-fund \
     && npm ci --ignore-scripts --no-audit --no-fund \
     && npm run build
 
-FROM ${NODE_IMAGE} AS runtime
+FROM ${NODE_IMAGE} AS runtime-base
 ARG SOURCE_COMMIT
 LABEL org.opencontainers.image.source="https://github.com/engshort/fortnox-mcp" \
       org.opencontainers.image.revision="${SOURCE_COMMIT}" \
@@ -26,3 +26,10 @@ USER 10001:10001
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["node", "/app/healthcheck.mjs"]
 CMD ["node", "/app/dist/product-node.js"]
+
+# Explicit, expiring original-file acceptance build; never the default image.
+FROM runtime-base AS acceptance
+COPY --from=build /app/dist/receipt-test-node.js /app/dist/receipt-test-node.js
+CMD ["node", "/app/dist/receipt-test-node.js"]
+
+FROM runtime-base AS runtime

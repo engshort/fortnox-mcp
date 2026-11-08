@@ -21,6 +21,16 @@ if (!/^[a-f0-9]{40}$/.test(sourceCommit) || /^0+$/.test(sourceCommit))
   throw new Error("A real SOURCE_COMMIT is required");
 
 await build({
+  entryPoints: ["apps/node/src/receipt-test-main.ts"],
+  outfile: "dist/receipt-test-node.js",
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node24",
+  define: { __M14_TEST_SOURCE_COMMIT__: JSON.stringify(sourceCommit) },
+});
+
+await build({
   entryPoints: ["apps/node/src/product-recovery.ts"],
   outfile: "dist/product-recovery.js",
   bundle: true,

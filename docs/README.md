@@ -1,5 +1,9 @@
 # Documentation map
 
+Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
+[English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
+and [pending actual acceptance](implementation/M05-actual-acceptance.md).
+
 Milestone 4: [receipt implementation/evidence](implementation/M04-receipts-evidence.md) and [Swedish receipt guide](users/kvitton.sv.md). In progress; file and financial activation gates remain closed.
 
 Actual M14 client preparation uses a [separate bounded file-test build](implementation/M04-client-file-test.md), with original-byte staging/readback only and no provider or financial writes.

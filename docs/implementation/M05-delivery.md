@@ -47,6 +47,11 @@ documentation only in the [Linux deployment guide](../deployment-linux.md).
 
 ## Acceptance tracking
 
+The [actual session matrix](M05-actual-acceptance.md) records remaining operator,
+ChatGPT, provider and private-reporting evidence. A separate Node-only direct-file
+acceptance artifact is built explicitly; the normal image contains no such entry.
+Actual acceptance is pending and no milestone/release gate has been closed.
+
 Implementation and actual acceptance are separate. Do not close #42/#77/#78 or
 broader parent gates from these runtime checks. Writes, review-host acceptance
 and provider-file operations retain their existing gates. No image, release
