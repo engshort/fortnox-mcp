@@ -1,5 +1,9 @@
 # API coverage plan
 
+Milestone 5 [Node runtime work](../implementation/M05-delivery.md) adds
+configurable paths/listening, file-mounted secrets and explicit Nginx handling.
+It enables no provider operation and does not complete installation acceptance.
+
 The [M14 client-file experiment](../implementation/M04-client-file-test.md) is a
 separate time-bounded build exposing staging/original-readback and the three
 company reads only. It is not ordinary product activation or provider support;

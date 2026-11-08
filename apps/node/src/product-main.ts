@@ -1,6 +1,5 @@
-import { chmod, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { receiptFileSource, receiptSourceSettings } from "@fortnox-mcp/files";
 import { nodeFileTransport } from "@fortnox-mcp/files/node";
 import { createAdaptorServer } from "@hono/node-server";
@@ -10,37 +9,22 @@ import {
   productSettings,
 } from "../../shared/product.js";
 import { hashToken, type Owner } from "../../shared/product-auth.js";
+import { openProductDatabase } from "./product-database.js";
 import { sqliteState } from "./product-storage.js";
 import { sqliteReceiptFiles } from "./receipt-storage.js";
+import {
+  nodeEnvironment,
+  nodeRuntimeSettings,
+  proxyRequest,
+} from "./runtime-config.js";
 
-if (process.env.PRODUCT_ENABLED !== "true")
+const env = await nodeEnvironment(process.env);
+if (env.PRODUCT_ENABLED !== "true")
   throw new Error("Product disabled; see .env.example");
-const settings = productSettings(process.env);
-const path = resolve(process.env.PRODUCT_DATABASE ?? ".data/product.sqlite");
-await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-const db = new DatabaseSync(path);
-await chmod(path, 0o600);
-db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
-db.exec("CREATE TABLE IF NOT EXISTS product_migrations (id TEXT PRIMARY KEY)");
-// Migrations are distributed with source; the built entry uses PRODUCT_MIGRATIONS_DIR.
-const directory = resolve(
-  process.env.PRODUCT_MIGRATIONS_DIR ?? "apps/worker/migrations",
-);
-for (const file of (await readdir(directory))
-  .filter((f) => /^\d+_.+\.sql$/.test(f))
-  .sort()) {
-  if (db.prepare("SELECT id FROM product_migrations WHERE id = ?").get(file))
-    continue;
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    db.exec(await readFile(resolve(directory, file), "utf8"));
-    db.prepare("INSERT INTO product_migrations(id) VALUES(?)").run(file);
-    db.exec("COMMIT");
-  } catch {
-    db.exec("ROLLBACK");
-    throw new Error("Product migration failed");
-  }
-}
+const settings = productSettings(env);
+const runtime = nodeRuntimeSettings(env);
+const path = runtime.database;
+const db = await openProductDatabase(path, runtime.migrations);
 const state = sqliteState(db);
 const receiptFiles = sqliteReceiptFiles(db);
 await receiptFiles.cleanup(Date.now());
@@ -82,20 +66,36 @@ const app = createProductApplication(settings, {
     nodeFileTransport,
   ),
 });
-const port = Number(process.env.PORT ?? 8787);
-if (!Number.isInteger(port) || port < 1 || port > 65535)
-  throw new Error("Invalid PORT");
+let stopping = false;
 const server = createAdaptorServer({
-  fetch: app.fetch,
+  fetch: async (request) => {
+    if (stopping) return new Response("Unavailable", { status: 503 });
+    try {
+      return await app.fetch(
+        proxyRequest(request, settings.origin, runtime.proxy),
+      );
+    } catch {
+      return new Response("Request unavailable", { status: 403 });
+    }
+  },
   overrideGlobalObjects: false,
 });
-server.listen(port, "127.0.0.1", () =>
+server.listen(runtime.port, runtime.host, () =>
   console.log(
     "product_server_started; bootstrap code is in the private database directory",
   ),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.once(signal, () => {
+    if (stopping) return;
+    stopping = true;
     clearInterval(cleanup);
-    server.close(() => db.close());
+    const deadline = setTimeout(() => process.exit(1), 30000);
+    deadline.unref();
+    server.close(() => {
+      db.close();
+      clearTimeout(deadline);
+      process.exit(0);
+    });
+    if ("closeIdleConnections" in server) server.closeIdleConnections();
   });
