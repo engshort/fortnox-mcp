@@ -187,3 +187,26 @@ directory. These tests do not replace actual ChatGPT or real-device acceptance.
 Each completed scope records commit, environment, exact commands, fixture/test-company scope, results and remaining limitations. Client acceptance additionally records date/client/protocol/account prerequisites. Mark tests not run as not run. Do not label a gate passed from source reading alone.
 
 The [S00 evidence record](implementation/S00-spike-evidence.md) records the actual offline commands and results. Run `npm ci --ignore-scripts`, `npm run typecheck`, `npm test`, `npm run build` and `npm run test:build` from `spikes/s00-mcp`. The Worker fetch entry is exercised in Node, not Cloudflare. These tests do not establish T01–T22 product acceptance, real client authentication or Fortnox behavior. Continue checking relative links and git whitespace for documentation changes.
+
+The M05 owner routes share Node/workerd cases for same-origin owner-only access,
+write-only encrypted configuration and operator-managed settings. After the root
+build, run the actual built Node UI in desktop/mobile Chromium with
+`cd spikes/s00-oauth && npx playwright test --config playwright.owner.config.ts`.
+This uses synthetic local-only installation state and contacts no provider.
+
+M05 offline operations cases cover real SQLite encrypted snapshots, prepared/
+succeeded/unknown execution recovery, an older backup missing later history,
+post-backup refresh rotation, old approval and persisted session/token revocation,
+wrong-key refusal, exact reconciliation intervals, new-key-only file readback and
+private library-issued owner reset. The shared accounting contract checks that a
+valid review/policy cannot bypass an unreconciled restore block in either runtime.
+The Docker smoke additionally exercises lock refusal, backup, upgrade, restore,
+session revocation and missing-secret startup using the actual packaged CLI.
+
+M05 candidate preparation records actual esbuild/Vite runtime inputs, retains
+original runtime licenses and rejects unknown licenses or stale build hashes.
+Docker preparation additionally compares image revision/version and exact built
+bytes, then saves the image with runtime/OS notices and a package inventory.
+Verify every generated regular file with the packet's `SHA256SUMS`; inspect the
+source archive for prohibited private/external material. This is draft artifact
+verification, not actual client/provider acceptance or distribution authorization.

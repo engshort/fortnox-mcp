@@ -8,9 +8,11 @@ import { accountingSelectionContract } from "../shared/accounting-selection.js";
 import { accountingTransportContract } from "../shared/accounting-transport.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
+import { diagnosticsContract } from "../shared/diagnostics.js";
 import { disconnectContract } from "../shared/disconnect.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { maintenanceContract } from "../shared/maintenance.js";
+import { ownerSetupContract } from "../shared/owner-setup.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
@@ -43,6 +45,8 @@ async function fixture() {
   };
 }
 ownerContract(fixture);
+diagnosticsContract(async () => (await fixture()).state);
+ownerSetupContract(fixture);
 connectionContract(async () => (await fixture()).state);
 
 oauthContract(fixture);

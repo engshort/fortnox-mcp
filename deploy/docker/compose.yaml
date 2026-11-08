@@ -1,0 +1,53 @@
+services:
+  fortnox-mcp:
+    image: ${FORTNOX_MCP_IMAGE:-fortnox-mcp:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:?Set SOURCE_COMMIT to the reviewed Git commit}
+    env_file:
+      - path: .private/installation.env
+        required: true
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATA_DIR: /data
+      NODE_PROXY_MODE: nginx
+      AUTH_SECRET_FILE: /run/secrets/auth_secret
+      CREDENTIAL_KEYS_FILE: /run/secrets/credential_keys
+      BACKUP_KEY_FILE: /run/secrets/backup_key
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - fortnox-data:/data
+    secrets:
+      - auth_secret
+      - credential_keys
+      - backup_key
+    restart: unless-stopped
+    stop_grace_period: 35s
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: 5m
+        max-file: "3"
+
+volumes:
+  fortnox-data:
+
+secrets:
+  auth_secret:
+    file: .private/auth-secret
+  credential_keys:
+    file: .private/credential-keys.json
+  backup_key:
+    file: .private/backup-key

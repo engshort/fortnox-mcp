@@ -1,0 +1,298 @@
+:root {
+  font:
+    20px / 1.5 system-ui,
+    sans-serif;
+  color: #152d32;
+  background: #fff;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header {
+  background: #244e57;
+  color: #fff;
+}
+header > div {
+  max-width: 1487px;
+  margin: auto;
+  padding: 10px 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+header strong {
+  font-size: 34px;
+  letter-spacing: -0.025em;
+}
+.header-actions {
+  display: flex;
+  gap: 16px;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  min-height: 44px;
+  border: 1px solid #244e57;
+  border-radius: 4px;
+  background: #244e57;
+  color: #fff;
+  padding: 10px 24px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button:hover {
+  background: #152d32;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+header button {
+  background: transparent;
+  border-color: #fff;
+  padding: 6px 20px;
+}
+a {
+  color: #244e57;
+  text-underline-offset: 0.2em;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid #b76b00;
+  outline-offset: 3px;
+}
+main {
+  max-width: 1344px;
+  padding: 30px 32px 40px;
+  margin: auto;
+  min-height: calc(100vh - 160px);
+}
+h1 {
+  font-size: 48px;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+}
+h2 {
+  font-size: 32px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+h3 {
+  font-size: 23px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+.intro {
+  font-size: 22px;
+  margin-top: 0;
+}
+nav {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #c8d1d2;
+  margin: 26px 0;
+}
+nav button {
+  color: #152d32;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 12px 14px;
+  font-weight: 450;
+}
+nav button[aria-current] {
+  color: #244e57;
+  border-bottom: 4px solid #244e57;
+  font-weight: 700;
+}
+nav button:hover {
+  background: #fff;
+}
+.notice {
+  padding: 16px 20px;
+  background: #f5d76e;
+  border-radius: 4px;
+  font-weight: 650;
+  margin: 0 0 32px;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.1fr);
+  gap: 48px;
+}
+.columns p {
+  margin-top: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-weight: 650;
+}
+input:not([type="radio"]),
+select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid #bdc8cb;
+  border-radius: 4px;
+  background: #fff;
+  color: #152d32;
+  font-weight: 400;
+}
+code {
+  display: block;
+  font:
+    18px / 1.5 ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+  background: #f7f8f8;
+  border: 1px solid #c8d1d2;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 8px 0 20px;
+}
+.separated,
+.company {
+  border-top: 1px solid #c8d1d2;
+  padding-top: 24px;
+  margin-top: 26px;
+}
+.company {
+  max-width: 740px;
+  padding-bottom: 16px;
+}
+.secondary {
+  margin-top: 16px;
+  background: #fff;
+  color: #244e57;
+}
+.secondary:hover {
+  background: #f3f6f6;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.choice {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.choice input {
+  accent-color: #244e57;
+  width: 20px;
+  height: 20px;
+}
+.choice:last-child {
+  margin-bottom: 20px;
+}
+legend {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+aside ol {
+  padding-left: 24px;
+}
+.status {
+  min-height: 28px;
+  overflow-wrap: anywhere;
+}
+.login {
+  max-width: 640px;
+  margin: 32px auto;
+}
+.login h1 {
+  font-size: 36px;
+}
+dl > div {
+  padding: 14px 0;
+  border-bottom: 1px solid #c8d1d2;
+}
+dt {
+  font-weight: 650;
+}
+dd {
+  margin: 4px 0 0;
+}
+footer {
+  max-width: 1320px;
+  border-top: 1px solid #c8d1d2;
+  margin: 0 auto;
+  padding: 12px 24px 24px;
+  text-align: center;
+  font-size: 16px;
+}
+@media (max-width: 720px) {
+  header > div {
+    padding: 16px;
+    align-items: flex-start;
+  }
+  header strong {
+    font-size: 22px;
+  }
+  .header-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  button {
+    padding: 10px 18px;
+  }
+  header button {
+    font-size: 14px;
+    padding: 4px 10px;
+  }
+  main {
+    padding: 28px 20px;
+  }
+  h1 {
+    font-size: 34px;
+  }
+  .intro {
+    font-size: 18px;
+  }
+  nav {
+    gap: 0;
+    justify-content: space-between;
+  }
+  nav button {
+    font-size: 15px;
+    padding: 10px 6px;
+  }
+  .columns {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  h2 {
+    font-size: 25px;
+  }
+  .notice {
+    padding: 14px 16px;
+  }
+  .login {
+    margin: 10px 0;
+  }
+}
+
+form > button {
+  min-width: min(340px, 100%);
+}

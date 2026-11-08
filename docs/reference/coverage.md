@@ -1,8 +1,55 @@
 # API coverage plan
 
+The [owner's 2026-11-09 MVP acceptance and release authorization](../implementation/M05-release-authorization-2026-11-09.md)
+permits a bounded prerelease after green CI. This decision changes no operation
+classification or default activation gate; actual scenario evidence remains scoped.
+
+M05 adds protected Hono/React owner setup, write-only encrypted Fortnox settings,
+Swedish/English guidance and company policy/status management. This adds no
+provider operation or support claim. Node/workerd authorization regressions and
+desktop/mobile synthetic browser evidence are recorded in the delivery log.
+
 Milestone 5 [Node runtime work](../implementation/M05-delivery.md) adds
 configurable paths/listening, file-mounted secrets and explicit Nginx handling.
 It enables no provider operation and does not complete installation acceptance.
+The synthetic Docker/isolated Nginx/HTTPS and packaged maintenance smoke passed
+on the owner-selected Linux host on 2026-11-08. Full owner/ChatGPT/Fortnox
+acceptance remains pending; see the linked delivery evidence.
+The persistent target-domain installation now also passes public TLS/health/setup,
+OAuth discovery and proxy-boundary checks through the operator's existing Nginx;
+the owner completed bootstrap/login/credential save and both allowlisted test
+connections are active. A new client registration now has an exact two-company
+grant, while the original grant remains unchanged. Public MCP handshake/discovery
+passed. The owner reports successful company listing, diagnosis and profile reads
+for both service/user test connections in a separate ChatGPT chat. A read-only
+server inspection confirmed distinct allowlisted tenant IDs and separate encrypted
+credential records. The shared sandbox organization number is expected according
+to the owner. The owner also confirms denial outside the client's granted
+companies without information disclosure. These are bounded owner-reported
+observations; raw client traces/version and remaining isolation/lifecycle cases
+remain pending. See the
+[dated read evidence](../implementation/M05-delivery.md#owner-reported-client-reads-and-persisted-tenant-binding-2026-11-08).
+These observations enable no financial or provider-file operation.
+
+The subsequent [local Chrome lifecycle report](../implementation/M05-client-lifecycle-2026-11-08.md)
+records reads before/after client disconnection/reconnection, saved-answer reload
+and continued reads after access expiry. Read-only server metadata corroborates
+refresh revocation and actual rotation after expiry on the same tested image.
+Old-token rejection/replay, explicit tool reload and remaining client/provider/
+receipt/recovery acceptance remain open. This does not promote provider coverage.
+
+The [provider-renewal follow-up](../implementation/M05-token-renewal-2026-11-08.md)
+records actual service reacquisition and user refresh rotation, persisted
+replacements, tenant-checked profile readback and a subsequent Chrome read report.
+Existing connections and gates were preserved. Old original MCP tokens were not
+retained; isolated synthetic old-token checks do not establish original-client
+replay acceptance or promote supported provider coverage. The unchanged image
+passed all four isolated rejection cases and a valid-token positive control.
+
+The [2026-11-09 issue review](../implementation/M05-issue-review-2026-11-09.md)
+documents 51 related issues and six bounded implementation closures. This changes
+tracking status only; all seven delivery PRs remain drafts, actual acceptance is
+pending and no provider operation is promoted to verified support.
 
 The [M14 client-file experiment](../implementation/M04-client-file-test.md) is a
 separate time-bounded build exposing staging/original-readback and the three
@@ -188,3 +235,11 @@ and MCP grants never widen automatically. The flag enables no operation. Shared
 Node/workerd consent/lifecycle tests and bounded-byte reader tests preserve all
 four `implemented_unverified`/unsupported/default-off statuses and missing actual
 scope/license/rights/format/post-link/client evidence.
+
+M05 connection diagnosis reuses the existing Company Information read in the
+explicit test environment. Status/permission/upstream/implementation/verification
+codes are implemented; this is no additional verified provider-operation claim.
+
+M05 offline maintenance adds encrypted snapshot/candidate restore, session/grant/
+review revocation, interval write blocking and transactional credential/file-key
+rotation. No provider operation is added or promoted by restore or reconciliation.

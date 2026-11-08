@@ -108,7 +108,7 @@ export async function fileDigest(bytes: Uint8Array) {
     .map((n) => n.toString(16).padStart(2, "0"))
     .join("");
 }
-const binding = (r: ReceiptFileRecord, index: number) =>
+export const receiptFileBinding = (r: ReceiptFileRecord, index: number) =>
   JSON.stringify(["receipt-file-v1", r, index]);
 export class ReceiptFiles {
   constructor(
@@ -202,7 +202,7 @@ export class ReceiptFiles {
                 encodeFile(
                   bytes.subarray(offset, offset + receiptFileLimits.chunkBytes),
                 ),
-                binding(record, index),
+                receiptFileBinding(record, index),
               )),
             });
           }
@@ -267,7 +267,7 @@ export class ReceiptFiles {
           throw new ReceiptFileError("FILE_UNAVAILABLE");
         const plain = await this.connections.vault.openData(
           chunk,
-          binding(r, index),
+          receiptFileBinding(r, index),
         );
         if (typeof plain !== "string")
           throw new ReceiptFileError("FILE_UNAVAILABLE");
