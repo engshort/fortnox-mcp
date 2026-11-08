@@ -145,6 +145,7 @@ export class Bookkeeping {
     if (!this.gates.references) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write && (!this.gates.writes || c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (write) await this.connections.assertWritesAllowed();
     return c;
   }
   async years(actor: AccountingActor, company: string) {

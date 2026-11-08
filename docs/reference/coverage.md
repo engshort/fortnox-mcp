@@ -197,3 +197,7 @@ scope/license/rights/format/post-link/client evidence.
 M05 connection diagnosis reuses the existing Company Information read in the
 explicit test environment. Status/permission/upstream/implementation/verification
 codes are implemented; this is no additional verified provider-operation claim.
+
+M05 offline maintenance adds encrypted snapshot/candidate restore, session/grant/
+review revocation, interval write blocking and transactional credential/file-key
+rotation. No provider operation is added or promoted by restore or reconciliation.

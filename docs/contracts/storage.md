@@ -62,3 +62,32 @@ An execution record needs connection/company IDs, operation, proposal hash, time
 Disconnecting disables pending work and removes credentials. Retained minimal execution metadata must not authorize future calls. Provide owner-visible cleanup and retention controls, with a warning before deleting unresolved reconciliation state.
 
 After retention expiry, persistent duplicate detection is limited. Document this limit; a deleted local key does not prove that an old financial action never happened. Re-uploaded historical receipts may need provider lookup and human review.
+
+## M05 offline operator contract
+
+The Linux Node process and every operator command hold the same descriptor-based
+`flock` at `<PRODUCT_DATABASE>.lock`. Stop the app before maintenance; commands
+refuse concurrent use and require `MAINTENANCE_MODE=true`. Crashes release this
+lock without stale PID cleanup. SQLite backup snapshots are encrypted using a
+separate 32-byte AES-256-GCM key, random nonce and authenticated format marker.
+Output and temporary files are 0600; bounded snapshot size is 64 MiB. Backups do
+not contain their decryption key. See the [Node SQLite backup API](https://nodejs.org/download/release/v24.22.1/docs/api/sqlite.html#sqlitebackupsourceDb-path-options).
+
+Restore verifies encryption/integrity and migrations in a private candidate,
+invalidates all restored sessions, OAuth access/refresh/consent and company grants,
+clears password-reset/consent flows, discards temporary files and review proposals,
+and requires fresh provider connection/consent. In-flight steps become
+`outcome_unknown`; known success and unknown references remain. No operation is
+resent. The restored database is installed atomically under the installation lock.
+
+Every restore creates an unreconciled interval from backup creation to restore.
+Financial, receipt-upload and link dispatch check a shared durable write block,
+even after owner policy changes or reconnection. Only the offline operator's
+matching interval/evidence-hash attestation can clear this block; that action
+neither resolves unknown operations nor enables an unverified capability.
+
+Credential-key rotation reencrypts connection credentials, proposals, integration
+settings and receipt chunks in one transaction. It invalidates unfinished consent
+flows and preserves execution history. Keep old keys separately for old backups;
+remove them from the active installation only after a new-key-only validation.
+Upgrade creates encrypted pre-migration backup before opening versioned migrations.

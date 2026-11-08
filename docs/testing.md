@@ -193,3 +193,12 @@ write-only encrypted configuration and operator-managed settings. After the root
 build, run the actual built Node UI in desktop/mobile Chromium with
 `cd spikes/s00-oauth && npx playwright test --config playwright.owner.config.ts`.
 This uses synthetic local-only installation state and contacts no provider.
+
+M05 offline operations cases cover real SQLite encrypted snapshots, prepared/
+succeeded/unknown execution recovery, an older backup missing later history,
+post-backup refresh rotation, old approval and persisted session/token revocation,
+wrong-key refusal, exact reconciliation intervals, new-key-only file readback and
+private library-issued owner reset. The shared accounting contract checks that a
+valid review/policy cannot bypass an unreconciled restore block in either runtime.
+The Docker smoke additionally exercises lock refusal, backup, upgrade, restore,
+session revocation and missing-secret startup using the actual packaged CLI.

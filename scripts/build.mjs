@@ -5,6 +5,15 @@ import { build as buildAdmin } from "vite";
 
 await buildAdmin({ configFile: "apps/admin/vite.config.ts" });
 
+await build({
+  entryPoints: ["scripts/product-ops.ts"],
+  outfile: "dist/product-ops.js",
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node24",
+});
+
 const sourceCommit =
   process.env.SOURCE_COMMIT ??
   (await promisify(execFile)("git", ["rev-parse", "HEAD"])).stdout.trim();

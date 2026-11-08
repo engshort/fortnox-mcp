@@ -66,3 +66,49 @@ Under **Företag → Kontrollera anslutning** visas diagnostik med korrelations-
 Saknad scope skiljs från frånkoppling och tillfälliga upstreamfel. Om Fortnox inte
 anger en säker orsak visas behörighet/licens som okänd. Ett lyckat läsprov
 aktiverar ingen bokföring, filoperation eller granskningsfunktion.
+
+## Backup, återställning och uppgradering
+
+Stoppa tjänsten med `docker compose -f deploy/docker/compose.yaml stop fortnox-mcp`.
+Alla driftkommandon kräver underhållsläge och samma installationslås; de vägrar
+köra samtidigt med applikationen. Kör exempelvis från repots rot:
+
+```sh
+docker compose -f deploy/docker/compose.yaml run --rm --no-deps -e MAINTENANCE_MODE=true fortnox-mcp node /app/dist/product-ops.js backup /data/backup.enc
+```
+
+Exportera den krypterade filen till en privat backupkatalog (0700, filer 0600).
+Förvara backupnyckeln och databasens krypteringsnycklar separat. Backupen innehåller
+inte sina egna nycklar. Gränsen är 64 MiB SQLite-state. Se den engelska guidens
+exakta Compose-kommandon för kopiering och alla driftåtgärder.
+
+**Restore:** behåll först en backup av nuvarande state. Kopiera den krypterade
+backupen till datavolymen och kör `restore /data/backup.enc` under underhåll.
+Starta igen. Alla gamla sessioner, klientgrants och granskningskapabiliteter
+återkallas. Logga in, återanslut testföretagen och ge nytt klientsamtycke.
+Okända utfall bevaras; ingen bokföring skickas om automatiskt.
+Skrivningar förblir blockerade tills operatören stämt av hela tidsintervallet
+som saknas i backupen. `restore-status` visar intervallet. `reconcile-restore`
+kräver en privat attest med exakt restore-ID, från-/tilltid och hash av privat
+evidens. Attesten aktiverar inga funktioner och löser inte enskilda okända utfall.
+
+**Nyckelrotation:** stoppa, ta backup, lägg en ny 32-byte-nyckel i den privata
+nyckelfilen och välj dess ID som aktivt. Behåll gammal nyckel, kör `rotate-keys`
+och verifiera med endast den nya nyckeln. Förvara gamla nycklar separat för gamla
+backuper. Byt auth-/backuphemligheter via deras privata filer; skapa ny backup.
+
+**Uppgradering:** behåll föregående image, välj granskad ny image och kör
+`upgrade /data/fore-uppgradering.enc` innan start. Kontrollera hälsa, inloggning,
+anslutningar samt väntande/okända operationer. Starta inte gammal kod mot en ny
+migrerad databas. Återställ vid behov med matchande kod, backup och nycklar.
+`cleanup` rensar utgångna tillfälliga filer och förslag; okända utfall skyddas.
+
+Om bootstrapkoden gått ut kan operatören utfärda en ny med `bootstrap-code`.
+`reset-owner` utfärdar en privat tiominuterskod för samma ägare; använd
+`/reset-password`. Ange en ny privat utfil för koden och ta bort den efteråt.
+Ingen kod eller hemlighet ska skickas till ChatGPT eller publika ärenden.
+
+**Borttagning:** stoppa tjänsten, exportera nödvändiga privata backuper och ta bort
+just installationens containrar. Radera datavolymen endast när all data avsiktligt
+ska tas bort. Ta därefter bort Nginx-konfiguration och hemligheter enligt vald
+bevaringstid. Använd ingen global Docker-rensning.

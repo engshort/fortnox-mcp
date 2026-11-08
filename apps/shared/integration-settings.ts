@@ -61,4 +61,20 @@ export class IntegrationSettings {
     )
       throw new DomainError("INTENT_CONFLICT");
   }
+  async rotate(owner: string) {
+    const row = await this.state.get<Ciphertext>("integration-config", owner);
+    if (!row) return;
+    if (
+      !(await this.state.put(
+        "integration-config",
+        owner,
+        await this.vault.sealData(
+          await this.vault.openData(row.value, this.binding(owner)),
+          this.binding(owner),
+        ),
+        row.version,
+      ))
+    )
+      throw new DomainError("INTENT_CONFLICT");
+  }
 }

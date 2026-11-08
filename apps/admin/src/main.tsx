@@ -610,6 +610,14 @@ function App() {
                 "Bookkeeping and Fortnox files are disabled until verification is complete.",
               )}
             </p>
+            {state?.restore && !state.restore.reconciled && (
+              <p className="notice">
+                {t(
+                  "Installationen har återställts. Skrivningar är blockerade tills operatören stämt av hela intervallet som saknas i backupen.",
+                  "The installation was restored. Writes remain blocked until the operator reconciles the entire interval missing from the backup.",
+                )}
+              </p>
+            )}
             {!state ? (
               <p>
                 {t(

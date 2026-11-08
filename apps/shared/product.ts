@@ -346,6 +346,9 @@ export function createProductApplication(
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
             test_mode: settings.testMode,
+            restore:
+              (await runtime.state.get("installation", "restore"))?.value ??
+              null,
             capabilities: {
               writes: false,
               provider_files: false,

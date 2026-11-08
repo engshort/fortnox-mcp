@@ -18,6 +18,12 @@ export interface InstallationState {
   callback: string;
   mcp_url: string;
   test_mode: boolean;
+  restore: {
+    reconciled: boolean;
+    restore_id: string;
+    from: number;
+    to: number;
+  } | null;
   capabilities: Record<string, boolean>;
   companies: Company[];
   investigations: Investigation[];

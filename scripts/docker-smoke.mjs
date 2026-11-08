@@ -234,6 +234,58 @@ try {
     (await call("/admin/bootstrap", "POST", bootstrap, { origin })).status,
     403,
   );
+  const operator = (...args) =>
+    compose(
+      "run",
+      "--rm",
+      "--no-deps",
+      "-e",
+      "MAINTENANCE_MODE=true",
+      "fortnox-mcp",
+      "node",
+      "/app/dist/product-ops.js",
+      ...args,
+    );
+  await assert.rejects(operator("backup", "/data/denied.enc"));
+  await compose("stop", "fortnox-mcp");
+  await operator("backup", "/data/smoke-backup.enc");
+  await operator("rotate-keys");
+  await operator("upgrade", "/data/smoke-pre-upgrade.enc");
+  await operator("restore", "/data/smoke-backup.enc");
+  await compose("up", "-d", "--no-build");
+  for (let i = 0; i < 60; i++) {
+    if ((await call("/health")).status === 200) break;
+    await delay(500);
+  }
+  assert.equal(
+    (await call("/admin/state", "GET", undefined, { cookie })).status,
+    401,
+  );
+  const login = await call(
+    "/auth/sign-in/email",
+    "POST",
+    { email: bootstrap.email, password: bootstrap.password },
+    { origin },
+  );
+  assert.equal(login.status, 200);
+  const newCookie = (login.headers["set-cookie"] ?? [])
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  const restored = JSON.parse(
+    (await call("/admin/state", "GET", undefined, { cookie: newCookie })).text,
+  );
+  assert.equal(restored.restore.reconciled, false);
+  await compose("stop", "fortnox-mcp");
+  await assert.rejects(
+    compose(
+      "run",
+      "--rm",
+      "--no-deps",
+      "-e",
+      "AUTH_SECRET_FILE=/run/secrets/missing",
+      "fortnox-mcp",
+    ),
+  );
   const history = (await run("docker", ["history", "--no-trunc", image]))
     .stdout;
   for (const file of ["auth-secret", "credential-keys.json", "backup-key"])

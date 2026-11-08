@@ -91,3 +91,28 @@ result. The separate fixed M14 experiment catalog is unchanged.
 Shared synthetic cases cover foreign company denial before I/O, local scope/gate
 checks, durable budget use, redaction, 403 unknown classification and late-response
 disconnect. This establishes no live provider/ChatGPT acceptance.
+
+## 5. Offline operations and restore (#74)
+
+Runtime and operator commands share Linux flock; maintenance cannot race a running
+server. The image carries a bundled operator CLI for encrypted backup, candidate
+restore, credential rotation, pre-migration backup/upgrade, expiry cleanup, private
+bootstrap/password recovery and explicit restore-interval reconciliation.
+Restore revokes sessions/OAuth grants/provider tokens and all old reviews,
+preserves known/unknown execution evidence and blocks all affected dispatch until
+the missing history interval is independently reconciled. A policy change cannot
+clear this block. Rotation covers connection, proposal, configuration and receipt
+chunk encryption transactionally, including new-key-only file readback.
+
+Synthetic focused cases: six operations cases plus four actual Node runtime
+cases passed, including backups before/after booking and unknown outcome, later
+history/token rotation absent from an older backup, old approval denial,
+wrong-key rejection before replacement, persisted session/token revocation,
+matching-interval-only reconciliation and library-issued private owner reset.
+These do not replace the actual two-company recovery scenarios.
+
+Aggregate verification on 2026-11-08: Node 200/200 (21 files), actual local
+workerd/D1 144/144 (6 files), typecheck and lint passed. Built-artifact suite
+9/9 passed after adapting the native Worker key-denial check to the protected
+JSON data route (the new static shell deliberately contains no company data).
+The detailed Docker operations smoke is checked separately at the exact PR head.

@@ -93,3 +93,71 @@ The Companies tab manages read-only/review policy, disconnect and reconnect.
 Policy changes never activate a capability or approve a voucher. New companies
 require fresh client consent. ChatGPT and Status tabs show installation guidance
 and current gates. Switch Swedish/English in the header. No model API key is needed.
+
+## Backup, restore, keys and upgrade
+
+Use maintenance downtime for all commands. Stop `fortnox-mcp` with Compose; each
+command also takes the same Linux flock as the runtime, so a running app causes
+refusal. Commands run as the same non-root image user and mount the same state
+and secrets. Example (from the repository root):
+
+```sh
+docker compose -f deploy/docker/compose.yaml stop fortnox-mcp
+docker compose -f deploy/docker/compose.yaml run --rm --no-deps -e MAINTENANCE_MODE=true fortnox-mcp node /app/dist/product-ops.js backup /data/operator-backup.enc
+docker compose -f deploy/docker/compose.yaml cp fortnox-mcp:/data/operator-backup.enc ./private-backups/operator-backup.enc
+```
+
+Create the host backup directory privately (0700); keep exported backup files
+0600 and store backup/encryption keys independently. Remove the volume copy after
+verifying the protected exported copy. Backup snapshots are bounded to 64 MiB;
+monitor state size before reaching this limit. Backups are not plaintext SQLite.
+Do not pass keys in CLI arguments. `BACKUP_KEY_FILE` supplies the encryption key.
+
+Restore: stop the app, copy an encrypted backup into the mounted `/data` directory
+using the stopped service's Compose cp, then run the same operator invocation with
+`restore /data/operator-backup.enc`. Preserve an encrypted backup of current state
+first. The candidate is authenticated/migrated before replacement. Restart with
+`up -d --no-build`. All old sessions/grants/review capabilities are invalidated;
+log in again, reconnect the test companies and obtain fresh client consent.
+Unknown results remain unknown and are never automatically resent.
+
+`restore-status` reports only an opaque restore ID, the blocked UTC-millisecond
+interval and reconciliation status. Review the entire missing interval against
+Fortnox and independently retained execution evidence. Supply a private JSON file
+with exactly `restore_id`, `from`, `to` and `evidence_sha256` (SHA-256 of your private
+reconciliation record) to `reconcile-restore /data/reconciliation.json` while
+stopped. Do not attest until all potentially omitted writes in that interval have
+been accounted for. This clears the interval block only; unresolved operations
+and acceptance gates remain independently enforced. No model tool can attest.
+
+For credential rotation, stop the service, back up, privately add a fresh 32-byte
+base64 key to `credential-keys.json`, retain the old key and set
+`CREDENTIAL_ACTIVE_KEY` to the new ID. Run `rotate-keys`. Connections, proposals,
+owner credentials and encrypted receipt chunks are migrated transactionally.
+Validate using only the new active key before removing old keys from this
+installation. Keep old keys offline for retained backups. Rotate `AUTH_SECRET`
+through the private secret file during downtime; previously issued browser cookies
+become invalid. Restore always revokes persisted MCP grants separately.
+Rotate `BACKUP_KEY` by generating a new private 32-byte key and making a fresh
+backup; retain the old key separately for old backups.
+
+For upgrade, retain the current image revision, stop the service and select the
+reviewed new image via `FORTNOX_MCP_IMAGE`. Run `upgrade /data/pre-upgrade.enc` in
+that image: it makes a protected backup before applying versioned migrations.
+Start and check health, owner login, connection status and pending/unknown
+operations. Do not downgrade a migrated DB by starting an old image; recover via
+the backed-up version with its matching code/keys and the same restore safeguards.
+`cleanup` removes expired temporary files/proposals/flows and bounded resolved
+history; pending or unknown financial execution history remains protected.
+
+If bootstrap expired before claiming the owner, use `bootstrap-code
+/data/new-bootstrap-code.txt` during downtime and privately retrieve that new
+file. An active/claiming owner cannot be replaced. For a lost owner password,
+`reset-owner /data/new-reset-code.txt` issues the maintained auth library's private
+ten-minute reset code for that same owner. Redeem via `/reset-password`, then
+remove the private code copy. Neither command prints the code or owner identity.
+
+Removal: stop the service and remove only its Compose containers. Export/verify
+required private backups first. Remove its named data volume only when deliberately
+erasing that installation, then remove its Nginx site, private secrets and backup
+copies according to your retention decision. Do not use global Docker prune.
