@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { build } from "esbuild";
 
 await build({
@@ -76,5 +78,22 @@ await build({
   target: "es2023",
   conditions: ["workerd", "worker", "browser"],
   external: ["node:*"],
+  sourcemap: true,
+});
+
+await build({
+  entryPoints: ["apps/worker/src/receipt-test.ts"],
+  outfile: "dist/receipt-test-worker.js",
+  bundle: true,
+  platform: "browser",
+  format: "esm",
+  target: "es2023",
+  conditions: ["workerd", "worker", "browser"],
+  external: ["node:*"],
+  define: {
+    __M14_TEST_SOURCE_COMMIT__: JSON.stringify(
+      (await promisify(execFile)("git", ["rev-parse", "HEAD"])).stdout.trim(),
+    ),
+  },
   sourcemap: true,
 });

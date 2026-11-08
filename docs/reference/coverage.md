@@ -1,5 +1,11 @@
 # API coverage plan
 
+The [M14 client-file experiment](../implementation/M04-client-file-test.md) is a
+separate time-bounded build exposing staging/original-readback and the three
+company reads only. It is not ordinary product activation or provider support;
+actual client-file evidence remains pending and the four file-provider operations
+remain unverified/default-off. Existing OAuth grants are never widened.
+
 Milestone 3 implements bounded reference transport, exact voucher validation,
 encrypted proposals, durable execution and an MCP Apps view. [Evidence](../implementation/M03-accounting-evidence.md)
 and the [accounting ledger](mvp-accounting-operations.json) separate synthetic

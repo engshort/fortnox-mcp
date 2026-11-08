@@ -9,6 +9,13 @@ Prepared acceptance packets: [G08 recovery](M04-G08-recovery.md) and
 explicit pending actual client/provider scenarios. Neither packet grants live
 acceptance or enables product writes.
 
+The [dedicated M14 client-file experiment](M04-client-file-test.md) now supplies a
+separately built, one-hour staging/original-readback profile for collecting the
+missing actual client evidence. The ordinary product remains default-off. The
+experiment enables no receipt proposals, provider files, review-host execution
+or financial writes; deployment and actual client results must be recorded
+separately on the tested source.
+
 ## M14: bounded product file adapter
 
 `ReceiptFiles` authorizes the current owner/client grant, explicit company,

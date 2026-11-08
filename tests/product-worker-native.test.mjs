@@ -8,6 +8,102 @@ import { promisify } from "node:util";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { prepareD1Recovery } from "../dist/product-recovery.js";
 
+test("built M14 experiment exposes only staging/readback and keeps expired administration accessible", {
+  timeout: 20000,
+}, async (t) => {
+  const origin = "https://product.example.invalid";
+  const options = (until) =>
+    convertV4MiniflareOptions({
+      name: "m14-native-file-test",
+      modules: true,
+      scriptPath: resolve("dist/receipt-test-worker.js"),
+      compatibilityDate: "2026-10-18",
+      compatibilityFlags: ["nodejs_compat"],
+      d1Databases: { DB: "m14-native-file-test" },
+      bindings: {
+        PRODUCT_ENABLED: "true",
+        FORTNOX_TEST_MODE: "true",
+        PUBLIC_ORIGIN: origin,
+        AUTH_SECRET: "synthetic-native-file-test-auth-secret",
+        CREDENTIAL_ACTIVE_KEY: "a",
+        CREDENTIAL_KEYS: JSON.stringify({
+          a: Buffer.alloc(32, 11).toString("base64"),
+        }),
+        MCP_REDIRECT_URIS: JSON.stringify([
+          "https://client.example.invalid/callback",
+        ]),
+        FORTNOX_CLIENT_ID: "synthetic-client",
+        FORTNOX_CLIENT_SECRET: "synthetic-secret",
+        FORTNOX_TEST_TENANTS: "100001,100002",
+        RECEIPT_FILE_TRANSPORT: "node-relay",
+        M14_FILE_TEST_UNTIL: new Date(until).toISOString(),
+      },
+      outboundService: async () => {
+        throw new Error("No provider or source access in discovery checks");
+      },
+    });
+  const runtime = new Miniflare(options(Date.now() + 60000));
+  t.after(() => runtime.dispose());
+  const db = await runtime.getD1Database("DB");
+  for (const file of [
+    "0002_product_state.sql",
+    "0003_product_auth.sql",
+    "0004_product_oauth.sql",
+    "0006_receipt_files.sql",
+  ])
+    await db.exec(
+      (await readFile(resolve("apps/worker/migrations", file), "utf8"))
+        .replace(/--[^\n]*(?:\n|$)/g, "")
+        .replace(/\n/g, " "),
+    );
+  const health = await (await runtime.dispatchFetch(`${origin}/health`)).json();
+  assert.equal(health.file_test.active, true);
+  assert.match(health.file_test.source_commit, /^[a-f0-9]{40}$/);
+  assert.equal(health.file_test.financial_writes, false);
+  assert.equal(health.file_test.provider_file_writes, false);
+  assert.equal(health.file_test.review_host_verified, false);
+  const request = () =>
+    runtime.dispatchFetch(`${origin}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+  const discovery = await request();
+  assert.equal(discovery.status, 200);
+  const names = (await discovery.json()).result.tools.map((tool) => tool.name);
+  assert.deepEqual([...names].sort(), [
+    "get_company_profile",
+    "get_connection_status",
+    "ingest_receipt_files",
+    "list_companies",
+    "read_receipt_file",
+  ]);
+  assert.ok(names.includes("ingest_receipt_files"));
+  assert.ok(names.includes("read_receipt_file"));
+  assert.equal(
+    names.some((name) =>
+      /prepare_receipt|commit_reviewed|upload_receipt|link_receipt/.test(name),
+    ),
+    false,
+  );
+  assert.equal((await runtime.dispatchFetch(`${origin}/admin`)).status, 401);
+  await runtime.setOptions(options(Date.now() - 1000));
+  assert.equal((await request()).status, 503);
+  assert.equal(
+    (await (await runtime.dispatchFetch(`${origin}/health`)).json()).file_test
+      .active,
+    false,
+  );
+  assert.equal((await runtime.dispatchFetch(`${origin}/sign-in`)).status, 200);
+  assert.equal(
+    (await runtime.dispatchFetch(`${origin}/reset-password`)).status,
+    200,
+  );
+});
+
 test("built product Worker uses native fetch for consent against an isolated synthetic provider", {
   timeout: 20000,
 }, async (t) => {

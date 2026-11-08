@@ -1,5 +1,13 @@
 # Test strategy and evidence
 
+The dedicated M14 client-file build has shared Node/workerd tests using actual
+product OAuth registration, PKCE, consent and MCP file requests for two isolated
+companies. They verify exact PNG/PDF bytes, missing scope, anonymous/foreign/admin
+token denial, a one-hour maximum lease and late-byte disposal. A built-artifact
+case checks the dedicated entry, fixed metadata/catalog and continued login/reset
+after expiry. None of these local cases establishes actual ChatGPT transfer or
+Fortnox provider acceptance; see the [experiment procedure](implementation/M04-client-file-test.md).
+
 The M14 product relay follow-up adds shared Node/actual-workerd cases for two
 original file bytes through the explicit helper protocol, company authorization,
 missing/unsafe/expired configuration, direct-Worker/fallback denial and bounded

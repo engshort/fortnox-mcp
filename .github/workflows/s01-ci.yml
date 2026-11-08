@@ -51,3 +51,8 @@ jobs:
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: npx wrangler deploy --dry-run --config apps/worker/wrangler.product.jsonc --outdir dist/cloudflare-product
+
+      - name: Validate disabled M14 file-test bundle
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx wrangler deploy --dry-run --config apps/worker/wrangler.receipt-test.jsonc --outdir dist/cloudflare-receipt-test

@@ -2,6 +2,12 @@
 
 The [milestone 4 product adapter](../implementation/M04-receipts-evidence.md) is in progress. Bounded encrypted staging/readback is implemented behind a default-off gate; this does not establish actual client or Fortnox file support.
 
+Actual client evidence may be collected with the [separate M14 file-test
+build](../implementation/M04-client-file-test.md). Its short operator lease,
+current file scope and the same owner/company/generation checks authorize only
+temporary staging/readback. It enables no proposal, approval, provider file or
+financial operation and changes no supported-client/provider claim.
+
 The isolated [S00 file probe](../implementation/S00-files-evidence.md) implements
 a default-off synthetic subset of file ingress/egress. Its intentionally narrower
 format limits and local evidence do not establish product receipt support or

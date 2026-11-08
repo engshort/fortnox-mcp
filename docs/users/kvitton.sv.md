@@ -27,6 +27,23 @@ De exakta manuella klientproven finns i
 [utvecklarens verifieringsunderlag](../implementation/M04-receipts-evidence.md#human-client-acceptance-pending).
 Använd endast uttryckligen tillåtna testföretag och syntetiska kvitton i dessa prov.
 
+## Separat filprov i testinstallationen
+
+Operatören kan driftsätta en särskild M14-testversion för **tillfällig filstaging
+och hämtning av originalbytes**. Provfönstret gäller högst en timme; därefter
+stängs MCP-provet medan ägarinloggning och filrensning fortsätter fungera.
+Bokföring, Fortnox-filändringar och granskningskörning är fortfarande avstängda.
+
+Logga in med installationens befintliga ägarkonto. Saknas lösenord används
+operatörens engångsåterställning; skapa inte en ny ägare. Du väljer själv det
+nya lösenordet och bekräftar återställningen. Skicka inga koder i chatten.
+
+Skapa därefter en ny testanslutning i klienten och godkänn uttryckligen filåtkomst
+(`mcp:files`). Ett gammalt medgivande utan filåtkomst utökas inte automatiskt.
+För detta filprov behövs inga nya Fortnox-behörigheter. Vänta på besked om att
+testversion och filtransport är redo innan du kör de två originalfilerna.
+Se [operatörens exakta körsteg](../implementation/M04-client-file-test.md).
+
 ## Granska varje kvitto
 
 Förberedelser kan samla upp till tio kvitton, med högst två filer per uppladdningsanrop

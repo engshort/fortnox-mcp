@@ -24,8 +24,10 @@
     "apps/node/src/product-main.ts": "db5d2be3af165444b8142c07255a49b3bb985bf02829af6714f12d13c3f7a1db",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "9419843ab43484c5377b163ea7ec82429186010da9b1315843b47b230cf7b11e",
-    "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875"
+    "apps/shared/product.ts": "e8df0c67ebafaf4b8d52eea8e54a7bf49c9ae90bc162dde889c331593bc2925c",
+    "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875",
+    "apps/worker/src/receipt-test.ts": "5aeaa1db3ec089357344da4373bb28b506452b86cc1e15a45a2ce052b2d235f6",
+    "scripts/build.mjs": "4c32d1cf848c161058056c1f4d26036f4fa0efbfe213713489309ad52cf29d72"
   },
   "gates": {
     "provider": "#94",
@@ -178,5 +180,19 @@
     "enablesFileOrFinancialOperations": false
   },
   "acceptancePacket": "docs/implementation/M04-G06-files.md",
-  "readbackUtility": "scripts/receipt-provider-acceptance.mjs"
+  "readbackUtility": "scripts/receipt-provider-acceptance.mjs",
+  "clientFileExperiment": {
+    "entry": "apps/worker/src/receipt-test.ts",
+    "artifact": "dist/receipt-test-worker.js",
+    "maximumSessionMinutes": 60,
+    "capabilities": [
+      "ingest_receipt_files",
+      "read_receipt_file"
+    ],
+    "financialWrites": false,
+    "providerFileWrites": false,
+    "reviewHostVerified": false,
+    "normalProductEnvActivation": false,
+    "liveEvidence": null
+  }
 }

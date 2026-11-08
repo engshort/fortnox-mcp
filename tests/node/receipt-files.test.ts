@@ -3,6 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { sqliteReceiptFiles } from "../../apps/node/src/receipt-storage.js";
+import { productFileTestContract } from "../shared/product-file-test.js";
 import { receiptBatchesContract } from "../shared/receipt-batches.js";
 import { receiptFilesContract } from "../shared/receipt-files.js";
 import { receiptProviderContract } from "../shared/receipt-provider.js";
@@ -30,6 +31,9 @@ async function receiptFixture() {
       ),
     );
   return {
+    database: db,
+    origin: "https://product.example.invalid",
+    secret: "synthetic-auth-secret-at-least-32-characters",
     state: sqliteState(db),
     files: sqliteReceiptFiles(db),
     raw: async () =>
@@ -47,3 +51,7 @@ receiptProviderContract(receiptFixture);
 receiptWorkflowContract(receiptFixture);
 
 receiptRelayContract(receiptFixture);
+productFileTestContract(async () => {
+  const f = await receiptFixture();
+  return { ...f, receiptFiles: f.files };
+});

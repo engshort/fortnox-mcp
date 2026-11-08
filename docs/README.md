@@ -2,6 +2,8 @@
 
 Milestone 4: [receipt implementation/evidence](implementation/M04-receipts-evidence.md) and [Swedish receipt guide](users/kvitton.sv.md). In progress; file and financial activation gates remain closed.
 
+Actual M14 client preparation uses a [separate bounded file-test build](implementation/M04-client-file-test.md), with original-byte staging/readback only and no provider or financial writes.
+
 G08 preparation: [recovery scenario matrix, read-only status check and pending actual test session](implementation/M04-G08-recovery.md).
 
 File-specific G06: [exact operations, fresh test consent, original-byte readback check and pending provider cases](implementation/M04-G06-files.md).
