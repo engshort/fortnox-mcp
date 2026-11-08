@@ -1,5 +1,10 @@
 # Linux deployment: Docker first
 
+The owner [accepted the delivered MVP and authorized a bounded prerelease](implementation/M05-release-authorization-2026-11-09.md)
+on 2026-11-09. Release source is version-tagged; build the Docker image locally
+using the commands below. Remaining actual test cases and operation gates are
+documented separately from owner acceptance.
+
 Milestone 5 delivers a single Node application behind the operator's existing
 Nginx. There is no second Docker-specific MCP implementation. The image starts
 `dist/product-node.js`, uses SQLite and carries the reviewed SQL migrations.

@@ -48,6 +48,12 @@ documentation only in the [Linux deployment guide](../deployment-linux.md).
 
 ## Acceptance tracking
 
+The owner [accepted the delivered MVP and authorized a bounded prerelease](M05-release-authorization-2026-11-09.md)
+on 2026-11-09, conditional on green CI. #108 has since merged; the remaining stack
+is consolidated in #114 against main. The draft-PR statements below describe the
+earlier review snapshot. The new source-packet CI prepares immutable artifacts
+from the tagged commit; publication follows separate maintainer verification.
+
 The [actual session matrix](M05-actual-acceptance.md) records remaining operator,
 ChatGPT, provider and private-reporting evidence. A separate Node-only direct-file
 acceptance artifact is built explicitly; the normal image contains no such entry.

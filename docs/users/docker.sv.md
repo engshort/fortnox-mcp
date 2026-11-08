@@ -1,5 +1,10 @@
 # Docker-installation och drift
 
+Ägaren godkände den levererade MVP:n och publicering efter grön CI den 9 november
+2026. Publiceringen gäller en GitHub-prerelease med källkod och Docker-bygge lokalt.
+Se [acceptansbeslutet](../implementation/M05-release-authorization-2026-11-09.md).
+De tekniska prov som återstår beskrivs nedan; funktionsspärrarna behålls.
+
 Milstolpe 5 byggs för Linux med Docker Compose bakom en befintlig Nginx.
 Slutlig klient-/Fortnox-acceptans återstår; använd inga produktionskonton.
 Det syntetiska Docker-/HTTPS-provet med omstart, backup och återställning klarades

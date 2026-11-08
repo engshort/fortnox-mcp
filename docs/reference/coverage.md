@@ -1,5 +1,9 @@
 # API coverage plan
 
+The [owner's 2026-11-09 MVP acceptance and release authorization](../implementation/M05-release-authorization-2026-11-09.md)
+permits a bounded prerelease after green CI. This decision changes no operation
+classification or default activation gate; actual scenario evidence remains scoped.
+
 M05 adds protected Hono/React owner setup, write-only encrypted Fortnox settings,
 Swedish/English guidance and company policy/status management. This adds no
 provider operation or support claim. Node/workerd authorization regressions and

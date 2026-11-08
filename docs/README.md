@@ -3,6 +3,8 @@
 Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
 [English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
 and [pending actual acceptance](implementation/M05-actual-acceptance.md).
+The [owner's 2026-11-09 acceptance and publication authorization](implementation/M05-release-authorization-2026-11-09.md)
+covers the bounded prerelease; individual test observations retain their scope.
 The [dated local Chrome lifecycle report](implementation/M05-client-lifecycle-2026-11-08.md)
 separates observed reads/reconnection and persisted OAuth rotation from remaining
 old-token, UI/file and recovery acceptance.

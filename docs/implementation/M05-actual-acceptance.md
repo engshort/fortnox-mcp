@@ -1,4 +1,9 @@
-# M05 actual acceptance session — pending
+# M05 actual acceptance observations and remaining scenarios
+
+Owner acceptance was approved on 2026-11-09, together with conditional merge and
+publication authorization. See the [recorded decision and release scope](M05-release-authorization-2026-11-09.md).
+The scenario states below describe actual evidence; unperformed tests remain
+pending and operation activation gates stay unchanged.
 
 Scope: #42, #54, #72–#78; applicable evidence from #32/#33, #55–#62,
 #75/#76, #92–#94 and #38. Implementation, local checks and code merge do not

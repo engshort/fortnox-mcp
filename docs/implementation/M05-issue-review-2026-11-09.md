@@ -1,5 +1,9 @@
 # M05 issue review — 2026-11-09
 
+This is the issue-review snapshot before the owner's subsequent acceptance and
+merge/publication authorization. See the [later decision](M05-release-authorization-2026-11-09.md)
+for consolidation in #114; the remaining technical test criteria below are preserved.
+
 Scope: all seven issues in **5 · Första installerbara MVP:n** (GitHub milestone 7),
 all 24 MVP delivery items, reused gates, affected parent scopes and the two deferred
 distribution steps: **51 issues**. Unrelated sales/payroll/future-module and tool
