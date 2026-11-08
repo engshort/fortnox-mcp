@@ -19,6 +19,8 @@ import {
   receiptSourceSettings,
 } from "@fortnox-mcp/files";
 import {
+  diagnoseConnection,
+  diagnosisInput,
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
@@ -279,6 +281,7 @@ export function createProductApplication(
       connections,
       provider,
       testMode: settings.testMode,
+      diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
@@ -455,6 +458,29 @@ export function createProductApplication(
               input.reference,
             );
             return safeResponse('{"ok":true}');
+          }
+          if (url.pathname === "/admin/fortnox/diagnose") {
+            const input = diagnosisInput.parse(body);
+            return safeResponse(
+              JSON.stringify(
+                await diagnoseConnection(
+                  {
+                    owner: session.user.id,
+                    connections,
+                    provider,
+                    testMode: settings.testMode,
+                    authorize: async (id) => {
+                      const company = (
+                        await connections.list(session.user.id)
+                      ).find((c) => c.id === id);
+                      if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+                      return company;
+                    },
+                  },
+                  input.company_id,
+                ),
+              ),
+            );
           }
           if (url.pathname === "/admin/fortnox/start") {
             if (!settings.testMode)

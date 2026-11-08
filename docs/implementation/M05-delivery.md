@@ -78,3 +78,16 @@ Workerd parity suite: 55 passed. Docker CI run
 [42517870927](https://github.com/engshort/fortnox-mcp/actions/runs/42517870927)
 passed the real image + Nginx HTTPS smoke test on 2026-11-08; the current local
 Docker permission limitation does not prevent isolated CI verification.
+
+## 4. Connection diagnosis (#73)
+
+`diagnose_connection` and the protected owner action share a bounded service.
+It uses the existing company/grant authorization, token lifecycle and durable
+provider budget, with a second authorization check after I/O. Fixed status/reason
+codes separate disconnect, scope, upstream failure, unknown rights/license,
+not-implemented payroll and blocked verification. A successful profile check
+never enables financial or file writes. No raw payload/name/token leaves this
+result. The separate fixed M14 experiment catalog is unchanged.
+Shared synthetic cases cover foreign company denial before I/O, local scope/gate
+checks, durable budget use, redaction, 403 unknown classification and late-response
+disconnect. This establishes no live provider/ChatGPT acceptance.

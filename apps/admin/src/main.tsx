@@ -1,3 +1,4 @@
+import type { ConnectionDiagnosis } from "@fortnox-mcp/fortnox";
 import {
   type FormEvent,
   type ReactNode,
@@ -39,6 +40,69 @@ function Message({ children }: { children: ReactNode }) {
     <p className="status" role="status" aria-live="polite">
       {children}
     </p>
+  );
+}
+function Diagnosis({ company, t }: { company: string; t: Translate }) {
+  const [result, setResult] = useState<ConnectionDiagnosis | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const labels: Record<string, string> = {
+    available: t("Avgränsad läsning fungerar", "Bounded read available"),
+    disconnected: t(
+      "Anslutningen behöver återanslutas",
+      "Reconnect the connection",
+    ),
+    missing_permission: t("Nödvändig scope saknas", "Required scope missing"),
+    upstream_error: t("Fortnox kunde inte nås", "Provider unavailable"),
+    verification_blocked: t("Verifiering återstår", "Verification pending"),
+    not_implemented: t("Inte implementerad", "Not implemented"),
+    unknown: t(
+      "Behörighets- eller licensorsak okänd",
+      "Permission or license cause unknown",
+    ),
+  };
+  return (
+    <div className="separated">
+      <button
+        type="button"
+        className="secondary"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError("");
+          try {
+            setResult(
+              await api<ConnectionDiagnosis>("/admin/fortnox/diagnose", {
+                company_id: company,
+              }),
+            );
+          } catch {
+            setError(
+              t("Diagnostiken kunde inte slutföras.", "Diagnosis failed."),
+            );
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {t("Kontrollera anslutning", "Check connection")}
+      </button>
+      <Message>{error || (result ? labels[result.status] : "")}</Message>
+      {result && (
+        <>
+          <p>
+            {result.reason} · {result.correlation_id}
+          </p>
+          <ul>
+            {result.capabilities.map((c) => (
+              <li key={c.id}>
+                {c.id}: {labels[c.status]}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 function Login({
@@ -306,6 +370,7 @@ function Companies({
           <p>
             {c.state} · {c.mode}
           </p>
+          <Diagnosis company={c.company_id} t={t} />
           {c.state === "active" ? (
             <>
               <form onSubmit={(e) => policy(e, c)}>

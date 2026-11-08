@@ -9,6 +9,9 @@ import {
 } from "@fortnox-mcp/core";
 import {
   companyInformation,
+  diagnoseConnection,
+  diagnosisInput,
+  diagnosisOutput,
   type FortnoxConnections,
   FortnoxHttp,
   ProviderError,
@@ -101,6 +104,7 @@ export function companyServer(context: {
   connections: Connections;
   provider: FortnoxConnections;
   testMode: boolean;
+  diagnostics?: boolean;
   bookkeeping?: Bookkeeping;
   receiptFiles?: ReceiptFiles;
   receipts?: Receipts;
@@ -245,6 +249,36 @@ export function companyServer(context: {
         };
       }),
   );
+  if (context.diagnostics !== false)
+    server.registerTool(
+      "diagnose_connection",
+      {
+        ...common,
+        title: "Diagnose an authorized company connection",
+        description:
+          "Bounded read-only diagnosis. Unknown permission/license causes remain unknown. No activation or write.",
+        inputSchema: diagnosisInput,
+        outputSchema: z.union([diagnosisOutput, errorOutput]),
+      },
+      (input) =>
+        reply(z.union([diagnosisOutput, errorOutput]), async () => {
+          const who = identity();
+          return diagnoseConnection(
+            {
+              ...context,
+              owner: who.ownerId,
+              authorize: (id) =>
+                context.connections.authorize(
+                  who.ownerId,
+                  who.clientId,
+                  id,
+                  false,
+                ),
+            },
+            input.company_id,
+          );
+        }),
+    );
   if (context.testMode)
     server.registerTool(
       "get_company_profile",

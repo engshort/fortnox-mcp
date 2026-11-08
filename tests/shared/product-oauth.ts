@@ -198,6 +198,7 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     expect(claims.scopes).not.toContain("mcp:write");
     for (const path of [
       "/admin/fortnox/configuration",
+      "/admin/fortnox/diagnose",
       "/admin/fortnox/policy",
       "/admin/fortnox/attest-reference",
     ]) {

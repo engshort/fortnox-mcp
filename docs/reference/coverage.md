@@ -193,3 +193,7 @@ and MCP grants never widen automatically. The flag enables no operation. Shared
 Node/workerd consent/lifecycle tests and bounded-byte reader tests preserve all
 four `implemented_unverified`/unsupported/default-off statuses and missing actual
 scope/license/rights/format/post-link/client evidence.
+
+M05 connection diagnosis reuses the existing Company Information read in the
+explicit test environment. Status/permission/upstream/implementation/verification
+codes are implemented; this is no additional verified provider-operation claim.

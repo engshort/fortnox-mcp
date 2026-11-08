@@ -61,3 +61,8 @@ koppla från eller återansluta. En policyändring aktiverar ingen funktion och
 godkänner ingen verifikation. Nya företag kräver ett nytt klientgodkännande.
 Under **ChatGPT** finns installationsadressen och instruktionerna. **Status**
 visar de faktiska spärrarna. **English** växlar språk. Ingen modellnyckel krävs.
+
+Under **Företag → Kontrollera anslutning** visas diagnostik med korrelations-ID.
+Saknad scope skiljs från frånkoppling och tillfälliga upstreamfel. Om Fortnox inte
+anger en säker orsak visas behörighet/licens som okänd. Ett lyckat läsprov
+aktiverar ingen bokföring, filoperation eller granskningsfunktion.

@@ -24,7 +24,7 @@
     "apps/node/src/product-main.ts": "14c9994c42cb9e1a805183c72aa6daf2ce16ae61798bc8581ed7f3569533d216",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "327ac1795a5d4fe8740cf43699e617a4c1c713f349e38a87d4ddea13d4e64dc8",
+    "apps/shared/product.ts": "ea21a57815b4873b3371c4102be688eff5f9519a0dfa7853e69c03bfbf46222a",
     "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875",
     "apps/worker/src/receipt-test.ts": "18a078cd5741e78e9a8420e32adb5332f27e43fba48f411ead2460ea442f6f91",
     "scripts/build.mjs": "17b9a0a844be8236d7c785ad93a4e664ca018a637405762bc15209bb527f049d",
