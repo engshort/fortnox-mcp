@@ -29,6 +29,22 @@ session survived SIGTERM/restart while bootstrap replay remained denied.
 No Fortnox or actual client request occurred. Full aggregate checks and image
 acceptance are recorded with the later delivery parts.
 
+## 2. Docker and Nginx (#72, #77, #78)
+
+Multi-stage packaging, non-root UID, private named-volume state, file-mounted
+secrets, bounded logs/resources and an Nginx example are implemented. Docker
+builds accept an explicit source revision without including Git metadata.
+The dedicated CI builds the image and verifies real synthetic HTTPS/proxy,
+bootstrap, OAuth metadata, private MCP denial, SIGTERM and persistent recreation.
+
+The local Docker client is installed, but the current OS identity cannot access
+the daemon even outside the execution sandbox. No local Docker image/Compose run
+is claimed. The initializer's private-file/non-overwrite behavior is tested
+separately in Node. CI and actual operator-host evidence must be recorded.
+
+The first supported platform target is Linux amd64. Systemd and APT remain
+documentation only in the [Linux deployment guide](../deployment-linux.md).
+
 ## Acceptance tracking
 
 Implementation and actual acceptance are separate. Do not close #42/#77/#78 or

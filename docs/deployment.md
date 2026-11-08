@@ -1,6 +1,6 @@
 # Deployment and owner setup
 
-The owner selected Node/Docker behind an existing Nginx for milestone 5.
+The owner selected [Node/Docker behind an existing Nginx](deployment-linux.md) for milestone 5.
 The [delivery record](implementation/M05-delivery.md) distinguishes implemented
 runtime work from pending Docker, client, provider and release acceptance.
 The Cloudflare infrastructure test below retains its original limited scope.

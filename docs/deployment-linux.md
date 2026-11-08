@@ -1,0 +1,82 @@
+# Linux deployment: Docker first
+
+Milestone 5 delivers a single Node application behind the operator's existing
+Nginx. There is no second Docker-specific MCP implementation. The image starts
+`dist/product-node.js`, uses SQLite and carries the reviewed SQL migrations.
+Actual Docker/client/provider acceptance is tracked in [M05 evidence](implementation/M05-delivery.md).
+
+## Installation
+
+Prerequisites: Linux amd64, Docker Engine/Compose, Git, a public HTTPS domain,
+and an existing Nginx/certificate managed by the operator. No model API key.
+Start from a reviewed clean Git revision. From the repository root:
+
+```sh
+export SOURCE_COMMIT=$(git rev-parse HEAD)
+docker build -f deploy/docker/Dockerfile --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t fortnox-mcp:local .
+mkdir -m 700 deploy/docker/.private
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/deploy/docker/.private:/output" fortnox-mcp:local node /app/initialize.mjs /output https://your-domain.example
+docker compose -f deploy/docker/compose.yaml up -d --no-build
+```
+
+The initializer requires an empty private directory and never replaces existing
+secrets. Its files are readable through read-only Compose secret mounts by the
+dedicated application UID 10001. The host parent directory must remain 0700;
+never copy its contents into the build context, support bundles or Git.
+
+Replace the domain/certificate paths in `deploy/nginx/fortnox-mcp.conf`, validate
+with `nginx -t`, then apply it using the existing host's administration procedure.
+The application port is published only on 127.0.0.1:3000. Do not expose it through
+another port binding or reuse proxy mode on an untrusted direct endpoint.
+The template disables request-bearing access/error logs and retries; application
+diagnostics are separate. Docker logs use bounded size rotation, not a guaranteed
+time-based retention period.
+
+Open `/setup`. Retrieve the one-time bootstrap code privately using Compose cp
+from `/data/bootstrap-code.txt`; remove the local copy after redemption. Never
+paste it into ChatGPT, a public issue or a shell command argument. The code
+expires after ten minutes; the existing owner cannot be replaced by restart.
+
+The default installation enables owner setup only. Provider operations require
+their separately verified test-company configuration and acceptance gates.
+
+## Process and data contracts
+
+`HOST`, `PORT` and `DATA_DIR` configure the process; `PRODUCT_DATABASE` can
+override the default database. Compose uses `/data/product.sqlite`. The named
+volume survives container recreation. Do not run `down --volumes` on real state.
+Keep independent protected copies of the encryption/backup keys.
+
+The application runs as non-root with read-only root filesystem, bounded temporary
+space and a 35-second container stop grace. The Node process drains requests
+before closing SQLite, with a 30-second hard deadline. Forced interruption leaves
+durable submission claims for reconciliation; it never makes a write safe to retry.
+
+The image healthcheck calls `/health` with the configured public authority.
+It does not access Fortnox. Missing configuration/migrations keep readiness failed.
+
+## Verification
+
+`node scripts/docker-smoke.mjs` builds a unique test image, initializes synthetic
+configuration and runs the actual Compose/Nginx/HTTPS chain. It verifies bootstrap,
+foreign-Origin rejection, Secure cookies, OAuth metadata, private MCP denial,
+SIGTERM and recreation with the same volume. Cleanup targets only its randomly
+named test project, volume, Nginx container and image. No Fortnox is contacted.
+The M05 Docker CI runs this command without project secrets. Read its exact-head
+result before claiming image acceptance.
+
+## Future step 3: Node with systemd (not implemented)
+
+Use the same `dist/product-node.js`, migrations, admin assets, configuration and
+Nginx boundary. Future delivery must install a compatible Node runtime, dedicated
+system user, private state/key directories, an EnvironmentFile, service lifecycle
+and upgrades. Test the same MCP/OAuth/file/recovery behavior. No service file,
+installer or systemd support claim is delivered in milestone 5.
+
+## Future step 4: APT (not implemented)
+
+Future work includes Debian metadata and dependency policy, package/service
+installation and removal semantics, migration-safe upgrades, signing-key custody
+and rotation, signed repository publication and reproducible package evidence.
+Systemd support alone is not a .deb package. No .deb, maintainer scripts or APT
+repository is created or published here.
