@@ -21,7 +21,7 @@
     "packages/files/src/relay-node.ts": "08ff01b501e873eef18d94fe70c02c22c5fe2ac8cd85cd6cfd885f5df9e4d26f",
     "packages/files/src/source.ts": "a199c6ce5cbdaecc0ad118b9e83c788aa0fad9e556ce84df265dbb89aa6a1456",
     "apps/worker/src/product.ts": "ad5a6cf004dbd937449d388118da79a32048333a6fd531d5218e55feeaffbc95",
-    "apps/node/src/product-main.ts": "db5d2be3af165444b8142c07255a49b3bb985bf02829af6714f12d13c3f7a1db",
+    "apps/node/src/product-main.ts": "09ad376141eed01f504a7a78db623301d1a8dd1da8f1cf67e54a27e50027cf5d",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
     "apps/shared/product.ts": "e8df0c67ebafaf4b8d52eea8e54a7bf49c9ae90bc162dde889c331593bc2925c",
@@ -85,7 +85,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -116,7 +116,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
