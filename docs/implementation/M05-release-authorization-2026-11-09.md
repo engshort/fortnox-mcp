@@ -18,6 +18,14 @@ must pass on the consolidated PR. After squash merge, check the resulting main
 commit again before creating the immutable prerelease tag. No rule or required
 check is bypassed.
 
+After #114 merged, all five verification workflows passed on main. A separate
+Dependabot security-update job failed because Miniflare pinned vulnerable Undici
+7.29.1 and its computed fix would downgrade the Worker toolchain. The release
+follow-up overrides that development dependency to 7.30.1 in the root and
+S00 OAuth lockfiles, and the root Cloudflare test plugin's development-only Zod
+4.6.5 copy to the existing runtime version 4.6.7. Repeat full CI and audit before tagging the corrected main;
+the failed updater remains historical evidence, not a passing check.
+
 ## Publication scope
 
 Publish **`v0.1.0-mvp.5.0` as a GitHub prerelease**, with project source, Docker

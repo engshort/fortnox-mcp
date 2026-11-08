@@ -130,7 +130,19 @@ notices when distributing artifacts. `npm sbom --sbom-format cyclonedx --omit=de
 produces the installed runtime dependency inventory; a release must attach its
 own SBOM and review transitive licenses. No package or release is published by S01.
 
-### M05 auth utility packaging correction
+## M05 dependency corrections
+
+### M05 development transport correction
+
+Root and S00 OAuth development tooling override transitive `undici` to exact
+7.30.1 (MIT), retaining registry integrity in both lockfiles. This addresses the
+advisories affecting Miniflare's 7.29.1 pin without downgrading the pinned
+Miniflare/Worker toolchain. Undici is development-only and absent from the bundled
+runtime SBOM; Node/workerd, browser and Docker CI must verify compatibility.
+The root Cloudflare test plugin also uses the existing exact Zod 4.6.7 pin (MIT),
+replacing its vulnerable development-only 4.6.5 copy. Runtime Zod is unchanged.
+
+### Auth utility notice
 
 The root installation overrides `@better-auth/utils` to exact 0.5.1, whose npm
 archive includes its MIT license text. Better Auth 1.7.10 otherwise also pins a
