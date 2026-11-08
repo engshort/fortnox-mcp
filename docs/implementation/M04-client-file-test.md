@@ -33,8 +33,9 @@ empty origins or missing helper credentials still prevent source access.
 `/health` exposes only fixed experiment metadata: type, compiled source commit,
 deadline, active state and the three false financial/provider-write/review-host
 flags. It exposes no identity, tenant, credential, source URL or stored file.
-The active MCP catalog adds exactly `ingest_receipt_files` and `read_receipt_file`
-to the three company reads (list, profile and connection status). Accounting
+The current experiment catalog adds `open_receipt_file_picker`,
+`ingest_receipt_files` and `read_receipt_file` to the three company reads
+(list, profile and connection status). Accounting
 preparation/validation tools are omitted from this experiment. Receipt-batch preparation, provider file
 upload/link and financial execution remain unavailable.
 

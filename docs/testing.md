@@ -1,5 +1,12 @@
 # Test strategy and evidence
 
+The explicit file-picker browser harness exercises optional host APIs, separate
+selection/staging, no replay after a lost answer or remount, saved references
+without source URLs, corrupt readback denial and an actual synthetic PDF-byte
+download in desktop/mobile Chromium. Its sandbox explicitly permits downloads;
+actual ChatGPT APIs/CSP/download acceptance remain separate. The product
+OAuth contract also checks picker authorization before any source access.
+
 The dedicated M14 client-file build has shared Node/workerd tests using actual
 product OAuth registration, PKCE, consent and MCP file requests for two isolated
 companies. They verify exact PNG/PDF bytes, missing scope, anonymous/foreign/admin

@@ -140,6 +140,11 @@ export class ReceiptFiles {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;
   }
+  async stagingContext(actor: AccountingActor, company: string) {
+    z.string().uuid().parse(company);
+    const c = await this.authorize(actor, company, true);
+    return { company_id: c.id, company_name: c.name };
+  }
   async ingest(actor: AccountingActor, company: string, input: unknown) {
     z.string().uuid().parse(company);
     const files = z

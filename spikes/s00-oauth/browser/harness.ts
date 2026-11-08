@@ -6,6 +6,11 @@ import { reviewSchema, reviewService } from "../src/review.js";
 import { sqliteReviewStore } from "../src/review-sqlite.js";
 import { reviewWidget } from "../src/review-widget.js";
 import {
+  filePickerHost,
+  filePickerHostCsp,
+  filePickerWidget,
+} from "./file-picker-harness.js";
+import {
   receiptHost,
   receiptHostCsp,
   receiptWidget,
@@ -155,6 +160,18 @@ const server = createServer(async (request, response) => {
     };
     if (request.method === "GET" && url.pathname === "/receipts") {
       send(receiptHost, "text/html", receiptHostCsp);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/file-picker") {
+      send(filePickerHost, "text/html", filePickerHostCsp);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/file-picker-widget") {
+      send(
+        await filePickerWidget(url.searchParams.get("mode") ?? "normal"),
+        "text/html",
+        "frame-ancestors 'self'",
+      );
       return;
     }
     if (request.method === "GET" && url.pathname === "/receipt-widget") {

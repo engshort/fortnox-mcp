@@ -31,6 +31,12 @@ needs link repair, not another voucher.
 
 ## File ingress and egress
 
+The optional [explicit host picker](../implementation/M04-file-picker-followup.md)
+obtains authorized references using feature-detected host APIs when ordinary
+message attachment mapping is unavailable. Opening/selection does not stage.
+Its separately requested staging/readback uses the same domain checks; no
+client URL, widget state or app-only visibility supplies authorization.
+
 Prefer the host's authorized file-input interface. OpenAI's file input metadata and file shapes are client-specific and must be validated against current docs/client behavior; support arrays for multiple receipts. Other clients use a separate supported adapter, not arbitrary file URLs pretending to be host uploads.
 
 Bind file references to owner, company, workflow and expiry. Verify media type using content as well as declared metadata. Enforce documented byte/page limits and reject unsupported content with a clear error. Handle password-protected or unreadable PDFs explicitly. Never execute embedded content or interpret document text as server instructions.

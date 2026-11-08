@@ -5,7 +5,7 @@
   "sourceStrategy": "Independent implementation; private provider input is documentation only, not redistributed or used for generated source.",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/receipt-files.ts": "5222a69ea830da613e836b89d33d1f9e797dc199328730b55733efd8d7297834",
+    "packages/core/src/receipt-files.ts": "f89e749cb82fb82c23c6f5e4210b18137d808e26f1666345e04457d143256dac",
     "packages/core/src/receipts.ts": "ab686a5c51eb2aa9d33111dc7d790c3a24ca4a3c8839357f72f03bbd1f16f8a4",
     "packages/core/src/receipt-provider.ts": "750bebd12e3a2c2b366fb8d5eff2019dbbde3848ba68025faa41f0bde1e1213f",
     "packages/fortnox/src/receipt-files.ts": "24b53ed679a31e8d80be5c51afa167f9109dba9add3fc92613126b31156865fe",
@@ -27,7 +27,9 @@
     "apps/shared/product.ts": "e8df0c67ebafaf4b8d52eea8e54a7bf49c9ae90bc162dde889c331593bc2925c",
     "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875",
     "apps/worker/src/receipt-test.ts": "5aeaa1db3ec089357344da4373bb28b506452b86cc1e15a45a2ce052b2d235f6",
-    "scripts/build.mjs": "4c32d1cf848c161058056c1f4d26036f4fa0efbfe213713489309ad52cf29d72"
+    "scripts/build.mjs": "4c32d1cf848c161058056c1f4d26036f4fa0efbfe213713489309ad52cf29d72",
+    "packages/mcp/src/receipt-files.ts": "f81286c1821cffcf81f4d19989fb38733ef6ece8ae7c4b840e1e7473188ca739",
+    "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873"
   },
   "gates": {
     "provider": "#94",

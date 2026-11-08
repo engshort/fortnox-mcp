@@ -4,6 +4,19 @@ Milestone 4 är under implementation. Produktens filverktyg och bokföringsflöd
 avstängda tills respektive klient- och providerprov är godkänt. Ett tidigare
 syntetiskt granskningsprov aktiverar inte bokföring.
 
+I den separata testbuilden kan `open_receipt_file_picker` öppna en filväljare för
+ett uttryckligen valt företag. Välj uppladdade filer, eller filer från datorn om
+klientens filbibliotek saknas. Urvalet lagrar inget hos installationen. Välj sedan
+**Lagra tillfälligt** först när testoperatören har förberett filtransporten.
+Om klientens filfunktioner saknas är kontrollerna avstängda.
+
+Efter lagring väljer du **Hämta och kontrollera original** och därefter
+**Ladda ner kontrollerat original**. Vyn kontrollerar filens längd och hash före
+länken skapas, men den faktiskt nedladdade filen måste också jämföras i klientprovet.
+Omladdning skickar aldrig om lagringen. Sparade referenser ger ingen behörighet i
+sig, och ett misslyckat eller saknat svar räknas inte som ett godkänt prov.
+Denna nya vy väntar på faktisk klientacceptans; bokföring och Fortnox-filer är avstängda.
+
 I det avsedda flödet väljer du företag uttryckligen och bifogar upp till två filer
 i klienten. Stödet börjar med PNG, JPEG och vanliga okrypterade PDF-filer utan
 komprimerade objekt: högst 1 MiB per fil, två miljoner bildpunkter och tio PDF-sidor.

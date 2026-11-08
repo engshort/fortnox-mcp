@@ -6,6 +6,12 @@ company reads only. It is not ordinary product activation or provider support;
 actual client-file evidence remains pending and the four file-provider operations
 remain unverified/default-off. Existing OAuth grants are never widened.
 
+The [explicit host-picker follow-up](../implementation/M04-file-picker-followup.md)
+records the actual client's pre-call refusal and adds a company-authorized optional
+picker using host file APIs. The new experiment catalog contains six tools;
+ordinary product files remain off. Neither synthetic browser download checks nor
+the earlier internal PDF preview establish actual product file acceptance.
+
 Milestone 3 implements bounded reference transport, exact voucher validation,
 encrypted proposals, durable execution and an MCP Apps view. [Evidence](../implementation/M03-accounting-evidence.md)
 and the [accounting ledger](mvp-accounting-operations.json) separate synthetic

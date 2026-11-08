@@ -7,6 +7,7 @@ import {
   type ReceiptFiles,
   receiptFileReference,
 } from "@fortnox-mcp/core";
+import { receiptPickerHtml } from "@fortnox-mcp/ui";
 import { type McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
@@ -48,6 +49,71 @@ export function registerReceiptFiles(
   };
   const uriFor = (company: string, workflow: string, file: string) =>
     `receipt://files/${company}/${workflow}/${file}`;
+  const pickerUri = "ui://fortnox/receipt-file-picker-v1.html";
+  server.registerResource(
+    "receipt-file-picker",
+    pickerUri,
+    { mimeType: "text/html;profile=mcp-app" },
+    async () => {
+      actor();
+      return {
+        contents: [
+          {
+            uri: pickerUri,
+            mimeType: "text/html;profile=mcp-app",
+            text: await receiptPickerHtml(),
+            _meta: {
+              ui: {
+                csp: { connectDomains: [], resourceDomains: [] },
+                prefersBorder: true,
+              },
+            },
+          },
+        ],
+      };
+    },
+  );
+  server.registerTool(
+    "open_receipt_file_picker",
+    {
+      title: "Open a company-bound receipt file picker",
+      description:
+        "Open an optional host file picker for an explicitly authorized company. Selecting files does not stage them; the user separately requests encrypted temporary staging. No bookkeeping or Fortnox file operation.",
+      inputSchema: z.object({ company_id: z.string().uuid() }).strict(),
+      outputSchema: z
+        .object({
+          file_picker: z.literal(true),
+          company_id: z.string().uuid(),
+          company_name: z.string().max(500),
+        })
+        .strict(),
+      annotations,
+      _meta: { securitySchemes, ui: { resourceUri: pickerUri } },
+    },
+    async (input) => {
+      try {
+        const data = {
+          file_picker: true as const,
+          ...(await files.stagingContext(actor(), input.company_id)),
+        };
+        return {
+          structuredContent: data,
+          content: [{ type: "text" as const, text: JSON.stringify(data) }],
+        };
+      } catch (cause) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text:
+                cause instanceof DomainError ? cause.code : "FILE_UNAVAILABLE",
+            },
+          ],
+        };
+      }
+    },
+  );
   server.registerTool(
     "ingest_receipt_files",
     {

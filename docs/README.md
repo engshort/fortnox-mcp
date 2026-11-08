@@ -4,6 +4,10 @@ Milestone 4: [receipt implementation/evidence](implementation/M04-receipts-evide
 
 Actual M14 client preparation uses a [separate bounded file-test build](implementation/M04-client-file-test.md), with original-byte staging/readback only and no provider or financial writes.
 
+The [actual file-input attempt and explicit host-picker follow-up](implementation/M04-file-picker-followup.md)
+record the client's pre-call refusal, restored disabled installation and pending
+acceptance of the optional picker.
+
 G08 preparation: [recovery scenario matrix, read-only status check and pending actual test session](implementation/M04-G08-recovery.md).
 
 File-specific G06: [exact operations, fresh test consent, original-byte readback check and pending provider cases](implementation/M04-G06-files.md).

@@ -79,6 +79,7 @@ test("built M14 experiment exposes only staging/readback and keeps expired admin
     "get_connection_status",
     "ingest_receipt_files",
     "list_companies",
+    "open_receipt_file_picker",
     "read_receipt_file",
   ]);
   assert.ok(names.includes("ingest_receipt_files"));

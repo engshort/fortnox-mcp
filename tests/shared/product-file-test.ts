@@ -205,7 +205,13 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
     );
     const [a, b] = companies;
     if (!a || !b) throw new Error("Missing synthetic companies");
-    return { client, companies: [a, b] as const, cookie, access_token };
+    return {
+      client,
+      companies: [a, b] as const,
+      cookie,
+      access_token,
+      ownerId: owner.response.user.id,
+    };
   }
   const files = ["a", "b"].map((file_id) => ({
     file_id,
@@ -248,6 +254,7 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
         "get_connection_status",
         "ingest_receipt_files",
         "list_companies",
+        "open_receipt_file_picker",
         "read_receipt_file",
       ]);
       expect(names).toContain("ingest_receipt_files");
@@ -356,6 +363,72 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
       });
     } finally {
       await client.close();
+    }
+  });
+  it("authorizes the file picker without source access and denies foreign, narrow-scope and read-only contexts", async () => {
+    const f = await setup();
+    const { client, companies, ownerId } = await authorize(
+      f,
+      "mcp:read mcp:files offline_access",
+    );
+    try {
+      const result = await client.callTool({
+        name: "open_receipt_file_picker",
+        arguments: { company_id: companies[0].id },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(result.structuredContent).toMatchObject({
+        file_picker: true,
+        company_id: companies[0].id,
+      });
+      const html = await client.readResource({
+        uri: "ui://fortnox/receipt-file-picker-v1.html",
+      });
+      expect(html.contents[0]).toMatchObject({
+        mimeType: "text/html;profile=mcp-app",
+      });
+      const foreign = await client.callTool({
+        name: "open_receipt_file_picker",
+        arguments: { company_id: "00000000-0000-4000-8000-000000000000" },
+      });
+      expect(foreign.isError).toBe(true);
+      const current = (await f.app.connections.list(ownerId)).find(
+        (c) => c.id === companies[0].id,
+      );
+      if (!current) throw new Error("Missing authorized company");
+      await f.app.connections.setAccountingPolicy(
+        ownerId,
+        companies[0].id,
+        current.policyVersion,
+        "review_required",
+        true,
+      );
+      expect(
+        (
+          await client.callTool({
+            name: "open_receipt_file_picker",
+            arguments: { company_id: companies[0].id },
+          })
+        ).isError,
+      ).toBe(true);
+      expect(f.calls()).toBe(0);
+    } finally {
+      await client.close();
+    }
+    const narrow = await setup();
+    const n = await authorize(narrow, "mcp:read offline_access");
+    try {
+      expect(
+        (
+          await n.client.callTool({
+            name: "open_receipt_file_picker",
+            arguments: { company_id: n.companies[0].id },
+          })
+        ).isError,
+      ).toBe(true);
+      expect(narrow.calls()).toBe(0);
+    } finally {
+      await n.client.close();
     }
   });
   it("does not broaden a read-only OAuth grant and leaves administration available after experiment expiry", async () => {
