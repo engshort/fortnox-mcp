@@ -31,12 +31,17 @@
     "test:clients": "node scripts/acceptance.mjs clients",
     "test:accounting": "node scripts/accounting-acceptance.mjs reads",
     "test:accounting:record": "node scripts/accounting-acceptance.mjs record",
+    "test:receipts:status": "node scripts/receipt-recovery-acceptance.mjs status",
+    "test:receipts:record": "node scripts/receipt-recovery-acceptance.mjs record",
+    "test:receipts:attachments": "node scripts/receipt-provider-acceptance.mjs",
     "build": "node scripts/build.mjs",
     "test:build": "node --disallow-code-generation-from-strings --test tests/build.test.mjs && node --test tests/product-worker-native.test.mjs",
     "dev:product": "node --env-file-if-exists=.env --import tsx apps/node/src/product-main.ts",
+    "dev:receipt-relay": "node --import tsx scripts/serve-receipt-relay.ts",
     "dev:product:worker": "wrangler dev --config apps/worker/wrangler.product.jsonc --local --ip 127.0.0.1",
     "prepare:product:bootstrap": "node scripts/product-bootstrap.mjs",
-    "prepare:product:recovery": "node --env-file-if-exists=.env --import tsx scripts/product-recovery.ts"
+    "prepare:product:recovery": "node --env-file-if-exists=.env --import tsx scripts/product-recovery.ts",
+    "prepare:receipt-relay": "node --env-file-if-exists=.env --import tsx scripts/prepare-receipt-relay.ts"
   },
   "cloudflare": {
     "bindings": {
@@ -67,6 +72,7 @@
     "better-auth": "1.7.10",
     "better-call": "1.4.2",
     "oauth4webapi": "3.8.8",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@hono/node-server": "2.1.5"
   }
 }

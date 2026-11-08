@@ -51,6 +51,12 @@ export const providerOperations = {
     scope: "project",
     effect: "read",
   },
+  voucher_file_connection: {
+    method: "GET",
+    path: "/3/voucherfileconnections",
+    scope: "connectfile",
+    effect: "read",
+  },
   voucher: {
     method: "GET",
     path: "/3/vouchers",
@@ -61,6 +67,7 @@ export const providerOperations = {
 export type ProviderOperation = keyof typeof providerOperations;
 export interface ProviderReadParameters {
   accountNumber?: number;
+  fileId?: string;
   financialYear?: number;
   page?: number;
   voucher?: { series: string; number: number };
@@ -187,6 +194,10 @@ export class FortnoxHttp {
       const params = z
         .object({
           financialYear: z.number().int().positive().safe().optional(),
+          fileId: z
+            .string()
+            .regex(/^[A-Za-z0-9_-]{1,128}$/)
+            .optional(),
           accountNumber: z.number().int().min(1000).max(9999).optional(),
           page: z.number().int().min(1).max(10000).optional(),
           voucher: z
@@ -199,6 +210,10 @@ export class FortnoxHttp {
         })
         .strict()
         .parse(parameters);
+      if ((operation === "voucher_file_connection") !== Boolean(params.fileId))
+        throw new DomainError("VALIDATION_FAILED");
+      if (params.fileId && params.page !== undefined)
+        throw new DomainError("VALIDATION_FAILED");
       if ((operation === "voucher") !== Boolean(params.voucher))
         throw new DomainError("VALIDATION_FAILED");
       if (
@@ -212,6 +227,7 @@ export class FortnoxHttp {
           throw new DomainError("VALIDATION_FAILED");
         url.searchParams.set("financialyear", String(params.financialYear));
       }
+      if (params.fileId) url.pathname += `/${params.fileId}`;
       if (params.voucher)
         url.pathname += `/${params.voucher.series}/${params.voucher.number}`;
       if (params.accountNumber !== undefined)

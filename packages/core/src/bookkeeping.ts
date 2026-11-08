@@ -53,6 +53,21 @@ export type SubmitResult =
   | { state: "succeeded"; reference: VoucherReference }
   | { state: "failed"; code: string }
   | { state: "outcome_unknown"; reference?: VoucherReference };
+export const receiptProposalBinding = z
+  .object({
+    batch_id: z.string().uuid(),
+    item_id: z.string().uuid(),
+    workflow_id: z.string().uuid(),
+    file_id: z.string().uuid(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    file_expires_at: z.number().int().positive().safe(),
+  })
+  .strict();
+export type ReceiptProposalBinding = z.infer<typeof receiptProposalBinding>;
+export const voucherProposalHash = (
+  voucher: VoucherInput,
+  receipt?: ReceiptProposalBinding,
+) => accountingHash(receipt ? { voucher, receipt } : voucher);
 export interface VoucherProposal {
   id: string;
   hash: string;
@@ -62,6 +77,7 @@ export interface VoucherProposal {
   expires: number;
   reviewExpires: number;
   capabilityHash: string;
+  receipt?: ReceiptProposalBinding;
   body: Ciphertext;
 }
 export interface VoucherExecution {
@@ -73,9 +89,16 @@ export interface VoucherExecution {
   created: number;
   state: "submitting" | "succeeded" | "failed" | "outcome_unknown";
   dispatched: boolean;
+  receipt?: ReceiptProposalBinding;
   reference?: VoucherReference;
+  attachmentComplete?: boolean;
   code?: string;
 }
+export const retainVoucherExecution = (e: VoucherExecution, now: number) =>
+  e.state === "submitting" ||
+  e.state === "outcome_unknown" ||
+  (Boolean(e.receipt) && e.state === "succeeded" && !e.attachmentComplete) ||
+  e.created > now - 2592000000;
 export interface BookkeepingState {
   proposals: VoucherProposal[];
   executions: VoucherExecution[];
@@ -167,7 +190,10 @@ export class Bookkeeping {
   private binding(
     owner: string,
     company: string,
-    p: Pick<VoucherProposal, "id" | "hash" | "generation" | "policy">,
+    p: Pick<
+      VoucherProposal,
+      "id" | "hash" | "generation" | "policy" | "receipt"
+    >,
   ) {
     return JSON.stringify([
       owner,
@@ -177,6 +203,7 @@ export class Bookkeeping {
       p.hash,
       p.generation,
       p.policy,
+      ...(p.receipt ? [p.receipt] : []),
     ]);
   }
   private check(
@@ -195,7 +222,12 @@ export class Bookkeeping {
     )
       throw new DomainError("INTENT_CONFLICT");
   }
-  async prepare(actor: AccountingActor, input: unknown) {
+  async prepare(
+    actor: AccountingActor,
+    input: unknown,
+    receipt?: ReceiptProposalBinding,
+  ) {
+    if (receipt) receipt = receiptProposalBinding.parse(receipt);
     const value = voucherInput.parse(input);
     const c = await this.authorize(actor, value.company_id);
     if (!actor.scopes.includes("mcp:write"))
@@ -208,7 +240,7 @@ export class Bookkeeping {
       ]),
       this.now(),
     );
-    const hash = await accountingHash(validated.voucher);
+    const hash = await voucherProposalHash(validated.voucher, receipt);
     const capability = btoa(
       String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))),
     )
@@ -217,12 +249,19 @@ export class Bookkeeping {
       .replaceAll("=", "");
     const p: VoucherProposal = {
       id: crypto.randomUUID(),
+      ...(receipt ? { receipt } : {}),
       hash,
       client: actor.clientId,
       generation: c.generation,
       policy: c.policyVersion,
-      expires: this.now() + 86400000,
-      reviewExpires: this.now() + 900000,
+      expires: Math.min(
+        this.now() + 86400000,
+        receipt?.file_expires_at ?? Number.MAX_SAFE_INTEGER,
+      ),
+      reviewExpires: Math.min(
+        this.now() + 900000,
+        receipt?.file_expires_at ?? Number.MAX_SAFE_INTEGER,
+      ),
       capabilityHash: await accountingHash(capability),
       body: { key: "", iv: "", data: "" },
     };
@@ -251,7 +290,7 @@ export class Bookkeeping {
           v.expires > this.now() &&
           !ledger.executions.some((e) => e.id === v.id),
       );
-      if (ledger.proposals.length >= 8)
+      if (ledger.proposals.length >= (receipt ? 12 : 8))
         throw new DomainError("CAPABILITY_UNAVAILABLE");
       ledger.proposals.push(p);
     });
@@ -289,7 +328,7 @@ export class Bookkeeping {
         this.binding(actor.ownerId, c.id, p),
       ),
     );
-    if ((await accountingHash(voucher)) !== p.hash)
+    if ((await voucherProposalHash(voucher, p.receipt)) !== p.hash)
       throw new DomainError("INTENT_CONFLICT");
     return { c, p, voucher };
   }
@@ -319,10 +358,65 @@ export class Bookkeeping {
       code: null,
     };
   }
+  // The receipt coordinator checks this before any upload. This never records
+  // approval or permits a voucher write; commit still consumes its durable intent.
+  async assertReview(actor: AccountingActor, input: unknown) {
+    const ref = reviewCommitInput.parse(input);
+    const current = await this.proposal(actor, {
+      company_id: ref.company_id,
+      proposal_id: ref.proposal_id,
+      proposal_hash: ref.proposal_hash,
+    });
+    await this.authorize(actor, ref.company_id, true);
+    if (!this.gates.reviewHost) throw new DomainError("CLIENT_UNSUPPORTED");
+    if (
+      current.c.review !== "review_required" ||
+      current.p.reviewExpires <= this.now() ||
+      (await accountingHash(ref.capability)) !== current.p.capabilityHash
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    return current;
+  }
+  // Re-review the same still-live immutable receipt after a pre-voucher interruption.
+  // A fresh UI-only capability is not approval and cannot replace an execution.
+  async renewReceiptReview(
+    actor: AccountingActor,
+    input: ProposalReference,
+    receiptGuard: () => Promise<void>,
+  ) {
+    const { c, p } = await this.proposal(actor, input);
+    await this.authorize(actor, c.id, true);
+    if (!p.receipt || c.review !== "review_required")
+      throw new DomainError("INTENT_CONFLICT");
+    await receiptGuard();
+    const capability = btoa(
+      String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))),
+    )
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+    const hash = await accountingHash(capability);
+    await this.connections.mutate(actor.ownerId, c.id, (current) => {
+      this.check(current, p, actor, p.hash);
+      const saved = current.bookkeeping?.proposals.find((v) => v.id === p.id);
+      if (
+        current.readOnly ||
+        current.review !== "review_required" ||
+        !saved ||
+        saved.capabilityHash !== p.capabilityHash ||
+        current.bookkeeping?.executions.some((e) => e.id === p.id)
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      saved.capabilityHash = hash;
+      saved.reviewExpires = Math.min(this.now() + 900000, saved.expires);
+    });
+    return capability;
+  }
   async commit(
     actor: AccountingActor,
     input: unknown,
     mode: "review" | "client",
+    receiptGuard?: () => Promise<void>,
   ) {
     const ref =
       mode === "review"
@@ -334,15 +428,10 @@ export class Bookkeeping {
       proposal_hash: ref.proposal_hash,
     });
     await this.authorize(actor, c.id, true);
+    if (p.receipt && !receiptGuard) throw new DomainError("INTENT_CONFLICT");
+    if (p.receipt) await receiptGuard?.();
     if (mode === "review") {
-      if (!this.gates.reviewHost) throw new DomainError("CLIENT_UNSUPPORTED");
-      if (
-        c.review !== "review_required" ||
-        p.reviewExpires <= this.now() ||
-        !("capability" in ref) ||
-        (await accountingHash(ref.capability)) !== p.capabilityHash
-      )
-        throw new DomainError("INTENT_CONFLICT");
+      await this.assertReview(actor, ref);
     } else if (c.review !== "client_managed")
       throw new DomainError("CLIENT_UNSUPPORTED");
     // Current company-bound references immediately before the one durable claim.
@@ -353,6 +442,7 @@ export class Bookkeeping {
       ]),
       this.now(),
     );
+    if (p.receipt) await receiptGuard?.();
     await this.connections.mutate(actor.ownerId, c.id, (current) => {
       this.check(current, p, actor, ref.proposal_hash);
       if (mode === "review" && p.reviewExpires <= this.now())
@@ -365,6 +455,7 @@ export class Bookkeeping {
         !ledger ||
         !saved ||
         saved.hash !== p.hash ||
+        saved.capabilityHash !== p.capabilityHash ||
         ledger.executions.some((e) => e.id === p.id)
       )
         throw new DomainError("INTENT_CONFLICT");
@@ -377,16 +468,14 @@ export class Bookkeeping {
       )
         throw new DomainError("OUTCOME_UNKNOWN");
       // Never evict unknown outcomes to make room for new work.
-      ledger.executions = ledger.executions.filter(
-        (e) =>
-          e.state === "outcome_unknown" ||
-          e.state === "submitting" ||
-          e.created > this.now() - 2592000000,
+      ledger.executions = ledger.executions.filter((e) =>
+        retainVoucherExecution(e, this.now()),
       );
       if (ledger.executions.length >= 32)
         throw new DomainError("CAPABILITY_UNAVAILABLE");
       ledger.executions.push({
         id: p.id,
+        ...(p.receipt ? { receipt: p.receipt } : {}),
         hash: p.hash,
         generation: p.generation,
         policy: p.policy,
@@ -400,6 +489,7 @@ export class Bookkeeping {
     try {
       result = await this.provider.submit(actor, voucher, async () => {
         await this.authorize(actor, c.id, true);
+        if (p.receipt) await receiptGuard?.();
         await this.connections.mutate(actor.ownerId, c.id, (current) => {
           this.check(current, p, actor, p.hash);
           if (mode === "review" && p.reviewExpires <= this.now())
@@ -421,7 +511,12 @@ export class Bookkeeping {
         const trusted = result.reference;
         try {
           const actual = await this.provider.read(actor, c.id, trusted);
-          if ((await accountingHash(voucherInput.parse(actual))) !== p.hash)
+          if (
+            (await voucherProposalHash(
+              voucherInput.parse(actual),
+              p.receipt,
+            )) !== p.hash
+          )
             result = { state: "outcome_unknown", reference: trusted };
         } catch {
           result = { state: "outcome_unknown", reference: trusted };
@@ -475,7 +570,7 @@ export class Bookkeeping {
     const actual = voucherInput.parse(
       await this.provider.read(actor, c.id, e.reference),
     );
-    const matches = (await accountingHash(actual)) === e.hash;
+    const matches = (await voucherProposalHash(actual, e.receipt)) === e.hash;
     if (
       matches &&
       (e.state === "outcome_unknown" || e.state === "submitting")

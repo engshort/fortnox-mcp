@@ -1,6 +1,8 @@
 import { chmod, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { receiptFileSource, receiptSourceSettings } from "@fortnox-mcp/files";
+import { nodeFileTransport } from "@fortnox-mcp/files/node";
 import { createAdaptorServer } from "@hono/node-server";
 import { cleanupProduct } from "../../shared/maintenance.js";
 import {
@@ -9,6 +11,7 @@ import {
 } from "../../shared/product.js";
 import { hashToken, type Owner } from "../../shared/product-auth.js";
 import { sqliteState } from "./product-storage.js";
+import { sqliteReceiptFiles } from "./receipt-storage.js";
 
 if (process.env.PRODUCT_ENABLED !== "true")
   throw new Error("Product disabled; see .env.example");
@@ -39,11 +42,14 @@ for (const file of (await readdir(directory))
   }
 }
 const state = sqliteState(db);
+const receiptFiles = sqliteReceiptFiles(db);
+await receiptFiles.cleanup(Date.now());
 await cleanupProduct(state);
 const cleanup = setInterval(() => {
-  void cleanupProduct(state).catch(() =>
-    console.error("product_cleanup_failed"),
-  );
+  void Promise.all([
+    cleanupProduct(state),
+    receiptFiles.cleanup(Date.now()),
+  ]).catch(() => console.error("product_cleanup_failed"));
 }, 300000);
 cleanup.unref();
 if (!(await state.get("installation", "owner"))) {
@@ -66,7 +72,16 @@ if (!(await state.get("installation", "owner"))) {
       flag: "wx",
     });
 }
-const app = createProductApplication(settings, { database: db, state });
+const app = createProductApplication(settings, {
+  database: db,
+  state,
+  receiptFiles,
+  fileSource: receiptFileSource(
+    settings.receiptSource ?? receiptSourceSettings({}, false),
+    "node",
+    nodeFileTransport,
+  ),
+});
 const port = Number(process.env.PORT ?? 8787);
 if (!Number.isInteger(port) || port < 1 || port > 65535)
   throw new Error("Invalid PORT");

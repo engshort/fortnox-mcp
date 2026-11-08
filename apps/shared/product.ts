@@ -1,15 +1,28 @@
 import {
   Bookkeeping,
+  type ClientFile,
   Connections,
   CredentialVault,
   DomainError,
   proposalReference,
+  ReceiptAttachments,
+  ReceiptFileError,
+  type ReceiptFileStore,
+  ReceiptFiles,
+  Receipts,
+  ReceiptWorkflow,
   voucherReference,
 } from "@fortnox-mcp/core";
+import {
+  fileValidator,
+  type ReceiptSourceSettings,
+  receiptSourceSettings,
+} from "@fortnox-mcp/files";
 import {
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxReceiptFiles,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -28,6 +41,35 @@ export interface ProductSettings {
   clientSecret: string;
   testTenants: string[];
   accountingReferences?: boolean;
+  receiptProviderConsent?: boolean;
+  receiptSource?: ReceiptSourceSettings;
+}
+// Supplied only by the separately built M14 experiment entry, never read from
+// normal product ENV. This permits client evidence collection, not activation.
+export interface ProductFileTest {
+  sourceCommit: string;
+  until: number;
+  now?: () => number;
+}
+export function requestedFortnoxScopes(
+  settings: Pick<
+    ProductSettings,
+    "testMode" | "accountingReferences" | "receiptProviderConsent"
+  >,
+) {
+  if (
+    settings.receiptProviderConsent &&
+    (!settings.testMode || !settings.accountingReferences)
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  return [
+    "companyinformation",
+    "profile",
+    ...(settings.accountingReferences
+      ? ["bookkeeping", "settings", "costcenter", "project"]
+      : []),
+    ...(settings.receiptProviderConsent ? ["inbox", "connectfile"] : []),
+  ];
 }
 export function productSettings(
   env: Record<string, string | undefined>,
@@ -68,6 +110,14 @@ export function productSettings(
     throw new Error(
       "Two distinct test tenants and private integration configuration required",
     );
+  const accountingReferences =
+    testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
+  const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
+  requestedFortnoxScopes({
+    testMode,
+    accountingReferences,
+    receiptProviderConsent,
+  });
   return {
     origin: origin.origin,
     secret,
@@ -78,8 +128,9 @@ export function productSettings(
     clientId: env.FORTNOX_CLIENT_ID ?? "",
     clientSecret: env.FORTNOX_CLIENT_SECRET ?? "",
     testTenants,
-    accountingReferences:
-      testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true",
+    accountingReferences,
+    receiptProviderConsent,
+    receiptSource: receiptSourceSettings(env, testMode),
   };
 }
 const escapeHtml = (s: string) =>
@@ -111,9 +162,31 @@ function connectionFailure(error: unknown, stage: string) {
 }
 export function createProductApplication(
   settings: ProductSettings,
-  runtime: Pick<AuthConfig, "database" | "state">,
+  runtime: Pick<AuthConfig, "database" | "state"> & {
+    receiptFiles?: ReceiptFileStore;
+    fileSource?: (
+      input: ClientFile,
+    ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
+  },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
+  fileTest?: ProductFileTest,
 ) {
+  const now = fileTest?.now ?? Date.now;
+  if (
+    fileTest &&
+    (!settings.testMode ||
+      new Set(settings.testTenants).size !== 2 ||
+      settings.testTenants.length !== 2 ||
+      !/^[a-f0-9]{40}$/.test(fileTest.sourceCommit) ||
+      /^0+$/.test(fileTest.sourceCommit) ||
+      !Number.isSafeInteger(fileTest.until) ||
+      fileTest.until <= 0 ||
+      fileTest.until > now() + 60 * 60_000 ||
+      !runtime.receiptFiles ||
+      !runtime.fileSource)
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const fileTestActive = () => !!fileTest && now() < fileTest.until;
   const connections = new Connections(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
@@ -123,16 +196,7 @@ export function createProductApplication(
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: settings.accountingReferences
-      ? [
-          "companyinformation",
-          "profile",
-          "bookkeeping",
-          "settings",
-          "costcenter",
-          "project",
-        ]
-      : ["companyinformation", "profile"],
+    scopes: requestedFortnoxScopes(settings),
   });
   const config = {
     ...runtime,
@@ -148,30 +212,95 @@ export function createProductApplication(
     writes: false,
     reviewHost: false,
   };
-  const bookkeeping = new Bookkeeping(
+  const accountingProvider = new FortnoxAccounting(
     connections,
-    new FortnoxAccounting(connections, provider, accountingGates),
+    provider,
     accountingGates,
   );
+  const bookkeeping = new Bookkeeping(
+    connections,
+    accountingProvider,
+    accountingGates,
+  );
+  const receiptFiles = runtime.receiptFiles
+    ? new ReceiptFiles(
+        connections,
+        runtime.receiptFiles,
+        async (input) => {
+          if (fileTest && !fileTestActive())
+            throw new ReceiptFileError("FILE_EXPIRED");
+          if (!runtime.fileSource)
+            throw new ReceiptFileError("FILE_TRANSPORT_UNAVAILABLE");
+          const result = await runtime.fileSource(input);
+          if (fileTest && !fileTestActive()) {
+            result.bytes.fill(0);
+            throw new ReceiptFileError("FILE_EXPIRED");
+          }
+          return result;
+        },
+        fileValidator,
+        // G03/#33 and product file acceptance are not established by an ENV flag.
+        !!fileTest,
+      )
+    : undefined;
+  const receipts = receiptFiles
+    ? new Receipts(bookkeeping, receiptFiles, false)
+    : undefined;
+  const receiptAttachments = receipts
+    ? new ReceiptAttachments(
+        receipts,
+        new FortnoxReceiptFiles(connections, provider, accountingProvider, {
+          upload: false,
+          link: false,
+          connectionRead: false,
+          inboxRead: false,
+          formats: [],
+          rejectedWithoutEffect: { inbox_upload: [], voucher_file_link: [] },
+        }),
+        { upload: false, link: false, retrieve: false },
+      )
+    : undefined;
+  const receiptWorkflow = receiptAttachments
+    ? new ReceiptWorkflow(receiptAttachments, false)
+    : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
       connections,
       provider,
       testMode: settings.testMode,
-      bookkeeping,
+      ...(!fileTest ? { bookkeeping } : {}),
+      ...(receiptFiles ? { receiptFiles } : {}),
+      ...(receipts ? { receipts } : {}),
+      ...(receiptAttachments ? { receiptAttachments } : {}),
+      ...(receiptWorkflow ? { receiptWorkflow } : {}),
     }),
   );
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (url.pathname === "/mcp" && fileTest && !fileTestActive())
+      return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
     if (url.pathname === "/health" && request.method === "GET")
       return safeResponse(
         JSON.stringify({
           ok: true,
           product: "experimental",
           provider: settings.testMode ? "test_only" : "disabled",
+          ...(fileTest
+            ? {
+                file_test: {
+                  kind: "m14-staging-readback",
+                  source_commit: fileTest.sourceCommit,
+                  expires_at: new Date(fileTest.until).toISOString(),
+                  active: fileTestActive(),
+                  financial_writes: false,
+                  provider_file_writes: false,
+                  review_host_verified: false,
+                },
+              }
+            : {}),
         }),
       );
     if (url.pathname === "/admin/connections.js" && request.method === "GET")
@@ -217,7 +346,7 @@ export function createProductApplication(
           )
           .join("");
         return safeResponse(
-          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>Testinstallation. Bokföring och filer är avstängda. Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
+          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>${fileTest ? `M14-filprov till ${escapeHtml(new Date(fileTest.until).toISOString())}. Endast tillfällig filstaging och originalhämtning kan provas. Bokföring, Fortnox-filer och granskningskörning är avstängda.` : "Testinstallation. Bokföring och filer är avstängda."} Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
           200,
           "text/html; charset=utf-8",
         );
@@ -327,10 +456,25 @@ export function createProductApplication(
     }
   }
   return {
-    fetch: fetchRequest,
+    fetch: async (request: Request) => {
+      const response = await fetchRequest(request);
+      if (
+        fileTest &&
+        new URL(request.url).pathname === "/mcp" &&
+        !fileTestActive()
+      ) {
+        await response.body?.cancel();
+        return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
+      }
+      return response;
+    },
     connections,
     provider,
     bookkeeping,
     auth: gateway.auth,
+    receiptFiles,
+    receipts,
+    receiptAttachments,
+    receiptWorkflow,
   };
 }

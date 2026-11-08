@@ -5,6 +5,16 @@ import { DatabaseSync } from "node:sqlite";
 import { reviewSchema, reviewService } from "../src/review.js";
 import { sqliteReviewStore } from "../src/review-sqlite.js";
 import { reviewWidget } from "../src/review-widget.js";
+import {
+  filePickerHost,
+  filePickerHostCsp,
+  filePickerWidget,
+} from "./file-picker-harness.js";
+import {
+  receiptHost,
+  receiptHostCsp,
+  receiptWidget,
+} from "./receipt-harness.js";
 
 const port = 8794;
 const origin = `http://127.0.0.1:${port}`;
@@ -148,6 +158,27 @@ const server = createServer(async (request, response) => {
           : String(value),
       );
     };
+    if (request.method === "GET" && url.pathname === "/receipts") {
+      send(receiptHost, "text/html", receiptHostCsp);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/file-picker") {
+      send(filePickerHost, "text/html", filePickerHostCsp);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/file-picker-widget") {
+      send(
+        await filePickerWidget(url.searchParams.get("mode") ?? "normal"),
+        "text/html",
+        "frame-ancestors 'self'",
+      );
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/receipt-widget") {
+      // The product HTML supplies its own strict hash-based meta policy.
+      send(receiptWidget, "text/html", "frame-ancestors 'self'");
+      return;
+    }
     if (request.method === "GET" && url.pathname === "/") {
       send(
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic review host</title><main></main><script type="module" src="/host.js"></script></html>',

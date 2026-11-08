@@ -1,4 +1,8 @@
-import type { ConnectionSet, StateStore } from "@fortnox-mcp/core";
+import {
+  type ConnectionSet,
+  retainVoucherExecution,
+  type StateStore,
+} from "@fortnox-mcp/core";
 import type { Owner } from "./product-auth.js";
 // Bounded operational snapshots only; financial reconciliation state is untouched.
 export async function cleanupProduct(state: StateStore, now = Date.now()) {
@@ -13,11 +17,8 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
       c.bookkeeping.proposals = c.bookkeeping.proposals.filter(
         (p) => p.expires > now,
       );
-      c.bookkeeping.executions = c.bookkeeping.executions.filter(
-        (e) =>
-          e.state === "submitting" ||
-          e.state === "outcome_unknown" ||
-          e.created > now - 2592000000,
+      c.bookkeeping.executions = c.bookkeeping.executions.filter((e) =>
+        retainVoucherExecution(e, now),
       );
     }
     if (await state.put("connections", owner, row.value, row.version)) break;

@@ -1,5 +1,53 @@
 # Test strategy and evidence
 
+The explicit file-picker browser harness exercises optional host APIs, separate
+selection/staging, no replay after a lost answer or remount, saved references
+without source URLs, corrupt readback denial and an actual synthetic PDF-byte
+download in desktop/mobile Chromium. Its sandbox explicitly permits downloads;
+actual ChatGPT APIs/CSP/download acceptance remain separate. The product
+OAuth contract also checks picker authorization before any source access.
+
+The dedicated M14 client-file build has shared Node/workerd tests using actual
+product OAuth registration, PKCE, consent and MCP file requests for two isolated
+companies. They verify exact PNG/PDF bytes, missing scope, anonymous/foreign/admin
+token denial, a one-hour maximum lease and late-byte disposal. A built-artifact
+case checks the dedicated entry, fixed metadata/catalog and continued login/reset
+after expiry. None of these local cases establishes actual ChatGPT transfer or
+Fortnox provider acceptance; see the [experiment procedure](implementation/M04-client-file-test.md).
+
+The M14 product relay follow-up adds shared Node/actual-workerd cases for two
+original file bytes through the explicit helper protocol, company authorization,
+missing/unsafe/expired configuration, direct-Worker/fallback denial and bounded
+late/oversized responses. Separate Node cases verify helper authentication,
+concurrent attempt capacity, strict inputs, redirects and private CLI session
+generation/error redaction. These tests establish no actual tunnel, native Worker
+egress or ChatGPT file acceptance.
+
+Milestone 4 adds a shared product receipt-file contract in Node/SQLite and actual local workerd/D1, plus two-file restart/expiry recovery. It checks authenticated MCP resource bytes, default-off discovery, content checks, encryption/tampering, generation/policy isolation, competing capacity and failed-workflow cleanup. These tests do not establish actual client file transfer or Fortnox file-operation acceptance; see [receipt evidence](implementation/M04-receipts-evidence.md).
+
+The shared M16 provider cases use actual multipart requests with synthetic bytes
+and fixed mocked Fortnox endpoints. They check durable claims before dispatch,
+lost responses, upload/link concurrency, successful voucher preservation during
+link repair, exact positive reconciliation, late disconnect responses, provider
+scope/format gates and authenticated binary/resource readback. SQLite and actual
+workerd/D1 restart cases retain unknown upload outcomes without replay. HTTP 400
+is synthetic proven-unapplied evidence for linking only; the same upload status
+remains unknown. No fixture establishes real provider rejection semantics or
+endpoint format/license limits. The receipt source ledger pins that boundary.
+
+M17 adds shared workflow cases for ten separately reviewed items (eight completed,
+two failed links), selected link-only recovery, mixed invalid/expired/unknown
+outcomes, financial result-storage failure, lost answers, concurrency, explicit
+client-managed policy, capability rotation and retention of unresolved financial
+context. SQLite and actual workerd/D1 restart cases repair only links or preserve
+uncertain financial outcomes without another upload/source/financial call.
+The existing OAuth package's `npm run test:browser` now also serves the actual
+receipt HTML in its synthetic loopback host. Desktop/mobile Chromium cases cover
+per-item keyboard execution, link repair, public-only remount, explicit re-review,
+status/selection failure and real bridge timeout without resubmission. The product
+HTML has its own restrictive CSP; no actual ChatGPT or human-presence evidence is
+inferred. Existing synthetic review browser cases remain in the same suite.
+
 Milestone 3 shared `accounting.ts` and `accounting-transport.ts` contracts run in
 Node and actual local workerd/D1: exact validation, isolation, encrypted review,
 one-time intents, failures, policy/disconnect races, key rotation, recovery and

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "fortnox-mcp-m14-client-test",
+  "main": "../../dist/receipt-test-worker.js",
+  "compatibility_date": "2026-11-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "observability": { "enabled": false },
+  "vars": { "PRODUCT_ENABLED": "false", "FORTNOX_TEST_MODE": "false" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fortnox-mcp-m14-client-test",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

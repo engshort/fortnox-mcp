@@ -110,3 +110,25 @@ integers, 1000–9999). No provider URL, implicit account or company is accepted
 Its output echoes the sorted `account_numbers` when present; completeness then
 covers that selection, not the entire chart. Without it, existing bounded list
 behavior is preserved. This read adds no approval or financial write capability.
+
+### Receipt attachment operations
+
+M16 adds default-off `upload_receipt_file` and `link_receipt_attachment` tools
+with strict company/batch/hash/item inputs. They mutate file/link state only;
+neither accepts a replacement voucher, URL or model-supplied approval. Successful,
+failed-with-proven-no-effect and unknown step outcomes are distinct.
+`get_receipt_attachment` and the authenticated attachment resource require an
+explicit company, fiscal year, voucher series/number and opaque provider file ID.
+They verify the owning voucher and exact file relationship and return bounded
+original bytes. Discovery omission never replaces execution-time authorization.
+Provider contracts and missing evidence are in the
+[receipt-operation ledger](../reference/mvp-receipt-operations.json).
+
+M17 registers `commit_reviewed_receipt_item` as app-only with a private capability,
+and `create_receipt_item` only for explicitly owner-selected client-managed policy.
+Both use the same financial service. `resume_receipt_batch` accepts the immutable
+batch reference and 1–10 distinct selected item IDs. It never uploads or creates a
+voucher; it reconciles exact known references and repairs only remaining links.
+`review_receipt_item_again` rotates capability metadata for a still-live,
+unexecuted immutable item without approving it. Status reads never mint a new
+capability. None of these routes accepts replacement content or `confirmed`.

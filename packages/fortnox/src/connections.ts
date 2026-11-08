@@ -118,6 +118,8 @@ export class FortnoxConnections {
               "settings",
               "costcenter",
               "project",
+              "inbox",
+              "connectfile",
             ].includes(s),
         ))
     )

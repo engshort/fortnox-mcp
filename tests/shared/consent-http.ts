@@ -1,9 +1,95 @@
 import { expect, it } from "vitest";
-import { createProductApplication } from "../../apps/shared/product.js";
+import {
+  createProductApplication,
+  requestedFortnoxScopes,
+} from "../../apps/shared/product.js";
 import type { AuthConfig } from "../../apps/shared/product-auth.js";
 import { keyA } from "./connections.js";
 
 export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
+  it("prepares receipt consent only in the explicit accounting test configuration without enabling file or financial operations", async () => {
+    const config = await fixture();
+    for (const settings of [
+      {
+        testMode: false,
+        accountingReferences: true,
+        receiptProviderConsent: true,
+      },
+      {
+        testMode: true,
+        accountingReferences: false,
+        receiptProviderConsent: true,
+      },
+    ])
+      expect(() => requestedFortnoxScopes(settings)).toThrow(
+        "CAPABILITY_UNAVAILABLE",
+      );
+    expect(requestedFortnoxScopes({ testMode: true })).toEqual([
+      "companyinformation",
+      "profile",
+    ]);
+    const app = createProductApplication(
+      {
+        origin: config.origin,
+        secret: config.secret,
+        keys: { a: keyA },
+        activeKey: "a",
+        redirects: ["https://client.example.invalid/callback"],
+        testMode: true,
+        clientId: "synthetic-client",
+        clientSecret: "synthetic-client-secret",
+        testTenants: ["100001", "100002"],
+        accountingReferences: true,
+        receiptProviderConsent: true,
+      },
+      config,
+      async () => {
+        throw new Error("No provider call during consent preparation");
+      },
+    );
+    const owner = await app.auth.api.signUpEmail({
+      body: {
+        email: "receipt-consent@example.invalid",
+        name: "Synthetic owner",
+        password: "Synthetic-password-123456",
+      },
+      returnHeaders: true,
+    });
+    await config.state.put(
+      "installation",
+      "owner",
+      {
+        phase: "active",
+        ownerId: owner.response.user.id,
+        tokenHash: "",
+        expiresAt: 0,
+      },
+      null,
+    );
+    const cookie = owner.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0])
+      .join("; ");
+    const response = await app.fetch(
+      new Request(`${config.origin}/admin/fortnox/start`, {
+        method: "POST",
+        headers: {
+          origin: config.origin,
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ mode: "service" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    const url = new URL(((await response.json()) as { url: string }).url);
+    expect(url.searchParams.get("scope")).toBe(
+      "companyinformation profile bookkeeping settings costcenter project inbox connectfile",
+    );
+    expect(app.bookkeeping.gates.writes).toBe(false);
+    expect(app.bookkeeping.gates.reviewHost).toBe(false);
+    expect(await app.connections.list(owner.response.user.id)).toEqual([]);
+  });
   it("reports bounded consent stages without leaking provider errors or replaying code exchanges", async () => {
     const config = await fixture();
     let exchanges = 0;

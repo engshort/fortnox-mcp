@@ -1,0 +1,35 @@
+{
+  "origin": "https://REPLACE-WITH-SEPARATE-TEST-INSTALLATION",
+  "serverCommit": "0000000000000000000000000000000000000000",
+  "accessToken": "REPLACE_PRIVATELY",
+  "companyIds": [
+    "00000000-0000-4000-8000-000000000001",
+    "00000000-0000-4000-8000-000000000002"
+  ],
+  "attachments": [
+    {
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "file_id": "REPLACE_WITH_PROVIDER_FILE_ID",
+      "voucher": {
+        "financial_year": 0,
+        "series": "A",
+        "number": 0
+      },
+      "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedBytes": 0,
+      "expectedMime": "image/png"
+    },
+    {
+      "company_id": "00000000-0000-4000-8000-000000000002",
+      "file_id": "REPLACE_WITH_PROVIDER_FILE_ID",
+      "voucher": {
+        "financial_year": 0,
+        "series": "A",
+        "number": 0
+      },
+      "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedBytes": 0,
+      "expectedMime": "image/png"
+    }
+  ]
+}
