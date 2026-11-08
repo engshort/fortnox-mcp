@@ -1,5 +1,10 @@
 # API coverage plan
 
+M05 adds protected Hono/React owner setup, write-only encrypted Fortnox settings,
+Swedish/English guidance and company policy/status management. This adds no
+provider operation or support claim. Node/workerd authorization regressions and
+desktop/mobile synthetic browser evidence are recorded in the delivery log.
+
 Milestone 5 [Node runtime work](../implementation/M05-delivery.md) adds
 configurable paths/listening, file-mounted secrets and explicit Nginx handling.
 It enables no provider operation and does not complete installation acceptance.

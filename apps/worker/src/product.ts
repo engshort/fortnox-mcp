@@ -7,6 +7,7 @@ import {
 import { d1State } from "./product-storage.js";
 import { d1ReceiptFiles } from "./receipt-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
+  ASSETS?: Fetcher;
   PUBLIC_ORIGIN?: string;
   AUTH_SECRET?: string;
   CREDENTIAL_KEYS?: string;
@@ -35,10 +36,27 @@ export default {
     if (env.PRODUCT_ENABLED !== "true" || !env.DB)
       return new Response("Product disabled", { status: 503 });
     try {
-      const settings = productSettings({ ...env, DB: undefined });
+      const settings = productSettings({
+        ...env,
+        DB: undefined,
+        ASSETS: undefined,
+      });
       return await createProductApplication(settings, {
         database: env.DB,
         state: d1State(env.DB),
+        ...(env.ASSETS
+          ? {
+              assets: async (name: "admin.js" | "admin.css") => {
+                const response = await env.ASSETS?.fetch(
+                  new Request(`${settings.origin}/${name}`),
+                );
+                return (
+                  response ??
+                  new Response("Assets unavailable", { status: 503 })
+                );
+              },
+            }
+          : {}),
         receiptFiles: d1ReceiptFiles(env.DB),
         fileSource: receiptFileSource(
           settings.receiptSource ?? receiptSourceSettings({}, false),

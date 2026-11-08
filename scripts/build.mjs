@@ -1,6 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { build } from "esbuild";
+import { build as buildAdmin } from "vite";
+
+await buildAdmin({ configFile: "apps/admin/vite.config.ts" });
 
 const sourceCommit =
   process.env.SOURCE_COMMIT ??

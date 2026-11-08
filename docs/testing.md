@@ -187,3 +187,9 @@ directory. These tests do not replace actual ChatGPT or real-device acceptance.
 Each completed scope records commit, environment, exact commands, fixture/test-company scope, results and remaining limitations. Client acceptance additionally records date/client/protocol/account prerequisites. Mark tests not run as not run. Do not label a gate passed from source reading alone.
 
 The [S00 evidence record](implementation/S00-spike-evidence.md) records the actual offline commands and results. Run `npm ci --ignore-scripts`, `npm run typecheck`, `npm test`, `npm run build` and `npm run test:build` from `spikes/s00-mcp`. The Worker fetch entry is exercised in Node, not Cloudflare. These tests do not establish T01–T22 product acceptance, real client authentication or Fortnox behavior. Continue checking relative links and git whitespace for documentation changes.
+
+The M05 owner routes share Node/workerd cases for same-origin owner-only access,
+write-only encrypted configuration and operator-managed settings. After the root
+build, run the actual built Node UI in desktop/mobile Chromium with
+`cd spikes/s00-oauth && npx playwright test --config playwright.owner.config.ts`.
+This uses synthetic local-only installation state and contacts no provider.

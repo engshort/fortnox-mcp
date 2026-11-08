@@ -6,6 +6,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  "assets": {
+    "directory": "../../dist/admin",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
   "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": false },
   "vars": { "PRODUCT_ENABLED": "false", "FORTNOX_TEST_MODE": "false" },

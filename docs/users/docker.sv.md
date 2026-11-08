@@ -45,3 +45,19 @@ Steg 3 blir direkt Node-installation med systemd: samma applikation, men en
 installerare måste hantera Node, systemanvändare, rättigheter och uppdateringar.
 Steg 4 blir APT med .deb-paket och ett signerat paketarkiv. Dessa steg dokumenteras
 nu och är inte implementerade eller tillgängliga installationsalternativ.
+
+## Skyddad setup
+
+Öppna `/setup`, hämta engångskoden privat från datavolymen och skapa ägaren.
+Dela aldrig koden eller lösenordet med ChatGPT. Logga därefter in via `/sign-in`.
+Under **Fortnox** sparar du egna Client ID/Secret. Formuläret lämnar aldrig
+ut sparade värden. Operatörsstyrda ENV-uppgifter ändras i serverkonfigurationen.
+Registrera den visade callback-adressen i din egen Fortnox-integration.
+Operatören måste först ange exakt två auktoriserade testföretag; produktionskonton
+ingår inte. Välj servicekonto eller användaranslutning och ge samtycke i Fortnox.
+
+Under **Företag** kan du granska status, välja skrivskydd och granskningspolicy,
+koppla från eller återansluta. En policyändring aktiverar ingen funktion och
+godkänner ingen verifikation. Nya företag kräver ett nytt klientgodkännande.
+Under **ChatGPT** finns installationsadressen och instruktionerna. **Status**
+visar de faktiska spärrarna. **English** växlar språk. Ingen modellnyckel krävs.

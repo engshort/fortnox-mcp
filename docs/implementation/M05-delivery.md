@@ -51,3 +51,30 @@ Implementation and actual acceptance are separate. Do not close #42/#77/#78 or
 broader parent gates from these runtime checks. Writes, review-host acceptance
 and provider-file operations retain their existing gates. No image, release
 or package has been published.
+
+## 3. Protected owner setup (#72)
+
+Hono composes existing Fetch/domain handlers; React/Vite assets are served from
+this installation. Owner-only status and write-only credential configuration reuse
+Better Auth and the vault. ENV values remain operator-managed. Company policies,
+disconnect/reconnect and unknown-reference investigation reuse existing services.
+The UI supports Swedish/English, bootstrap, login, reset, connection setup,
+ChatGPT guidance and current capability status. All financial/provider-file gates
+remain unchanged. Optional Worker assets preserve the portable route contract;
+Docker/Node is the installation target.
+
+Synthetic Node authorization/connection suite: 55 passed. Desktop and Pixel 7
+Chromium: bootstrap, credential persistence without readback, disabled connection
+without allowlist, language switching, logout/login and overflow checks passed.
+Browser plugin was unavailable, so the existing Playwright installation was used.
+Visual QA at 1487×1058 and mobile compares the generated reference with actual
+screenshots: header/navigation copy, two-column layout, type scale, white/petrol/
+gold palette, field/button spacing and stacked mobile layout. Functional copy
+adds the required allowlist restriction, new-consent explanation and accessible
+connection-type legend; callback text reflects the real installation origin.
+The reference is a design aid, not a shipped image or a product support claim.
+
+Workerd parity suite: 55 passed. Docker CI run
+[42517870927](https://github.com/engshort/fortnox-mcp/actions/runs/42517870927)
+passed the real image + Nginx HTTPS smoke test on 2026-11-08; the current local
+Docker permission limitation does not prevent isolated CI verification.

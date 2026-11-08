@@ -22,6 +22,13 @@ or generated provider material was introduced. Their licenses do not resolve G05
 
 ## Fortnox specification provenance
 
+### M05 owner application
+
+Hono 4.13.17, React/React DOM 19.3.1 and build-only Vite 8.3.6 use MIT licenses.
+Their exact dependency pins and transitive licenses are recorded in the root
+lockfile. Include original license notices in distribution artifacts. The admin
+uses system fonts and no external product logo or generated image asset.
+
 The initial design was informed by a user-supplied `openapi.json`, identified in [source-lock.json](docs/reference/source-lock.json). Its `info.license` field is absent. The file is not committed or relicensed here. Obtain an authorized copy from Fortnox for local development and preserve provenance. Review redistribution rights before vendoring specifications or generating redistributable code from them.
 
 The inventory in this repository contains resource names, counts and original design classifications; it is not a replacement for Fortnox documentation. Source links are in [sources](docs/reference/sources.md). Keep downloaded third-party documentation out of git unless its redistribution terms have been checked.

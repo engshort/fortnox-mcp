@@ -16,10 +16,11 @@ LABEL org.opencontainers.image.source="https://github.com/engshort/fortnox-mcp" 
 WORKDIR /app
 RUN mkdir -p /data && chown 10001:10001 /data && chmod 0700 /data
 COPY --from=build /app/dist/product-node.js /app/dist/product-node.js
+COPY --from=build /app/dist/admin /app/public
 COPY --from=build /app/apps/worker/migrations /app/migrations
 COPY deploy/docker/healthcheck.mjs deploy/docker/initialize.mjs /app/
 COPY LICENSE THIRD_PARTY_NOTICES.md /app/
-ENV HOST=0.0.0.0 PORT=3000 DATA_DIR=/data PRODUCT_MIGRATIONS_DIR=/app/migrations
+ENV HOST=0.0.0.0 PORT=3000 DATA_DIR=/data PRODUCT_MIGRATIONS_DIR=/app/migrations UI_ASSETS_DIR=/app/public
 USER 10001:10001
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["node", "/app/healthcheck.mjs"]

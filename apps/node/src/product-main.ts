@@ -1,8 +1,9 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { receiptFileSource, receiptSourceSettings } from "@fortnox-mcp/files";
 import { nodeFileTransport } from "@fortnox-mcp/files/node";
 import { createAdaptorServer } from "@hono/node-server";
+import { safeResponse } from "../../shared/admin.js";
 import { cleanupProduct } from "../../shared/maintenance.js";
 import {
   createProductApplication,
@@ -60,6 +61,20 @@ const app = createProductApplication(settings, {
   database: db,
   state,
   receiptFiles,
+  assets: async (name) => {
+    try {
+      return safeResponse(
+        await readFile(
+          resolve(env.UI_ASSETS_DIR ?? "dist/admin", name),
+          "utf8",
+        ),
+        200,
+        name.endsWith(".js") ? "text/javascript" : "text/css",
+      );
+    } catch {
+      return safeResponse('{"error":"ASSETS_UNAVAILABLE"}', 503);
+    }
+  },
   fileSource: receiptFileSource(
     settings.receiptSource ?? receiptSourceSettings({}, false),
     "node",

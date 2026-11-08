@@ -80,3 +80,16 @@ installation and removal semantics, migration-safe upgrades, signing-key custody
 and rotation, signed repository publication and reproducible package evidence.
 Systemd support alone is not a .deb package. No .deb, maintainer scripts or APT
 repository is created or published here.
+
+## Protected owner setup
+
+Open `/setup` with the privately issued bootstrap code, create the single owner,
+and subsequently use `/sign-in`. Never send bootstrap/reset codes or passwords
+to ChatGPT. The Fortnox tab accepts your own write-only Client ID/Secret; encrypted
+saved values are never returned. ENV credentials are operator-managed. Register
+the displayed callback in your integration. Connecting requires exactly two
+operator-allowlisted authorized test tenants, then explicit Fortnox consent.
+The Companies tab manages read-only/review policy, disconnect and reconnect.
+Policy changes never activate a capability or approve a voucher. New companies
+require fresh client consent. ChatGPT and Status tabs show installation guidance
+and current gates. Switch Swedish/English in the header. No model API key is needed.
