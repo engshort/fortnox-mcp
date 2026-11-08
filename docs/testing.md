@@ -1,5 +1,10 @@
 # Test strategy and evidence
 
+The M05 Node runtime cases exercise secret-file conflicts/redaction, proxy
+authority and unchanged browser Origin, then bootstrap the actual Node process
+with Secure cookies and preserve its owner session through SIGTERM/restart.
+They do not establish Docker, real HTTPS, ChatGPT or Fortnox acceptance.
+
 The explicit file-picker browser harness exercises optional host APIs, separate
 selection/staging, no replay after a lost answer or remount, saved references
 without source URLs, corrupt readback denial and an actual synthetic PDF-byte

@@ -1,0 +1,37 @@
+# Milestone 5 delivery and acceptance
+
+Baseline: `5a49f8e425aa3060f1b85db2169460e7b5e14672`, 2026-11-08.
+Owner-approved delivery target: one Node application, Docker Compose, SQLite
+and an existing host Nginx. Systemd and APT are documentation-only future work.
+Worker domain/storage regressions remain required; no new hosted Worker claim.
+
+## 1. Node runtime (#72, #74)
+
+The existing product entry accepts `HOST`, `DATA_DIR` and `NODE_PROXY_MODE`.
+Local defaults remain loopback/8787/`.data`; `PRODUCT_DATABASE` overrides the
+default database location. Secret `_FILE` inputs fail closed on missing files,
+oversized files or conflicting inline values. They are not printed.
+
+The Node-only Nginx adapter requires the exact configured authority and a single
+`https` forwarded protocol. It preserves the actual browser Origin. Enable it
+only behind the documented loopback-published proxy boundary. It must not be
+used to trust arbitrary Internet-supplied forwarding headers.
+
+Migrations are shared with the existing SQLite/D1 schema. SIGTERM stops new
+requests, drains HTTP connections and closes SQLite. A 30-second deadline exits
+unsuccessfully rather than claiming pending external writes have failed safely.
+Existing durable claims remain subject to reconciliation after restart.
+
+Verification on Node 24.19.0/npm 11.17.0: root typecheck and four focused runtime
+cases passed. The actual Node process was bootstrapped through synthetic proxy
+headers; foreign Origin was denied, the cookie was Secure, and the same owner
+session survived SIGTERM/restart while bootstrap replay remained denied.
+No Fortnox or actual client request occurred. Full aggregate checks and image
+acceptance are recorded with the later delivery parts.
+
+## Acceptance tracking
+
+Implementation and actual acceptance are separate. Do not close #42/#77/#78 or
+broader parent gates from these runtime checks. Writes, review-host acceptance
+and provider-file operations retain their existing gates. No image, release
+or package has been published.

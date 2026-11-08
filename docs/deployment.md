@@ -1,5 +1,10 @@
 # Deployment and owner setup
 
+The owner selected Node/Docker behind an existing Nginx for milestone 5.
+The [delivery record](implementation/M05-delivery.md) distinguishes implemented
+runtime work from pending Docker, client, provider and release acceptance.
+The Cloudflare infrastructure test below retains its original limited scope.
+
 Status: first Cloudflare infrastructure installation verified on 2026-10-18 in one existing account, with new resources and default names. Fresh-account onboarding and lifecycle acceptance remain pending. The protected wizard, Fortnox connection and remote MCP remain unavailable. No Docker image, published npm package or hosted project service exists.
 
 ## First Cloudflare test installation
