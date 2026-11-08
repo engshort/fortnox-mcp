@@ -1,5 +1,15 @@
 # Client compatibility and embedded UI
 
+The [2026-11-08 M05 local Chrome report](../implementation/M05-client-lifecycle-2026-11-08.md)
+records actual-client two-company read results, client disconnect/reconnect and
+saved-answer reload. Read-only metadata on the tested Docker installation
+corroborates refresh revocation and rotation after access expiry. Raw MCP traces,
+old-token rejection/replay, explicit tool reload and embedded review/file cases
+remain unverified. This is scoped evidence, not complete product-client support.
+The [subsequent token follow-up](../implementation/M05-token-renewal-2026-11-08.md)
+adds actual provider renewal and subsequent client reads; its old-token checks
+are isolated synthetic cases because original ChatGPT tokens were not retained.
+
 The [2026-11-06 G03 correction](../implementation/S00-G03-transport-2026-11-06.md)
 verifies scoped two-file relay ingress and exact server readback. Chrome PNG
 download passed, but downloaded PDF bytes differed. The native Worker socket

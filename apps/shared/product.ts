@@ -19,6 +19,8 @@ import {
   receiptSourceSettings,
 } from "@fortnox-mcp/files";
 import {
+  diagnoseConnection,
+  diagnosisInput,
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
@@ -27,6 +29,11 @@ import {
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { boundedJson, safeResponse } from "./admin.js";
+import {
+  IntegrationSettings,
+  integrationInput,
+} from "./integration-settings.js";
+import { type AdminAssets, ownerWeb } from "./owner-web.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 import { createProductGateway } from "./product-gateway.js";
 
@@ -104,8 +111,7 @@ export function productSettings(
     testMode &&
     (new Set(testTenants).size !== 2 ||
       testTenants.some((t) => !/^\d{1,15}$/.test(t)) ||
-      !env.FORTNOX_CLIENT_ID ||
-      !env.FORTNOX_CLIENT_SECRET)
+      !!env.FORTNOX_CLIENT_ID !== !!env.FORTNOX_CLIENT_SECRET)
   )
     throw new Error(
       "Two distinct test tenants and private integration configuration required",
@@ -163,6 +169,7 @@ function connectionFailure(error: unknown, stage: string) {
 export function createProductApplication(
   settings: ProductSettings,
   runtime: Pick<AuthConfig, "database" | "state"> & {
+    assets?: AdminAssets;
     receiptFiles?: ReceiptFileStore;
     fileSource?: (
       input: ClientFile,
@@ -198,6 +205,11 @@ export function createProductApplication(
     testTenants: settings.testTenants,
     scopes: requestedFortnoxScopes(settings),
   });
+  const integration = new IntegrationSettings(
+    runtime.state,
+    connections.vault,
+    settings,
+  );
   const config = {
     ...runtime,
     origin: settings.origin,
@@ -269,6 +281,7 @@ export function createProductApplication(
       connections,
       provider,
       testMode: settings.testMode,
+      diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
@@ -311,6 +324,7 @@ export function createProductApplication(
       );
     if (
       url.pathname === "/admin" ||
+      url.pathname === "/admin/state" ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
       let session: Awaited<ReturnType<typeof requireOwner>>;
@@ -322,6 +336,49 @@ export function createProductApplication(
         );
       } catch {
         return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
+      }
+      if (request.method === "GET" && url.pathname === "/admin/state") {
+        const companies = await connections.list(session.user.id);
+        return safeResponse(
+          JSON.stringify({
+            owner: { email: session.user.email },
+            integration: await integration.status(session.user.id),
+            callback: `${settings.origin}/admin/fortnox/callback`,
+            mcp_url: `${settings.origin}/mcp`,
+            test_mode: settings.testMode,
+            restore:
+              (await runtime.state.get("installation", "restore"))?.value ??
+              null,
+            capabilities: {
+              writes: false,
+              provider_files: false,
+              review_host: false,
+              files: fileTestActive(),
+            },
+            companies: companies.map((c) => ({
+              company_id: c.id,
+              name: c.name,
+              state: c.state,
+              mode: c.mode,
+              review: c.review,
+              read_only: c.readOnly,
+              policy_version: c.policyVersion,
+            })),
+            investigations: companies.flatMap((c) =>
+              (c.bookkeeping?.executions ?? [])
+                .filter(
+                  (e) =>
+                    ["submitting", "outcome_unknown"].includes(e.state) &&
+                    e.generation === c.generation,
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  proposal_id: e.id,
+                  proposal_hash: e.hash,
+                })),
+            ),
+          }),
+        );
       }
       if (request.method === "GET" && url.pathname === "/admin") {
         const companies = await connections.list(session.user.id);
@@ -356,6 +413,13 @@ export function createProductApplication(
           return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
         try {
           const body = await boundedJson(request);
+          if (url.pathname === "/admin/fortnox/configuration") {
+            await integration.save(
+              session.user.id,
+              integrationInput.parse(body),
+            );
+            return safeResponse('{"ok":true}');
+          }
           if (url.pathname === "/admin/fortnox/disconnect") {
             const input = z
               .object({ company_id: z.string().uuid() })
@@ -398,6 +462,29 @@ export function createProductApplication(
             );
             return safeResponse('{"ok":true}');
           }
+          if (url.pathname === "/admin/fortnox/diagnose") {
+            const input = diagnosisInput.parse(body);
+            return safeResponse(
+              JSON.stringify(
+                await diagnoseConnection(
+                  {
+                    owner: session.user.id,
+                    connections,
+                    provider,
+                    testMode: settings.testMode,
+                    authorize: async (id) => {
+                      const company = (
+                        await connections.list(session.user.id)
+                      ).find((c) => c.id === id);
+                      if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+                      return company;
+                    },
+                  },
+                  input.company_id,
+                ),
+              ),
+            );
+          }
           if (url.pathname === "/admin/fortnox/start") {
             if (!settings.testMode)
               return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
@@ -415,8 +502,10 @@ export function createProductApplication(
                   session.session.id,
                   {
                     mode: input.mode,
-                    clientId: settings.clientId,
-                    clientSecret: settings.clientSecret,
+                    ...((await integration.credentials(session.user.id)) ?? {
+                      clientId: "",
+                      clientSecret: "",
+                    }),
                   },
                   input.company_id,
                 ),
@@ -455,9 +544,24 @@ export function createProductApplication(
       return safeResponse('{"error":"REQUEST_FAILED"}', 503);
     }
   }
+  const web = ownerWeb(
+    async (request) => {
+      if (new URL(request.url).origin !== settings.origin)
+        return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+      return fetchRequest(request);
+    },
+    (request) => requireOwner(gateway.auth, runtime.state, request.headers),
+    runtime.assets,
+  );
   return {
     fetch: async (request: Request) => {
-      const response = await fetchRequest(request);
+      if (
+        new URL(request.url).origin !== settings.origin ||
+        (request.headers.has("origin") &&
+          request.headers.get("origin") !== settings.origin)
+      )
+        return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+      const response = await web.fetch(request);
       if (
         fileTest &&
         new URL(request.url).pathname === "/mcp" &&

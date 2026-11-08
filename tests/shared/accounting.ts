@@ -152,6 +152,15 @@ const commitInput = (p: Awaited<ReturnType<Bookkeeping["prepare"]>>) => ({
 });
 
 export function accountingContract(fixture: () => Promise<StateStore>) {
+  it("blocks financial dispatch during an unreconciled restore interval despite owner policy and valid review", async () => {
+    const f = await accountingFixture(await fixture());
+    const p = await f.service.prepare(f.actor, f.voucher);
+    await f.state.put("installation", "restore", { reconciled: false }, null);
+    await expect(
+      f.service.commit(f.actor, commitInput(p), "review"),
+    ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+    expect(f.calls()).toBe(0);
+  });
   it("an owner-attested exact reference can resolve unknown; matching date/amount and wrong rows cannot", async () => {
     const f = await accountingFixture(await fixture());
     const p = await f.service.prepare(f.actor, f.voucher);

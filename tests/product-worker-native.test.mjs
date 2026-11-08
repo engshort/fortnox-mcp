@@ -225,7 +225,7 @@ test("built product Worker uses native fetch for consent against an isolated syn
   assert.equal(tokenCalls, 2);
   assert.equal(profileCalls, 2);
   await runtime.setOptions(options(22));
-  const wrongKey = await runtime.dispatchFetch(`${origin}/admin`, {
+  const wrongKey = await runtime.dispatchFetch(`${origin}/admin/state`, {
     headers: { cookie },
   });
   assert.equal(wrongKey.status, 503);
@@ -235,7 +235,7 @@ test("built product Worker uses native fetch for consent against an isolated syn
   );
   await runtime.setOptions(options(11));
   database = await runtime.getD1Database("DB");
-  const restored = await runtime.dispatchFetch(`${origin}/admin`, {
+  const restored = await runtime.dispatchFetch(`${origin}/admin/state`, {
     headers: { cookie },
   });
   assert.equal(restored.status, 200);

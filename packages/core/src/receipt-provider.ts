@@ -74,6 +74,7 @@ export class ReceiptAttachments {
       company,
     );
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (write) await this.receipts.connections.assertWritesAllowed();
     return c;
   }
   private async step(

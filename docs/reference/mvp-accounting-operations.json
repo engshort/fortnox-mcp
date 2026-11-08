@@ -5,8 +5,8 @@
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
     "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
-    "packages/core/src/bookkeeping.ts": "338517dc88ec0fa1cd7f6b8326644f71b874c9660019fe2595425d20705c76a3",
-    "packages/core/src/connections.ts": "0ebeb0bd1fd738bb75f3d38fd2878db05af795c6a969c0924f58f8e2127be4ff",
+    "packages/core/src/bookkeeping.ts": "0827981f7107178e76f0aeedd86e491e907e6b7f551f08112b9308d8b15fd2b6",
+    "packages/core/src/connections.ts": "444645c80ce80ff0bc137c9b90aea557a9d85d98aef15f62e69098aebb32175f",
     "packages/fortnox/src/accounting.ts": "c662c2d0dcc8c15690466c25a4ee6295ffb839682a6f6cc9fa96923ff1070b04",
     "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
@@ -143,7 +143,7 @@
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
       "parameters": {
         "financialyear": "required explicit positive integer",
-        "Number": "explicit integer 1000–9999; at most 20 distinct selected accounts per reference call",
+        "Number": "explicit integer 1000\u20139999; at most 20 distinct selected accounts per reference call",
         "pagination": "not accepted on detail reads"
       },
       "responseEnvelope": "Account",

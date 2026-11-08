@@ -1,5 +1,14 @@
 # Authentication and company authorization
 
+The protected owner application uses same-origin Hono routes and built React/Vite
+assets. `/admin/state` requires an owner session; MCP bearer tokens cannot
+administer the installation. `/admin/fortnox/configuration` accepts strict,
+write-only credentials with the exact browser Origin and encrypts them using the
+existing vault, bound to the installation owner. Status returns only
+`configured`/`source`. Operator ENV credentials take precedence and cannot be
+overwritten through the UI. New consent uses these settings; existing connections
+retain their original encrypted credentials until explicitly reconnected.
+
 The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup and password-reset requests are not exposed. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
 
 Reset issuance requires installation access. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form only redeems that private code through the maintained auth component, with exact Origin checks and admin-session revocation.

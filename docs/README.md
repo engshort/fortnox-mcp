@@ -1,5 +1,17 @@
 # Documentation map
 
+Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
+[English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
+and [pending actual acceptance](implementation/M05-actual-acceptance.md).
+The [dated local Chrome lifecycle report](implementation/M05-client-lifecycle-2026-11-08.md)
+separates observed reads/reconnection and persisted OAuth rotation from remaining
+old-token, UI/file and recovery acceptance.
+The [provider-renewal and isolated old-token follow-up](implementation/M05-token-renewal-2026-11-08.md)
+distinguishes actual provider exchanges from synthetic OAuth rejection tests.
+The [2026-11-09 issue review](implementation/M05-issue-review-2026-11-09.md)
+records all 51 related issues, six bounded implementation closures and the
+remaining acceptance requirements.
+
 Milestone 4: [receipt implementation/evidence](implementation/M04-receipts-evidence.md) and [Swedish receipt guide](users/kvitton.sv.md). In progress; file and financial activation gates remain closed.
 
 Actual M14 client preparation uses a [separate bounded file-test build](implementation/M04-client-file-test.md), with original-byte staging/readback only and no provider or financial writes.

@@ -132,3 +132,20 @@ voucher; it reconciles exact known references and repairs only remaining links.
 `review_receipt_item_again` rotates capability metadata for a still-live,
 unexecuted immutable item without approving it. Status reads never mint a new
 capability. None of these routes accepts replacement content or `confirmed`.
+
+### Connection diagnosis
+
+`diagnose_connection({ company_id })` requires `mcp:read` and the existing durable
+owner/client/company-generation grant. Owner UI diagnosis uses the same service
+under its authenticated owner session and exact Origin. Fixed statuses are
+`available`, `disconnected`, `missing_permission`, `upstream_error`,
+`not_implemented`, `verification_blocked`, `unknown`. Results contain a random
+correlation ID, timestamp and fixed per-capability status/reason codes, never
+provider bodies, credentials or company profile data. Missing local scopes are
+known; an upstream 403 means `permission_or_license_unknown`, not a guessed
+license diagnosis. In allowlisted test mode only, the existing companyinformation
+read uses the shared Fortnox HTTP budget, bounded retries and token lifecycle.
+Authorization is rechecked after I/O. Successful diagnosis verifies that bounded
+read only; it activates no financial/file operation. The fixed M14 file-only
+experiment catalog is unchanged. Existing local documentation tools remain local
+and do not acquire a provider proxy or activate operations from OpenAPI content.

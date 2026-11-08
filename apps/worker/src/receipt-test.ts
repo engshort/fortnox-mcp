@@ -20,7 +20,11 @@ export default {
     if (env.PRODUCT_ENABLED !== "true" || !env.DB)
       return new Response("File experiment disabled", { status: 503 });
     try {
-      const settings = productSettings({ ...env, DB: undefined });
+      const settings = productSettings({
+        ...env,
+        DB: undefined,
+        ASSETS: undefined,
+      });
       // Public-edge source sockets remain unsupported. The experiment must
       // explicitly select the already bounded/pinned temporary Node relay.
       if (settings.receiptSource?.transport !== "node-relay")

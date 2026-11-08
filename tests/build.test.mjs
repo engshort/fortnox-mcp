@@ -186,6 +186,80 @@ test("bundled installation reports missing storage and keeps remote MCP disabled
   assert.equal(mcp.status, 403);
 });
 
+for (const experiment of [false, true])
+  test(`built Node file profile is ${experiment ? "separate, direct-only and expiring" : "unavailable in the ordinary entry"}`, {
+    timeout: 10000,
+  }, async (t) => {
+    const directory = await mkdtemp(join(tmpdir(), "built-node-file-test-"));
+    const port = experiment ? "8796" : "8793",
+      origin = `http://127.0.0.1:${port}`;
+    const child = spawn(
+      process.execPath,
+      [
+        resolve(
+          experiment ? "dist/receipt-test-node.js" : "dist/product-node.js",
+        ),
+      ],
+      {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PRODUCT_ENABLED: "true",
+          HOST: "127.0.0.1",
+          PORT: port,
+          NODE_PROXY_MODE: "none",
+          PUBLIC_ORIGIN: origin,
+          PRODUCT_DATABASE: join(directory, "product.sqlite"),
+          PRODUCT_MIGRATIONS_DIR: resolve("apps/worker/migrations"),
+          UI_ASSETS_DIR: resolve("dist/admin"),
+          AUTH_SECRET: "synthetic-node-file-profile-secret-at-least-32",
+          CREDENTIAL_KEYS: JSON.stringify({
+            a: Buffer.alloc(32, 11).toString("base64"),
+          }),
+          CREDENTIAL_ACTIVE_KEY: "a",
+          MCP_REDIRECT_URIS: '["https://client.example.invalid/callback"]',
+          FORTNOX_TEST_MODE: "true",
+          FORTNOX_TEST_TENANTS: "100001,100002",
+          RECEIPT_FILE_TRANSPORT: "node-direct",
+          M14_FILE_TEST_UNTIL: new Date(Date.now() + 1800).toISOString(),
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    t.after(async () => {
+      if (child.exitCode === null) {
+        const stopped = once(child, "exit");
+        child.kill("SIGTERM");
+        await stopped;
+      }
+      await rm(directory, { recursive: true, force: true });
+    });
+    await Promise.race([
+      once(child.stdout, "data"),
+      once(child, "exit").then(() => {
+        throw new Error("Fixture startup failed");
+      }),
+    ]);
+    const health = await (await fetch(`${origin}/health`)).json();
+    if (experiment) {
+      assert.match(health.file_test.source_commit, /^[a-f0-9]{40}$/);
+      assert.equal(health.file_test.financial_writes, false);
+      assert.equal(health.file_test.provider_file_writes, false);
+      assert.equal(health.file_test.review_host_verified, false);
+      await new Promise((r) => setTimeout(r, 1900));
+      assert.equal(
+        (await (await fetch(`${origin}/health`)).json()).file_test.active,
+        false,
+      );
+      assert.equal(
+        (await fetch(`${origin}/mcp`, { method: "POST" })).status,
+        503,
+      );
+    } else assert.equal(health.file_test, undefined);
+    assert.equal((await fetch(`${origin}/setup`)).status, 200);
+    assert.equal((await fetch(`${origin}/admin-assets/admin.js`)).status, 200);
+  });
+
 test("built Node entry starts on loopback and serves the synthetic tool", {
   timeout: 10_000,
 }, async (t) => {

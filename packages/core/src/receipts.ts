@@ -134,6 +134,7 @@ export class Receipts {
     );
     if (!this.enabled || !this.files.enabled || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (write) await this.connections.assertWritesAllowed();
     return c;
   }
   async prepare(actor: AccountingActor, input: unknown) {

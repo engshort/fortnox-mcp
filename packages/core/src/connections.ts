@@ -178,6 +178,14 @@ export class Connections {
   async list(owner: string) {
     return (await this.snapshot(owner))?.value.connections ?? [];
   }
+  async assertWritesAllowed() {
+    const recovery = await this.state.get<{ reconciled: boolean }>(
+      "installation",
+      "restore",
+    );
+    if (recovery && recovery.value.reconciled !== true)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+  }
   async add(
     owner: string,
     input: Pick<
