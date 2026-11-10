@@ -261,3 +261,15 @@ and first-page-anchor-bound continuation. A continued page rechecks that anchor
 and reauthorizes the connection generation. Missing balances remain null. Page
 exhaustion is separate from whole-collection completeness, and chart completeness
 never asserts verified balance units or financial reconciliation.
+
+`compare_financial_periods` takes explicit left/right company/year/date
+selections and 1–50 shared accounts. It performs both authorized reads and
+returns separate reports plus exact right-minus-left period differences when
+currency, mapping, calculation version and returned account identities match.
+It accepts no caller-supplied reports or completeness assertions. Both companies
+must remain authorized through completion; no currency conversion or statutory
+consolidation is performed.
+
+A payroll preparation binds the validated employee/code reference profile and
+its operation evidence. A changed verification profile requires preparation
+again, including when the intended amounts remain valid under the new profile.

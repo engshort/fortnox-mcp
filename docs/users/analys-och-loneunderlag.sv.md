@@ -52,3 +52,9 @@ I testbuilden kan `list_financial_accounts` visa kontoplanen i sidor om högst
 100 konton. Fortsättningen hör till samma företag och räkenskapsår. Inaktiva
 och egna konton behålls. En fullständigt hämtad kontoplan betyder inte att
 saldon och en finansiell rapport är avstämda; de begränsningarna visas separat.
+
+`compare_financial_periods` jämför upp till 50 angivna konton mellan två
+uttryckliga företag, räkenskapsår och perioder. Båda företagen kräver åtkomst.
+Varje underlag visar egna källor och begränsningar. Olika valutor eller
+oförenliga definitioner ger ingen beräknad differens. Jämförelsen gör ingen
+valutaomräkning eller juridisk koncernredovisning.

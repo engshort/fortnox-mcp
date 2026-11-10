@@ -269,6 +269,33 @@ export function payrollContract(fixture: () => Promise<StateStore>) {
       ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
       expect(f.calls()).toBe(1);
     });
+    it("requires preparation again after the verified code profile changes without changing the proposed values", async () => {
+      const f = await setup(await fixture());
+      const prepared = await f.service.prepare(f.actor, "create", f.input());
+      f.refs.codes = f.refs.codes.map((c) => ({
+        ...c,
+        evidence_sha256: "b".repeat(64),
+      }));
+      await expect(
+        f.service.writes.execute(
+          f.actor,
+          "salary_transaction.create",
+          reference(prepared),
+        ),
+      ).rejects.toThrow("PROPOSAL_STALE");
+      expect(f.calls()).toBe(0);
+      const fresh = await f.service.prepare(f.actor, "create", f.input());
+      expect(
+        (
+          await f.service.writes.execute(
+            f.actor,
+            "salary_transaction.create",
+            reference(fresh),
+          )
+        ).state,
+      ).toBe("succeeded");
+      expect(f.calls()).toBe(1);
+    });
     it("uses one durable intent for concurrent/replayed calls and never resends a lost create", async () => {
       const f = await setup(await fixture());
       f.flags.lost = true;

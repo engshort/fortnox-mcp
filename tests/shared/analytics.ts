@@ -403,6 +403,61 @@ export function analyticsCalculationContract() {
 export function analyticsAuthorizationContract(
   fixture: () => Promise<StateStore>,
 ) {
+  it("compares bounded period/company selections after authorizing both and discards a late change to either connection", async () => {
+    const f = await accountingFixture(await fixture());
+    let calls = 0,
+      disconnect = false;
+    const service = new FinancialAnalysis(
+      f.connections,
+      {
+        basis: async (_actor, selection) => {
+          calls++;
+          if (disconnect && selection.company_id === f.b.id)
+            await f.connections.disconnect(f.actor.ownerId, f.a.id);
+          return syntheticFinancialBasis(selection.company_id);
+        },
+      },
+      true,
+    );
+    const selection = {
+      company_id: f.a.id,
+      left: { financial_year: 7, from: "2025-07-01", to: "2025-12-31" },
+      right: {
+        company_id: f.b.id,
+        financial_year: 7,
+        from: "2026-01-01",
+        to: "2026-06-30",
+      },
+      account_numbers: [1930, 4000, 9901],
+    };
+    await expect(
+      service.compare(f.actor, {
+        ...selection,
+        right: { ...selection.right, company_id: crypto.randomUUID() },
+      }),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    expect(calls).toBe(0);
+    const result = await service.compare(f.actor, selection);
+    expect(result).toMatchObject({
+      compatible: true,
+      complete: true,
+      consolidated: false,
+      converted_currency: false,
+      left: { company_id: f.a.id, accounts_page: { exhausted: true } },
+      right: { company_id: f.b.id, accounts_page: { exhausted: true } },
+      differences: expect.arrayContaining([
+        { category: "assets", signed_period_movement: "-350.00" },
+        { category: "expenses", signed_period_movement: "350.00" },
+      ]),
+    });
+    await expect(
+      service.compare(f.actor, { ...selection, account_numbers: [1930, 1930] }),
+    ).rejects.toThrow();
+    expect(calls).toBe(2);
+    disconnect = true;
+    await expect(service.compare(f.actor, selection)).rejects.toThrow();
+    expect(calls).toBe(4);
+  });
   it("binds movement continuations to company, year, selection and source without losing row provenance", async () => {
     const f = await accountingFixture(await fixture()),
       basis = syntheticFinancialBasis(f.a.id),

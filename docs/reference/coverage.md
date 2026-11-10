@@ -290,3 +290,10 @@ plus verified stable-field readback can establish it; original hashes and
 bounded field-name/hash evidence remain. Owner Operations shows discrepancies
 separately. This recovery classification activates no provider capability and
 provides no payroll correctness or client-acceptance claim.
+
+M7 adds a bounded explicit-account period/company comparison through the same
+financial source contracts. Both companies are authorized before reads and after
+completion; each report retains its own coverage, currency and reconciliation.
+The local operation remains unverified/default-off pending actual acceptance.
+Prepared payroll inputs also bind their verified reference profile so changed
+operation evidence cannot silently authorize an earlier preparation.

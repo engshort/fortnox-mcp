@@ -212,7 +212,14 @@ export const payrollUpdate = payrollCreate
   .strict();
 export const payrollDelete = payrollUpdate.omit({ fields: true }).strict();
 const pending = z
-  .object({ id: payrollRowId.nullable(), fields: salaryTransactionFields })
+  .object({
+    id: payrollRowId.nullable(),
+    fields: salaryTransactionFields,
+    reference_hash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+  })
   .strict();
 export class PayrollInputs {
   readonly writes: BusinessWrites;
@@ -261,14 +268,14 @@ export class PayrollInputs {
               current.version !== value.expected_version)
           )
             throw new DomainError("PROPOSAL_STALE");
-          const fields = await this.validateFields(
+          const { fields, reference_hash } = await this.validateFields(
             actor,
             company,
             action,
             "fields" in value ? value.fields : current?.fields,
           );
           return {
-            input: { id, fields },
+            input: { id, fields, reference_hash },
             baseline: current?.version ?? null,
             preview: {
               action,
@@ -286,7 +293,14 @@ export class PayrollInputs {
         },
         validate: async (actor, company, p) => {
           const v = pending.parse(p.input);
-          await this.validateFields(actor, company, action, v.fields);
+          const currentReferences = await this.validateFields(
+            actor,
+            company,
+            action,
+            v.fields,
+          );
+          if (currentReferences.reference_hash !== v.reference_hash)
+            throw new DomainError("PROPOSAL_STALE");
           if (v.id) {
             const current = await this.current(actor, company, v.id);
             if (!current.editable || current.version !== p.baseline)
@@ -350,16 +364,39 @@ export class PayrollInputs {
     actor: AccountingActor,
     company: string,
     action: PayrollAction,
-    fields: unknown,
+    candidate: unknown,
   ) {
-    const input = salaryTransactionFields.parse(fields);
+    const input = salaryTransactionFields.parse(candidate);
     const refs = await this.provider.references(
       actor,
       company,
       input.EmployeeId,
       input.Date,
     );
-    return validatePayrollInput(input, company, refs, action, this.now());
+    const fields = validatePayrollInput(
+      input,
+      company,
+      refs,
+      action,
+      this.now(),
+    );
+    // Bind only the validated employee/code profile, not unrelated references
+    // or retrieval timestamps. A changed evidence/rate/date contract requires
+    // another preparation even when the proposed monetary values still fit.
+    const reference_hash = await accountingHash({
+      company_id: company,
+      action,
+      license_verified: refs.license_verified,
+      employee: refs.employees.find((e) => e.id === fields.EmployeeId),
+      code: refs.codes.find(
+        (c) =>
+          c.employee_id === fields.EmployeeId &&
+          c.code === fields.SalaryCode &&
+          c.from <= fields.Date &&
+          c.to >= fields.Date,
+      ),
+    });
+    return { fields, reference_hash };
   }
   private async current(actor: AccountingActor, company: string, id: string) {
     const record = await this.provider.get(

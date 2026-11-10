@@ -457,3 +457,24 @@ without reloading the entire SIE/chart for every display page.
 The chart-discovery and DELETE JSON-response follow-up passed 10 targeted cases
 in Node/SQLite and the same 10 in actual local workerd/D1, plus typecheck and
 lint. These checks do not establish complete live chart/balance coverage.
+
+## Bound comparisons and payroll reference changes
+
+`compare_financial_periods` accepts two explicit company/year/date selections
+and at most 50 shared account numbers. It retrieves both source reports itself;
+a caller cannot supply report values, mappings or completeness. Both companies
+are authorized before any provider read and checked again after both reads.
+Each report retains its source window, currency, mapping and reconciliation.
+Differences are exact right-minus-left period movements only for compatible
+definitions; this is neither currency conversion nor statutory consolidation.
+
+Prepared payroll writes now bind the validated employee/code reference profile,
+including its acceptance hash, date limits, quantity precision and verified rate.
+A changed profile invalidates an old preparation even if its amounts still
+satisfy the new profile. Retrieval timestamps and unrelated employee references
+do not determine this hash. Earlier preparations without this binding are stale.
+
+The comparison/reference-binding follow-up passed 10 targeted Node/SQLite cases
+and the same 10 actual local workerd/D1 cases, operation-source-ledger validation,
+typecheck and lint. Actual cross-company comparison and ChatGPT evidence remain
+pending; these tests do not promote default support.

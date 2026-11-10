@@ -34,6 +34,27 @@ export const financialQuery = z
   .strict()
   .refine((v) => v.from <= v.to);
 export type FinancialQuery = z.infer<typeof financialQuery>;
+const comparisonPeriod = z
+  .object({
+    financial_year: financialQuery.shape.financial_year,
+    from: accountingDate,
+    to: accountingDate,
+  })
+  .strict();
+export const financialComparisonQuery = z
+  .object({
+    company_id: z.string().uuid(),
+    left: comparisonPeriod,
+    right: comparisonPeriod.extend({ company_id: z.string().uuid() }).strict(),
+    account_numbers: z.array(accountNumber).min(1).max(50),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      v.left.from <= v.left.to &&
+      v.right.from <= v.right.to &&
+      new Set(v.account_numbers).size === v.account_numbers.length,
+  );
 export const financialAccountsQuery = z
   .object({
     company_id: z.string().uuid(),
@@ -380,17 +401,21 @@ export class FinancialAnalysis {
     readonly provider: FinancialProvider,
     readonly enabled = false,
   ) {}
-  private async retrieve(actor: AccountingActor, query: FinancialQuery) {
+  private async authorize(actor: AccountingActor, company: string) {
     if (!actor.scopes.includes("mcp:read"))
       throw new DomainError("AUTH_REQUIRED");
     const current = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,
-      query.company_id,
+      company,
     );
     assertScopeProgram(current, "bookkeeping");
     if (!this.enabled || !current.scopes.includes("bookkeeping"))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
+    return current;
+  }
+  private async retrieve(actor: AccountingActor, query: FinancialQuery) {
+    const current = await this.authorize(actor, query.company_id);
     const basis = await this.provider.basis(actor, query);
     const after = await this.connections.authorize(
       actor.ownerId,
@@ -408,6 +433,41 @@ export class FinancialAnalysis {
   async report(actor: AccountingActor, input: unknown) {
     const query = financialQuery.parse(input);
     return calculateFinancialReport(query, await this.retrieve(actor, query));
+  }
+  async compare(actor: AccountingActor, input: unknown) {
+    const value = financialComparisonQuery.parse(input);
+    const leftQuery = {
+      ...value.left,
+      company_id: value.company_id,
+      account_numbers: value.account_numbers,
+      page_size: 50,
+    };
+    const rightQuery = {
+      ...value.right,
+      account_numbers: value.account_numbers,
+      page_size: 50,
+    };
+    // Authorize both companies before any source access, then recheck both
+    // after all reads so a disconnect during the other side cannot leak data.
+    const before = await Promise.all([
+      this.authorize(actor, leftQuery.company_id),
+      this.authorize(actor, rightQuery.company_id),
+    ]);
+    const left = await this.report(actor, leftQuery);
+    const right = await this.report(actor, rightQuery);
+    const after = await Promise.all([
+      this.authorize(actor, leftQuery.company_id),
+      this.authorize(actor, rightQuery.company_id),
+    ]);
+    if (
+      before.some(
+        (connection, i) =>
+          connection.generation !== after[i]?.generation ||
+          connection.tenant !== after[i]?.tenant,
+      )
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    return compareFinancialReports(left, right);
   }
   async movements(actor: AccountingActor, input: unknown) {
     const query = financialMovementQuery.parse(input),

@@ -253,9 +253,10 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
       await client.connect(ct);
       try {
         const catalog = (await client.listTools()).tools.filter((t) =>
-          /^(get|list)_financial_/.test(t.name),
+          /^(get|list|compare)_financial_/.test(t.name),
         );
         expect(catalog.map((t) => t.name).sort()).toEqual([
+          "compare_financial_periods",
           "get_financial_account",
           "get_financial_analysis",
           "get_financial_voucher",
@@ -268,6 +269,33 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
               t.annotations?.readOnlyHint && !t.annotations.destructiveHint,
           ),
         ).toBe(true);
+        expect(
+          (
+            await client.callTool({
+              name: "compare_financial_periods",
+              arguments: {
+                company_id: f.a.id,
+                left: { financial_year: 7, from: f.query.from, to: f.query.to },
+                right: {
+                  company_id: f.a.id,
+                  financial_year: 7,
+                  from: f.query.from,
+                  to: f.query.to,
+                },
+                account_numbers: [1930, 4000],
+              },
+            })
+          ).structuredContent,
+        ).toMatchObject({
+          status: "ok",
+          data: {
+            complete: false,
+            consolidated: false,
+            converted_currency: false,
+            left: { company_id: f.a.id, complete: false },
+            right: { company_id: f.a.id, complete: false },
+          },
+        });
         expect(
           (
             await client.callTool({

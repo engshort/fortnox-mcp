@@ -6,6 +6,7 @@ import {
   type FinancialAnalysis,
   financialAccountsQuery,
   financialBasis,
+  financialComparisonQuery,
   financialMovementQuery,
   financialQuery,
   financialVoucherReference,
@@ -251,6 +252,39 @@ export function registerFinancialReads(
       },
     );
   };
+  if (
+    service.enabled &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (id) => provider.enabled.includes(id),
+    )
+  )
+    register(
+      "compare_financial_periods",
+      "Compare explicit financial periods and companies",
+      "Compare at most 50 explicit accounts in two company/year/date selections. Authorizes both companies before retrieving source data. Preserves each report's currency, mapping, coverage and reconciliation; incompatible definitions produce no differences. No currency conversion or statutory consolidation.",
+      financialComparisonQuery,
+      z
+        .object({
+          left: report,
+          right: report,
+          compatible: z.boolean(),
+          complete: z.boolean(),
+          consolidated: z.literal(false),
+          converted_currency: z.literal(false),
+          differences: z
+            .array(
+              z
+                .object({
+                  category: accountCategory,
+                  signed_period_movement: money.nullable(),
+                })
+                .strict(),
+            )
+            .max(6),
+        })
+        .strict(),
+      (actor, value) => service.compare(actor, value),
+    );
   if (
     service.enabled &&
     (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
