@@ -279,3 +279,7 @@ retains the isolated test profile and expiry; invoice/order/payment provider
 lifecycles and payroll remain unavailable. Existing operation ledgers retain their
 classification and missing acceptance. See [implementation/evidence and S04/S05
 handoff](../implementation/S11-company-programs.md).
+
+## Milestone 7 work in progress
+
+The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Provider analysis breadth, payroll execution and actual acceptance remain pending. No full financial correctness or payroll gate is closed.

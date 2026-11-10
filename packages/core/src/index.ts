@@ -1,4 +1,5 @@
 export * from "./accounting.js";
+export * from "./analytics.js";
 export * from "./bookkeeping.js";
 export * from "./business-writes.js";
 export * from "./connections.js";
@@ -15,3 +16,4 @@ export * from "./receipt-workflow.js";
 export * from "./receipts.js";
 export * from "./registers.js";
 export * from "./sales-documents.js";
+export * from "./sie.js";

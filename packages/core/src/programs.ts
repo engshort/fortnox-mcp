@@ -14,6 +14,7 @@ export const featureId = z.enum([
   "receipt-files",
   "customer-registers",
   "supplier-registers",
+  "payroll-input",
 ]);
 export type FeatureId = z.infer<typeof featureId>;
 export const baseScopes = ["companyinformation", "profile"] as const;
@@ -33,6 +34,10 @@ export const featureLabels = {
   "supplier-registers": {
     sv: "Leverantörer och nödvändiga referenser",
     en: "Suppliers and required references",
+  },
+  "payroll-input": {
+    sv: "Löneunderlag och verifierade referenser",
+    en: "Payroll input and verified references",
   },
 } as const;
 const programCapabilities = {
@@ -114,10 +119,15 @@ export const programManifest = [
     en: "Payroll",
     scopes: ["salary"],
     implementation: "not_implemented",
-    features: [],
+    features: ["payroll-input"],
   },
 ] as const;
 export const featureManifest = {
+  "payroll-input": {
+    scopes: ["salary"],
+    dependsOn: [],
+    implementation: "not_implemented",
+  },
   references: {
     scopes: ["bookkeeping", "settings", "costcenter", "project"],
     dependsOn: [],
@@ -148,6 +158,8 @@ export interface ProgramGates {
   references: boolean;
   receiptConsent: boolean;
   registerScopes?: readonly string[];
+  // Consent permits evidence collection only; payroll execution has its own gate.
+  payrollConsent?: boolean;
 }
 // Older snapshots already have explicit provider consent. Derivation changes no
 // credential, generation, grant or operation activation gate.
@@ -210,6 +222,7 @@ export function assertScopeProgram(c: Connection, scope: string) {
     if ((p.scopes as readonly string[]).includes(scope)) assertProgram(c, p.id);
 }
 function featureScopes(id: FeatureId, gates: ProgramGates): string[] {
+  if (id === "payroll-input") return gates.payrollConsent ? ["salary"] : [];
   if (id === "references")
     return gates.references ? [...featureManifest.references.scopes] : [];
   if (id === "receipt-files")

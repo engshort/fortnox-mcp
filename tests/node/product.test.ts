@@ -6,6 +6,10 @@ import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
 import { accountingSelectionContract } from "../shared/accounting-selection.js";
 import { accountingTransportContract } from "../shared/accounting-transport.js";
+import {
+  analyticsAuthorizationContract,
+  analyticsCalculationContract,
+} from "../shared/analytics.js";
 import { businessWritesContract } from "../shared/business-writes.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
@@ -104,3 +108,5 @@ salesTransportContract(async () => (await fixture()).state);
 salesMcpContract(async () => (await fixture()).state);
 
 documentReadProfileContract(fixture);
+analyticsCalculationContract();
+analyticsAuthorizationContract(async () => (await fixture()).state);

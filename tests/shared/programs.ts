@@ -19,6 +19,7 @@ import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 const gates = {
   references: true,
   receiptConsent: true,
+  payrollConsent: true,
   registerScopes: ["customer", "article", "supplier", "settings", "currency"],
 };
 const bookkeeping: ProgramChange = {
@@ -177,6 +178,33 @@ export function programContract(fixture: () => Promise<StateStore>) {
       expect(f.calls()).toBe(calls);
     },
   );
+  it("collects salary consent only with its own gate and never treats consent as payroll activation", async () => {
+    const f = await seed();
+    const change: ProgramChange = {
+      program: "payroll",
+      features: ["payroll-input"],
+      expected_revision: 0,
+    };
+    expect(() =>
+      previewProgram(f.a, change, { references: true, receiptConsent: true }),
+    ).toThrow("CAPABILITY_UNAVAILABLE");
+    const flow = await f.begin(f.a.id, change);
+    expect(flow.url.searchParams.get("scope")).toBe(
+      "companyinformation profile salary",
+    );
+    const result = await f.provider.finish("owner", "session", flow.callback);
+    expect(result.scopes).toContain("salary");
+    expect(
+      programStatus(result, gates).programs.find((p) => p.id === "payroll")
+        ?.availability,
+    ).toBe("planned");
+    await expect(
+      f.connections.authorize("owner", "old-client", f.a.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    expect(
+      (await f.connections.authorize("owner", "old-client", f.b.id)).scopes,
+    ).not.toContain("salary");
+  });
   it("keeps scope unions company-bound with concurrent flows and verifies each target tenant", async () => {
     const f = await seed();
     const first = await f.begin();

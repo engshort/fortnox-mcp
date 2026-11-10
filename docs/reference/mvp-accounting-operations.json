@@ -11,7 +11,7 @@
     "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20",
-    "packages/core/src/programs.ts": "dd7ff03119c059184c02ec62ef86f5b78c3f1c9e228a91215783bb28b6579e85"
+    "packages/core/src/programs.ts": "389cad61c7262b7c90c3dca8ac3312c580b145c9807c6d3004c671ae7402a0e0"
   },
   "gates": {
     "referenceOperations": "#92",
@@ -144,7 +144,7 @@
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
       "parameters": {
         "financialyear": "required explicit positive integer",
-        "Number": "explicit integer 1000\u20139999; at most 20 distinct selected accounts per reference call",
+        "Number": "explicit integer 1000–9999; at most 20 distinct selected accounts per reference call",
         "pagination": "not accepted on detail reads"
       },
       "responseEnvelope": "Account",

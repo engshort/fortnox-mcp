@@ -38,7 +38,7 @@ void (async () => {
       .parse(JSON.parse(process.env.DOCUMENT_TEST_OPERATIONS ?? "[]")),
     consentScopes: z
       .array(z.string())
-      .max(7)
+      .max(8)
       .parse(JSON.parse(process.env.REGISTER_TEST_EXTRA_CONSENT ?? "[]")),
   });
 })().catch(() => {

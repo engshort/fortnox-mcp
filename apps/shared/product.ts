@@ -245,6 +245,7 @@ export function createProductApplication(
           "payment",
           "connectfile",
           "inbox",
+          "salary",
         ].includes(scope),
     )
   )
@@ -269,6 +270,10 @@ export function createProductApplication(
     new CredentialVault(settings.keys, settings.activeKey),
   );
   const programGates = () => ({
+    payrollConsent:
+      !!businessTest &&
+      now() < businessTest.until &&
+      businessTest.consentScopes?.includes("salary") === true,
     references: settings.testMode && settings.accountingReferences === true,
     receiptConsent:
       settings.testMode && settings.receiptProviderConsent === true,

@@ -144,6 +144,7 @@ export class FortnoxConnections {
               "invoice",
               "supplierinvoice",
               "payment",
+              "salary",
             ].includes(s),
         ))
     )
