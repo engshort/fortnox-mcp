@@ -1,5 +1,7 @@
 # Linux deployment: Docker first
 
+See [Nova continuous deployment](deployment-nova.md) for merge-to-main automation.
+
 The owner [accepted the delivered MVP and authorized a bounded prerelease](implementation/M05-release-authorization-2026-11-09.md)
 on 2026-11-09. Release source is version-tagged; build the Docker image locally
 using the commands below. Remaining actual test cases and operation gates are

@@ -6,6 +6,15 @@ import { build } from "esbuild";
 import { build as buildAdmin } from "vite";
 import { prepareRuntimeNotices } from "./prepare-release.mjs";
 
+await build({
+  entryPoints: ["apps/node/src/nova-deploy.ts"],
+  outfile: "dist/nova-deploy.mjs",
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node22",
+});
+
 await buildAdmin({ configFile: "apps/admin/vite.config.ts" });
 
 const operationsBuild = await build({
