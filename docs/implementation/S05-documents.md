@@ -1,8 +1,10 @@
 # S05 — Sales and purchase workflows
 
 Status: in progress; no document operation is enabled or advertised. Depends on
-S04. The portable sales-domain portion below is implemented; provider/MCP
-adapters, supplier invoices, payments and actual acceptance remain pending.
+S04. The portable sales domain and internal fixed-route provider adapter below
+are implemented, with focused MCP schemas and a read-only isolated product
+profile. Product write activation, supplier invoices, payments and actual
+acceptance remain pending.
 
 ## Implemented domain boundary
 
@@ -33,8 +35,79 @@ and actual local workerd/D1, including explicit removal, regenerated/stale IDs,
 mixed VAT precision, current reference gates, concurrent intent execution,
 changed content and uncertain sends across service recreation. These tests use
 synthetic provider ports; they establish neither provider nor ChatGPT acceptance.
-The internal document transport is being implemented and is not wired into the
-product. All operations remain disabled by default.
+The internal document transport has a separately selected read-only test profile. Its independent
+[23-operation ledger](../reference/s05-sales-operations.json) classifies routes,
+effects, scopes, exact wire values and retry rules without promoting support.
+List summaries explicitly retain unknown states and incomplete document content;
+they cannot stand in for a full editable detail read. Unmodeled discounts,
+article/stock rows, fees and unknown row fields block the bounded write profile.
+
+The adapter performs a final whole-source version comparison before dispatch,
+retains all surviving row IDs, and reads the complete intended result after IDs
+change. Decimal prices/VAT use exact JSON numeric tokens; quantities use the
+endpoint's string representation. Conversion reads both the source reference
+and exact target document. GET email uses the one-attempt write transport;
+all uncertain provider rejections remain unknown until proven otherwise.
+
+Consumed intents retain only bounded identity/field-name/content-digest evidence.
+Read-only reconciliation can compare current intended content or exact observed
+cancel/booking/conversion relationships. It never uses a name/date/amount search,
+never resends and cannot resolve an email from a Sent flag. A lost create response
+without a returned identity remains unknown. Matching current state is not proof
+of which actor caused a concurrent change.
+
+Eight shared HTTP behavior cases pass in Node/SQLite and actual local workerd/D1,
+alongside the six sales-domain cases. The chained lifecycle case also checks
+resource-specific quantities, mixed VAT, booked-state cancellation denial and a
+separately prepared credit. They cover partial summaries, decimal
+lexemes, retained and regenerated IDs, a final stale-version rejection, unknown
+discounts, lost effectful GETs, uncertain rejections, disconnect during dispatch,
+read-only content reconciliation and exact conversion target readback. These are
+synthetic fixed-endpoint tests, not actual Fortnox or ChatGPT acceptance.
+All operations remain disabled by default.
+
+## Focused MCP and isolated document reads
+
+The optional sales service registers separate list/get, preparation, immutable
+execution, reconciliation and status tools per resource/effect. Strict input
+schemas reject arbitrary fields and replacement content at execution. Shared
+Node/SQLite and actual local workerd/D1 MCP clients check the catalog, annotations,
+partial summaries, preparation/result schemas, replay, foreign-company/anonymous
+denial and default-off discovery. Reconciliation updates local execution state
+and is annotated as a local mutation, despite never dispatching a provider write.
+Reported totals/balances preserve exact decimal lexemes and nulls separately
+from writable headers; no total is invented from an incomplete summary.
+
+Only `dist/register-test-node.js` can read `DOCUMENT_TEST_OPERATIONS`, an explicit
+JSON array of at most six distinct `offer.list`, `offer.get`, `order.list`,
+`order.get`, `invoice.list`, `invoice.get` values. It reuses the same isolated
+database, two-tenant allowlist and maximum one-hour lease. Unknown/duplicate IDs
+and every document write operation are rejected. Ordinary product ENV ignores
+this selection. Shared profile and built-entry cases cover this boundary and
+expiry. The document write adapter/MCP contracts remain available for synthetic
+tests only; financial/reference, permission and actual client gates remain closed.
+
+## First actual document reads (2026-11-10)
+
+At `2b502ab149f7e03d61879070a2c8b05c8c1d8276`, a human-approved product
+OAuth/PKCE Node MCP SDK client read offer, order and invoice lists in both
+allowlisted companies. All six unfiltered lists and six selected-filter requests
+returned empty complete collections. This establishes accepted bounded requests,
+not filter semantics on matching records. Six exact nonexistent detail reads
+returned `record_not_found`; positive detail readback is still pending. A foreign
+company request returned `COMPANY_FORBIDDEN`. The actual catalog exposed the six
+selected read tools and no document write tools. No document write was dispatched.
+
+Private evidence retains timestamps and response hashes outside git. This is
+actual provider/product-MCP evidence, not ChatGPT acceptance. The operation
+matrix remains unsupported/default-off, with all financial, permission,
+precision, nonempty pagination and lifecycle cases still requiring acceptance.
+
+The S11 company/program handoff is integrated into #118. Both document-domain
+reads and the internal provider transport enforce local program selection,
+including disable while existing upstream scopes remain present. The common
+business dispatcher applies the same check to prepared writes. UI connection
+status does not activate these document operations.
 
 ## Deliver
 

@@ -7,6 +7,7 @@ import {
   type Receipts,
   type ReceiptWorkflow,
   type Registers,
+  type SalesDocuments,
 } from "@fortnox-mcp/core";
 import {
   companyInformation,
@@ -25,6 +26,7 @@ import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
 import { registerRegisters } from "./registers.js";
+import { registerSalesDocuments } from "./sales-documents.js";
 export interface CompanyIdentity {
   ownerId: string;
   clientId: string;
@@ -113,6 +115,7 @@ export function companyServer(context: {
   receiptAttachments?: ReceiptAttachments;
   receiptWorkflow?: ReceiptWorkflow;
   registers?: Registers;
+  salesDocuments?: SalesDocuments;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -351,6 +354,8 @@ export function companyServer(context: {
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.registers)
     registerRegisters(server, context.registers, context.identity);
+  if (context.salesDocuments)
+    registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)
     registerReceiptFiles(server, context.receiptFiles, context.identity);
   if (context.receipts)

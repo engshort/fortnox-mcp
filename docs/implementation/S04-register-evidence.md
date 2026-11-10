@@ -136,7 +136,10 @@ An article create including price/VAT remained uncertain; its exact-ID read
 returned 404 and no resend occurred. A separate basic service article in the
 other company returned HTTP 201, but its detail read revealed a null sales
 price rejected by the read schema. The read projection now preserves nullable
-article prices/VAT as well. This does not establish article price writes, and
+article prices/VAT as well. At `3530f03`, read-only reconciliation of that same
+intent succeeded, followed by update/readback and exact-identity filtering. The
+null sales price remained null. Selected price listing was complete and empty;
+no price-detail acceptance is inferred. This does not establish article price writes, and
 the first article intent remains unresolved pending exact evidence.
 
 Private evidence retains timestamps, provider identities, intent references,

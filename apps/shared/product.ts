@@ -21,6 +21,7 @@ import {
   Registers,
   registerOperationIds,
   registerScope,
+  SalesDocuments,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -36,6 +37,7 @@ import {
   FortnoxConsentError,
   FortnoxReceiptFiles,
   FortnoxRegisters,
+  FortnoxSalesDocuments,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -75,6 +77,7 @@ export interface ProductBusinessTest {
   sourceCommit: string;
   until: number;
   operations: readonly RegisterOperation[];
+  documentReads?: readonly string[];
   consentScopes?: readonly string[];
   now?: () => number;
 }
@@ -200,6 +203,7 @@ export function createProductApplication(
   businessTest?: ProductBusinessTest,
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  const documentReads = businessTest?.documentReads ?? [];
   if (
     businessTest &&
     (fileTest ||
@@ -212,6 +216,22 @@ export function createProductApplication(
       businessTest.until <= now() ||
       businessTest.until > now() + 3600000 ||
       businessTest.operations.some((id) => !registerOperationIds.includes(id)))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    documentReads.length > 6 ||
+    new Set(documentReads).size !== documentReads.length ||
+    documentReads.some(
+      (id) =>
+        ![
+          "offer.list",
+          "offer.get",
+          "order.list",
+          "order.get",
+          "invoice.list",
+          "invoice.get",
+        ].includes(id),
+    )
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
@@ -313,6 +333,24 @@ export function createProductApplication(
         businessTest.operations,
       )
     : undefined;
+  const salesDocuments =
+    businessTest?.documentReads?.length && registers
+      ? new SalesDocuments(
+          connections,
+          new FortnoxSalesDocuments(
+            connections,
+            provider,
+            businessTest.documentReads,
+            () => now() < businessTest.until,
+            now,
+          ),
+          registers,
+          accountingProvider,
+          businessTest.documentReads,
+          [],
+          now,
+        )
+      : undefined;
   const receiptFiles = runtime.receiptFiles
     ? new ReceiptFiles(
         connections,
@@ -363,6 +401,7 @@ export function createProductApplication(
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
+      ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
       ...(receiptAttachments ? { receiptAttachments } : {}),
@@ -390,6 +429,7 @@ export function createProductApplication(
                   expires_at: new Date(businessTest.until).toISOString(),
                   active: now() < businessTest.until,
                   operations: businessTest.operations,
+                  document_operations: businessTest.documentReads ?? [],
                   financial_writes: false,
                 },
               }

@@ -23,6 +23,19 @@ void (async () => {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
+    documentReads: z
+      .array(
+        z.enum([
+          "offer.list",
+          "offer.get",
+          "order.list",
+          "order.get",
+          "invoice.list",
+          "invoice.get",
+        ]),
+      )
+      .max(6)
+      .parse(JSON.parse(process.env.DOCUMENT_TEST_OPERATIONS ?? "[]")),
     consentScopes: z
       .array(z.string())
       .max(7)

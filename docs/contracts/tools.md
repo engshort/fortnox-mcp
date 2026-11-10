@@ -190,3 +190,25 @@ blocks, operation gates or client/company grants. Existing tool names and approv
 boundaries are unchanged. `diagnose_connection` adds manifest-derived `programs`
 summaries; OAuth connection, operation verification and unknown license/permission
 causes remain separate. No model-callable program administration tool is added.
+
+### S05 focused sales tools (default-off service)
+
+`list_offers`/`list_orders`/`list_invoices` use resource-specific filters and bounded
+pagination. `get_offer`/`get_order`/`get_invoice` require an exact company-bound
+ID and return the whole-source version, projected rows, nullable observed states,
+exact reported amounts and explicit completeness/editability. A summary is never
+an editable full document or a source of invented defaults.
+
+`prepare_<resource>_<action>` stores immutable content and full row diffs.
+`create`/`update`/`email`/`bookkeep`/`credit`/`cancel` and supported `to_order`/
+`to_invoice` executions take only the business reference. Reconciliation updates
+local execution metadata from exact readback and is annotated as a local
+mutation. Email is an external effect; its uncertain result cannot be resolved
+from a Sent flag alone. No eprint, e-invoice, reminder or bank-initiation tool is
+registered.
+
+The ordinary product registers none of these tools. The separately selected
+S04/S05 test entry permits at most six document read operations and refuses write
+activation. Contracts, evidence and outstanding acceptance are in the
+[S05 record](../implementation/S05-documents.md) and
+[operation ledger](../reference/s05-sales-operations.json).
