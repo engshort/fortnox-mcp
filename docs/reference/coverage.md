@@ -268,3 +268,11 @@ Only a separate one-hour, two-tenant, isolated-database test entry exposes the
 explicitly selected operations. Stock changes, bank instructions, field clearing
 and all document operations remain outside this register slice. See the
 [implementation boundary](../implementation/S04-register-evidence.md).
+
+S11/#117 adds the company/program administration structure on PR #118, a shared
+manifest and explicit company-bound scope extension with Node/workerd and browser
+regressions. This enables zero new provider operations. Register availability
+retains the isolated test profile and expiry; invoice/order/payment provider
+lifecycles and payroll remain unavailable. Existing operation ledgers retain their
+classification and missing acceptance. See [implementation/evidence and S04/S05
+handoff](../implementation/S11-company-programs.md).

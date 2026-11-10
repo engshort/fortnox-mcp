@@ -180,3 +180,13 @@ matching current state. Unknown identity, mismatch or absence stays unknown;
 no reconciliation tool resends. `get_register_write_status` reads only the
 initiating client's durable proposal/execution. No tool supplies manual-voucher
 approval, a provider URL, arbitrary method/body or bank instructions.
+
+## Program selection and diagnostics (#117)
+
+A company's local program/function selection is an additional authorization check
+for accounting and register/file provider paths, including pre-dispatch rechecks.
+Retained provider scopes cannot bypass local disable, read-only mode, restore
+blocks, operation gates or client/company grants. Existing tool names and approval
+boundaries are unchanged. `diagnose_connection` adds manifest-derived `programs`
+summaries; OAuth connection, operation verification and unknown license/permission
+causes remain separate. No model-callable program administration tool is added.

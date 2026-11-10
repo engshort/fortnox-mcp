@@ -68,3 +68,25 @@ Node/SQLite and workerd/D1. It uses only a synthetic owner and read-only fixture
 ChatGPT owner consent, an authenticated synthetic tool call and remote refresh
 rotation. It distinguishes these results from pending lifecycle checks and the
 S02 production implementation.
+
+## Company program consent (S11 / #117)
+
+Initial product consent requests `companyinformation profile` only. Additional
+access uses the existing company connection, not a separate service account for
+each program. The shared program/function manifest derives the per-company union
+from existing scopes and explicitly selected, currently allowed features. Owner
+APIs accept program IDs and a revision, never arbitrary scopes or credentials.
+Every private deep link and program/grant API requires the owner session; browser
+POSTs require the exact installation Origin. MCP bearer tokens cannot administer
+programs.
+
+An extension binds owner/session/company/generation/policy/program revision and
+requested scopes. The authenticated provider tenant must match before replacement;
+partial scope responses fail closed. Replacement advances generation and invalidates
+old proposals/grants while retaining the stable company ID and current policy.
+Cancellation/failure does not delete the working local credential. Actual upstream
+invalidation remains subject to provider acceptance and normal reconnect handling.
+Local disable retains provider scopes but blocks current domain/provider calls;
+shared scopes remain usable by other enabled programs. Reactivation requires a new
+explicit consent flow. Uncertain writes block program changes until reconciliation.
+See [implementation and acceptance boundaries](../implementation/S11-company-programs.md).
