@@ -2,7 +2,8 @@
 
 Status: in progress; no document operation is enabled or advertised. Depends on
 S04. The portable sales domain and internal fixed-route provider adapter below
-are implemented. MCP/product wiring, supplier invoices, payments and actual
+are implemented, with focused MCP schemas and a read-only isolated product
+profile. Product write activation, supplier invoices, payments and actual
 acceptance remain pending.
 
 ## Implemented domain boundary
@@ -34,7 +35,7 @@ and actual local workerd/D1, including explicit removal, regenerated/stale IDs,
 mixed VAT precision, current reference gates, concurrent intent execution,
 changed content and uncertain sends across service recreation. These tests use
 synthetic provider ports; they establish neither provider nor ChatGPT acceptance.
-The internal document transport is not wired into the product. Its independent
+The internal document transport has a separately selected read-only test profile. Its independent
 [23-operation ledger](../reference/s05-sales-operations.json) classifies routes,
 effects, scopes, exact wire values and retry rules without promoting support.
 List summaries explicitly retain unknown states and incomplete document content;
@@ -64,6 +65,27 @@ discounts, lost effectful GETs, uncertain rejections, disconnect during dispatch
 read-only content reconciliation and exact conversion target readback. These are
 synthetic fixed-endpoint tests, not actual Fortnox or ChatGPT acceptance.
 All operations remain disabled by default.
+
+## Focused MCP and isolated document reads
+
+The optional sales service registers separate list/get, preparation, immutable
+execution, reconciliation and status tools per resource/effect. Strict input
+schemas reject arbitrary fields and replacement content at execution. Shared
+Node/SQLite and actual local workerd/D1 MCP clients check the catalog, annotations,
+partial summaries, preparation/result schemas, replay, foreign-company/anonymous
+denial and default-off discovery. Reconciliation updates local execution state
+and is annotated as a local mutation, despite never dispatching a provider write.
+Reported totals/balances preserve exact decimal lexemes and nulls separately
+from writable headers; no total is invented from an incomplete summary.
+
+Only `dist/register-test-node.js` can read `DOCUMENT_TEST_OPERATIONS`, an explicit
+JSON array of at most six distinct `offer.list`, `offer.get`, `order.list`,
+`order.get`, `invoice.list`, `invoice.get` values. It reuses the same isolated
+database, two-tenant allowlist and maximum one-hour lease. Unknown/duplicate IDs
+and every document write operation are rejected. Ordinary product ENV ignores
+this selection. Shared profile and built-entry cases cover this boundary and
+expiry. The document write adapter/MCP contracts remain available for synthetic
+tests only; financial/reference, permission and actual client gates remain closed.
 
 The S11 company/program handoff is integrated into #118. Both document-domain
 reads and the internal provider transport enforce local program selection,

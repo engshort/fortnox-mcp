@@ -191,6 +191,21 @@ export async function projectSalesDocument(
   const raw = z.record(z.string(), z.unknown()).parse(source);
   const id = salesDocumentId.parse(raw.DocumentNumber);
   const fields = projectFields(raw);
+  const amounts: NonNullable<SalesDocumentRecord["amounts"]> = {};
+  for (const [field, key] of [
+    ["Net", "net"],
+    ["TotalVAT", "vat"],
+    ["Total", "total"],
+    ["Balance", "balance"],
+    ["RoundOff", "rounding"],
+  ] as const) {
+    if (Object.hasOwn(raw, field))
+      amounts[key] = z
+        .string()
+        .regex(/^-?(?:0|[1-9]\d{0,47})(?:\.\d{1,18})?$/)
+        .nullable()
+        .parse(raw[field]);
+  }
   const suppliedRows = raw[salesProviderResources[resource].rows];
   const sourceRows =
     suppliedRows === undefined
@@ -240,6 +255,7 @@ export async function projectSalesDocument(
     id,
     fields,
     rows,
+    amounts,
     observed,
     complete,
     editable,

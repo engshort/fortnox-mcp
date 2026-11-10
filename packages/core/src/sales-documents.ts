@@ -136,6 +136,9 @@ export interface SalesDocumentRecord {
   version: string;
   fields: Record<string, unknown>;
   rows: Array<Record<string, unknown>>;
+  amounts?: Partial<
+    Record<"net" | "vat" | "total" | "balance" | "rounding", string | null>
+  >;
   // False for unmodeled/partial source content. Such records cannot be updated.
   editable: boolean;
   complete: boolean;

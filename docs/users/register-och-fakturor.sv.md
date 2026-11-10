@@ -28,6 +28,8 @@ inte. E-faktura, eprint och påminnelsekanaler är otillgängliga i denna levera
 Aktuell verifieringsstatus finns i [operationstäckningen](../reference/coverage.md).
 
 Dokumentadaptern har lokala tester för radbevarande, ändrade rad-ID:n och
-avstämning av osäkra utfall. Den är ännu inte ansluten till produktens
-MCP-verktyg eller verifierad mot Fortnox. Utskick som får ett osäkert svar
-skickas aldrig automatiskt igen.
+avstämning av osäkra utfall. Operatören kan välja offert-, order- och
+kundfakturaläsning i den tidsbegränsade testbuilden. Sammanställningar skiljer
+ofullständiga uppgifter från detaljläsning och visar okända tillstånd uttryckligen.
+Faktisk Fortnox- och klientacceptans återstår. Dokumentskrivningar är avstängda
+i produkten. Utskick som får ett osäkert svar skickas aldrig automatiskt igen.

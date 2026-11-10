@@ -320,6 +320,7 @@ for (const experiment of [false, true])
           FORTNOX_TEST_TENANTS: "100001,100002",
           REGISTER_TEST_UNTIL: new Date(Date.now() + 2000).toISOString(),
           REGISTER_TEST_OPERATIONS: '["customer.list"]',
+          DOCUMENT_TEST_OPERATIONS: '["offer.list","order.get"]',
           REGISTER_TEST_EXTRA_CONSENT:
             '["offer","order","invoice","supplierinvoice","payment","connectfile","inbox"]',
         },
@@ -344,6 +345,10 @@ for (const experiment of [false, true])
     if (experiment) {
       assert.match(health.register_test.source_commit, /^[a-f0-9]{40}$/);
       assert.equal(health.register_test.financial_writes, false);
+      assert.deepEqual(health.register_test.document_operations, [
+        "offer.list",
+        "order.get",
+      ]);
       await assert.rejects(readFile(join(directory, "ordinary.sqlite")));
       await readFile(join(directory, "isolated.sqlite"));
       await new Promise((r) => setTimeout(r, 2100));

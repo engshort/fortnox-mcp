@@ -21,6 +21,10 @@ import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
 import { registersContract } from "../shared/registers.js";
 import { salesDocumentsContract } from "../shared/sales-documents.js";
+import {
+  documentReadProfileContract,
+  salesMcpContract,
+} from "../shared/sales-mcp.js";
 import { salesTransportContract } from "../shared/sales-transport.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
@@ -96,3 +100,7 @@ salesDocumentsContract(async () => (await fixture()).state);
 programContract(async () => (await fixture()).state);
 programHttpContract(fixture);
 salesTransportContract(async () => (await fixture()).state);
+
+salesMcpContract(async () => (await fixture()).state);
+
+documentReadProfileContract(fixture);

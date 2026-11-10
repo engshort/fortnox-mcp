@@ -396,10 +396,14 @@ export function salesTransportContract(fixture: () => Promise<StateStore>) {
       const parsed = await projectSalesDocument(
         "offer",
         parseExactProviderJson(
-          '{"DocumentNumber":"7","Cancelled":false,"Sent":false,"OfferRows":[{"RowId":1,"AccountNumber":4000,"Description":"Synthetic exact price","Price":99999999999999.123456,"VAT":25,"Quantity":"1"}]}',
+          '{"DocumentNumber":"7","Cancelled":false,"Sent":false,"Total":99999999999999.123456,"Balance":null,"OfferRows":[{"RowId":1,"AccountNumber":4000,"Description":"Synthetic exact price","Price":99999999999999.123456,"VAT":25,"Quantity":"1"}]}',
         ),
       );
       expect(parsed.rows[0]?.Price).toBe("99999999999999.123456");
+      expect(parsed.amounts).toEqual({
+        total: "99999999999999.123456",
+        balance: null,
+      });
       f.flags.noMeta = true;
       expect((await f.documents.list(f.actor, f.a.id, "offer")).complete).toBe(
         false,
