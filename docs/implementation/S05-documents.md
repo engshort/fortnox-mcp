@@ -65,6 +65,12 @@ read-only content reconciliation and exact conversion target readback. These are
 synthetic fixed-endpoint tests, not actual Fortnox or ChatGPT acceptance.
 All operations remain disabled by default.
 
+The S11 company/program handoff is integrated into #118. Both document-domain
+reads and the internal provider transport enforce local program selection,
+including disable while existing upstream scopes remain present. The common
+business dispatcher applies the same check to prepared writes. UI connection
+status does not activate these document operations.
+
 ## Deliver
 
 Practical offer/order/customer-invoice and supplier-invoice flows: retrieval, preparation, creation, explicit update, sending, bookkeeping, cancellation/credit and supported payment registration. Split operations by side effect and gate them by actual scope/license/record state.

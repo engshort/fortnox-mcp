@@ -5,10 +5,10 @@
   "sourceStrategy": "Independent schemas and finite method/path mapping; no copied specification or generated provider code",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/business-writes.ts": "b6c302480a0bb5012d68fd1b2c1ba62be3dd47e57f1c8b406a178823f9d7a865",
+    "packages/core/src/business-writes.ts": "5682e1480c3ea6479b61348e17232008aeb6419cb891d3da88348fa4c4556ad7",
     "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
-    "packages/core/src/sales-documents.ts": "4f7cf2cb6aceef9beda035ef8a635435a655920979a949af55cb51a59cbd9797",
-    "packages/fortnox/src/document-http.ts": "d5a8a09ea15e3b6a4270b518576db2263544f4f090d2f4019cdadf75b57d8051",
+    "packages/core/src/sales-documents.ts": "c4dc6fe17ebacf74bc861d5d02ef44bd1c74be48e1994694f32426178c7ae182",
+    "packages/fortnox/src/document-http.ts": "bec3be9bc520246a3d3d37fbef9275641bb2da3871e9fcdcc6a85869bdaa5e02",
     "packages/fortnox/src/sales-documents.ts": "e64f56a55a37fa21fdcb39a12a43d0ec852dc8c11bb37f775fb074bf7a7565a6",
     "packages/fortnox/src/index.ts": "a6d6d36aa46e413f7dad954bee39853f70c46af2ef1645c8be0de6634150605b"
   },

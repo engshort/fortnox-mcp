@@ -144,7 +144,7 @@
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
       "parameters": {
         "financialyear": "required explicit positive integer",
-        "Number": "explicit integer 1000–9999; at most 20 distinct selected accounts per reference call",
+        "Number": "explicit integer 1000\u20139999; at most 20 distinct selected accounts per reference call",
         "pagination": "not accepted on detail reads"
       },
       "responseEnvelope": "Account",

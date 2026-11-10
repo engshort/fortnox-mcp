@@ -18,6 +18,7 @@ import {
 } from "./document-rows.js";
 import { DomainError } from "./errors.js";
 import { parseAmount } from "./money.js";
+import { assertScopeProgram } from "./programs.js";
 import { type Registers, registerId, registerVersion } from "./registers.js";
 
 export const salesDocumentId = z.string().regex(/^[1-9]\d{0,11}$/);
@@ -409,6 +410,7 @@ export class SalesDocuments {
       actor.clientId,
       company,
     );
+    assertScopeProgram(c, resource);
     if (!c.scopes.includes(resource))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;

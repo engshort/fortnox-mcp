@@ -261,6 +261,22 @@ export function salesTransportContract(fixture: () => Promise<StateStore>) {
       await expect(
         f.adapter.get(f.actor, f.a.id, "offer", "1"),
       ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+        c.scopes.push("offer");
+        c.readOnly = false;
+      });
+      await f.connections.disableProgram(
+        f.actor.ownerId,
+        f.a.id,
+        "order-offer",
+        0,
+      );
+      await expect(
+        f.documents.get(f.actor, f.a.id, "offer", "1"),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      await expect(
+        f.adapter.get(f.actor, f.a.id, "offer", "1"),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
       expect(f.calls).toHaveLength(0);
       expect(dispatched).toBe(false);
     });

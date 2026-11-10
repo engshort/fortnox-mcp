@@ -88,7 +88,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -119,7 +119,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",

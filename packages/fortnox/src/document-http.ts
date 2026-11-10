@@ -1,5 +1,6 @@
 import {
   type AccountingActor,
+  assertScopeProgram,
   type Connections,
   DomainError,
 } from "@fortnox-mcp/core";
@@ -48,6 +49,7 @@ export class DocumentHttp {
         actor.clientId,
         company,
       );
+      assertScopeProgram(c, scope);
       if (
         !this.active() ||
         c.generation !== original.generation ||
