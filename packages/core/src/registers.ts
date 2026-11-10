@@ -105,7 +105,9 @@ export const referenceScopes = {
 } as const;
 export type ReferenceRegister = keyof typeof referenceScopes;
 export type RegisterResource = WritableRegister | ReferenceRegister;
-export type RegisterFields = Record<string, string | boolean>;
+// Provider reads distinguish null from empty text. Write schemas still reject
+// null/blank clearing until that separate capability is verified.
+export type RegisterFields = Record<string, string | boolean | null>;
 export interface RegisterRecord {
   id: string;
   fields: RegisterFields;

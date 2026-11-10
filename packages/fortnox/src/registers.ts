@@ -31,7 +31,7 @@ import {
 
 const label = z.string().max(4096);
 const reference = z.object({ Code: registerId, Description: label });
-const optionalText = z.string().max(1024).optional();
+const optionalText = z.string().max(1024).nullable().optional();
 const projectedParty = {
   Active: z.boolean().optional(),
   Name: label,
