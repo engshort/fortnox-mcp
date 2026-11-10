@@ -65,11 +65,14 @@ jobs:
           trap 'rm -rf "$RUNNER_TEMP/nova-ssh"' EXIT
           digest=$(sha256sum "$RUNNER_TEMP/nova-image.tar.gz" | cut -d ' ' -f1)
           options=(-F /dev/null -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=8 -o "UserKnownHostsFile=$RUNNER_TEMP/nova-ssh/known_hosts" -i "$RUNNER_TEMP/nova-ssh/key" -p "$DEPLOY_PORT")
+          # The receiver validates these client-expanded hex arguments exactly.
+          # shellcheck disable=SC2029
           ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "deploy $SOURCE_COMMIT $digest" < "$RUNNER_TEMP/nova-image.tar.gz"
+          # shellcheck disable=SC2029
           ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "status $SOURCE_COMMIT"
       - name: Verify public HTTPS, revision, OAuth and authentication
         env:
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
           node --import tsx scripts/nova-smoke.ts
-          printf 'Deployed `%s` to https://fortnox.mcp.engshort.se; public smoke passed.\n' "$SOURCE_COMMIT" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Deployed %s to https://fortnox.mcp.engshort.se; public smoke passed.\n' "$SOURCE_COMMIT" >> "$GITHUB_STEP_SUMMARY"
