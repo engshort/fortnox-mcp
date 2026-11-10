@@ -1,8 +1,9 @@
 # S05 — Sales and purchase workflows
 
 Status: in progress; no document operation is enabled or advertised. Depends on
-S04. The portable sales-domain portion below is implemented; provider/MCP
-adapters, supplier invoices, payments and actual acceptance remain pending.
+S04. The portable sales domain and internal fixed-route provider adapter below
+are implemented. MCP/product wiring, supplier invoices, payments and actual
+acceptance remain pending.
 
 ## Implemented domain boundary
 
@@ -33,8 +34,36 @@ and actual local workerd/D1, including explicit removal, regenerated/stale IDs,
 mixed VAT precision, current reference gates, concurrent intent execution,
 changed content and uncertain sends across service recreation. These tests use
 synthetic provider ports; they establish neither provider nor ChatGPT acceptance.
-The internal document transport is being implemented and is not wired into the
-product. All operations remain disabled by default.
+The internal document transport is not wired into the product. Its independent
+[23-operation ledger](../reference/s05-sales-operations.json) classifies routes,
+effects, scopes, exact wire values and retry rules without promoting support.
+List summaries explicitly retain unknown states and incomplete document content;
+they cannot stand in for a full editable detail read. Unmodeled discounts,
+article/stock rows, fees and unknown row fields block the bounded write profile.
+
+The adapter performs a final whole-source version comparison before dispatch,
+retains all surviving row IDs, and reads the complete intended result after IDs
+change. Decimal prices/VAT use exact JSON numeric tokens; quantities use the
+endpoint's string representation. Conversion reads both the source reference
+and exact target document. GET email uses the one-attempt write transport;
+all uncertain provider rejections remain unknown until proven otherwise.
+
+Consumed intents retain only bounded identity/field-name/content-digest evidence.
+Read-only reconciliation can compare current intended content or exact observed
+cancel/booking/conversion relationships. It never uses a name/date/amount search,
+never resends and cannot resolve an email from a Sent flag. A lost create response
+without a returned identity remains unknown. Matching current state is not proof
+of which actor caused a concurrent change.
+
+Eight shared HTTP behavior cases pass in Node/SQLite and actual local workerd/D1,
+alongside the six sales-domain cases. The chained lifecycle case also checks
+resource-specific quantities, mixed VAT, booked-state cancellation denial and a
+separately prepared credit. They cover partial summaries, decimal
+lexemes, retained and regenerated IDs, a final stale-version rejection, unknown
+discounts, lost effectful GETs, uncertain rejections, disconnect during dispatch,
+read-only content reconciliation and exact conversion target readback. These are
+synthetic fixed-endpoint tests, not actual Fortnox or ChatGPT acceptance.
+All operations remain disabled by default.
 
 ## Deliver
 

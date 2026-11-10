@@ -249,7 +249,8 @@ rotation. No provider operation is added or promoted by restore or reconciliatio
 The [S05 sales domain](../implementation/S05-documents.md) is in progress and
 default-off. Shared synthetic Node/workerd tests cover explicit row replacement,
 exact mixed VAT, immutable prepared content and separate lifecycle intents.
-Provider/MCP wiring, supplier invoices/payments and actual acceptance remain
+The internal fixed-route provider adapter has shared Node/workerd HTTP tests;
+MCP/product wiring, supplier invoices/payments and actual acceptance remain
 pending; this does not classify any document provider operation as supported.
 
 The shared [business write foundation](../implementation/S04-S05-business-writes.md)

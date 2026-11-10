@@ -26,3 +26,8 @@ får inte användas för att kringgå detta.
 Betalregistrering avser bokföring av en betalning. Bankbetalningsinitiering ingår
 inte. E-faktura, eprint och påminnelsekanaler är otillgängliga i denna leverans.
 Aktuell verifieringsstatus finns i [operationstäckningen](../reference/coverage.md).
+
+Dokumentadaptern har lokala tester för radbevarande, ändrade rad-ID:n och
+avstämning av osäkra utfall. Den är ännu inte ansluten till produktens
+MCP-verktyg eller verifierad mot Fortnox. Utskick som får ett osäkert svar
+skickas aldrig automatiskt igen.

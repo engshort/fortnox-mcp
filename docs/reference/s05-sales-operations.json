@@ -1,0 +1,799 @@
+{
+  "schemaVersion": 1,
+  "scope": "S05 bounded internal sales adapter; no MCP/product activation",
+  "reviewedAt": "2026-11-10",
+  "sourceStrategy": "Independent schemas and finite method/path mapping; no copied specification or generated provider code",
+  "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+  "sourceHashes": {
+    "packages/core/src/business-writes.ts": "b6c302480a0bb5012d68fd1b2c1ba62be3dd47e57f1c8b406a178823f9d7a865",
+    "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
+    "packages/core/src/sales-documents.ts": "4f7cf2cb6aceef9beda035ef8a635435a655920979a949af55cb51a59cbd9797",
+    "packages/fortnox/src/document-http.ts": "d5a8a09ea15e3b6a4270b518576db2263544f4f090d2f4019cdadf75b57d8051",
+    "packages/fortnox/src/sales-documents.ts": "e64f56a55a37fa21fdcb39a12a43d0ec852dc8c11bb37f775fb074bf7a7565a6",
+    "packages/fortnox/src/index.ts": "a6d6d36aa46e413f7dad954bee39853f70c46af2ef1645c8be0de6634150605b"
+  },
+  "operations": [
+    {
+      "localId": "offer.list",
+      "method": "GET",
+      "path": "/3/offers",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; missing metadata is partial",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.get",
+      "method": "GET",
+      "path": "/3/offers/{DocumentNumber}",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.create",
+      "method": "POST",
+      "path": "/3/offers",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "create",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.update",
+      "method": "PUT",
+      "path": "/3/offers/{DocumentNumber}",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "update",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.email",
+      "method": "GET",
+      "path": "/3/offers/{DocumentNumber}/email",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "external_email",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.cancel",
+      "method": "PUT",
+      "path": "/3/offers/{DocumentNumber}/cancel",
+      "providerScope": "offer",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "cancel",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.to_order",
+      "method": "PUT",
+      "path": "/3/offers/{DocumentNumber}/createorder",
+      "providerScope": "offer",
+      "targetScope": "order",
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "to_order",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "offer.to_invoice",
+      "method": "PUT",
+      "path": "/3/offers/{DocumentNumber}/createinvoice",
+      "providerScope": "offer",
+      "targetScope": "invoice",
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "to_invoice",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.list",
+      "method": "GET",
+      "path": "/3/orders",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; missing metadata is partial",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.get",
+      "method": "GET",
+      "path": "/3/orders/{DocumentNumber}",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.create",
+      "method": "POST",
+      "path": "/3/orders",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "create",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.update",
+      "method": "PUT",
+      "path": "/3/orders/{DocumentNumber}",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "update",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.email",
+      "method": "GET",
+      "path": "/3/orders/{DocumentNumber}/email",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "external_email",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.cancel",
+      "method": "PUT",
+      "path": "/3/orders/{DocumentNumber}/cancel",
+      "providerScope": "order",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "cancel",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "order.to_invoice",
+      "method": "PUT",
+      "path": "/3/orders/{DocumentNumber}/createinvoice",
+      "providerScope": "order",
+      "targetScope": "invoice",
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "to_invoice",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.list",
+      "method": "GET",
+      "path": "/3/invoices",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; missing metadata is partial",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.get",
+      "method": "GET",
+      "path": "/3/invoices/{DocumentNumber}",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "read",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "At most three bounded read attempts with shared pacing and one 401 renewal",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.create",
+      "method": "POST",
+      "path": "/3/invoices",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "create",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.update",
+      "method": "PUT",
+      "path": "/3/invoices/{DocumentNumber}",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "update",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.email",
+      "method": "GET",
+      "path": "/3/invoices/{DocumentNumber}/email",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "external_email",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.bookkeep",
+      "method": "PUT",
+      "path": "/3/invoices/{DocumentNumber}/bookkeep",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "bookkeep",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.credit",
+      "method": "PUT",
+      "path": "/3/invoices/{DocumentNumber}/credit",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "credit",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "invoice.cancel",
+      "method": "PUT",
+      "path": "/3/invoices/{DocumentNumber}/cancel",
+      "providerScope": "invoice",
+      "targetScope": null,
+      "license": "Actual resource license and user rights not yet verified",
+      "effect": "cancel",
+      "precision": "Exact decimal strings in domain; fixed-point price/VAT JSON number tokens; endpoint quantity strings; provider rounding/precision acceptance pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch attempt, including GET email; no automatic retry after dispatch",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "productWired": false,
+      "syntheticTests": [
+        "tests/shared/sales-documents.ts",
+        "tests/shared/sales-transport.ts",
+        "tests/shared/document-rows.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Actual individual lifecycle/readback/precision and row semantics",
+        "Actual negative scope/license/user rights",
+        "MCP schemas and product wiring",
+        "Actual ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    }
+  ]
+}

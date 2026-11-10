@@ -23,6 +23,7 @@ import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
 import { registersContract } from "../shared/registers.js";
 import { salesDocumentsContract } from "../shared/sales-documents.js";
+import { salesTransportContract } from "../shared/sales-transport.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
 documentRowsContract();
@@ -107,3 +108,4 @@ salesDocumentsContract(async () => (await fixture()).state);
 
 programContract(async () => (await fixture()).state);
 programHttpContract(fixture);
+salesTransportContract(async () => (await fixture()).state);

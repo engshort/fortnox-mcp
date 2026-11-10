@@ -12,11 +12,13 @@ import {
   planDocumentRows,
   type SalesResource,
   type SalesRow,
+  salesRowSchemas,
   salesRowsInput,
   validateDocumentAccounts,
 } from "./document-rows.js";
 import { DomainError } from "./errors.js";
-import { type Registers, registerId } from "./registers.js";
+import { parseAmount } from "./money.js";
+import { type Registers, registerId, registerVersion } from "./registers.js";
 
 export const salesDocumentId = z.string().regex(/^[1-9]\d{0,11}$/);
 const email = z
@@ -131,19 +133,20 @@ export const salesQueries = {
 export interface SalesDocumentRecord {
   id: string;
   version: string;
-  fields: SalesHeader;
-  rows: SalesRow[];
+  fields: Record<string, unknown>;
+  rows: Array<Record<string, unknown>>;
   // False for unmodeled/partial source content. Such records cannot be updated.
   editable: boolean;
   complete: boolean;
   observed: {
-    cancelled: boolean;
-    booked: boolean;
-    sent: boolean;
-    credit: boolean;
+    cancelled: boolean | null;
+    booked: boolean | null;
+    sent: boolean | null;
+    credit: boolean | null;
     order_reference: string | null;
     invoice_reference: string | null;
     credit_reference: string | null;
+    offer_reference?: string | null;
   };
 }
 export interface SalesDocumentPage {
@@ -173,11 +176,37 @@ export interface SalesDocumentProvider {
     action: SalesWriteAction,
     input: {
       id: string | null;
+      version: string | null;
       fields: SalesHeader | null;
       rows: unknown[] | null;
     },
     beforeDispatch: () => Promise<void>,
   ): Promise<BusinessWriteResult>;
+}
+export function salesContentHash(
+  resource: SalesResource,
+  fields: Record<string, unknown>,
+  rows: unknown[],
+) {
+  const exact = new Set([
+    "Price",
+    "VAT",
+    "Quantity",
+    "OrderedQuantity",
+    "DeliveredQuantity",
+  ]);
+  const normalized = rows.map((raw) => {
+    const row = salesRowSchemas[resource].parse(raw);
+    return Object.fromEntries(
+      Object.entries(row)
+        .filter(([key]) => key !== "RowId")
+        .map(([key, value]) => [
+          key,
+          exact.has(key) ? parseAmount(value, 6) : value,
+        ]),
+    );
+  });
+  return registerVersion({ fields, rows: normalized });
 }
 const pending = z
   .object({
@@ -211,6 +240,25 @@ export class SalesDocuments {
         operations[operation] = {
           scope: resource,
           enabled: enabled.includes(operation),
+          evidence: async (prepared) => {
+            const input = pending.parse(prepared.input);
+            const fields =
+              input.fields === null
+                ? {}
+                : salesHeaderSchemas[resource].parse(input.fields);
+            const preview = z
+              .object({ intended_rows: z.array(z.unknown()).optional() })
+              .parse(prepared.preview);
+            return {
+              target: input.id,
+              fields: Object.keys(fields).sort(),
+              digest: await salesContentHash(
+                resource,
+                fields,
+                preview.intended_rows ?? [],
+              ),
+            };
+          },
           prepare: (actor, company, raw) =>
             this.prepareBody(actor, company, resource, action, raw),
           validate: async (actor, company, prepared) => {
@@ -260,7 +308,68 @@ export class SalesDocuments {
           },
           // Reconciliation requires operation-specific provider identity evidence.
           // A Sent flag alone is never evidence that this intent sent an email.
-          reconcile: async () => ({ state: "outcome_unknown" }),
+          reconcile: async (actor, company, execution) => {
+            if (action === "email" || !execution.evidence)
+              return { state: "outcome_unknown" };
+            const id =
+              action === "create"
+                ? execution.reference
+                : execution.evidence.target;
+            if (!id) return { state: "outcome_unknown" };
+            try {
+              const record = (await this.get(actor, company, resource, id))
+                .record;
+              if (!record.complete) return { state: "outcome_unknown" };
+              if (action === "create" || action === "update") {
+                const fields = Object.fromEntries(
+                  execution.evidence.fields.map((key) => [
+                    key,
+                    record.fields[key],
+                  ]),
+                );
+                if (
+                  (await salesContentHash(resource, fields, record.rows)) ===
+                  execution.evidence.digest
+                )
+                  return { state: "succeeded", reference: id };
+              } else if (
+                (action === "cancel" && record.observed.cancelled === true) ||
+                (action === "bookkeep" && record.observed.booked === true)
+              ) {
+                return { state: "succeeded", reference: id };
+              } else if (
+                action === "to_order" ||
+                action === "to_invoice" ||
+                action === "credit"
+              ) {
+                const target: SalesResource =
+                  action === "to_order" ? "order" : "invoice";
+                const reference =
+                  action === "to_order"
+                    ? record.observed.order_reference
+                    : action === "credit"
+                      ? record.observed.credit_reference
+                      : record.observed.invoice_reference;
+                if (reference) {
+                  const result = (
+                    await this.get(actor, company, target, reference)
+                  ).record;
+                  if (
+                    result.complete &&
+                    (action === "credit"
+                      ? result.observed.credit === true
+                      : resource === "offer"
+                        ? result.observed.offer_reference === id
+                        : result.observed.order_reference === id)
+                  )
+                    return { state: "succeeded", reference };
+                }
+              }
+            } catch {
+              /* Unavailable, partial or mismatched content remains uncertain. */
+            }
+            return { state: "outcome_unknown" };
+          },
           dispatch: async (actor, company, prepared, beforeDispatch) => {
             const input = pending.parse(prepared.input);
             return provider.write(
@@ -270,6 +379,7 @@ export class SalesDocuments {
               action,
               {
                 id: input.id,
+                version: prepared.baseline,
                 fields:
                   input.fields === null
                     ? null
@@ -473,8 +583,8 @@ export class SalesDocuments {
         company,
         resource,
         year,
-        record.fields,
-        record.rows,
+        salesHeaderSchemas[resource].parse(record.fields),
+        record.rows.map((row) => salesRowSchemas[resource].parse(row)),
       );
     }
   }
@@ -510,7 +620,10 @@ export class SalesDocuments {
           provider_id: record.id,
           observed: record.observed,
           ...(action === "email"
-            ? { recipient: record.fields.EmailInformation?.EmailAddressTo }
+            ? {
+                recipient: email.parse(record.fields.EmailInformation)
+                  .EmailAddressTo,
+              }
             : {}),
         },
       };
@@ -552,7 +665,7 @@ export class SalesDocuments {
     });
     const plan = planDocumentRows(
       resource,
-      before?.rows ?? null,
+      before?.rows.map((row) => salesRowSchemas[resource].parse(row)) ?? null,
       input.rows,
       input.removed_row_ids,
     );
