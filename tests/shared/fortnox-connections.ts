@@ -64,6 +64,15 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
     await expect(
       provider.finish("owner", "session-A", callback),
     ).rejects.toThrow("AUTH_REQUIRED");
+    await provider.cancelPending("owner", null);
+    expect(
+      (
+        await state.get<{ claimed: boolean }[]>("fortnox-flows", "owner")
+      )?.value.map((f) => f.claimed),
+    ).toEqual([true]);
+    expect(
+      (await state.get<unknown[]>("fortnox-flows", "other-owner"))?.value,
+    ).toHaveLength(1);
   });
   it("requests receipt scopes only through fresh consent and retains stored scope sets through both token lifecycles", async () => {
     const connections = new Connections(

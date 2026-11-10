@@ -422,7 +422,7 @@ export function createProductApplication(
         return safeResponse(
           JSON.stringify({
             owner: { email: session.user.email },
-            integration: await integration.status(session.user.id),
+            integration: await integration.status(session.user.id, connections),
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
             test_mode: settings.testMode,
@@ -493,6 +493,15 @@ export function createProductApplication(
           return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
         try {
           const body = await boundedJson(request);
+          if (url.pathname === "/admin/fortnox/forget-configuration") {
+            const input = z
+              .object({ revision: z.number().int().positive().safe() })
+              .strict()
+              .parse(body);
+            await integration.forget(session.user.id, input.revision);
+            await provider.cancelPending(session.user.id, null);
+            return safeResponse('{"ok":true}');
+          }
           if (url.pathname === "/admin/fortnox/cancel-consent") {
             z.object({}).strict().parse(body);
             await provider.cancelPending(session.user.id, session.session.id);

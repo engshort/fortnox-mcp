@@ -197,7 +197,7 @@ function Login({
   );
 }
 
-function Integration({
+function ApiCredentials({
   state,
   t,
   perform,
@@ -212,8 +212,68 @@ function Integration({
     const form = event.currentTarget,
       body = Object.fromEntries(new FormData(form));
     form.reset();
-    void perform(() => api("/admin/fortnox/configuration", body));
+    void perform(async () => {
+      await api("/admin/fortnox/configuration", body);
+      location.assign("/admin");
+    });
   }
+  return (
+    <section className="login">
+      <p>
+        <a href="/admin">
+          {t("Till administrationen", "Back to administration")}
+        </a>
+      </p>
+      <h1>{t("Dina Fortnox-uppgifter", "Your Fortnox credentials")}</h1>
+      <p>
+        {t(
+          "Uppgifterna krypteras på servern och visas aldrig i ChatGPT.",
+          "Credentials are encrypted on the server and never shown in ChatGPT.",
+        )}
+      </p>
+      {operator ? (
+        <p>
+          {t(
+            "Uppgifterna hanteras av operatören. Ändra den privata serverkonfigurationen för att ersätta dem.",
+            "Credentials are operator-managed. Replace them through the private server configuration.",
+          )}
+        </p>
+      ) : (
+        <form onSubmit={save}>
+          <Field name="client_id" label="Client ID" maxLength={128} />
+          <Field
+            name="client_secret"
+            label="Client Secret"
+            type="password"
+            minLength={8}
+            maxLength={4096}
+          />
+          <button type="submit">
+            {t("Spara uppgifter", "Save credentials")}
+          </button>
+        </form>
+      )}
+      {state.integration.configured && (
+        <p>
+          {t(
+            "Uppgifter finns sparade. De återläses inte i formuläret.",
+            "Credentials are configured. Saved values are never returned to this form.",
+          )}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function Integration({
+  state,
+  t,
+  perform,
+}: {
+  state: InstallationState;
+  t: Translate;
+  perform: (action: () => Promise<unknown>) => Promise<void>;
+}) {
   function connect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const mode = new FormData(event.currentTarget).get("mode");
@@ -230,43 +290,36 @@ function Integration({
   return (
     <div className="columns">
       <section>
-        <h2>{t("Dina Fortnox-uppgifter", "Your Fortnox credentials")}</h2>
-        <p>
-          {t(
-            "Uppgifterna krypteras på servern och visas aldrig i ChatGPT.",
-            "Credentials are encrypted on the server and never shown in ChatGPT.",
-          )}
+        <h2>Fortnox API</h2>
+        <p className={state.integration.verified ? "connection-approved" : ""}>
+          {state.integration.verified
+            ? t("Godkänd", "Approved")
+            : state.integration.configured
+              ? t(
+                  "Sparade uppgifter – väntar på godkänd anslutning",
+                  "Credentials saved — awaiting an approved connection",
+                )
+              : t("API-uppgifter saknas", "API credentials required")}
         </p>
-        {operator ? (
-          <p>
-            {t(
-              "Uppgifterna hanteras av operatören. Ändra den privata serverkonfigurationen för att ersätta dem.",
-              "Credentials are operator-managed. Replace them through the private server configuration.",
-            )}
-          </p>
-        ) : (
-          <form onSubmit={save}>
-            <Field name="client_id" label="Client ID" maxLength={128} />
-            <Field
-              name="client_secret"
-              label="Client Secret"
-              type="password"
-              minLength={8}
-              maxLength={4096}
-            />
-            <button type="submit">
-              {t("Spara uppgifter", "Save credentials")}
-            </button>
-          </form>
-        )}
-        {state.integration.configured && (
-          <p>
-            {t(
-              "Uppgifter finns sparade. De återläses inte i formuläret.",
-              "Credentials are configured. Saved values are never returned to this form.",
-            )}
-          </p>
-        )}
+        {state.integration.verified && state.integration.source === "owner" ? (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() =>
+              void perform(() =>
+                api("/admin/fortnox/forget-configuration", {
+                  revision: state.integration.revision,
+                }),
+              )
+            }
+          >
+            {t("Glöm", "Forget")}
+          </button>
+        ) : !state.integration.verified ? (
+          <a href="/admin/fortnox/api-credentials">
+            {t("Ange Fortnox API uppgifter", "Enter Fortnox API credentials")}
+          </a>
+        ) : null}
         <section className="separated">
           <h2>{t("Anslut ett testföretag", "Connect a test company")}</h2>
           <form onSubmit={connect}>
@@ -524,7 +577,9 @@ function App() {
   const [busy, setBusy] = useState(false),
     [tab, setTab] = useState("fortnox");
   const t: Translate = (sv, en) => (language === "sv" ? sv : en);
-  const admin = location.pathname === "/admin";
+  const credentialsPage =
+    location.pathname === "/admin/fortnox/api-credentials";
+  const admin = location.pathname === "/admin" || credentialsPage;
   const load = async () =>
     setState(await api<InstallationState>("/admin/state"));
   useEffect(() => {
@@ -594,6 +649,16 @@ function App() {
       <main>
         {!admin ? (
           <Login t={t} onError={setMessage} />
+        ) : credentialsPage ? (
+          state ? (
+            <fieldset disabled={busy}>
+              <ApiCredentials state={state} t={t} perform={perform} />
+            </fieldset>
+          ) : (
+            <p>
+              {t("Hämtar installationsstatus…", "Loading installation status…")}
+            </p>
+          )
         ) : (
           <>
             <h1>{t("Din installation", "Your installation")}</h1>

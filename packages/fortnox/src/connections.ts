@@ -210,16 +210,19 @@ export class FortnoxConnections {
     }
     throw new DomainError("RATE_LIMITED");
   }
-  // Cancels only this authenticated owner's current browser session. Claimed
+  // A session cancels its own pending flows. Null is reserved for the owner's
+  // forget-configuration action, which clears all unused owner flows. Claimed
   // exchanges remain untouched; cancellation cannot interrupt token storage.
-  async cancelPending(owner: string, session: string) {
+  async cancelPending(owner: string, session: string | null) {
     for (let n = 0; n < 8; n++) {
       const row = await this.config.connections.state.get<Flow[]>(
         "fortnox-flows",
         owner,
       );
       if (!row) return;
-      const flows = row.value.filter((f) => f.session !== session || f.claimed);
+      const flows = row.value.filter(
+        (f) => (session !== null && f.session !== session) || f.claimed,
+      );
       if (
         flows.length === row.value.length ||
         (await this.config.connections.state.put(

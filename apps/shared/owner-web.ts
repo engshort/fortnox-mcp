@@ -14,14 +14,15 @@ export function ownerWeb(
     router.get(path, () =>
       safeResponse(shell, 200, "text/html; charset=utf-8"),
     );
-  router.get("/admin", async (c) => {
-    try {
-      await authorize(c.req.raw);
-    } catch {
-      return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
-    }
-    return safeResponse(shell, 200, "text/html; charset=utf-8");
-  });
+  for (const path of ["/admin", "/admin/fortnox/api-credentials"])
+    router.get(path, async (c) => {
+      try {
+        await authorize(c.req.raw);
+      } catch {
+        return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
+      }
+      return safeResponse(shell, 200, "text/html; charset=utf-8");
+    });
   for (const name of ["admin.js", "admin.css"] as const)
     router.get(`/admin-assets/${name}`, async () =>
       assets

@@ -86,3 +86,24 @@ profile and verify that only the selected database is opened. Full CI, Docker,
 actual provider rights/precision/state behavior and actual ChatGPT evidence must
 be recorded individually on the immutable revision before promotion. None of
 these synthetic checks completes #21, #36, #38 or #92.
+
+## Owner setup follow-up (2026-11-10)
+
+The isolated build at `f541bd8` received two new allowlisted test connections
+through the owner's actual login and Fortnox consent. This proves setup only;
+no register/document operation or actual MCP client acceptance is established.
+An anonymous authorization probe initially rejected the newly selected scopes,
+then accepted the unchanged 18-scope request after the owner saved the portal
+settings. This is an observation, not a guaranteed propagation interval.
+
+API credentials now have a separate owner-authenticated page at
+`/admin/fortnox/api-credentials`. The installation page shows approval only when
+the saved configuration matches an active owned connection. Saving alone does
+not prove approval. Forgetting uses the observed configuration revision and
+removes that configuration's ciphertext, cancels unused owner consent flows,
+and preserves connected companies, their credentials, policies and grants.
+Operator-managed configuration cannot be forgotten through HTTP. Node/SQLite
+and local workerd/D1 contracts verify ownership, Origin, stale revisions,
+connection preservation and saving again after forgetting. Browser checks use
+synthetic data; they do not inspect the owner's browser or establish ChatGPT
+acceptance.

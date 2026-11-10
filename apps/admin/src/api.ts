@@ -14,7 +14,12 @@ export interface Investigation {
 }
 export interface InstallationState {
   owner: { email: string };
-  integration: { configured: boolean; source: "owner" | "operator" };
+  integration: {
+    configured: boolean;
+    verified: boolean;
+    revision: number | null;
+    source: "owner" | "operator";
+  };
   callback: string;
   mcp_url: string;
   test_mode: boolean;

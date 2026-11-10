@@ -64,15 +64,36 @@ test("owner bootstraps, stores write-only credentials, switches language and sig
   await page.getByRole("button", { name: "Fortnox", exact: true }).click();
   await expect(page.getByRole("button", { name: "Fortsätt till Fortnox", exact: true })).toBeDisabled();
   await page.screenshot({ path: join(tmpdir(), `m5-owner-${info.project.name}.png`), fullPage: true });
+  await expect(page.getByLabel("Client ID", { exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Ange Fortnox API uppgifter", exact: true }).click();
+  await expect(page).toHaveURL(`${origin}/admin/fortnox/api-credentials`);
+  await expect(page.getByRole("heading", { name: "Dina Fortnox-uppgifter" })).toBeVisible();
   await page.getByLabel("Client ID", { exact: true }).fill("synthetic-browser-client");
   await page.getByLabel("Client Secret", { exact: true }).fill("synthetic-browser-client-secret");
   await page.getByRole("button", { name: "Spara uppgifter" }).click();
-  await expect(page.getByLabel("Client Secret", { exact: true })).toHaveValue("");
-  await expect(page.getByText("Uppgifter finns sparade. De återläses inte i formuläret.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(`${origin}/admin`);
+  await expect(page.getByLabel("Client Secret", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Sparade uppgifter – väntar på godkänd anslutning", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Ange Fortnox API uppgifter", exact: true }).click();
   await page.reload();
-  await page.getByRole("button", { name: "Fortnox", exact: true }).click();
   await expect(page.getByText("Uppgifter finns sparade. De återläses inte i formuläret.", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Client Secret", { exact: true })).toHaveValue("");
+  await page.getByRole("link", { name: "Till administrationen", exact: true }).click();
+  // Synthetic UI-only approval. Actual matching credential/connection status is
+  // tested separately in both Node/SQLite and workerd/D1 owner contracts.
+  await page.route("**/admin/state", async (route) => {
+    const response = await route.fetch();
+    const state = await response.json();
+    state.integration.verified = state.integration.configured;
+    await route.fulfill({ response, json: state });
+  });
+  await page.reload();
+  await expect(page.getByText("Godkänd", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Glöm", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Glöm", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Ange Fortnox API uppgifter", exact: true })).toBeVisible();
+  await expect(page.getByText("API-uppgifter saknas", { exact: true })).toBeVisible();
+  await page.unroute("**/admin/state");
   await page.getByRole("button", { name: "ChatGPT", exact: true }).click();
   await expect(page.getByText(`${origin}/mcp`, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "English", exact: true }).click();

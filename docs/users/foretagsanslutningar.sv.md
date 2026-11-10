@@ -14,6 +14,13 @@ Detta är produktimplementation under verifiering. Använd en separat testinstal
 
 ## Ägare och inloggning
 
+Fortnox-fliken visar API-uppgifternas status. Välj **Ange Fortnox API uppgifter**
+för att öppna den separata, inloggningsskyddade sidan med Client ID och Client
+Secret. Uppgifterna visas inte igen efter att de sparats. **Godkänd** visas när
+de matchar en aktiv företagsanslutning; enbart sparande är inte en verifiering.
+**Glöm** rensar uppgifterna för nya anslutningar och avbryter oanvända
+samtyckeslänkar. Redan anslutna företag och deras behörigheter behålls.
+
 Installationsoperatören skapar en privat engångskod med tio minuters giltighet. Öppna `/setup`, ange koden, din e-postadress och ett lösenord på minst tolv tecken. Inga koder, lösenord eller Fortnox-hemligheter ska klistras in i AI-konversationen. Därefter används `/sign-in`; sessionen gäller högst ett dygn. Inloggningen begränsas gemensamt för installationen för att motverka upprepade försök.
 
 Om ett åtkomstskydd framför installationen avvisar formuläret visar klienten
