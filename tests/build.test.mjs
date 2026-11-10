@@ -282,3 +282,82 @@ test("built Node entry starts on loopback and serves the synthetic tool", {
   assert.match(String(started[0]), /server_started/);
   await expectSyntheticResult(await fetch(syntheticRequest()));
 });
+
+for (const experiment of [false, true])
+  test(`built register profile is ${experiment ? "isolated and expiring" : "unavailable in the ordinary entry"}`, {
+    timeout: 10000,
+  }, async (t) => {
+    const directory = await mkdtemp(join(tmpdir(), "built-register-test-"));
+    const port = experiment ? "8791" : "8790",
+      origin = `http://127.0.0.1:${port}`;
+    const child = spawn(
+      process.execPath,
+      [
+        resolve(
+          experiment ? "dist/register-test-node.js" : "dist/product-node.js",
+        ),
+      ],
+      {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PRODUCT_ENABLED: "true",
+          HOST: "127.0.0.1",
+          PORT: port,
+          NODE_PROXY_MODE: "none",
+          PUBLIC_ORIGIN: origin,
+          PRODUCT_DATABASE: join(directory, "ordinary.sqlite"),
+          REGISTER_TEST_DATABASE: join(directory, "isolated.sqlite"),
+          PRODUCT_MIGRATIONS_DIR: resolve("apps/worker/migrations"),
+          UI_ASSETS_DIR: resolve("dist/admin"),
+          AUTH_SECRET: "synthetic-register-secret-at-least-32-characters",
+          CREDENTIAL_KEYS: JSON.stringify({
+            a: Buffer.alloc(32, 11).toString("base64"),
+          }),
+          CREDENTIAL_ACTIVE_KEY: "a",
+          MCP_REDIRECT_URIS: '["https://client.example.invalid/callback"]',
+          FORTNOX_TEST_MODE: "true",
+          FORTNOX_TEST_TENANTS: "100001,100002",
+          REGISTER_TEST_UNTIL: new Date(Date.now() + 2000).toISOString(),
+          REGISTER_TEST_OPERATIONS: '["customer.list"]',
+          REGISTER_TEST_EXTRA_CONSENT:
+            '["offer","order","invoice","supplierinvoice","payment","connectfile","inbox"]',
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    t.after(async () => {
+      if (child.exitCode === null) {
+        const exited = once(child, "exit");
+        child.kill("SIGTERM");
+        await exited;
+      }
+      await rm(directory, { recursive: true, force: true });
+    });
+    await Promise.race([
+      once(child.stdout, "data"),
+      once(child, "exit").then(() => {
+        throw new Error("Register fixture startup failed");
+      }),
+    ]);
+    const health = await (await fetch(`${origin}/health`)).json();
+    if (experiment) {
+      assert.match(health.register_test.source_commit, /^[a-f0-9]{40}$/);
+      assert.equal(health.register_test.financial_writes, false);
+      await assert.rejects(readFile(join(directory, "ordinary.sqlite")));
+      await readFile(join(directory, "isolated.sqlite"));
+      await new Promise((r) => setTimeout(r, 2100));
+      assert.equal(
+        (await fetch(`${origin}/mcp`, { method: "POST" })).status,
+        503,
+      );
+      assert.equal(
+        (await (await fetch(`${origin}/health`)).json()).register_test.active,
+        false,
+      );
+    } else {
+      assert.equal(health.register_test, undefined);
+      await assert.rejects(readFile(join(directory, "isolated.sqlite")));
+    }
+    assert.equal((await fetch(`${origin}/setup`)).status, 200);
+  });

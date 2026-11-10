@@ -1,8 +1,15 @@
 # Documentation map
 
+S11/#117: [company/program administration, consent evidence and S04/S05 handoff](implementation/S11-company-programs.md).
+Implementation and local verification are complete; the owner excluded actual
+Fortnox acceptance from this delivery, without changing operation activation gates.
+
 S04/S05: [business write foundation](implementation/S04-S05-business-writes.md)
 and [Swedish register/document status](users/register-och-fakturor.sv.md).
 No new provider capability is enabled by the foundation.
+The [register implementation/evidence](implementation/S04-register-evidence.md)
+and [operation matrix](reference/s04-register-operations.json) describe the
+separate bounded test profile; actual acceptance remains pending.
 
 Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
 [English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)

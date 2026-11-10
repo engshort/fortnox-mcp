@@ -91,3 +91,13 @@ settings and receipt chunks in one transaction. It invalidates unfinished consen
 flows and preserves execution history. Keep old keys separately for old backups;
 remove them from the active installation only after a new-key-only validation.
 Upgrade creates encrypted pre-migration backup before opening versioned migrations.
+
+## S04 register recovery metadata
+
+Register intents add the originating tenant, a trusted target identity when
+known, submitted field names and a normalized content digest. Field values are
+removed with the consumed encrypted proposal. These minimal records inherit the
+business retention, encryption-key checks, restore and unresolved-capacity rules.
+They support exact-identity readback; they do not reconstruct a local register or
+prove authorship of another actor's matching changes. Unknown generated IDs are
+not guessed from names, dates or amounts.

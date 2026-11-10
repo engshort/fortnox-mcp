@@ -1,9 +1,14 @@
 import {
   Bookkeeping,
+  baseScopes,
   type ClientFile,
+  type CompanyGrant,
   Connections,
   CredentialVault,
   DomainError,
+  previewProgram,
+  programChange,
+  programStatus,
   proposalReference,
   ReceiptAttachments,
   ReceiptFileError,
@@ -11,6 +16,11 @@ import {
   ReceiptFiles,
   Receipts,
   ReceiptWorkflow,
+  type RegisterOperation,
+  type RegisterResource,
+  Registers,
+  registerOperationIds,
+  registerScope,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -25,6 +35,7 @@ import {
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxReceiptFiles,
+  FortnoxRegisters,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -56,6 +67,15 @@ export interface ProductSettings {
 export interface ProductFileTest {
   sourceCommit: string;
   until: number;
+  now?: () => number;
+}
+// A separately built, one-hour test entry supplies this profile. Ordinary ENV
+// cannot enable unverified register writes or broaden provider consent.
+export interface ProductBusinessTest {
+  sourceCommit: string;
+  until: number;
+  operations: readonly RegisterOperation[];
+  consentScopes?: readonly string[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -177,8 +197,38 @@ export function createProductApplication(
   },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
   fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
 ) {
-  const now = fileTest?.now ?? Date.now;
+  const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  if (
+    businessTest &&
+    (fileTest ||
+      !settings.testMode ||
+      settings.testTenants.length !== 2 ||
+      new Set(settings.testTenants).size !== 2 ||
+      !/^[a-f0-9]{40}$/.test(businessTest.sourceCommit) ||
+      /^0+$/.test(businessTest.sourceCommit) ||
+      !Number.isSafeInteger(businessTest.until) ||
+      businessTest.until <= now() ||
+      businessTest.until > now() + 3600000 ||
+      businessTest.operations.some((id) => !registerOperationIds.includes(id)))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    businessTest?.consentScopes?.some(
+      (scope) =>
+        ![
+          "offer",
+          "order",
+          "invoice",
+          "supplierinvoice",
+          "payment",
+          "connectfile",
+          "inbox",
+        ].includes(scope),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
     fileTest &&
     (!settings.testMode ||
@@ -198,12 +248,28 @@ export function createProductApplication(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
   );
+  const programGates = () => ({
+    references: settings.testMode && settings.accountingReferences === true,
+    receiptConsent:
+      settings.testMode && settings.receiptProviderConsent === true,
+    registerScopes:
+      businessTest && now() < businessTest.until
+        ? [
+            ...new Set(
+              businessTest.operations.map((id) =>
+                registerScope(id.split(".")[0] as RegisterResource),
+              ),
+            ),
+          ]
+        : [],
+  });
   const provider = new FortnoxConnections({
     origin: settings.origin,
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: requestedFortnoxScopes(settings),
+    scopes: baseScopes,
+    programGates,
   });
   const integration = new IntegrationSettings(
     runtime.state,
@@ -234,6 +300,19 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
+  const registers = businessTest
+    ? new Registers(
+        connections,
+        new FortnoxRegisters(
+          connections,
+          provider,
+          businessTest.operations,
+          now,
+          () => now() < businessTest.until,
+        ),
+        businessTest.operations,
+      )
+    : undefined;
   const receiptFiles = runtime.receiptFiles
     ? new ReceiptFiles(
         connections,
@@ -283,6 +362,7 @@ export function createProductApplication(
       testMode: settings.testMode,
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
+      ...(registers ? { registers } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
       ...(receiptAttachments ? { receiptAttachments } : {}),
@@ -295,12 +375,25 @@ export function createProductApplication(
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
+    if (url.pathname === "/mcp" && businessTest && now() >= businessTest.until)
+      return safeResponse('{"error":"BUSINESS_TEST_EXPIRED"}', 503);
     if (url.pathname === "/health" && request.method === "GET")
       return safeResponse(
         JSON.stringify({
           ok: true,
           product: "experimental",
           provider: settings.testMode ? "test_only" : "disabled",
+          ...(businessTest
+            ? {
+                register_test: {
+                  source_commit: businessTest.sourceCommit,
+                  expires_at: new Date(businessTest.until).toISOString(),
+                  active: now() < businessTest.until,
+                  operations: businessTest.operations,
+                  financial_writes: false,
+                },
+              }
+            : {}),
           ...(fileTest
             ? {
                 file_test: {
@@ -325,6 +418,8 @@ export function createProductApplication(
     if (
       url.pathname === "/admin" ||
       url.pathname === "/admin/state" ||
+      url.pathname === "/admin/clients" ||
+      url.pathname.startsWith("/admin/companies/") ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
       let session: Awaited<ReturnType<typeof requireOwner>>;
@@ -337,12 +432,106 @@ export function createProductApplication(
       } catch {
         return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
       }
-      if (request.method === "GET" && url.pathname === "/admin/state") {
+      if (url.pathname === "/admin/clients" && request.method === "GET") {
+        const rows = await runtime.state.list<CompanyGrant>(
+          "company-grants",
+          101,
+        );
         const companies = await connections.list(session.user.id);
         return safeResponse(
           JSON.stringify({
+            clients: rows
+              .slice(0, 100)
+              .filter((r) => r.value.ownerId === session.user.id)
+              .map((r) => ({
+                client_id: r.id,
+                companies: Object.entries(r.value.companies).map(
+                  ([id, generation]) => ({
+                    company_id: id,
+                    name: companies.find((c) => c.id === id)?.name ?? id,
+                    current: companies.some(
+                      (c) =>
+                        c.id === id &&
+                        c.generation === generation &&
+                        c.state === "active",
+                    ),
+                  }),
+                ),
+              })),
+            partial: rows.length > 100,
+          }),
+        );
+      }
+      const programRoute =
+        /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
+          url.pathname,
+        );
+      if (programRoute) {
+        try {
+          const companyId = z.string().uuid().parse(programRoute[1]);
+          const company = (await connections.list(session.user.id)).find(
+            (c) => c.id === companyId,
+          );
+          if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+          const gates = programGates();
+          if (!programRoute[2] && request.method === "GET")
+            return safeResponse(
+              JSON.stringify({
+                ...programStatus(company, gates),
+                pending: (await provider.pending(session.user.id)).includes(
+                  companyId,
+                ),
+              }),
+            );
+          if (request.method !== "POST" || !programRoute[2])
+            return safeResponse('{"error":"NOT_FOUND"}', 404);
+          if (request.headers.get("origin") !== settings.origin)
+            return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+          const body = await boundedJson(request);
+          if (programRoute[2] === "disable") {
+            const input = programChange.omit({ features: true }).parse(body);
+            await connections.disableProgram(
+              session.user.id,
+              companyId,
+              input.program,
+              input.expected_revision,
+            );
+            return safeResponse('{"ok":true}');
+          }
+          const input = programChange.parse(body);
+          const preview = previewProgram(company, input, gates);
+          if (programRoute[2] === "preview")
+            return safeResponse(JSON.stringify(preview));
+          const credentials = await connections.credentials(
+            session.user.id,
+            company,
+          );
+          return safeResponse(
+            JSON.stringify({
+              url: await provider.start(
+                session.user.id,
+                session.session.id,
+                {
+                  mode: company.mode,
+                  clientId: credentials.clientId,
+                  clientSecret: credentials.clientSecret,
+                },
+                companyId,
+                input,
+              ),
+            }),
+          );
+        } catch (error) {
+          return connectionFailure(error, "program_connection");
+        }
+      }
+      if (request.method === "GET" && url.pathname === "/admin/state") {
+        const companies = await connections.list(session.user.id);
+        const pending = await provider.pending(session.user.id);
+        return safeResponse(
+          JSON.stringify({
             owner: { email: session.user.email },
-            integration: await integration.status(session.user.id),
+            integration: await integration.status(session.user.id, connections),
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
             test_mode: settings.testMode,
@@ -363,7 +552,48 @@ export function createProductApplication(
               review: c.review,
               read_only: c.readOnly,
               policy_version: c.policyVersion,
+              organization_number: c.organizationNumber,
+              programs: {
+                ...programStatus(c, programGates()),
+                pending: pending.includes(c.id),
+              },
             })),
+            uncertain_outcomes: companies.flatMap((c) => [
+              ...(c.bookkeeping?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "bookkeeping",
+                  id: e.id,
+                })),
+              ...(c.business?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "business",
+                  id: e.id,
+                })),
+              ...(c.receiptBatches ?? []).flatMap((b) =>
+                b.items
+                  .filter((item) =>
+                    Object.values(item.steps).some((step) =>
+                      ["submitting", "outcome_unknown"].includes(step.state),
+                    ),
+                  )
+                  .map((item) => ({
+                    company_id: c.id,
+                    company_name: c.name,
+                    kind: "receipt",
+                    id: item.id,
+                  })),
+              ),
+            ]),
             investigations: companies.flatMap((c) =>
               (c.bookkeeping?.executions ?? [])
                 .filter(
@@ -413,6 +643,20 @@ export function createProductApplication(
           return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
         try {
           const body = await boundedJson(request);
+          if (url.pathname === "/admin/fortnox/forget-configuration") {
+            const input = z
+              .object({ revision: z.number().int().positive().safe() })
+              .strict()
+              .parse(body);
+            await integration.forget(session.user.id, input.revision);
+            await provider.cancelPending(session.user.id, null);
+            return safeResponse('{"ok":true}');
+          }
+          if (url.pathname === "/admin/fortnox/cancel-consent") {
+            z.object({}).strict().parse(body);
+            await provider.cancelPending(session.user.id, session.session.id);
+            return safeResponse('{"ok":true}');
+          }
           if (url.pathname === "/admin/fortnox/configuration") {
             await integration.save(
               session.user.id,
@@ -523,16 +767,29 @@ export function createProductApplication(
         if (!settings.testMode)
           return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
         try {
-          await provider.finish(session.user.id, session.session.id, url);
+          const company = await provider.finish(
+            session.user.id,
+            session.session.id,
+            url,
+          );
           return new Response(null, {
             status: 303,
             headers: {
-              location: `${settings.origin}/admin`,
+              location: `${settings.origin}/admin/companies/${company.id}`,
               "cache-control": "no-store",
               "referrer-policy": "no-referrer",
             },
           });
         } catch (error) {
+          if (request.headers.get("accept")?.includes("text/html"))
+            return new Response(null, {
+              status: 303,
+              headers: {
+                location: `${settings.origin}/admin/companies?connection_error=failed`,
+                "cache-control": "no-store",
+                "referrer-policy": "no-referrer",
+              },
+            });
           return connectionFailure(error, "flow_validation");
         }
       }

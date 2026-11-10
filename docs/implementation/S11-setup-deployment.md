@@ -25,3 +25,11 @@ Record resource measurements, current hosting constraints and when a paid plan/N
 ## Handoff
 
 Replace planned setup instructions with actual versioned commands and screenshots only after testing. Remove stale placeholders and preserve an explicit capability/status section.
+
+## Company/program administration (#117)
+
+The [company/program slice](S11-company-programs.md) implements the approved C
+design, protected deep links and incremental company-bound consent on PR #118.
+This implementation/local-verification slice is complete. The owner explicitly
+excluded actual Fortnox acceptance from this delivery. Its offline/browser evidence
+does not establish provider or hosted-client support; no new operation is enabled.

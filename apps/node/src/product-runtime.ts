@@ -7,6 +7,7 @@ import { safeResponse } from "../../shared/admin.js";
 import { cleanupProduct } from "../../shared/maintenance.js";
 import {
   createProductApplication,
+  type ProductBusinessTest,
   type ProductFileTest,
   productSettings,
 } from "../../shared/product.js";
@@ -21,8 +22,21 @@ import {
   proxyRequest,
 } from "./runtime-config.js";
 
-export async function startProduct(fileTest?: ProductFileTest) {
+export async function startProduct(
+  fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
+) {
   const env = await nodeEnvironment(process.env);
+  if (businessTest) {
+    const isolated = env.REGISTER_TEST_DATABASE;
+    if (
+      !isolated ||
+      resolve(isolated) ===
+        resolve(env.PRODUCT_DATABASE ?? ".data/product.sqlite")
+    )
+      throw new Error("Separate REGISTER_TEST_DATABASE required");
+    env.PRODUCT_DATABASE = isolated;
+  }
   if (env.PRODUCT_ENABLED !== "true")
     throw new Error("Product disabled; see .env.example");
   const settings = productSettings(env);
@@ -91,6 +105,7 @@ export async function startProduct(fileTest?: ProductFileTest) {
     },
     undefined,
     fileTest,
+    businessTest,
   );
   let stopping = false;
   const server = createAdaptorServer({

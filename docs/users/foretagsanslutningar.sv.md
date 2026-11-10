@@ -1,7 +1,7 @@
 # Säkra företagsanslutningar
 
-Kvittoprovets nya `inbox connectfile` begärs endast med det uttryckliga testvalet
-`FORTNOX_RECEIPT_CONSENT`; se [ENV-guiden](env.sv.md). Det utökar inte gamla
+Kvittoprovets `inbox connectfile` kan väljas i programmets sidodialog när
+operatören aktiverat testvalet `FORTNOX_RECEIPT_CONSENT`; se [ENV-guiden](env.sv.md). Det utökar inte gamla
 anslutningar. När det faktiska filprovet ska genomföras behövs nytt ägarinitierat
 medgivande för respektive tillåtet testföretag och aktuella MCP-behörigheter.
 Samma tenant behåller handtaget men får en ny anslutningsgeneration vid
@@ -14,7 +14,23 @@ Detta är produktimplementation under verifiering. Använd en separat testinstal
 
 ## Ägare och inloggning
 
+**Inställningar** visar API-uppgifternas status. Välj **Ange Fortnox API uppgifter**
+för att öppna den separata, inloggningsskyddade sidan med Client ID och Client
+Secret. Uppgifterna visas inte igen efter att de sparats. **Godkänd** visas när
+de matchar en aktiv företagsanslutning; enbart sparande är inte en verifiering.
+**Glöm** rensar uppgifterna för nya anslutningar och avbryter oanvända
+samtyckeslänkar. Redan anslutna företag och deras behörigheter behålls.
+
 Installationsoperatören skapar en privat engångskod med tio minuters giltighet. Öppna `/setup`, ange koden, din e-postadress och ett lösenord på minst tolv tecken. Inga koder, lösenord eller Fortnox-hemligheter ska klistras in i AI-konversationen. Därefter används `/sign-in`; sessionen gäller högst ett dygn. Inloggningen begränsas gemensamt för installationen för att motverka upprepade försök.
+
+Om ett åtkomstskydd framför installationen avvisar formuläret visas ett
+inloggnings- eller anslutningsfel. Kontrollera då även åtkomstskyddets inloggning. Privata svar från mellanliggande proxyer visas inte som feltext.
+
+API-svar vid anslutningsfel innehåller begränsade felkoder för steg och orsak.
+Efter upprepade anslutningsförsök kan du under **Drift** välja
+**Avbryt väntande samtycken i denna session** innan du startar om. Avbrottet
+ogiltigförklarar oanvända länkar i samma inloggning; det kopplar inte från
+anslutna företag och avbryter inte ett tokenutbyte som redan påbörjats.
 
 Operatören kör `node --import tsx scripts/product-operator.ts .data/operator.json` med privat JSON innehållande `origin`, `secret`, `database`, `output` och `action` (`bootstrap` eller `reset`). Återställning kräver också ägarens `email`. Filen och utdata ska ligga utanför git med privata filrättigheter. Databasens migrationer ska redan vara applicerade. Hemligheter ska inte skickas som kommandoradsargument.
 
@@ -74,3 +90,42 @@ Kontrollera att Client ID tillhör rätt integration, att `companyinformation` o
 Produktens felresultat kan innehålla `stage`, `reason`, `provider_error` och `provider_status`. De anger ett begränsat felsteg och redigerade felkoder, utan tokens eller providersvar. Återge detta JSON-resultat vid felsökning. Kopiera inte callback-adressen eller dess query-parametrar: där kan det finnas en engångskod och state.
 
 Starta alltid ett nytt försök från administrationen efter en korrigering. En förbrukad kod eller förnyelsetoken skickas inte igen på chans. Ett generiskt eller okänt fel ska inte tolkas som bevis för saknad licens eller behörighet.
+
+## Företag och program
+
+Öppna **Företag** för att söka efter eller lägga till ett företag. Den första
+anslutningen begär bara företagsuppgifter och profil. Fortnox-svaret kontrolleras
+innan företaget sparas.
+
+Välj företaget och öppna **Översikt**, **Bokföring**, **Fakturering**,
+**Order & offert**, **Lön** eller **Åtkomst**. Företagsväljaren byter företag utan
+att blanda deras programval. Adressen kan bokmärkas; bakåtknappen fungerar.
+
+Programlistan skiljer på **Anslutning** och **Tillgängligt**. **Anslutet** betyder
+inte att alla funktioner fungerar eller att en licens har verifierats. Funktioner
+med kvarvarande verifiering visas som sådana. Saknat providerstöd visas som
+**Stöd planeras**. Ett generellt behörighetsfel bevisar inte att licensen saknas.
+
+När **Anslut** är tillgängligt visar sidodialogen företaget, redan anslutna program
+och det valda tillägget. Fortsätt till Fortnox för ett nytt uttryckligt godkännande.
+Befintlig lokal åtkomst behålls tills ersättningen har verifierats. Ett avbrutet
+eller misslyckat flöde visas tydligt; kontrollera anslutningen om Fortnox kräver ny
+inloggning. Väntande samtycken kan avbrytas under **Drift**.
+
+Företagets ID, skrivskydd och verifikationspolicy behålls efter en utökning. Gamla
+AI-klientgodkännanden och förslag återaktiveras inte: ge klienten ett nytt
+företagsgodkännande. **AI-klienter** visar sparade företagsgodkännanden och om de
+fortfarande gäller, men inte om klienten har en aktiv inloggning.
+
+**Inaktivera program lokalt** stoppar programmets funktioner på servern.
+Fortnox-scopes återkallas inte; andra programs gemensamma åtkomst bevaras. För att
+återaktivera programmet krävs ett nytt anslutningsflöde. Programändringar blockeras
+vid ett pågående eller okänt skrivutfall tills det har stämts av. Befintlig
+**Koppla från** finns under företagets **Åtkomst**.
+
+**Inställningar** innehåller ägare och Fortnox API-uppgifter. **Drift** innehåller
+verifieringsstatus, återställningsspärr och olösta verifikationsutfall. Inga nya
+bokförings-, betalnings- eller filoperationer aktiveras av denna vy. Faktureringens
+registerprov behåller sin särskilda tidsgräns och testkonfiguration. Betalregistrering
+är inte valbar innan stöd finns och betyder då bokföring av en redan genomförd
+betalning.

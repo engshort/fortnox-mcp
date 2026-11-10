@@ -1,0 +1,36 @@
+import {
+  type RegisterOperation,
+  registerOperationIds,
+} from "@fortnox-mcp/core";
+import { z } from "zod";
+import { startProduct } from "./product-runtime.js";
+
+declare const __REGISTER_TEST_SOURCE_COMMIT__: string;
+// This isolated entry never changes the ordinary product's activation gates.
+void (async () => {
+  const operations = z
+    .array(z.string())
+    .min(1)
+    .max(registerOperationIds.length)
+    .parse(JSON.parse(process.env.REGISTER_TEST_OPERATIONS ?? "[]"));
+  if (
+    operations.some(
+      (op) => !registerOperationIds.includes(op as RegisterOperation),
+    )
+  )
+    throw new Error("Unclassified test operation");
+  await startProduct(undefined, {
+    sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
+    until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
+    operations: operations as RegisterOperation[],
+    consentScopes: z
+      .array(z.string())
+      .max(7)
+      .parse(JSON.parse(process.env.REGISTER_TEST_EXTRA_CONSENT ?? "[]")),
+  });
+})().catch(() => {
+  console.error(
+    "register_test_startup_failed; check private isolated test configuration",
+  );
+  process.exit(1);
+});

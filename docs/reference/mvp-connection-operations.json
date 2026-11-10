@@ -8,32 +8,32 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "a46b5af5b2c25287aba8945961fa9ab24c0ac41c63b539d0991a47e73d403928",
+      "sha256": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "0cec43cc091a9dafcbc5de43385c86916bee6f0b7a83d571717d432328123be9",
+      "sha256": "1996c207a040799da296bd226e1061e279866db295c47fd941c2ee976ffa9a1e",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "ceba47a184cbe63c21382729ae8c9388170ec05eaf867333455e43ef18c4d58b",
+      "sha256": "adad8b510ec2a9c5df8491e0207807829f5cf6cfd8b5a73406548f62859a17bb",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "0a27fac962481d335935dc666dd57dacd9591dc65e6ed17c2185888c4ca220e3",
+      "sha256": "f03482738d54e8b73cd8e2173fdf676067e516eca9f4eadf8a6e5929d1833106",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "8b506a3d7a8afb851bb617b82f7c68b9acbdc2ad53544d13838e78ed82fee5da",
+      "sha256": "69d695c338ad4a2ff7606e39477adfb43e3eacff18cdd8b71a68849b1b63bd9c",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "c37a5549b5fa52a108dab1dc2afc21509cde3c7cbba3c1a8cbb37eafe950a218",
+      "sha256": "1549f1a843d99f855b6969de883b19b0c42576aed26a8622755afc0dbf4b8693",
       "kind": "independently_written_project_source"
     },
     {
@@ -44,6 +44,11 @@
     {
       "path": "apps/node/src/product-recovery.ts",
       "sha256": "2a7b4a20cb3ee9e38444c24e51f6b0999c72e0b8c76b17be4214960b874169db",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/core/src/programs.ts",
+      "sha256": "dd7ff03119c059184c02ec62ef86f5b78c3f1c9e228a91215783bb28b6579e85",
       "kind": "independently_written_project_source"
     }
   ],

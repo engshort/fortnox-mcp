@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { AccountingActor } from "./bookkeeping.js";
 import { voucherReference } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
+import { assertFeature, assertProgram } from "./programs.js";
 import { fileDigest, type ReceiptFileRecord } from "./receipt-files.js";
 import {
   type ReceiptItemReference,
@@ -73,6 +74,8 @@ export class ReceiptAttachments {
       actor.clientId,
       company,
     );
+    assertProgram(c, "bookkeeping");
+    assertFeature(c, "receipt-files");
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.receipts.connections.assertWritesAllowed();
     return c;
