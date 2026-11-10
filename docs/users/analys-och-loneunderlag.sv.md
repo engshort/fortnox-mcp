@@ -11,6 +11,10 @@ Saknade sidor eller saldon gör underlaget ofullständigt. Egna och inaktiva kon
 behålls; konton utan verifierad klassificering visas som oklassificerade.
 Bokförda bankkonton beskriver bokföringen, inte bankens aktuella saldo.
 
+Om Fortnox kontolista och SIE visar olika saldon blir det berörda rapportfältet
+okänt och rapporten visar källkonflikten. En separat kontodetalj kan fortfarande
+läsas, men den gör inte hela rapporten avstämd.
+
 Det planerade löneflödet gäller ett avgränsat underlag för en verifierad
 anställd, dag och lönekod. Företaget behöver rätt Fortnox-licens, behörigheter
 och ett nytt samtycke för Lön. Ett samtycke aktiverar inte overifierade operationer.

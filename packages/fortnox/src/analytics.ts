@@ -489,25 +489,26 @@ export class FortnoxFinancialReads implements FinancialProvider {
       const api = chart.get(number),
         sie = sourceAccounts.get(number),
         balance = sie?.balances.find((b) => b.year === 0);
-      if (
+      const openingConflict =
         api?.BalanceBroughtForward != null &&
         balance?.opening != null &&
-        api.BalanceBroughtForward !== balance.opening
-      )
-        limitations.add("opening_sources_disagree");
-      if (
+        api.BalanceBroughtForward !== balance.opening;
+      const closingConflict =
         api?.BalanceCarriedForward != null &&
         balance?.closing != null &&
-        api.BalanceCarriedForward !== balance.closing
-      )
-        limitations.add("closing_sources_disagree");
+        api.BalanceCarriedForward !== balance.closing;
+      if (openingConflict) limitations.add("opening_sources_disagree");
+      if (closingConflict) limitations.add("closing_sources_disagree");
       return {
         number,
         name: api?.Description ?? sie?.name ?? "",
         active: api?.Active ?? null,
-        opening: api?.BalanceBroughtForward ?? balance?.opening ?? null,
-        provider_closing:
-          api?.BalanceCarriedForward ?? balance?.closing ?? null,
+        opening: openingConflict
+          ? null
+          : (api?.BalanceBroughtForward ?? balance?.opening ?? null),
+        provider_closing: closingConflict
+          ? null
+          : (api?.BalanceCarriedForward ?? balance?.closing ?? null),
         category: mapping?.accounts[number] ?? ("unmapped" as const),
       };
     });

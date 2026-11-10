@@ -36,6 +36,12 @@ Return: company identity, fiscal-year ID and dates, requested/as-of interval, cu
 
 Fortnox reads across multiple endpoints may not form an atomic snapshot. Record the retrieval window; if concurrent changes can materially invalidate reconciliation, flag it or repeat the necessary bounded read. Do not guarantee snapshot consistency without provider support.
 
+When account-list and SIE balances disagree, retain both source references and
+report the affected opening/closing field as unknown with the corresponding
+source-disagreement limitation. Do not choose a source merely because it was read
+first. Independent account-detail reads remain provider observations, not proof
+that the combined report has reconciled.
+
 ## Large-data behavior
 
 Paginate or stream with explicit limits. Return partial status and continuation rather than dumping an entire ledger into model context. Support focused account/range/date queries and drill-down. Temporary analytical results expire under storage policy; source records remain in Fortnox.

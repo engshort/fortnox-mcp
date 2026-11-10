@@ -668,3 +668,26 @@ and an unsupported SIE `#PSALDO` record. Unknown classifications remain visible.
 Those limitations require separate investigation and evidence before promotion.
 No provider write, policy change, ordinary activation, ChatGPT acceptance or
 whole G07/G10 completion is claimed by this follow-up.
+
+## Conflicting balance sources
+
+The positive voucher follow-up independently compared the affected accounts in
+the paginated chart and account-detail endpoints. All three chart closing values
+differed from their detail values; the latter matched the independently summed
+SIE movements plus the detail opening balance. This is an observed endpoint
+disagreement, not proof that one endpoint's fields have a universally verified
+reporting meaning.
+
+The combined report now withholds an opening or closing field when the account
+list and SIE supply different values. It retains the source hashes and the
+specific disagreement limitation. Unaffected fields and exact period movements
+remain available; an independent detail read remains a labeled provider
+observation. No source wins merely by read order, no amount is repaired and no
+coverage or semantic gate is promoted.
+
+Nine focused financial transport cases passed in Node/SQLite and the same nine
+in actual local workerd/D1, including separate and simultaneous opening/closing
+conflicts, preserved unrelated balances and source-version changes. The operation
+source-ledger check, typecheck and lint also passed. Actual positive evidence
+above remains pinned to its original test binary; subsequent deployed evidence
+is recorded separately in the issues.

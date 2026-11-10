@@ -30,6 +30,8 @@ async function setup(state: StateStore) {
     noMeta: false,
     disconnect: false,
     wrongYear: false,
+    conflictingOpening: false,
+    conflictingClosing: false,
   };
   let exports = 0;
   const provider = new FortnoxConnections({
@@ -91,8 +93,8 @@ async function setup(state: StateStore) {
               Description: "Synthetic booked bank",
               Active: true,
               Year: 7,
-              BalanceBroughtForward: "1000",
-              BalanceCarriedForward: "1150",
+              BalanceBroughtForward: flags.conflictingOpening ? "900" : "1000",
+              BalanceCarriedForward: flags.conflictingClosing ? "1100" : "1150",
             },
             {
               Number: 4000,
@@ -139,6 +141,46 @@ async function setup(state: StateStore) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("withholds conflicting report balances while preserving ordinary source observations and exact movements", async () => {
+      const f = await setup(await fixture());
+      const versions = new Set<string>();
+      for (const conflict of [
+        { opening: true, closing: false },
+        { opening: false, closing: true },
+        { opening: true, closing: true },
+      ]) {
+        f.flags.conflictingOpening = conflict.opening;
+        f.flags.conflictingClosing = conflict.closing;
+        const basis = await f.adapter.basis(f.actor, f.query);
+        versions.add(basis.source_version);
+        const report = calculateFinancialReport(f.query, basis);
+        expect(report.accounts.find((a) => a.number === 1930)).toMatchObject({
+          opening: conflict.opening ? null : "1000.00",
+          provider_closing: conflict.closing ? null : "1150.00",
+          period_movement: "150.00",
+          balance_as_of: null,
+          reconciliation: { status: "unavailable" },
+        });
+        expect(report.accounts.find((a) => a.number === 4000)).toMatchObject({
+          opening: "0.00",
+          provider_closing: "-150.00",
+          period_movement: "-150.00",
+        });
+        expect(report.limitations.includes("opening_sources_disagree")).toBe(
+          conflict.opening,
+        );
+        expect(report.limitations.includes("closing_sources_disagree")).toBe(
+          conflict.closing,
+        );
+        expect(report.complete).toBe(false);
+      }
+      expect(versions.size).toBe(3);
+      expect(await f.adapter.account(f.actor, f.a.id, 7, 1930)).toMatchObject({
+        record: { opening: "1000.00", provider_closing: "1150.00" },
+        value_origin: "provider",
+        balance_units_verified: false,
+      });
+    });
     it("invalidates continuations when trusted mapping evidence changes even if account classifications stay the same", async () => {
       const f = await setup(await fixture());
       const mapping = {

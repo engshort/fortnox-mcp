@@ -327,3 +327,9 @@ sources. This bounded positive observation does not establish complete report
 coverage: missing openings, closing-source disagreement, unsupported SIE period
 records and unverified semantics remain explicit. G07/G10 and ChatGPT acceptance
 remain open; no provider write or capability promotion occurred in this check.
+
+Conflicting account-list/SIE opening or closing values are now withheld in the
+combined report, with their source-disagreement limitation preserved. Independent
+detail reads retain their provider label and do not promote report coverage.
+Nine financial transport cases passed in each of Node/SQLite and actual local
+workerd/D1; ordinary activation remains off.

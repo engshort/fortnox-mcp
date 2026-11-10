@@ -16,7 +16,7 @@
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
     "apps/admin/src/main.tsx": "cf2cadc3a0700654333417ef1a4d14f1163372c11b52693c362168f2a8dd5855",
-    "packages/fortnox/src/analytics.ts": "75c060613946e976d0a80b5bea95d9a96bc92c2abd19ee1ab5add05cee5f3a51",
+    "packages/fortnox/src/analytics.ts": "c4a841ec079f9b3d6f929950abb500831bcc3ffb18fa4b2ff6b3df258672dcaa",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
     "packages/fortnox/src/document-http.ts": "f5401bb3f774bd272abffae4879ef3c020595bb6b9a24bb0ba35b2e88798f33c",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
