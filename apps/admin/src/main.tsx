@@ -248,10 +248,15 @@ function Operations({
                               "Utfallet har stämts av mot Fortnox.",
                               "The outcome was reconciled against Fortnox.",
                             )
-                          : t(
-                              "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
-                              "The outcome remains unknown. No new write was sent.",
-                            ),
+                          : result.state === "applied_different"
+                            ? t(
+                                "Skrivningen har identifierats i Fortnox med avvikande innehåll. Granska avvikelsen nedan.",
+                                "The write was identified in Fortnox with different content. Review the difference below.",
+                              )
+                            : t(
+                                "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
+                                "The outcome remains unknown. No new write was sent.",
+                              ),
                       );
                     })
                   }
@@ -279,6 +284,54 @@ function Operations({
           </p>
         ) : null}
       </section>
+      {!!state.observed_differences?.length && (
+        <section className="content-section">
+          <h2>
+            {t("Genomfört med avvikelse", "Applied with different content")}
+          </h2>
+          <p>
+            {t(
+              "Fortnox har bekräftat skrivningen, men återläsningen avviker från förberedelsen. Detta är inte ett godkänt avsett resultat. Samma skrivning skickas inte igen. Kontrollera resultatet och förbered eventuell rättelse separat.",
+              "Fortnox acknowledged the write, but readback differs from preparation. This is not a successful intended result. The same write will not be resent. Review it and prepare any correction separately.",
+            )}
+          </p>
+          {state.observed_differences.map((item) => (
+            <article
+              className="grant-row"
+              key={`${item.company_id}-${item.id}`}
+            >
+              <Link href={`/admin/companies/${item.company_id}`}>
+                {item.company_name}
+              </Link>
+              <p>{item.operation}</p>
+              <p>
+                {t("Fortnox-referens", "Fortnox reference")}:{" "}
+                <code>{item.reference}</code>
+              </p>
+              <p>
+                {t("Avvikande fält", "Different fields")}:{" "}
+                {item.difference.fields.join(", ")}
+              </p>
+              <details>
+                <summary>
+                  {t("Visa kontrollhashar", "Show evidence hashes")}
+                </summary>
+                <p>
+                  {t("Förberett", "Expected")}:{" "}
+                  <code>{item.difference.expected_digest}</code>
+                </p>
+                <p>
+                  {t("Återläst", "Observed")}:{" "}
+                  <code>{item.difference.observed_digest}</code>
+                </p>
+                <p>
+                  {t("Avsikt", "Intent")}: <code>{item.id}</code>
+                </p>
+              </details>
+            </article>
+          ))}
+        </section>
+      )}
       <button
         className="secondary"
         type="button"

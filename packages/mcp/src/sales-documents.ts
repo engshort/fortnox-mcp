@@ -1,5 +1,6 @@
 import {
   type AccountingActor,
+  businessDifference,
   businessReference,
   DomainError,
   documentRowId,
@@ -38,7 +39,14 @@ const result = (data: z.ZodType) =>
 const execution = result(
   z
     .object({
-      state: z.enum(["prepared", "succeeded", "failed", "outcome_unknown"]),
+      state: z.enum([
+        "prepared",
+        "succeeded",
+        "failed",
+        "outcome_unknown",
+        "applied_different",
+      ]),
+      difference: businessDifference.optional(),
       reference: salesDocumentId.optional(),
     })
     .strict(),

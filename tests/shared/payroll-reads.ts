@@ -2,6 +2,7 @@ import {
   PayrollInputs,
   type PayrollOperation,
   type StateStore,
+  salaryTransactionFields,
 } from "@fortnox-mcp/core";
 import {
   FortnoxConnections,
@@ -210,6 +211,148 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
           }),
         ).rejects.toThrow();
         expect(posts).toBe(1);
+      });
+    for (const recovery of [false, true])
+      it(`reports a retained exact salary row with different amounts without replay (${recovery ? "recovery" : "dispatch"})`, async () => {
+        const f = await setup(await fixture());
+        let row: Record<string, unknown> | null = null,
+          posts = 0,
+          readFails = recovery,
+          changedStableField = false;
+        f.provider.config.fetch = async (input) => {
+          const req = input as Request,
+            url = new URL(req.url);
+          if (url.pathname.startsWith("/3/employees/"))
+            return Response.json({
+              Employee: {
+                EmployeeId: "SYNM7ABC123",
+                Inactive: false,
+                EmploymentDate: "2026-01-01",
+                PersonelType: "TJM",
+                SalaryForm: "TIM",
+              },
+            });
+          if (req.method === "POST") {
+            posts++;
+            row = (
+              (await req.json()) as {
+                SalaryTransaction: Record<string, unknown>;
+              }
+            ).SalaryTransaction;
+            return Response.json({
+              SalaryTransaction: { ...row, SalaryRow: 1 },
+            });
+          }
+          if (url.pathname === "/3/salarytransactions/1") {
+            if (readFails) return Response.json({}, { status: 503 });
+            return Response.json({
+              SalaryTransaction: {
+                ...row,
+                ...(changedStableField ? { SalaryCode: "OTHER" } : {}),
+                Number: "1.0000",
+                Amount: "0",
+                Total: "0.00",
+                SalaryRow: 1,
+              },
+            });
+          }
+          return Response.json({
+            SalaryTransactions: [],
+            MetaInformation: { "@CurrentPage": 1, "@TotalPages": 1 },
+          });
+        };
+        const create = (
+          retained: ConstructorParameters<typeof FortnoxPayrollProbe>[6] = [],
+        ) =>
+          new FortnoxPayrollProbe(
+            f.connections,
+            f.provider,
+            f.a.id,
+            [{ id: "SYNM7ABC123", form: "TIM" }],
+            () => true,
+            Date.now,
+            retained,
+          );
+        const service = create();
+        const p = await service.writes.prepare(
+          f.actor,
+          f.a.id,
+          "salary_transaction.create",
+          {
+            EmployeeId: "SYNM7ABC123",
+            Date: "2026-01-01",
+          },
+        );
+        const ref = {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        };
+        const expected = salaryTransactionFields.parse(
+          (p.preview as { after: unknown }).after,
+        );
+        let result = await service.writes.execute(
+          f.actor,
+          "salary_transaction.create",
+          ref,
+        );
+        if (recovery) {
+          expect(result).toEqual({ state: "outcome_unknown", reference: "1" });
+          readFails = false;
+          // No retained original fields, or a changed original, cannot prove a difference.
+          expect(
+            (
+              await create().writes.reconcile(
+                f.actor,
+                "salary_transaction.create",
+                ref,
+              )
+            ).state,
+          ).toBe("outcome_unknown");
+          expect(
+            (
+              await create([
+                {
+                  intent_id: p.proposal_id,
+                  expected_fields: { ...expected, Amount: "500" },
+                },
+              ]).writes.reconcile(f.actor, "salary_transaction.create", ref)
+            ).state,
+          ).toBe("outcome_unknown");
+          changedStableField = true;
+          expect(
+            (
+              await create([
+                { intent_id: p.proposal_id, expected_fields: expected },
+              ]).writes.reconcile(f.actor, "salary_transaction.create", ref)
+            ).state,
+          ).toBe("outcome_unknown");
+          changedStableField = false;
+          result = await create([
+            { intent_id: p.proposal_id, expected_fields: expected },
+          ]).writes.reconcile(f.actor, "salary_transaction.create", ref);
+        }
+        expect(result).toMatchObject({
+          state: "applied_different",
+          reference: "1",
+          difference: {
+            fields: ["Amount", "Total"],
+            proof: "retained_provider_response_and_exact_readback",
+          },
+        });
+        expect(
+          await create().writes.execute(
+            f.actor,
+            "salary_transaction.create",
+            ref,
+          ),
+        ).toEqual(result);
+        expect(posts).toBe(1);
+        expect(
+          (await f.connections.list(f.actor.ownerId)).find(
+            (c) => c.id === f.a.id,
+          )?.business?.executions[0]?.hash,
+        ).toBe(p.proposal_hash);
       });
     it("does not infer the identity of a candidate salary input after a lost response", async () => {
       const f = await setup(await fixture());

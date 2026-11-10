@@ -160,6 +160,18 @@ revalidates source state. Standard client approvals do not authorize manual
 vouchers or override read-only, restore, provider or ownership checks.
 See [the foundation evidence](../implementation/S04-S05-business-writes.md).
 
+`applied_different` is a terminal known-effect result, distinct from intended
+success and from uncertain delivery. It requires a retained exact provider-response
+reference, exact-ID readback, and operation-specific evidence that stable identity
+fields match. The expected digest must equal the immutable execution evidence;
+the observed digest must differ. Store only the two hashes and bounded changed
+field names. Reconciliation may not introduce a different or previously unknown
+reference to establish this result. Only explicitly implemented adapters can
+classify it; generic mismatches remain unknown. The original intent is never
+resent and its hash is never replaced. Show the discrepancy to the owner and
+prepare any correction as a separate validated intent. This status establishes
+neither successful intended content nor a cause for the observed difference.
+
 ### S04 register tools (isolated test profile only)
 
 `list_customers`/`list_suppliers`/`list_articles` accept only their resource's
@@ -176,7 +188,7 @@ empty values and `API_BLANK` do not provide an unverified clearing shortcut.
 
 `reconcile_customer_create`/`reconcile_customer_update` and counterparts perform
 only authenticated reads against trusted IDs. Exact field digests can establish
-matching current state. Unknown identity, mismatch or absence stays unknown;
+matching current state. Unknown identity, unproven mismatch or absence stays unknown;
 no reconciliation tool resends. `get_register_write_status` reads only the
 initiating client's durable proposal/execution. No tool supplies manual-voucher
 approval, a provider URL, arbitrary method/body or bank instructions.

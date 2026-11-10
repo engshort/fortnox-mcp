@@ -21,6 +21,12 @@ syntetisk testanställd, granska innehållet och därefter registrera det med va
 klientbekräftelse. Exemplet är ännu inte faktiskt godkänt i Fortnox. Vid okänt
 resultat ska samma skrivning inte skickas på nytt innan resultatet har utretts.
 
+Driftsidan skiljer okända skrivutfall från ”Genomfört med avvikelse”. Det senare
+betyder att skrivningen har en säker Fortnox-referens men att återläst innehåll
+skiljer sig från förberedelsen. Du ser vilka fält som avviker. Det avsedda
+resultatet räknas inte som godkänt, och samma skrivning skickas inte igen.
+Kontrollera resultatet och förbered eventuell rättelse separat.
+
 Den isolerade testbuilden kan erbjuda fyra läsverktyg för anställningsreferenser
 och löneunderlag. Ange alltid företag; urval av underlag kräver även anställd
 och datum. Anställningsreferensen visar inte namn, personnummer eller lön.

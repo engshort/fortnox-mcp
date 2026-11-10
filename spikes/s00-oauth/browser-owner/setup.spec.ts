@@ -121,6 +121,25 @@ test("owner bootstraps, stores write-only credentials, switches language and sig
   await page.getByLabel("Password", { exact: true }).fill("synthetic-browser-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Your companies" })).toBeVisible();
+  await page.route("**/admin/state", async (route) => {
+    const response = await route.fetch();
+    const state = await response.json();
+    state.observed_differences = [{
+      company_id: "00000000-0000-4000-8000-000000000001", company_name: "Synthetic company",
+      id: "00000000-0000-4000-8000-000000000002", operation: "salary_transaction.create", reference: "synthetic-row",
+      difference: { expected_digest: "a".repeat(64), observed_digest: "b".repeat(64), fields: ["Amount", "Total"],
+        proof: "retained_provider_response_and_exact_readback" },
+    }];
+    await route.fulfill({ response, json: state });
+  });
+  await page.goto(`${origin}/admin/operations`);
+  await expect(page.getByRole("heading", { name: "Applied with different content", exact: true })).toBeVisible();
+  await expect(page.getByText("Different fields: Amount, Total", { exact: true })).toBeVisible();
+  await expect(page.getByText(/This is not a successful intended result/)).toBeVisible();
+  await page.getByText("Show evidence hashes", { exact: true }).click();
+  await expect(page.getByText("a".repeat(64), { exact: true })).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), `m7-known-difference-${info.project.name}.png`), fullPage: true });
+  await page.unroute("**/admin/state");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);

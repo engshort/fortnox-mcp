@@ -8,6 +8,7 @@ import {
   DomainError,
   payrollFieldsHash,
   payrollRowId,
+  type SalaryTransactionFields,
   salaryTransactionFields,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
@@ -31,6 +32,12 @@ export interface PayrollProbeEmployee {
   id: string;
   form: "TIM" | "MAN";
 }
+const retainedInput = z
+  .object({
+    intent_id: z.string().uuid(),
+    expected_fields: salaryTransactionFields,
+  })
+  .strict();
 // Explicit operator acceptance experiment, never an advertised payroll tool.
 // The code candidates come from Fortnox's standard TJM table, not from a claim
 // that this company's table/rights are already verified. Only successful exact
@@ -46,6 +53,7 @@ export class FortnoxPayrollProbe {
     readonly employees: readonly PayrollProbeEmployee[],
     readonly active: () => boolean = () => false,
     readonly now = Date.now,
+    retainedInputs: readonly z.infer<typeof retainedInput>[] = [],
   ) {
     z.string().uuid().parse(companyId);
     z.array(
@@ -55,6 +63,11 @@ export class FortnoxPayrollProbe {
       .max(2)
       .parse(employees);
     if (new Set(employees.map((e) => e.id)).size !== employees.length)
+      throw new DomainError("VALIDATION_FAILED");
+    // Operator-only original private receipts, never caller-supplied row IDs.
+    // The immutable execution digest must independently authenticate this input.
+    const retained = z.array(retainedInput).max(2).parse(retainedInputs);
+    if (new Set(retained.map((e) => e.intent_id)).size !== retained.length)
       throw new DomainError("VALIDATION_FAILED");
     this.http = new DocumentHttp(
       connections,
@@ -132,12 +145,51 @@ export class FortnoxPayrollProbe {
       company: string,
       id: string | undefined,
       digest: string,
+      expected?: SalaryTransactionFields,
     ): Promise<BusinessWriteResult> => {
+      if (company !== companyId) throw new DomainError("COMPANY_FORBIDDEN");
       if (!id) return { state: "outcome_unknown" };
       try {
         const row = await this.reads.get(actor, company, id);
-        if ((await payrollFieldsHash(row.fields)) === digest)
-          return { state: "succeeded", reference: id };
+        const observed = await payrollFieldsHash(row.fields);
+        if (observed === digest) return { state: "succeeded", reference: id };
+        if (expected && (await payrollFieldsHash(expected)) === digest) {
+          // Only the fixed candidate profile can prove stable identity fields.
+          // A changed employee/date/code/quantity/marker remains unknown.
+          const fixed = fields({
+            EmployeeId: expected.EmployeeId,
+            Date: expected.Date,
+          });
+          if ((await payrollFieldsHash(fixed)) !== digest)
+            return { state: "outcome_unknown", reference: id };
+          if (
+            (await payrollFieldsHash({
+              ...row.fields,
+              Amount: expected.Amount,
+              Total: expected.Total,
+            })) === digest
+          ) {
+            const changed: string[] = [];
+            for (const name of ["Amount", "Total"] as const)
+              if (
+                (await payrollFieldsHash({
+                  ...expected,
+                  [name]: row.fields[name],
+                })) !== digest
+              )
+                changed.push(name);
+            return {
+              state: "applied_different",
+              reference: id,
+              difference: {
+                expected_digest: digest,
+                observed_digest: observed,
+                fields: changed,
+                proof: "retained_provider_response_and_exact_readback",
+              },
+            };
+          }
+        }
       } catch {}
       return { state: "outcome_unknown", reference: id };
     };
@@ -197,11 +249,18 @@ export class FortnoxPayrollProbe {
                 ? returned.data.SalaryTransaction.SalaryRow
                 : undefined,
               await payrollFieldsHash(v),
+              v,
             );
           },
           reconcile: async (actor, company, e) =>
             e.evidence
-              ? verify(actor, company, e.reference, e.evidence.digest)
+              ? verify(
+                  actor,
+                  company,
+                  e.reference,
+                  e.evidence.digest,
+                  retained.find((v) => v.intent_id === e.id)?.expected_fields,
+                )
               : { state: "outcome_unknown" },
         },
       },

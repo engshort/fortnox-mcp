@@ -5,16 +5,16 @@
   "sourceStrategy": "Independent schemas and finite method/path mapping; no copied specification or generated provider code",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
+    "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
     "packages/core/src/sales-documents.ts": "b83dbeca9d6565e25c8c6daac50ec9f92430924448647bede5a42fc6a56bbfe0",
     "packages/fortnox/src/document-http.ts": "2815b1989da924170360a2d339da8c458d76d1d8d9603bc12653f23ae0131a0a",
     "packages/fortnox/src/sales-documents.ts": "e0dde695f9d28aaaed7ec6f5f4079fceab4baed1728e96903dd48fa986895cac",
     "packages/fortnox/src/index.ts": "dafd7323c393fc14a7524dc4399f3b3a03d723c8e4bbc0938d7dad589ff91830",
-    "packages/mcp/src/sales-documents.ts": "b480026d543e14f7cd3aaf17ce4087ae14872e57574f587dd2e7e8ef0afa7be1",
+    "packages/mcp/src/sales-documents.ts": "e43a51429854cb27544e63cf53208bf0f79a83a05a1dc16c27c30032d238de76",
     "packages/mcp/src/companies.ts": "cf9d99fc3a7b6a2be03039fb66e982b8ad5288989ac6e9fe9563cb2308b0b79e",
-    "apps/shared/product.ts": "4b95ffd3c265e7961bf90d95efe5f1f4c5c53a0430b9e45f1ddb97f1c022c454",
-    "apps/node/src/register-test-main.ts": "7128f6e61d47133422e6143d4ddbb631bd9f42e2c99626dc37712a8cc28ba62d",
+    "apps/shared/product.ts": "83e1179250061ac5e7d3a5bf2de772bf55a4adfd9010467ede6c749a5d12ef00",
+    "apps/node/src/register-test-main.ts": "2a167abf2f4d2ab896ca5485a8337322eb71c7c5934c9b681017908ade8f3f4f",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "operations": [

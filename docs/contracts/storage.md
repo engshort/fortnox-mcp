@@ -101,3 +101,12 @@ business retention, encryption-key checks, restore and unresolved-capacity rules
 They support exact-identity readback; they do not reconstruct a local register or
 prove authorship of another actor's matching changes. Unknown generated IDs are
 not guessed from names, dates or amounts.
+
+Known `applied_different` business results retain the original proposal/evidence
+hashes, exact provider reference, observed hash and at most 64 changed field
+names. No observed or expected payroll values are added to execution metadata.
+They use the existing 32-record bound and ordinary 30-day terminal retention;
+unknown and in-flight results still survive that expiry. Encryption/key checks,
+backup/restore, disconnect and authorization rules are unchanged. Retained
+discrepancy metadata is shown by owner administration and cannot authorize a
+new provider call or replay an old intent.

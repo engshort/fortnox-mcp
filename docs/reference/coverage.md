@@ -283,3 +283,10 @@ handoff](../implementation/S11-company-programs.md).
 ## Milestone 7 work in progress
 
 The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Provider analysis breadth, payroll execution and actual acceptance remain pending. No full financial correctness or payroll gate is closed.
+
+The M07 known-effect follow-up distinguishes `applied_different` from intended
+success and uncertain delivery. Only an acknowledged exact provider identity
+plus verified stable-field readback can establish it; original hashes and
+bounded field-name/hash evidence remain. Owner Operations shows discrepancies
+separately. This recovery classification activates no provider capability and
+provides no payroll correctness or client-acceptance claim.

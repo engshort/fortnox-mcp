@@ -239,6 +239,26 @@ but company-specific calculation and field behavior still need verification.
 The retained row and original intent/digest remain private for investigation.
 It does not establish a successful intended-input flow or G10 closure.
 
+### Known-effect discrepancy classification
+
+The follow-up adds `applied_different`, a terminal result for acknowledged exact
+provider identity with matching stable fields but different observed content.
+It never reports intended success or changes the original execution digest.
+The operator-only salary experiment can classify only Amount/Total differences
+after exact readback and normalized employee/date/code/quantity/marker checks.
+Recovery additionally requires the original private prepared fields to match
+the retained immutable digest and fixed synthetic profile. No model-supplied
+reference or name/date/amount heuristic can establish identity. Missing exact
+references, changed stable fields and incomplete readback remain unknown.
+
+Owner Operations lists these discrepancies separately, with field names and
+evidence hashes, without retaining payroll values. Same-intent execution always
+returns the retained terminal result; any correction needs a new preparation.
+Node/SQLite and workerd/D1 cases cover persistence, no replay, invalid evidence,
+lost references and operation-specific readback. Actual reconciliation of the
+earlier candidate is recorded separately when performed; this implementation
+alone does not accept the candidate or G10.
+
 ## Financial movement drill-down
 
 A separate strict MCP read selects one account, year and inclusive date interval.
@@ -267,3 +287,16 @@ and identity. Missing source values remain null; account-base-currency units
 remain unverified and cannot produce a complete financial assertion. Analysis
 and movement discovery require only their three basis reads; an unrelated
 voucher/detail gate does not hide those independently enabled reads.
+
+## Known-effect follow-up verification
+
+The focused run passed 29 Node/SQLite cases (including actual SQLite and
+workerd/D1 process restarts) and 27 shared workerd/D1 cases. Both desktop and
+mobile Chromium flows rendered the discrepancy, separate unknown list and
+evidence hashes, with no horizontal overflow or unexpected browser errors.
+Browser plugin not available; the existing Playwright owner harness was used.
+Typecheck, lint, build and all 13 packaged build/native-Worker smoke cases
+passed. The full Node suite passed all 320 cases; the full Worker result and
+latest-head CI are recorded separately when complete. A previous CI failure
+was an outdated register-test-entry source hash; the operation ledgers now pin
+the current source files without promoting any operation to supported status.

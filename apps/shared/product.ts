@@ -730,6 +730,23 @@ export function createProductApplication(
                   })),
               ),
             ]),
+            observed_differences: companies.flatMap((c) =>
+              (c.business?.executions ?? [])
+                .filter(
+                  (e) =>
+                    e.state === "applied_different" &&
+                    e.difference &&
+                    e.reference,
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  id: e.id,
+                  operation: e.operation,
+                  reference: e.reference,
+                  difference: e.difference,
+                })),
+            ),
             investigations: companies.flatMap((c) =>
               (c.bookkeeping?.executions ?? [])
                 .filter(

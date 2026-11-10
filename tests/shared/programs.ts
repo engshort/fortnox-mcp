@@ -722,6 +722,7 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
       partial: false,
     });
     const execution = crypto.randomUUID();
+    const different = crypto.randomUUID();
     await app.connections.mutate(owner.response.user.id, a.id, (c) => {
       c.business = {
         proposals: [],
@@ -735,6 +736,22 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
             created: Date.now(),
             state: "outcome_unknown",
           },
+          {
+            id: different,
+            hash: "1".repeat(64),
+            operation: "salary_transaction.create",
+            client: "synthetic-client-grant",
+            generation: c.generation,
+            created: Date.now(),
+            state: "applied_different",
+            reference: "synthetic-row",
+            difference: {
+              expected_digest: "a".repeat(64),
+              observed_digest: "b".repeat(64),
+              fields: ["Amount", "Total"],
+              proof: "retained_provider_response_and_exact_readback",
+            },
+          },
         ],
       };
     });
@@ -743,6 +760,14 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
     expect(await status.json()).toMatchObject({
       uncertain_outcomes: [
         { company_id: a.id, kind: "business", id: execution },
+      ],
+      observed_differences: [
+        {
+          company_id: a.id,
+          id: different,
+          reference: "synthetic-row",
+          difference: { fields: ["Amount", "Total"] },
+        },
       ],
     });
     expect(calls).toBe(0);
