@@ -1,5 +1,10 @@
 # API coverage plan
 
+Nova merge-to-main deployment adds infrastructure automation only; it changes no
+provider coverage or activation gates. Public deployment acceptance is recorded
+separately from Fortnox and client acceptance in the
+[Nova runbook](../deployment-nova.md).
+
 The [owner's 2026-11-09 MVP acceptance and release authorization](../implementation/M05-release-authorization-2026-11-09.md)
 permits a bounded prerelease after green CI. This decision changes no operation
 classification or default activation gate; actual scenario evidence remains scoped.

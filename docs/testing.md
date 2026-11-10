@@ -1,5 +1,11 @@
 # Test strategy and evidence
 
+Nova deployment input tests cover exact SSH command restrictions, checksum,
+upload bounds and refusing file replacement. `scripts/nova-smoke.ts` checks the
+actual public HTTPS origin, exact revision, OAuth issuer and private-route denial
+without provider calls. Deployment remains unverified until its exact-main
+Actions run and public smoke pass; see [the Nova runbook](deployment-nova.md).
+
 The M05 Node runtime cases exercise secret-file conflicts/redaction, proxy
 authority and unchanged browser Origin, then bootstrap the actual Node process
 with Secure cookies and preserve its owner session through SIGTERM/restart.

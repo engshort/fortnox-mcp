@@ -1,5 +1,7 @@
 # Documentation map
 
+Operations: [Nova merge-to-main deployment and recovery](deployment-nova.md).
+
 Milestone 7: [financial analysis/payroll delivery and remaining evidence](implementation/M07-analysis-payroll.md) and [Swedish user guidance](users/analys-och-loneunderlag.sv.md). Implementation in progress; no new operation activated.
 
 S11/#117: [company/program administration, consent evidence and S04/S05 handoff](implementation/S11-company-programs.md).

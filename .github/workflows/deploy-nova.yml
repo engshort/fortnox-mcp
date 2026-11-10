@@ -1,0 +1,75 @@
+name: Deploy Nova
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nova-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment:
+      name: nova-production
+      url: https://fortnox.mcp.engshort.se
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm install --global npm@11.9.0 --ignore-scripts --no-audit --no-fund && npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate application
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run build
+          npm run test:build
+      - name: Test Docker through HTTPS with synthetic state
+        run: node scripts/docker-smoke.mjs
+      - name: Build the exact deployment image
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          docker build -f deploy/docker/Dockerfile --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t "fortnox-mcp:nova-$SOURCE_COMMIT" .
+          docker save "fortnox-mcp:nova-$SOURCE_COMMIT" | gzip -1 > "$RUNNER_TEMP/nova-image.tar.gz"
+      - name: Deploy and verify the running image over restricted SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.NOVA_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.NOVA_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.NOVA_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.NOVA_DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.NOVA_DEPLOY_USER }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$current" != "$SOURCE_COMMIT" ]; then
+            echo "Main advanced; refusing a stale deployment."
+            exit 1
+          fi
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_PORT" && test -n "$DEPLOY_USER"
+          umask 077
+          mkdir -p "$RUNNER_TEMP/nova-ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/nova-ssh/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/nova-ssh/known_hosts"
+          trap 'rm -rf "$RUNNER_TEMP/nova-ssh"' EXIT
+          digest=$(sha256sum "$RUNNER_TEMP/nova-image.tar.gz" | cut -d ' ' -f1)
+          options=(-F /dev/null -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=8 -o "UserKnownHostsFile=$RUNNER_TEMP/nova-ssh/known_hosts" -i "$RUNNER_TEMP/nova-ssh/key" -p "$DEPLOY_PORT")
+          ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "deploy $SOURCE_COMMIT $digest" < "$RUNNER_TEMP/nova-image.tar.gz"
+          ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "status $SOURCE_COMMIT"
+      - name: Verify public HTTPS, revision, OAuth and authentication
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          node --import tsx scripts/nova-smoke.ts
+          printf 'Deployed `%s` to https://fortnox.mcp.engshort.se; public smoke passed.\n' "$SOURCE_COMMIT" >> "$GITHUB_STEP_SUMMARY"

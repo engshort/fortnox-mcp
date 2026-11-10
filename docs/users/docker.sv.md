@@ -1,5 +1,10 @@
 # Docker-installation och drift
 
+Nova-installationen kan uppdateras automatiskt efter merge till `main` med publik
+HTTPS och en begränsad SSH-deploynyckel, utan Cloudflare Tunnel. Deploy verifierar
+kodrevision, hälsa och inloggningsskydd och behåller databas och nycklar.
+Se [driftguiden](../deployment-nova.md). Grön deploy aktiverar inga nya Fortnox-funktioner.
+
 Ägaren godkände den levererade MVP:n och publicering efter grön CI den 9 november
 2026. Publiceringen gäller en GitHub-prerelease med källkod och Docker-bygge lokalt.
 Se [acceptansbeslutet](../implementation/M05-release-authorization-2026-11-09.md).
