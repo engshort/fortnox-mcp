@@ -18,6 +18,12 @@ This repository starts with an approved specification. There is not yet an insta
 
 AI-assisted contributions are welcome. The submitter remains responsible for understanding and verifying the change. Include which tests ran and disclose unresolved assumptions; fabricated test results or source claims are unacceptable.
 
+Coding agents start with the [agent guide](docs/AGENT-GUIDE.md).
+The optional [Labstride issue-to-review workflow](docs/development.md#optional-labstride-issue-to-review-workflow)
+and [Swedish owner guide](docs/users/labstride.sv.md) describe the separate issue
+start authorization, same-chat plan approval and coordinator-managed draft PR/CI
+handoff. Labstride is not required for contributions.
+
 ## Development conventions
 
 - TypeScript with strict checking; explicit runtime schemas at external boundaries.

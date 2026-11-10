@@ -23,6 +23,10 @@ Applies to human and coding-agent contributions throughout the repository.
 
 ## Delivery and verification
 
+Coding agents must always communicate in Swedish in chats, plans, questions,
+progress updates and final replies. Public code, developer documentation,
+commit messages and PR text remain in English.
+
 Use TypeScript for the implementation; maintain portable domain code separately from runtime adapters. Write code and developer docs in English; maintain Swedish user docs for user-visible changes.
 
 Follow `docs/testing.md`. Test observable domain behavior, isolation and failure recovery; do not add tests that merely repeat implementation. Run commands that actually exist, and report what was and was not verified. A documentation-only change needs link/structure/consistency checks, not invented application test output.
