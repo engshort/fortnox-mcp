@@ -1,21 +1,28 @@
 {
   "schemaVersion": 1,
-  "scope": "S08/S09 local domain foundation; G07/G10 still open",
+  "scope": "S08/S09 bounded provider reads and local domain; G07/G10 still open",
   "reviewedAt": "2026-11-10",
   "sourceStrategy": "Independent implementation, no vendored/generated external specification",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/analytics.ts": "39e673ecd78d713b6320459d0439c1bf08957c7cefe5d1c84080cf9a5305f5dd",
+    "packages/core/src/analytics.ts": "5559d1e43804755fd43d824cb045e267931f15e57284b9320787840ce66ba6b6",
     "packages/core/src/sie.ts": "0d2e8f47a62805232a49bd7268c89586e57bf8213417212030ce2a21aa4f7d4f",
-    "packages/core/src/payroll.ts": "00ed4027739cd6ba37309039dde01c555f029211bb1a65b9e682f9208e9ed0e4",
+    "packages/core/src/payroll.ts": "1f177fa25134c42b9b63763a5f0fb25ca18f1feb86137f4f26bbe8ad6b1dfbd7",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff",
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
     "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
-    "apps/shared/product.ts": "a35941cb51797a6c93559ef840f6601699f18ddc5732ee802b91a6e8afef8b7c",
+    "apps/shared/product.ts": "b132552a9d38dce2c3d93d5ff6fe8d9a20aa817d1438ee109beced9b467ce990",
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
-    "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b"
+    "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b",
+    "packages/fortnox/src/analytics.ts": "2d395bc03b534fc39f4f114f436ad6b48281aa88d3d26d657c82cb2b47c2a125",
+    "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
+    "packages/fortnox/src/document-http.ts": "2c0ce5fd9d34a146bc57ee01b0062e2cb26c9ce98e4c281e25389cb393ff1e0a",
+    "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
+    "packages/mcp/src/payroll.ts": "e03607c9919dd126fbd92d16700aa1719d1ed2acda10c804527264a4a17925e7",
+    "packages/mcp/src/companies.ts": "cb695ada6c45157428fc892b56bd8d12b2ba4eb093209e98710aba52ba674d6e",
+    "apps/node/src/register-test-main.ts": "d3a9c1b959d7b9cb6cc38691eadf909cbfb8b50eccdb2e7e71e55fb14363863f"
   },
   "operations": [
     {
@@ -24,16 +31,17 @@
       "path": "/3/salarytransactions",
       "providerScope": "salary",
       "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
-      "status": "domain_implemented_unverified",
-      "providerImplemented": false,
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
       "supported": false,
       "enabledByDefault": false,
       "effect": "read",
-      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
-      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "precision": "Provider decimal strings preserved exactly; absent or null fields explicit; invalid numeric strings rejected; no salary calculation assumed",
+      "retry": "At most three read attempts with reauthorization; no write dispatch",
       "syntheticTests": [
         "tests/shared/payroll.ts",
-        "tests/shared/business-writes.ts"
+        "tests/shared/business-writes.ts",
+        "tests/shared/payroll-reads.ts"
       ],
       "liveEvidence": null,
       "clientEvidence": null,
@@ -48,16 +56,17 @@
       "path": "/3/salarytransactions/{SalaryRow}",
       "providerScope": "salary",
       "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
-      "status": "domain_implemented_unverified",
-      "providerImplemented": false,
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
       "supported": false,
       "enabledByDefault": false,
       "effect": "read",
-      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
-      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "precision": "Provider decimal strings preserved exactly; absent or null fields explicit; invalid numeric strings rejected; no salary calculation assumed",
+      "retry": "At most three read attempts with reauthorization; no write dispatch",
       "syntheticTests": [
         "tests/shared/payroll.ts",
-        "tests/shared/business-writes.ts"
+        "tests/shared/business-writes.ts",
+        "tests/shared/payroll-reads.ts"
       ],
       "liveEvidence": null,
       "clientEvidence": null,
@@ -174,6 +183,142 @@
       "retry": "No provider write; incomplete or unknown source evidence never becomes complete",
       "syntheticTests": [
         "tests/shared/analytics.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "payroll_employee.list",
+      "method": "GET",
+      "path": "/3/employees",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; operation-specific company licence and user rights evidence pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Minimal employee reference only; no names, personal identity numbers or wage data projected",
+      "retry": "At most three read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/payroll-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs"
+      ]
+    },
+    {
+      "localId": "payroll_employee.get",
+      "method": "GET",
+      "path": "/3/employees/{EmployeeId}",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; operation-specific company licence and user rights evidence pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Minimal employee reference only; no names, personal identity numbers or wage data projected",
+      "retry": "At most three read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/payroll-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs"
+      ]
+    },
+    {
+      "localId": "financial.accounts",
+      "method": "GET",
+      "path": "/3/accounts",
+      "providerScope": "bookkeeping",
+      "license": "Fortnox Bookkeeping; actual operation rights and export semantics pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Exact JSON number lexemes and SIE cents; explicit year, account and row provenance; unknown coverage remains partial",
+      "retry": "At most three bounded read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial.year",
+      "method": "GET",
+      "path": "/3/financialyears/{Id}",
+      "providerScope": "bookkeeping",
+      "license": "Fortnox Bookkeeping; actual operation rights and export semantics pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Exact JSON number lexemes and SIE cents; explicit year, account and row provenance; unknown coverage remains partial",
+      "retry": "At most three bounded read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial.sie4",
+      "method": "GET",
+      "path": "/3/sie/4",
+      "providerScope": "bookkeeping",
+      "license": "Fortnox Bookkeeping; actual operation rights and export semantics pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Exact JSON number lexemes and SIE cents; explicit year, account and row provenance; unknown coverage remains partial",
+      "retry": "At most three bounded read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial.voucher",
+      "method": "GET",
+      "path": "/3/vouchers/{Series}/{Number}",
+      "providerScope": "bookkeeping",
+      "license": "Fortnox Bookkeeping; actual operation rights and export semantics pending",
+      "status": "provider_read_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Exact JSON number lexemes and SIE cents; explicit year, account and row provenance; unknown coverage remains partial",
+      "retry": "At most three bounded read attempts with reauthorization; no write dispatch",
+      "syntheticTests": [
+        "tests/shared/financial-reads.ts"
       ],
       "liveEvidence": null,
       "clientEvidence": null,

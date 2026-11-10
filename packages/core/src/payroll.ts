@@ -32,6 +32,31 @@ export const salaryTransactionFields = z
   })
   .strict();
 export type SalaryTransactionFields = z.infer<typeof salaryTransactionFields>;
+const observedDecimal = z
+  .string()
+  .max(68)
+  .regex(/^(?:|-?(?:0|[1-9]\d{0,59})(?:\.\d{1,6})?)$/);
+export const payrollObservedFields = z
+  .object({
+    EmployeeId: payrollEmployeeId,
+    Date: accountingDate,
+    SalaryCode: z.string().max(20),
+    Number: observedDecimal.nullable().optional(),
+    Amount: observedDecimal.nullable().optional(),
+    Total: observedDecimal.nullable().optional(),
+    TextRow: z.string().max(40).nullable().optional(),
+  })
+  .strict();
+export const payrollEmployee = z
+  .object({
+    id: payrollEmployeeId,
+    active: z.boolean().nullable(),
+    employment_from: accountingDate.nullable(),
+    personel_type: z.enum(["ARB", "TJM"]).nullable(),
+    version: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+export type PayrollEmployee = z.infer<typeof payrollEmployee>;
 export type PayrollAction = "create" | "update" | "delete";
 export const payrollOperationIds = [
   "salary_transaction.list",
@@ -39,6 +64,8 @@ export const payrollOperationIds = [
   "salary_transaction.create",
   "salary_transaction.update",
   "salary_transaction.delete",
+  "payroll_employee.list",
+  "payroll_employee.get",
 ] as const;
 export type PayrollOperation = (typeof payrollOperationIds)[number];
 export interface PayrollReferences {
@@ -65,11 +92,25 @@ export interface PayrollReferences {
 }
 export interface PayrollRecord {
   id: string;
-  fields: SalaryTransactionFields;
+  fields: z.infer<typeof payrollObservedFields>;
   version: string;
   editable: boolean;
 }
 export interface PayrollProvider {
+  employee(
+    actor: AccountingActor,
+    company: string,
+    id: string,
+  ): Promise<PayrollEmployee>;
+  employees(
+    actor: AccountingActor,
+    company: string,
+    page: number,
+  ): Promise<{
+    records: PayrollEmployee[];
+    complete: boolean;
+    next_page: number | null;
+  }>;
   references(
     actor: AccountingActor,
     company: string,
@@ -325,7 +366,7 @@ export class PayrollInputs {
     );
     if (record.id !== id || !/^[a-f0-9]{64}$/.test(record.version))
       throw new DomainError("UPSTREAM_UNAVAILABLE");
-    salaryTransactionFields.parse(record.fields);
+    payrollObservedFields.parse(record.fields);
     return record;
   }
   async get(actor: AccountingActor, company: string, id: string) {
@@ -377,7 +418,7 @@ export class PayrollInputs {
       throw new DomainError("UPSTREAM_UNAVAILABLE");
     for (const r of result.records) {
       payrollRowId.parse(r.id);
-      salaryTransactionFields.parse(r.fields);
+      payrollObservedFields.parse(r.fields);
     }
     const after = await this.authorize(
       actor,
@@ -385,6 +426,39 @@ export class PayrollInputs {
       "salary_transaction.list",
     );
     if (after.generation !== before.generation)
+      throw new DomainError("CONNECTION_CONFLICT");
+    return { company_id: company, ...result };
+  }
+  async employee(actor: AccountingActor, company: string, id: string) {
+    payrollEmployeeId.parse(id);
+    const before = await this.authorize(actor, company, "payroll_employee.get");
+    const record = payrollEmployee.parse(
+      await this.provider.employee(actor, company, id),
+    );
+    if (record.id !== id) throw new DomainError("UPSTREAM_UNAVAILABLE");
+    const after = await this.authorize(actor, company, "payroll_employee.get");
+    if (before.generation !== after.generation)
+      throw new DomainError("CONNECTION_CONFLICT");
+    return { company_id: company, record, complete: true as const };
+  }
+  async employees(actor: AccountingActor, company: string, page = 1) {
+    z.number().int().min(1).max(10000).parse(page);
+    const before = await this.authorize(
+      actor,
+      company,
+      "payroll_employee.list",
+    );
+    const result = await this.provider.employees(actor, company, page);
+    for (const record of result.records) payrollEmployee.parse(record);
+    if (
+      result.records.length > 100 ||
+      new Set(result.records.map((r) => r.id)).size !== result.records.length ||
+      (result.complete && result.next_page !== null) ||
+      (result.next_page !== null && result.next_page !== page + 1)
+    )
+      throw new DomainError("UPSTREAM_UNAVAILABLE");
+    const after = await this.authorize(actor, company, "payroll_employee.list");
+    if (before.generation !== after.generation)
       throw new DomainError("CONNECTION_CONFLICT");
     return { company_id: company, ...result };
   }
@@ -404,7 +478,7 @@ export class PayrollInputs {
     );
   }
 }
-export async function payrollFieldsHash(input: SalaryTransactionFields) {
+export async function payrollFieldsHash(input: unknown) {
   const value = salaryTransactionFields.parse(input);
   return accountingHash({
     ...value,
@@ -414,7 +488,7 @@ export async function payrollFieldsHash(input: SalaryTransactionFields) {
   });
 }
 function payrollDiff(
-  before: SalaryTransactionFields | null,
+  before: z.infer<typeof payrollObservedFields> | null,
   after: SalaryTransactionFields | null,
 ) {
   return [

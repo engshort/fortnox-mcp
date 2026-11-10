@@ -8,13 +8,13 @@
     "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
     "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
     "packages/core/src/sales-documents.ts": "b83dbeca9d6565e25c8c6daac50ec9f92430924448647bede5a42fc6a56bbfe0",
-    "packages/fortnox/src/document-http.ts": "bec3be9bc520246a3d3d37fbef9275641bb2da3871e9fcdcc6a85869bdaa5e02",
+    "packages/fortnox/src/document-http.ts": "2c0ce5fd9d34a146bc57ee01b0062e2cb26c9ce98e4c281e25389cb393ff1e0a",
     "packages/fortnox/src/sales-documents.ts": "e0dde695f9d28aaaed7ec6f5f4079fceab4baed1728e96903dd48fa986895cac",
-    "packages/fortnox/src/index.ts": "a6d6d36aa46e413f7dad954bee39853f70c46af2ef1645c8be0de6634150605b",
+    "packages/fortnox/src/index.ts": "dafd7323c393fc14a7524dc4399f3b3a03d723c8e4bbc0938d7dad589ff91830",
     "packages/mcp/src/sales-documents.ts": "b480026d543e14f7cd3aaf17ce4087ae14872e57574f587dd2e7e8ef0afa7be1",
-    "packages/mcp/src/companies.ts": "8b0e7cb4b3209bea42ee83c89b6391a48c04558d713aa4657ca66db4c1f73eee",
-    "apps/shared/product.ts": "a35941cb51797a6c93559ef840f6601699f18ddc5732ee802b91a6e8afef8b7c",
-    "apps/node/src/register-test-main.ts": "a5fab397f7017a03dd8e4ed3a7c8118cbb32300c779e1d4571bab5aaaa2bc7cc",
+    "packages/mcp/src/companies.ts": "cb695ada6c45157428fc892b56bd8d12b2ba4eb093209e98710aba52ba674d6e",
+    "apps/shared/product.ts": "b132552a9d38dce2c3d93d5ff6fe8d9a20aa817d1438ee109beced9b467ce990",
+    "apps/node/src/register-test-main.ts": "d3a9c1b959d7b9cb6cc38691eadf909cbfb8b50eccdb2e7e71e55fb14363863f",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "operations": [

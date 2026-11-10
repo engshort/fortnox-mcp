@@ -20,3 +20,9 @@ Ett kommande exempel är att förbereda ett uttryckligt engångsunderlag för en
 syntetisk testanställd, granska innehållet och därefter registrera det med vanlig
 klientbekräftelse. Exemplet är ännu inte faktiskt godkänt i Fortnox. Vid okänt
 resultat ska samma skrivning inte skickas på nytt innan resultatet har utretts.
+
+Den isolerade testbuilden kan erbjuda fyra läsverktyg för anställningsreferenser
+och löneunderlag. Ange alltid företag; urval av underlag kräver även anställd
+och datum. Anställningsreferensen visar inte namn, personnummer eller lön.
+Läsning godkänner inte registrering, ändring eller borttagning av löneunderlag.
+Finansiella underlag med ej verifierad exporttäckning redovisas som ofullständiga.

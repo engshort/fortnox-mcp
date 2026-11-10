@@ -57,6 +57,26 @@ async function setup(state: StateStore) {
   let calls = 0;
   const flags = { lost: false, knownReference: false, disconnect: false };
   const provider: PayrollProvider = {
+    employee: async (_actor, _company, id) => ({
+      id,
+      active: true,
+      employment_from: "2025-01-01",
+      personel_type: "ARB",
+      version: "a".repeat(64),
+    }),
+    employees: async () => ({
+      records: [
+        {
+          id: "SYNTHETIC",
+          active: true,
+          employment_from: "2025-01-01",
+          personel_type: "ARB",
+          version: "a".repeat(64),
+        },
+      ],
+      complete: true,
+      next_page: null,
+    }),
     references: async () => ({ ...refs, retrieved_at: Date.now() }),
     get: async (_actor, company, id) => {
       const r = records.get(`${company}:${id}`);
@@ -340,7 +360,11 @@ export function payrollContract(fixture: () => Promise<StateStore>) {
         f.service.prepare(f.actor, "create", f.input()),
       ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
       expect(
-        payrollOperationIds.every((v) => v.startsWith("salary_transaction.")),
+        payrollOperationIds.every(
+          (v) =>
+            v.startsWith("salary_transaction.") ||
+            v.startsWith("payroll_employee."),
+        ),
       ).toBe(true);
       expect(payrollOperationIds).not.toContain("payroll.run");
       expect(payrollOperationIds).not.toContain("payout.create");

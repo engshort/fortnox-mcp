@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import type { FortnoxConnections } from "./connections.js";
 import {
+  boundedBytes,
   boundedResponse,
   FortnoxHttp,
   type ProviderContext,
@@ -85,6 +86,30 @@ export class DocumentHttp {
     url: URL,
     until = Infinity,
   ): Promise<Record<string, unknown>> {
+    const { bytes } = await this.readBody(context, url, until, false);
+    try {
+      return z
+        .record(z.string(), z.unknown())
+        .parse(
+          parseExactProviderJson(
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+          ),
+        );
+    } catch {
+      throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
+    }
+  }
+  async readSie(context: ProviderContext, url: URL, until = Infinity) {
+    if (url.origin !== "https://api.fortnox.se" || url.pathname !== "/3/sie/4")
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    return this.readBody(context, url, until, true);
+  }
+  private async readBody(
+    context: ProviderContext,
+    url: URL,
+    until: number,
+    sie: boolean,
+  ) {
     const deadline = Math.min(until, this.now() + 15000);
     let renew = false,
       renewed = false;
@@ -99,7 +124,9 @@ export class DocumentHttp {
           new Request(url, {
             headers: {
               authorization: `Bearer ${token}`,
-              accept: "application/json",
+              accept: sie
+                ? "application/octet-stream, text/plain"
+                : "application/json",
             },
             redirect: "manual",
             signal: AbortSignal.timeout(
@@ -145,14 +172,14 @@ export class DocumentHttp {
               : "provider_error",
         );
       }
-      let raw: unknown;
+      let bytes: Uint8Array;
       try {
-        raw = parseExactProviderJson(await boundedResponse(response, 262144));
+        bytes = await boundedBytes(response, sie ? 2097152 : 262144);
       } catch {
         throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
       }
       await context.assertActive();
-      return z.record(z.string(), z.unknown()).parse(raw);
+      return { bytes, content_type: response.headers.get("content-type") };
     }
     throw new ProviderError("UPSTREAM_UNAVAILABLE", "read_budget");
   }

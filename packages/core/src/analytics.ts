@@ -21,6 +21,15 @@ export const financialQuery = z
     from: accountingDate,
     to: accountingDate,
     account_numbers: z.array(accountNumber).min(1).max(100).optional(),
+    page_size: z.number().int().min(1).max(50).optional(),
+    continuation: z
+      .object({
+        after_account: accountNumber,
+        source_version: z.string().regex(/^[a-f0-9]{64}$/),
+        query_key: z.string().max(2048),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .refine((v) => v.from <= v.to);
@@ -43,6 +52,7 @@ const source = z
 export const financialBasis = z
   .object({
     company_id: z.string().uuid(),
+    source_version: z.string().regex(/^[a-f0-9]{64}$/),
     year: z
       .object({
         id: z.number().int().positive().safe(),
@@ -57,7 +67,7 @@ export const financialBasis = z
           .object({
             number: accountNumber,
             name: z.string().max(200),
-            active: z.boolean(),
+            active: z.boolean().nullable(),
             opening: amount.nullable(),
             provider_closing: amount.nullable(),
             category: accountCategory,
@@ -113,6 +123,19 @@ export function calculateFinancialReport(
   const basis = financialBasis.parse(input);
   if (basis.company_id !== query.company_id)
     throw new DomainError("COMPANY_FORBIDDEN");
+  const queryKey = JSON.stringify([
+    query.company_id,
+    query.financial_year,
+    query.from,
+    query.to,
+    query.account_numbers ?? null,
+  ]);
+  if (
+    query.continuation &&
+    (query.continuation.source_version !== basis.source_version ||
+      query.continuation.query_key !== queryKey)
+  )
+    throw new DomainError("CONNECTION_CONFLICT");
   if (
     basis.year.id !== query.financial_year ||
     basis.year.from > basis.year.to ||
@@ -211,7 +234,11 @@ export function calculateFinancialReport(
       },
       movement_ids: effective
         .filter((m) => m.date >= query.from && m.date <= query.to)
-        .map((m) => m.id),
+        .map((m) => m.id)
+        .slice(0, 20),
+      movement_count: effective.filter(
+        (m) => m.date >= query.from && m.date <= query.to,
+      ).length,
     };
   });
   // Reconcile the complete chart before narrowing the displayed account list.
@@ -223,11 +250,11 @@ export function calculateFinancialReport(
       : "matched";
   if (reconciliation !== "matched")
     limitations.add(`reconciliation_${reconciliation}`);
-  const accounts = all.filter(
+  const selectedAccounts = all.filter(
     (a) => !query.account_numbers || query.account_numbers.includes(a.number),
   );
   const totals = accountCategory.options.map((category) => {
-    const selected = accounts.filter((a) => a.category === category);
+    const selected = selectedAccounts.filter((a) => a.category === category);
     const balances = selected.map((a) => a.balance_as_of);
     return {
       category,
@@ -246,13 +273,31 @@ export function calculateFinancialReport(
         : 1,
     };
   });
-  const complete =
+  const dataComplete =
     Object.values(basis.coverage).every(Boolean) &&
     basis.semantics_verified &&
     basis.consistency !== "changed" &&
     reconciliation === "matched" &&
     !limitations.has("unknown_effective_row_semantics") &&
-    !limitations.has("requested_account_missing");
+    !limitations.has("requested_account_missing") &&
+    [...limitations].every((v) => v === "retrieval_is_not_atomic");
+  const available = selectedAccounts
+    .filter(
+      (a) => !query.continuation || a.number > query.continuation.after_account,
+    )
+    .sort((a, b) => a.number - b.number);
+  const pageSize = query.page_size ?? 50;
+  const accounts = available.slice(0, pageSize);
+  const last = accounts.at(-1);
+  const next =
+    available.length > pageSize && last
+      ? {
+          after_account: last.number,
+          source_version: basis.source_version,
+          query_key: queryKey,
+        }
+      : null;
+  const complete = dataComplete && !query.continuation && next === null;
   return {
     company_id: basis.company_id,
     financial_year: basis.year,
@@ -260,6 +305,7 @@ export function calculateFinancialReport(
     currency: basis.currency,
     calculation_version: calculationVersion,
     mapping_version: basis.mapping_version,
+    source_version: basis.source_version,
     value_origin: "computed" as const,
     provider_value_fields: ["opening", "provider_closing"],
     sources: basis.sources,
@@ -267,9 +313,17 @@ export function calculateFinancialReport(
     coverage: basis.coverage,
     consistency: basis.consistency,
     complete,
+    data_complete: dataComplete,
+    accounts_page: {
+      count: accounts.length,
+      total_in_selection: selectedAccounts.length,
+      next,
+      exhausted: next === null,
+    },
     reconciliation,
     accounts,
     totals,
+    totals_scope: "entire_account_selection" as const,
     limitations: [...limitations].sort(),
     bank_balance_kind: "booked_ledger_balance" as const,
   };

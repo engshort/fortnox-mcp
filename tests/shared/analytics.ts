@@ -18,6 +18,7 @@ const company = "b1ebed10-cf85-4d62-9be3-ae56c71cc781";
 export function syntheticFinancialBasis(company_id = company): FinancialBasis {
   return {
     company_id,
+    source_version: "a".repeat(64),
     year: { id: 7, from: "2025-07-01", to: "2026-06-30" },
     currency: "SEK",
     accounts: [
@@ -114,7 +115,7 @@ const query = (company_id = company): FinancialQuery => ({
   from: "2025-07-01",
   to: "2026-06-30",
 });
-const sie = `#FLAGGA 0
+export const syntheticSie = `#FLAGGA 0
 #PROGRAM "Synthetic" "1"
 #FORMAT PC8
 #SIETYP 4
@@ -144,6 +145,53 @@ const sie = `#FLAGGA 0
 const bytes = (v: string) => new TextEncoder().encode(v);
 export function analyticsCalculationContract() {
   describe("S08 deterministic ledger evidence", () => {
+    it("bounds report pages and binds continuation to source, company, year and interval", () => {
+      const basis = syntheticFinancialBasis();
+      for (let number = 1100; number < 1300; number++)
+        basis.accounts.push({
+          number,
+          name: "Synthetic zero",
+          active: false,
+          opening: "0",
+          provider_closing: "0",
+          category: "unmapped",
+        });
+      let result = calculateFinancialReport(query(), basis);
+      expect(result.accounts).toHaveLength(50);
+      expect(result.complete).toBe(false);
+      expect(result.data_complete).toBe(true);
+      expect(result.totals_scope).toBe("entire_account_selection");
+      const numbers = result.accounts.map((a) => a.number);
+      const initial = result.accounts_page.next;
+      if (!initial) throw new Error("Expected synthetic continuation");
+      expect(() =>
+        calculateFinancialReport(
+          { ...query(), to: "2026-01-31", continuation: initial },
+          basis,
+        ),
+      ).toThrow("CONNECTION_CONFLICT");
+      expect(() =>
+        calculateFinancialReport(
+          { ...query(), continuation: initial },
+          { ...basis, source_version: "b".repeat(64) },
+        ),
+      ).toThrow("CONNECTION_CONFLICT");
+      while (result.accounts_page.next) {
+        result = calculateFinancialReport(
+          { ...query(), continuation: result.accounts_page.next },
+          basis,
+        );
+        expect(result.complete).toBe(false);
+        numbers.push(...result.accounts.map((a) => a.number));
+      }
+      expect(numbers).toHaveLength(203);
+      expect(new Set(numbers).size).toBe(203);
+    });
+    it("never promotes unbalanced or unsupported source evidence to complete", () => {
+      const basis = syntheticFinancialBasis();
+      basis.limitations = ["unbalanced_voucher"];
+      expect(calculateFinancialReport(query(), basis).complete).toBe(false);
+    });
     it("reconciles signed movements while retaining inactive, zero and unmapped accounts", () => {
       const result = calculateFinancialReport(
         query(),
@@ -153,11 +201,13 @@ export function analyticsCalculationContract() {
       expect(result.reconciliation).toBe("matched");
       expect(result.accounts.map((a) => [a.number, a.balance_as_of])).toEqual([
         [1930, "1150.00"],
-        [9901, "0.00"],
         [4000, "-150.00"],
+        [9901, "0.00"],
       ]);
       expect(result.accounts[0]?.movement_ids).toEqual(["A:1:1", "A:2:1"]);
-      expect(result.accounts[1]?.active).toBe(false);
+      expect(result.accounts.find((a) => a.number === 9901)?.active).toBe(
+        false,
+      );
       expect(
         result.totals.find((v) => v.category === "unmapped")?.account_count,
       ).toBe(1);
@@ -274,7 +324,7 @@ export function analyticsCalculationContract() {
   });
   describe("bounded SIE4 ingestion", () => {
     it("preserves year boundaries, exact balances, dimensions and effective correction rows", async () => {
-      const result = await parseSie4(bytes(sie), "cp437");
+      const result = await parseSie4(bytes(syntheticSie), "cp437");
       expect(result.complete).toBe(false);
       expect(result.years).toEqual([
         { index: 0, from: "2025-07-01", to: "2026-06-30" },
@@ -291,7 +341,7 @@ export function analyticsCalculationContract() {
         { year: 0, opening: "1000.00", closing: "1150.00" },
         { year: -1, opening: null, closing: "1000.00" },
       ]);
-      const hash = await crypto.subtle.digest("SHA-256", bytes(sie));
+      const hash = await crypto.subtle.digest("SHA-256", bytes(syntheticSie));
       expect(result.sha256).toBe(
         Array.from(new Uint8Array(hash), (b) =>
           b.toString(16).padStart(2, "0"),
@@ -299,13 +349,18 @@ export function analyticsCalculationContract() {
       );
     });
     it("does not invent omitted zero balances or silently ignore unknown accounting records", async () => {
-      const result = await parseSie4(bytes(`${sie}#FUTURE 1 2 3\n`), "cp437");
+      const result = await parseSie4(
+        bytes(`${syntheticSie}#FUTURE 1 2 3\n`),
+        "cp437",
+      );
       expect(result.accounts[2]?.balances).toEqual([]);
       expect(result.limitations).toContain("unsupported_record:#FUTURE");
       expect(result.limitations).toContain("missing_zero_balances_unverified");
     });
     it("decodes CP437 Swedish names without interpreting legacy bytes as UTF-8", async () => {
-      const content = bytes(sie.replace("Synthetic bank", "SYNTHETIC_"));
+      const content = bytes(
+        syntheticSie.replace("Synthetic bank", "SYNTHETIC_"),
+      );
       const at = Array.from(content).findIndex(
         (_, i) =>
           new TextDecoder().decode(content.slice(i, i + 10)) === "SYNTHETIC_",
@@ -320,20 +375,23 @@ export function analyticsCalculationContract() {
     });
     it("rejects truncation, duplicate balances, malformed correction pairs and unsupported precision", async () => {
       for (const invalid of [
-        sie.slice(0, -3),
-        sie.replace("#UB 0 1930 1150", "#UB 0 1930 1150\n#UB 0 1930 1150"),
-        sie.replace(
+        syntheticSie.slice(0, -3),
+        syntheticSie.replace(
+          "#UB 0 1930 1150",
+          "#UB 0 1930 1150\n#UB 0 1930 1150",
+        ),
+        syntheticSie.replace(
           '#TRANS 1930 {1 "SYNTHETIC"} -100',
           '#TRANS 1930 {1 "SYNTHETIC"} -99',
         ),
-        sie.replace("{} 250", "{} 250.001"),
-        sie.replace("#SIETYP 4", "#SIETYP 1"),
+        syntheticSie.replace("{} 250", "{} 250.001"),
+        syntheticSie.replace("#SIETYP 4", "#SIETYP 1"),
       ])
         await expect(parseSie4(bytes(invalid), "cp437")).rejects.toThrow();
     });
     it("surfaces unbalanced voucher and unchecked checksum without claiming verified input", async () => {
       const result = await parseSie4(
-        bytes(`${sie.replace("{} -250", "{} -249")}#KSUMMA 123\n`),
+        bytes(`${syntheticSie.replace("{} -250", "{} -249")}#KSUMMA 123\n`),
         "cp437",
       );
       expect(result.limitations).toEqual(

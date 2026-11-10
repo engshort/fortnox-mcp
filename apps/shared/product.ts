@@ -6,6 +6,8 @@ import {
   Connections,
   CredentialVault,
   DomainError,
+  PayrollInputs,
+  type PayrollOperation,
   previewProgram,
   programChange,
   programStatus,
@@ -35,9 +37,11 @@ import {
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxPayrollReads,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
+  payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -79,6 +83,7 @@ export interface ProductBusinessTest {
   operations: readonly RegisterOperation[];
   documentReads?: readonly string[];
   consentScopes?: readonly string[];
+  payrollReads?: readonly PayrollOperation[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -203,6 +208,15 @@ export function createProductApplication(
   businessTest?: ProductBusinessTest,
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  const payrollReads = businessTest?.payrollReads ?? [];
+  if (
+    payrollReads.length > 4 ||
+    new Set(payrollReads).size !== payrollReads.length ||
+    payrollReads.some(
+      (id) => !(payrollReadOperationIds as readonly string[]).includes(id),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   const documentReads = businessTest?.documentReads ?? [];
   if (
     businessTest &&
@@ -338,6 +352,21 @@ export function createProductApplication(
         businessTest.operations,
       )
     : undefined;
+  const payroll =
+    businessTest && payrollReads.length
+      ? new PayrollInputs(
+          connections,
+          new FortnoxPayrollReads(
+            connections,
+            provider,
+            payrollReads,
+            () => now() < businessTest.until,
+            now,
+          ),
+          payrollReads,
+          now,
+        )
+      : undefined;
   const salesDocuments =
     businessTest?.documentReads?.length && registers
       ? new SalesDocuments(
@@ -406,6 +435,7 @@ export function createProductApplication(
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
+      ...(payroll ? { payroll } : {}),
       ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
@@ -435,6 +465,7 @@ export function createProductApplication(
                   active: now() < businessTest.until,
                   operations: businessTest.operations,
                   document_operations: businessTest.documentReads ?? [],
+                  payroll_operations: payrollReads,
                   financial_writes: false,
                 },
               }

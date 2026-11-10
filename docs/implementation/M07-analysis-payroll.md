@@ -92,9 +92,7 @@ TypeScript checks cover the portable domain and both runtime configurations.
 ## Remaining evidence
 
 No actual SIE export, positive ledger reconciliation, salary request or ChatGPT
-acceptance has run for this milestone. No issue/gate is closed. Provider adapters,
-MCP contracts, full read breadth, payroll lifecycle and live acceptance remain in
-progress. Source rights for vendored/generated material retain G05; this work
+acceptance has run for this milestone. No issue/gate is closed. Full analytical read breadth, financial MCP contracts, payroll writes and live acceptance remain in progress. Source rights for vendored/generated material retain G05; this work
 uses independent schemas and synthetic fixtures, without redistributing the
 external OpenAPI input.
 
@@ -117,8 +115,7 @@ The initial code profile requires separately verified per-employee code evidence
 for quantity times unit amount; this formula is not assumed for every Fortnox
 salary code. Employee employment dates, exact decimals, provider rights and
 license evidence are checked on preparation and again at execution. No financial
-or personal payload is retained in execution metadata. No provider payroll
-adapter or ordinary product payroll activation is claimed yet.
+or personal payload is retained in execution metadata. The read-only provider adapter is available only in the isolated leased test profile. Ordinary product payroll activation and provider payroll writes remain disabled.
 
 ## Consent dialog regression
 
@@ -129,3 +126,23 @@ program exposes it. A desktop/mobile regression starts with existing
 receipt-files access, refreshes the server's newer program revision, and asserts
 that the payroll preview sends exactly payroll-input. This UI defect did not
 create a Fortnox flow, alter scopes or dispatch a payroll write.
+
+## Bounded provider read slice
+
+The financial adapter reads an explicit financial year, a paginated chart, raw
+SIE4 bytes and an exact voucher reference. It repeats the SIE read to detect
+observed changes; this does not establish an atomic snapshot. Export coverage
+and correction semantics remain unverified, so the basis remains partial.
+Missing openings are not fabricated, and unknown account classification stays
+unmapped. Analysis account continuations bind the query and source version,
+with whole-selection totals distinct from the bounded account page.
+
+Four focused payroll MCP read tools expose minimal employee references and
+salary transactions by employee/day or exact provider row. The separate test
+entry accepts only these four operation IDs and a current one-hour lease.
+Names, personal identity numbers and wage fields are excluded from employee
+output. Salary numeric strings retain exact source precision; nullable fields
+remain nullable. Read success does not attest write rights, code validity or
+employee eligibility. Records remain uneditable and no provider write is sent.
+Both companies completed fresh salary consent; synthetic employee/code evidence
+and actual operation acceptance are still separate requirements.

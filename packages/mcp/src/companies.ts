@@ -2,6 +2,7 @@ import {
   type Bookkeeping,
   type Connections,
   DomainError,
+  type PayrollInputs,
   type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
@@ -22,6 +23,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerPayrollReads } from "./payroll.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
@@ -115,6 +117,7 @@ export function companyServer(context: {
   receiptAttachments?: ReceiptAttachments;
   receiptWorkflow?: ReceiptWorkflow;
   registers?: Registers;
+  payroll?: PayrollInputs;
   salesDocuments?: SalesDocuments;
 }) {
   const server = new McpServer(
@@ -354,6 +357,8 @@ export function companyServer(context: {
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.registers)
     registerRegisters(server, context.registers, context.identity);
+  if (context.payroll)
+    registerPayrollReads(server, context.payroll, context.identity);
   if (context.salesDocuments)
     registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)

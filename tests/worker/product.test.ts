@@ -18,10 +18,15 @@ import { consentHttpContract } from "../shared/consent-http.js";
 import { diagnosticsContract } from "../shared/diagnostics.js";
 import { disconnectContract } from "../shared/disconnect.js";
 import { documentRowsContract } from "../shared/document-rows.js";
+import { financialReadContract } from "../shared/financial-reads.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
 import { payrollContract } from "../shared/payroll.js";
+import {
+  payrollReadContract,
+  payrollReadProfileContract,
+} from "../shared/payroll-reads.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { programContract, programHttpContract } from "../shared/programs.js";
@@ -126,3 +131,8 @@ analyticsCalculationContract();
 analyticsAuthorizationContract(async () => (await fixture()).state);
 
 payrollContract(async () => (await fixture()).state);
+
+payrollReadContract(async () => (await fixture()).state);
+payrollReadProfileContract(fixture);
+
+financialReadContract(async () => (await fixture()).state);
