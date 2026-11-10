@@ -31,3 +31,7 @@ För att spåra en kontorörelse väljer du företag, räkenskapsår, konto och 
 i `list_financial_movements`. Fortsätt med den returnerade fortsättningen.
 Byts underlaget behöver du börja om. Verifikationsreferensen kan sedan användas
 i `get_financial_voucher`; varje sådan läsning kräver fortfarande företagsåtkomst.
+
+`get_financial_account` läser Fortnox egna ingående och utgående värden för ett
+bestämt konto och räkenskapsår. De är inte ett saldo på valfritt datum. Saknade
+värden förblir saknade, och ej verifierade valutaenheter anges uttryckligen.

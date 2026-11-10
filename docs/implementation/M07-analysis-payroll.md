@@ -249,3 +249,21 @@ source version. Missing accounts, incomplete source coverage and unverified row
 semantics remain explicit. A last continuation page is not labeled as a whole
 complete result. Whole-basis validation also applies to drill-down, including
 rows outside the requested display selection. No persistent ledger is added.
+
+## Empty-year and export coverage observation
+
+The actual current-year default SIE exports contained 451 chart accounts, no
+explicit opening/closing balances and no effective movements in either company.
+A bounded read experiment with the documented exportall parameter and candidate
+value true returned the same counts; it did not establish broader coverage.
+The separately paginated API chart contained 1,339 accounts. The union is
+preserved and remains partial; omitted accounts/balances are not silently
+treated as zero. Neither an empty-year source nor an unchanged exportall trial
+is evidence for positive ledger reconciliation or correction semantics.
+
+An independently gated account-detail read adds the exact fiscal-year/account
+endpoint for checking provider opening/closing values. It checks returned year
+and identity. Missing source values remain null; account-base-currency units
+remain unverified and cannot produce a complete financial assertion. Analysis
+and movement discovery require only their three basis reads; an unrelated
+voucher/detail gate does not hide those independently enabled reads.

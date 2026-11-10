@@ -27,12 +27,13 @@ void (async () => {
       .array(
         z.enum([
           "financial.accounts",
+          "financial.account",
           "financial.year",
           "financial.sie4",
           "financial.voucher",
         ]),
       )
-      .max(4)
+      .max(5)
       .parse(JSON.parse(process.env.FINANCIAL_TEST_OPERATIONS ?? "[]")),
     payrollReads: z
       .array(

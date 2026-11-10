@@ -19,6 +19,7 @@ import { ProviderError } from "./http.js";
 
 export const financialReadOperations = [
   "financial.accounts",
+  "financial.account",
   "financial.year",
   "financial.sie4",
   "financial.voucher",
@@ -164,6 +165,45 @@ export class FortnoxFinancialReads implements FinancialProvider {
         record_id: `${financialYear}:${page}`,
         sha256: await accountingHash(raw),
       },
+    };
+  }
+  async account(
+    actor: AccountingActor,
+    company: string,
+    financialYear: number,
+    accountNumber: number,
+  ) {
+    z.number().int().positive().safe().parse(financialYear);
+    z.number().int().min(1000).max(9999).parse(accountNumber);
+    const context = await this.context(actor, company, "financial.account"),
+      url = new URL(`https://api.fortnox.se/3/accounts/${accountNumber}`);
+    url.searchParams.set("financialyear", String(financialYear));
+    const raw = await this.http.read(context, url),
+      record = providerAccount.parse(raw.Account);
+    if (record.Number !== accountNumber || record.Year !== financialYear)
+      throw new ProviderError(
+        "UPSTREAM_UNAVAILABLE",
+        "account_year_or_identity_mismatch",
+      );
+    return {
+      company_id: company,
+      financial_year: financialYear,
+      record: {
+        number: record.Number,
+        name: record.Description,
+        active: record.Active,
+        opening: record.BalanceBroughtForward ?? null,
+        provider_closing: record.BalanceCarriedForward ?? null,
+      },
+      source: {
+        operation: "financial.account",
+        record_id: `${financialYear}:${accountNumber}`,
+        sha256: await accountingHash(raw),
+      },
+      value_origin: "provider" as const,
+      currency: null,
+      balance_units_verified: false,
+      complete: false,
     };
   }
   async sie(

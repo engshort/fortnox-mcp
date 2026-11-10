@@ -250,7 +250,12 @@ export function registerFinancialReads(
       },
     );
   };
-  if (service.enabled && provider.enabled.length === 4)
+  if (
+    service.enabled &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (id) => provider.enabled.includes(id),
+    )
+  )
     register(
       "get_financial_analysis",
       "Read financial analysis",
@@ -259,7 +264,12 @@ export function registerFinancialReads(
       report,
       (actor, value) => service.report(actor, value),
     );
-  if (service.enabled && provider.enabled.length === 4)
+  if (
+    service.enabled &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (id) => provider.enabled.includes(id),
+    )
+  )
     register(
       "list_financial_movements",
       "Read account movements and source references",
@@ -267,6 +277,46 @@ export function registerFinancialReads(
       financialMovementQuery,
       movementPage,
       (actor, value) => service.movements(actor, value),
+    );
+  if (provider.enabled.includes("financial.account"))
+    register(
+      "get_financial_account",
+      "Read a fiscal-year account and provider balances",
+      "Read an exact account reference in an explicit financial year. Opening and closing source values are separate from computed as-of balances. Currency/precision coverage remains explicit.",
+      z
+        .object({
+          company_id: z.string().uuid(),
+          financial_year: z.number().int().positive().safe(),
+          account_number: z.number().int().min(1000).max(9999),
+        })
+        .strict(),
+      z
+        .object({
+          company_id: z.string().uuid(),
+          financial_year: z.number().int().positive().safe(),
+          record: z
+            .object({
+              number: account,
+              name: z.string().max(200),
+              active: z.boolean(),
+              opening: money.nullable(),
+              provider_closing: money.nullable(),
+            })
+            .strict(),
+          source: financialBasis.shape.sources.element,
+          value_origin: z.literal("provider"),
+          currency: z.null(),
+          balance_units_verified: z.literal(false),
+          complete: z.literal(false),
+        })
+        .strict(),
+      (actor, value) =>
+        provider.account(
+          actor,
+          value.company_id,
+          value.financial_year,
+          value.account_number,
+        ),
     );
   if (provider.enabled.includes("financial.voucher"))
     register(

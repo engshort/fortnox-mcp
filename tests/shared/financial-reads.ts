@@ -72,6 +72,17 @@ async function setup(state: StateStore) {
           headers: { "content-type": "application/octet-stream" },
         });
       }
+      if (url.pathname === "/3/accounts/1930")
+        return Response.json({
+          Account: {
+            Number: 1930,
+            Description: "Synthetic bank",
+            Active: true,
+            Year: 7,
+            BalanceBroughtForward: "1000.00",
+            BalanceCarriedForward: "1150.00",
+          },
+        });
       if (url.pathname === "/3/accounts")
         return Response.json({
           Accounts: [
@@ -152,6 +163,7 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
           /^(get|list)_financial_/.test(t.name),
         );
         expect(catalog.map((t) => t.name).sort()).toEqual([
+          "get_financial_account",
           "get_financial_analysis",
           "get_financial_voucher",
           "list_financial_movements",
@@ -189,6 +201,26 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
           data: {
             rows: [{ debit: "9007199254740993.01" }],
             row_semantics_verified: false,
+          },
+        });
+        const account = await client.callTool({
+          name: "get_financial_account",
+          arguments: {
+            company_id: f.a.id,
+            financial_year: 7,
+            account_number: 1930,
+          },
+        });
+        expect(account.structuredContent).toMatchObject({
+          status: "ok",
+          data: {
+            complete: false,
+            record: {
+              number: 1930,
+              opening: "1000.00",
+              provider_closing: "1150.00",
+            },
+            balance_units_verified: false,
           },
         });
         const movements = await client.callTool({
