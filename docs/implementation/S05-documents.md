@@ -87,6 +87,22 @@ this selection. Shared profile and built-entry cases cover this boundary and
 expiry. The document write adapter/MCP contracts remain available for synthetic
 tests only; financial/reference, permission and actual client gates remain closed.
 
+## First actual document reads (2026-11-10)
+
+At `2b502ab149f7e03d61879070a2c8b05c8c1d8276`, a human-approved product
+OAuth/PKCE Node MCP SDK client read offer, order and invoice lists in both
+allowlisted companies. All six unfiltered lists and six selected-filter requests
+returned empty complete collections. This establishes accepted bounded requests,
+not filter semantics on matching records. Six exact nonexistent detail reads
+returned `record_not_found`; positive detail readback is still pending. A foreign
+company request returned `COMPANY_FORBIDDEN`. The actual catalog exposed the six
+selected read tools and no document write tools. No document write was dispatched.
+
+Private evidence retains timestamps and response hashes outside git. This is
+actual provider/product-MCP evidence, not ChatGPT acceptance. The operation
+matrix remains unsupported/default-off, with all financial, permission,
+precision, nonempty pagination and lifecycle cases still requiring acceptance.
+
 The S11 company/program handoff is integrated into #118. Both document-domain
 reads and the internal provider transport enforce local program selection,
 including disable while existing upstream scopes remain present. The common
