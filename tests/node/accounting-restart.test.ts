@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
   Bookkeeping,
+  BusinessWrites,
   Connections,
   CredentialVault,
   type StateStore,
@@ -39,7 +40,26 @@ async function uncertain(state: StateStore) {
     },
     "review",
   );
-  return { f, p };
+  const business = new BusinessWrites(f.connections, {
+    create: {
+      enabled: true,
+      scope: "bookkeeping",
+      prepare: async () => ({ input: {}, baseline: null, preview: {} }),
+      validate: async () => {},
+      dispatch: async (_a, _c, _p, authorizeDispatch) => {
+        await authorizeDispatch();
+        throw new Error("synthetic lost business response");
+      },
+    },
+  });
+  const proposal = await business.prepare(f.actor, f.a.id, "create", {});
+  const businessRef = {
+    company_id: proposal.company_id,
+    proposal_id: proposal.proposal_id,
+    proposal_hash: proposal.proposal_hash,
+  };
+  await business.execute(f.actor, "create", businessRef);
+  return { f, p, businessRef };
 }
 async function verify(
   state: StateStore,
@@ -68,8 +88,28 @@ async function verify(
     service.commit(f.actor, { ...ref, capability: p.capability }, "review"),
   ).rejects.toThrow("INTENT_CONFLICT");
   expect(calls).toBe(0);
+  const business = new BusinessWrites(service.connections, {
+    create: {
+      enabled: true,
+      scope: "bookkeeping",
+      prepare: async () => {
+        throw new Error("unexpected prepare");
+      },
+      validate: async () => {
+        throw new Error("unexpected validation");
+      },
+      dispatch: async () => {
+        calls++;
+        throw new Error("unexpected resend");
+      },
+    },
+  });
+  expect(await business.execute(f.actor, "create", record.businessRef)).toEqual(
+    { state: "outcome_unknown" },
+  );
+  expect(calls).toBe(0);
 }
-it("bookkeeping's encrypted proposal and unknown intent survive closing and reopening SQLite", async () => {
+it("bookkeeping and business unknown intents survive closing and reopening SQLite", async () => {
   const dir = mkdtempSync(join(tmpdir(), "m3-sqlite-"));
   let db = new DatabaseSync(join(dir, "test.sqlite"));
   try {
@@ -83,7 +123,7 @@ it("bookkeeping's encrypted proposal and unknown intent survive closing and reop
     rmSync(dir, { recursive: true, force: true });
   }
 });
-it("bookkeeping's encrypted proposal and unknown intent survive an actual workerd/D1 restart", async () => {
+it("bookkeeping and business unknown intents survive an actual workerd/D1 restart", async () => {
   const dir = mkdtempSync(join(tmpdir(), "m3-d1-"));
   const options = convertV4MiniflareOptions({
     name: "m3-restart",

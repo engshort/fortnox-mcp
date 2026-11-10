@@ -1,5 +1,6 @@
 import {
   type ConnectionSet,
+  retainBusinessExecution,
   retainVoucherExecution,
   type StateStore,
 } from "@fortnox-mcp/core";
@@ -13,6 +14,14 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
     const row = await state.get<ConnectionSet>("connections", owner);
     if (!row) break;
     for (const c of row.value.connections) {
+      if (c.business) {
+        c.business.proposals = c.business.proposals.filter(
+          (p) => p.expires > now,
+        );
+        c.business.executions = c.business.executions.filter((e) =>
+          retainBusinessExecution(e, now),
+        );
+      }
       if (!c.bookkeeping) continue;
       c.bookkeeping.proposals = c.bookkeeping.proposals.filter(
         (p) => p.expires > now,

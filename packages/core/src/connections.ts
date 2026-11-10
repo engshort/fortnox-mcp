@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BookkeepingState } from "./bookkeeping.js";
+import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
 import type { ReceiptBatch } from "./receipts.js";
@@ -90,6 +91,7 @@ export interface Connection {
   review: "review_required" | "client_managed";
   readOnly: boolean;
   bookkeeping?: BookkeepingState;
+  business?: BusinessState;
   receiptBatches?: ReceiptBatch[];
   state: "active" | "reconnect_required" | "disconnected";
   secret: Ciphertext | null;
@@ -164,6 +166,9 @@ export class Connections {
                 ...(p.receipt ? [p.receipt] : []),
               ]),
             );
+        for (const c of row.value.connections)
+          for (const p of c.business?.proposals ?? [])
+            await this.vault.openData(p.body, businessBinding(owner, c.id, p));
         return row;
       }
       // Upgrade earlier experimental snapshots only after proving the key.
@@ -383,6 +388,13 @@ export class Connections {
             await this.vault.open(c.secret, this.binding(owner, c)),
             this.binding(owner, c),
           );
+        for (const p of c.business?.proposals ?? []) {
+          const binding = businessBinding(owner, c.id, p);
+          p.body = await this.vault.sealData(
+            await this.vault.openData(p.body, binding),
+            binding,
+          );
+        }
         for (const p of c.bookkeeping?.proposals ?? []) {
           const binding = JSON.stringify([
             owner,
@@ -412,6 +424,7 @@ export class Connections {
       c.secret = null;
       delete c.renewal;
       if (c.bookkeeping) c.bookkeeping.proposals = [];
+      if (c.business) c.business.proposals = [];
     });
   }
   async reconnect(
@@ -465,6 +478,7 @@ export class Connections {
       c.review = review;
       c.readOnly = readOnly;
       if (c.bookkeeping) c.bookkeeping.proposals = [];
+      if (c.business) c.business.proposals = [];
     });
   }
 }

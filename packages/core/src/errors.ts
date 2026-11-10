@@ -1,4 +1,5 @@
 export type ErrorCode =
+  | "PROPOSAL_STALE"
   | "AUTH_REQUIRED"
   | "CLIENT_UNSUPPORTED"
   | "COMPANY_FORBIDDEN"
