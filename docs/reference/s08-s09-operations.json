@@ -5,7 +5,7 @@
   "sourceStrategy": "Independent implementation, no vendored/generated external specification",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/analytics.ts": "5559d1e43804755fd43d824cb045e267931f15e57284b9320787840ce66ba6b6",
+    "packages/core/src/analytics.ts": "5fe0205292e139be8b0482b77132447bc4cb58c0761b0fe158af9d5b51cd1de7",
     "packages/core/src/sie.ts": "0d2e8f47a62805232a49bd7268c89586e57bf8213417212030ce2a21aa4f7d4f",
     "packages/core/src/payroll.ts": "1f177fa25134c42b9b63763a5f0fb25ca18f1feb86137f4f26bbe8ad6b1dfbd7",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff",
@@ -16,14 +16,14 @@
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
     "apps/admin/src/main.tsx": "cbfb88ea0a4d27676d31f43b4196b47de653601eca352abe31c5fe8c9048bc6d",
-    "packages/fortnox/src/analytics.ts": "2d395bc03b534fc39f4f114f436ad6b48281aa88d3d26d657c82cb2b47c2a125",
+    "packages/fortnox/src/analytics.ts": "c80e655ea92b45b835f4d4dc1eb35f981d0976f0f73bca5a78134139d23d6199",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
     "packages/fortnox/src/document-http.ts": "2815b1989da924170360a2d339da8c458d76d1d8d9603bc12653f23ae0131a0a",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "e03607c9919dd126fbd92d16700aa1719d1ed2acda10c804527264a4a17925e7",
     "packages/mcp/src/companies.ts": "cf9d99fc3a7b6a2be03039fb66e982b8ad5288989ac6e9fe9563cb2308b0b79e",
     "apps/node/src/register-test-main.ts": "7128f6e61d47133422e6143d4ddbb631bd9f42e2c99626dc37712a8cc28ba62d",
-    "packages/mcp/src/analytics.ts": "6674b6da5e6cb7d484bec0e0ba95044c9c2da66209ebcca636d8917f643768b4",
+    "packages/mcp/src/analytics.ts": "5f39dcf260824a663a4f8156add8b801350d76316e2242be4540062d3ef404f2",
     "packages/fortnox/src/payroll-test-employee.ts": "28078fc4498919976fd9ca81f9f41e3ad72f27d1b8e10da5df80acce51efcc80",
     "packages/fortnox/src/payroll-probe.ts": "1930e91970822178458e3d2646ddd94a1fd68540f95a4860766caa5510e15dc9"
   },
@@ -353,6 +353,30 @@
       "sources": [
         "https://api.fortnox.se/apidocs",
         "https://www.fortnox.se/developer/blog/mandatory-fields-in-the-employee-api"
+      ]
+    },
+    {
+      "localId": "financial_movements.list",
+      "method": "LOCAL_FROM_FIXED_READS",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "license": "Fortnox Bookkeeping; same source-read rights and coverage limits as the analysis basis",
+      "status": "implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read_request_local_projection",
+      "precision": "Exact signed cents, explicit year/account/date selection and voucher source reference; source/query-bound pages of at most 50 rows",
+      "retry": "Read only; changed source or selection rejects continuation, never sends a write",
+      "syntheticTests": [
+        "tests/shared/analytics.ts",
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
       ]
     }
   ]

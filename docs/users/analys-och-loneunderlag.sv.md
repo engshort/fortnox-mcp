@@ -26,3 +26,8 @@ och löneunderlag. Ange alltid företag; urval av underlag kräver även anstäl
 och datum. Anställningsreferensen visar inte namn, personnummer eller lön.
 Läsning godkänner inte registrering, ändring eller borttagning av löneunderlag.
 Finansiella underlag med ej verifierad exporttäckning redovisas som ofullständiga.
+
+För att spåra en kontorörelse väljer du företag, räkenskapsår, konto och datum
+i `list_financial_movements`. Fortsätt med den returnerade fortsättningen.
+Byts underlaget behöver du börja om. Verifikationsreferensen kan sedan användas
+i `get_financial_voucher`; varje sådan läsning kräver fortfarande företagsåtkomst.

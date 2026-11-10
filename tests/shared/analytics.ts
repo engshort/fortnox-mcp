@@ -403,6 +403,67 @@ export function analyticsCalculationContract() {
 export function analyticsAuthorizationContract(
   fixture: () => Promise<StateStore>,
 ) {
+  it("binds movement continuations to company, year, selection and source without losing row provenance", async () => {
+    const f = await accountingFixture(await fixture()),
+      basis = syntheticFinancialBasis(f.a.id),
+      service = new FinancialAnalysis(
+        f.connections,
+        { basis: async () => basis },
+        true,
+      );
+    const selection = {
+      company_id: f.a.id,
+      financial_year: 7,
+      from: "2025-07-01",
+      to: "2026-06-30",
+      account_number: 1930,
+      page_size: 1,
+    };
+    const first = await service.movements(f.actor, selection);
+    expect(first).toMatchObject({
+      complete: false,
+      data_complete: true,
+      value_origin: "provider_export",
+      rows: [
+        { id: "A:1:1", amount: "250.00", source_ref: "A:1", voucher_ref: null },
+      ],
+      page: { count: 1, total_in_selection: 3, exhausted: false },
+    });
+    const second = await service.movements(f.actor, {
+      ...selection,
+      continuation: first.page.next,
+    });
+    expect(second.rows[0]?.id).toBe("A:2:1");
+    expect(second.complete).toBe(false);
+    await expect(
+      service.movements(f.actor, {
+        ...selection,
+        account_number: 4000,
+        continuation: first.page.next,
+      }),
+    ).rejects.toThrow("CONNECTION_CONFLICT");
+    basis.source_version = "b".repeat(64);
+    await expect(
+      service.movements(f.actor, {
+        ...selection,
+        continuation: first.page.next,
+      }),
+    ).rejects.toThrow("CONNECTION_CONFLICT");
+    const unknown = await service.movements(f.actor, {
+      ...selection,
+      account_number: 9999,
+    });
+    expect(unknown.data_complete).toBe(false);
+    expect(unknown.limitations).toContain("requested_account_missing");
+    basis.movements.push({
+      ...required(basis.movements[0]),
+      id: "INVALID_DATE",
+      date: "2024-01-01",
+    });
+    await expect(service.movements(f.actor, selection)).rejects.toThrow(
+      "VALIDATION_FAILED",
+    );
+  });
   it("authorizes before reading, defaults off and discards late disconnect/program changes", async () => {
     const f = await accountingFixture(await fixture());
     let calls = 0;

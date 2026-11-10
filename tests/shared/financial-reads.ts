@@ -149,11 +149,12 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
       await client.connect(ct);
       try {
         const catalog = (await client.listTools()).tools.filter((t) =>
-          t.name.startsWith("get_financial_"),
+          /^(get|list)_financial_/.test(t.name),
         );
         expect(catalog.map((t) => t.name).sort()).toEqual([
           "get_financial_analysis",
           "get_financial_voucher",
+          "list_financial_movements",
         ]);
         expect(
           catalog.every(
@@ -188,6 +189,24 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
           data: {
             rows: [{ debit: "9007199254740993.01" }],
             row_semantics_verified: false,
+          },
+        });
+        const movements = await client.callTool({
+          name: "list_financial_movements",
+          arguments: { ...f.query, account_number: 1930, page_size: 1 },
+        });
+        expect(movements.structuredContent).toMatchObject({
+          status: "ok",
+          data: {
+            complete: false,
+            rows: [
+              {
+                account: 1930,
+                amount: "250.00",
+                voucher_ref: { financial_year: 7, series: "A", number: 1 },
+              },
+            ],
+            page: { count: 1, exhausted: false },
           },
         });
         const count = f.requests.length;

@@ -5,7 +5,9 @@ import {
   DomainError,
   type FinancialAnalysis,
   financialBasis,
+  financialMovementQuery,
   financialQuery,
+  financialVoucherReference,
 } from "@fortnox-mcp/core";
 import {
   type FortnoxFinancialReads,
@@ -98,6 +100,43 @@ const report = z
     totals_scope: z.literal("entire_account_selection"),
     limitations: z.array(z.string().max(128)).max(100),
     bank_balance_kind: z.literal("booked_ledger_balance"),
+  })
+  .strict();
+const movementPage = z
+  .object({
+    value_origin: z.literal("provider_export"),
+    reference_origin: z.literal("parsed_provider_export"),
+    company_id: z.string().uuid(),
+    financial_year: financialBasis.shape.year,
+    interval: z.object({ from: accountingDate, to: accountingDate }).strict(),
+    account_number: account,
+    account_known: z.boolean(),
+    currency: financialBasis.shape.currency,
+    source_version: hash,
+    sources: financialBasis.shape.sources,
+    retrieved: financialBasis.shape.retrieved,
+    coverage: financialBasis.shape.coverage,
+    consistency: financialBasis.shape.consistency,
+    semantics_verified: z.boolean(),
+    complete: z.boolean(),
+    data_complete: z.boolean(),
+    rows: z
+      .array(
+        financialBasis.shape.movements.element.extend({
+          voucher_ref: financialVoucherReference.nullable(),
+          amount: money,
+        }),
+      )
+      .max(50),
+    page: z
+      .object({
+        count: z.number().int().min(0).max(50),
+        total_in_selection: z.number().int().min(0).max(10000),
+        next: financialMovementQuery.shape.continuation.unwrap().nullable(),
+        exhausted: z.boolean(),
+      })
+      .strict(),
+    limitations: financialBasis.shape.limitations,
   })
   .strict();
 const voucher = z
@@ -219,6 +258,15 @@ export function registerFinancialReads(
       financialQuery,
       report,
       (actor, value) => service.report(actor, value),
+    );
+  if (service.enabled && provider.enabled.length === 4)
+    register(
+      "list_financial_movements",
+      "Read account movements and source references",
+      "Read a bounded account/date selection with source-bound continuation and exact voucher references. Provider coverage and row semantics remain explicit; no financial write.",
+      financialMovementQuery,
+      movementPage,
+      (actor, value) => service.movements(actor, value),
     );
   if (provider.enabled.includes("financial.voucher"))
     register(

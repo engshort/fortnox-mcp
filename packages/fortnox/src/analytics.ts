@@ -376,6 +376,15 @@ export class FortnoxFinancialReads implements FinancialProvider {
       amount: m.amount,
       effective: true,
       source_ref: `${query.financial_year}:${m.voucher.series}:${m.voucher.number}`,
+      voucher_ref:
+        /^[A-Z0-9]{1,8}$/.test(m.voucher.series) &&
+        /^[1-9]\d{0,9}$/.test(m.voucher.number)
+          ? {
+              financial_year: query.financial_year,
+              series: m.voucher.series,
+              number: Number(m.voucher.number),
+            }
+          : null,
       dimensions: m.dimensions,
     }));
     const second = await this.sie(

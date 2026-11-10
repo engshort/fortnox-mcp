@@ -34,6 +34,33 @@ export const financialQuery = z
   .strict()
   .refine((v) => v.from <= v.to);
 export type FinancialQuery = z.infer<typeof financialQuery>;
+export const financialMovementQuery = z
+  .object({
+    company_id: z.string().uuid(),
+    financial_year: z.number().int().positive().safe(),
+    from: accountingDate,
+    to: accountingDate,
+    account_number: accountNumber,
+    page_size: z.number().int().min(1).max(50).optional(),
+    continuation: z
+      .object({
+        after_movement: id,
+        source_version: z.string().regex(/^[a-f0-9]{64}$/),
+        query_key: z.string().max(2048),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .refine((v) => v.from <= v.to);
+export const financialVoucherReference = z
+  .object({
+    financial_year: z.number().int().positive().safe(),
+    series: z.string().regex(/^[A-Z0-9]{1,8}$/),
+    number: z.number().int().positive().safe(),
+  })
+  .strict();
+
 export const accountCategory = z.enum([
   "assets",
   "liabilities",
@@ -85,6 +112,7 @@ export const financialBasis = z
             amount,
             effective: z.boolean().nullable(),
             source_ref: id,
+            voucher_ref: financialVoucherReference.nullable().optional(),
             dimensions: z.record(id, id),
           })
           .strict(),
@@ -338,10 +366,9 @@ export class FinancialAnalysis {
     readonly provider: FinancialProvider,
     readonly enabled = false,
   ) {}
-  async report(actor: AccountingActor, input: unknown) {
+  private async retrieve(actor: AccountingActor, query: FinancialQuery) {
     if (!actor.scopes.includes("mcp:read"))
       throw new DomainError("AUTH_REQUIRED");
-    const query = financialQuery.parse(input);
     const current = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,
@@ -362,7 +389,121 @@ export class FinancialAnalysis {
       !after.scopes.includes("bookkeeping")
     )
       throw new DomainError("CONNECTION_CONFLICT");
-    return calculateFinancialReport(query, basis);
+    return financialBasis.parse(basis);
+  }
+  async report(actor: AccountingActor, input: unknown) {
+    const query = financialQuery.parse(input);
+    return calculateFinancialReport(query, await this.retrieve(actor, query));
+  }
+  async movements(actor: AccountingActor, input: unknown) {
+    const query = financialMovementQuery.parse(input),
+      basis = await this.retrieve(actor, {
+        company_id: query.company_id,
+        financial_year: query.financial_year,
+        from: query.from,
+        to: query.to,
+      });
+    if (basis.company_id !== query.company_id)
+      throw new DomainError("COMPANY_FORBIDDEN");
+    if (
+      basis.year.id !== query.financial_year ||
+      query.from < basis.year.from ||
+      query.to > basis.year.to
+    )
+      throw new DomainError("VALIDATION_FAILED");
+    // Drill-down must apply the same whole-basis identity, date and row checks.
+    calculateFinancialReport(
+      {
+        company_id: query.company_id,
+        financial_year: query.financial_year,
+        from: query.from,
+        to: query.to,
+      },
+      basis,
+    );
+    const queryKey = JSON.stringify([
+      query.company_id,
+      query.financial_year,
+      query.from,
+      query.to,
+      query.account_number,
+    ]);
+    if (
+      query.continuation &&
+      (query.continuation.source_version !== basis.source_version ||
+        query.continuation.query_key !== queryKey)
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    const selected = basis.movements
+      .filter(
+        (m) =>
+          m.account === query.account_number &&
+          m.date >= query.from &&
+          m.date <= query.to,
+      )
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    const prior = query.continuation
+      ? selected.findIndex((m) => m.id === query.continuation?.after_movement)
+      : -1;
+    if (query.continuation && prior < 0)
+      throw new DomainError("CONNECTION_CONFLICT");
+    const rows = selected
+        .slice(prior + 1, prior + 1 + (query.page_size ?? 50))
+        .map((r) => ({ ...r, voucher_ref: r.voucher_ref ?? null })),
+      last = rows.at(-1);
+    const next =
+      last && prior + 1 + rows.length < selected.length
+        ? {
+            after_movement: last.id,
+            source_version: basis.source_version,
+            query_key: queryKey,
+          }
+        : null;
+    const knownAccount = basis.accounts.some(
+      (a) => a.number === query.account_number,
+    );
+    const dataComplete =
+      knownAccount &&
+      basis.coverage.movements &&
+      basis.semantics_verified &&
+      basis.consistency !== "changed" &&
+      basis.limitations.every((v) => v === "retrieval_is_not_atomic") &&
+      selected.every((m) => m.effective !== null);
+    return {
+      company_id: basis.company_id,
+      financial_year: basis.year,
+      interval: { from: query.from, to: query.to },
+      account_number: query.account_number,
+      account_known: knownAccount,
+      currency: basis.currency,
+      source_version: basis.source_version,
+      sources: basis.sources,
+      retrieved: basis.retrieved,
+      coverage: basis.coverage,
+      consistency: basis.consistency,
+      semantics_verified: basis.semantics_verified,
+      complete: dataComplete && !query.continuation && next === null,
+      data_complete: dataComplete,
+      rows,
+      page: {
+        count: rows.length,
+        total_in_selection: selected.length,
+        next,
+        exhausted: next === null,
+      },
+      limitations: [
+        ...new Set([
+          ...basis.limitations,
+          ...(!knownAccount ? ["requested_account_missing"] : []),
+          ...(!basis.coverage.movements ? ["incomplete_movements"] : []),
+          ...(!basis.semantics_verified
+            ? ["provider_semantics_unverified"]
+            : []),
+        ]),
+      ].sort(),
+      value_origin: "provider_export" as const,
+      reference_origin: "parsed_provider_export" as const,
+    };
   }
 }
 

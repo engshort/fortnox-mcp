@@ -223,3 +223,29 @@ verified. It rechecks the employee baseline and complete employee/day pages
 before dispatch. A retained exact SalaryRow plus matching normalized fields is
 required for success. Lost create responses never match by employee/date/amount
 and never cause a resend. Ordinary MCP payroll writes remain off.
+
+## Actual candidate mismatch, 2026-11-10
+
+At 2325abb the hourly candidate returned an exact SalaryRow, but readback
+preserved employee/date/code/quantity/marker while Amount and Total differed
+from the prepared 0.01. A separate exact-ID read confirmed the same mismatch.
+Normalized decimal comparison also failed; this is not trailing-zero formatting.
+The outcome remains unknown under the existing intended-field contract. The
+monthly attempt was not dispatched and no resend or guard reset was performed.
+
+This proves the candidate's amount fields must not be treated as universally
+writable for code 11. The official standard table identifies a provider formula,
+but company-specific calculation and field behavior still need verification.
+The retained row and original intent/digest remain private for investigation.
+It does not establish a successful intended-input flow or G10 closure.
+
+## Financial movement drill-down
+
+A separate strict MCP read selects one account, year and inclusive date interval.
+It returns at most 50 normalized rows, exact amounts, dimensions, effective-row
+flags and structured voucher references where the exported reference is
+representable. Every continuation binds company/year/account/interval and the
+source version. Missing accounts, incomplete source coverage and unverified row
+semantics remain explicit. A last continuation page is not labeled as a whole
+complete result. Whole-basis validation also applies to drill-down, including
+rows outside the requested display selection. No persistent ledger is added.
