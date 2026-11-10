@@ -318,3 +318,12 @@ and 290 actual local workerd/D1 cases. These observations extend the
 [dated delivery evidence](../implementation/M07-analysis-payroll.md#latest-isolated-build-verification);
 zero-state balance matches do not establish positive SIE reconciliation or close
 G07/G10. Actual ChatGPT acceptance remains separate.
+
+A subsequent owner-booked voucher passed independent public OAuth MCP
+reconciliation: its three ordinary rows matched SIE references and exact signed
+movements, and opening plus movements matched all three account-detail closing
+balances. Before/day/after queries selected movements correctly with unchanged
+sources. This bounded positive observation does not establish complete report
+coverage: missing openings, closing-source disagreement, unsupported SIE period
+records and unverified semantics remain explicit. G07/G10 and ChatGPT acceptance
+remain open; no provider write or capability promotion occurred in this check.

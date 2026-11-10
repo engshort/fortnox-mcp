@@ -91,9 +91,13 @@ TypeScript checks cover the portable domain and both runtime configurations.
 
 ## Remaining evidence
 
-Actual SIE/chart retrieval is observed below; positive independent ledger reconciliation, salary-transaction writes and ChatGPT acceptance are still pending. No issue/gate is closed. Full analytical read breadth, financial MCP contracts, payroll writes and live acceptance remain in progress. Source rights for vendored/generated material retain G05; this work
-uses independent schemas and synthetic fixtures, without redistributing the
-external OpenAPI input.
+Actual public OAuth MCP evidence below includes chart discovery, an independently
+reconciled ordinary voucher and a bounded hourly-input create/update/delete
+lifecycle. Full financial export/balance coverage, nonempty invoice semantics,
+remaining G07/G10 variants and actual ChatGPT acceptance remain pending. No
+issue/gate is closed. Source rights for vendored/generated material retain G05;
+this work uses independent schemas and synthetic fixtures, without
+redistributing the external OpenAPI input.
 
 ## Primary references
 
@@ -623,7 +627,44 @@ available fiscal years still reported zero balances for the two selected
 accounts; movement reads in the intended company returned no movements. The
 company/year selection was independently checked against the company listing.
 Matching zero balances are not positive posting/SIE reconciliation evidence.
-The attempt remains partial, with private receipts preserved; no provider write,
-policy change or capability promotion was used to make it pass. Owner
-confirmation of the booked fixture, nonempty invoice semantics and actual
-ChatGPT acceptance remain outstanding. Issues #25, #26, #37 and #40 remain open.
+The initial attempt remains partial, with private receipts preserved; no provider
+write, policy change or capability promotion was used to make it pass. The owner
+subsequently confirmed that booking was still pending; the successful follow-up
+below supersedes that fixture prerequisite. Nonempty invoice semantics and
+actual ChatGPT acceptance remain outstanding. Issues #25, #26, #37 and #40
+remain open.
+
+## Actual positive voucher and period reconciliation
+
+The owner subsequently booked a voucher in the intended allowlisted sandbox and
+supplied its exact provider reference privately. At source f89d3d8, public
+HTTPS/OAuth MCP SDK reads found three ordinary, balanced rows. Their content
+differed from the previously proposed two-row fixture; the initial proposed-input
+comparison correctly failed and its receipt was preserved. No replacement or
+duplicate voucher was created. A separate acceptance attempt reconciled the
+actual provider reference and observed contents instead.
+
+For all three affected accounts, exact signed voucher rows matched the SIE
+movements carrying that same year/series/number. Independently retrieved account
+opening balances plus effective SIE movements matched the account-detail API's
+closing balances. Product report period movements matched those observed
+movements. Source versions remained unchanged across the reads, and a second
+exact voucher read returned the same source hash. Provider IDs, amounts and raw
+rows remain in private bounded evidence, not public fixtures or issue text.
+
+Additional actual product queries selected the interval before the posting day,
+the posting day alone and the interval after it. All three selections returned
+the expected movement sums with the same source version. Unverified as-of
+balances remained unavailable instead of being inferred from year-end fields.
+This is positive evidence for the observed normal rows, exact debit-minus-credit
+signs and inclusive date selection; it does not verify correction/removed-row
+semantics, non-calendar or multiple fiscal years, period-lock boundaries or every
+account/export balance.
+
+The product report correctly remains incomplete. Its limitations still include
+unverified export coverage, missing openings, unverified provider semantics,
+a closing-source disagreement in the full report basis
+and an unsupported SIE `#PSALDO` record. Unknown classifications remain visible.
+Those limitations require separate investigation and evidence before promotion.
+No provider write, policy change, ordinary activation, ChatGPT acceptance or
+whole G07/G10 completion is claimed by this follow-up.
