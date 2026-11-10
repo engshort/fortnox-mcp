@@ -255,3 +255,9 @@ recognized ErrorInformation, malformed JSON, 202 or a lost response remains
 unknown. It still requires exact not-found readback. An operator's already
 captured final-200 receipt may reconcile its original intent/hash by a later
 exact read; no tool accepts status assertions or a replacement row identity.
+
+`list_financial_accounts` returns at most 100 chart records with company/year
+and first-page-anchor-bound continuation. A continued page rechecks that anchor
+and reauthorizes the connection generation. Missing balances remain null. Page
+exhaustion is separate from whole-collection completeness, and chart completeness
+never asserts verified balance units or financial reconciliation.

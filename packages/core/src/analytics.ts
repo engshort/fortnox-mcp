@@ -34,6 +34,20 @@ export const financialQuery = z
   .strict()
   .refine((v) => v.from <= v.to);
 export type FinancialQuery = z.infer<typeof financialQuery>;
+export const financialAccountsQuery = z
+  .object({
+    company_id: z.string().uuid(),
+    financial_year: z.number().int().positive().safe(),
+    continuation: z
+      .object({
+        next_page: z.number().int().min(2).max(10000),
+        anchor_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+        query_key: z.string().max(1024),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 export const financialMovementQuery = z
   .object({
     company_id: z.string().uuid(),

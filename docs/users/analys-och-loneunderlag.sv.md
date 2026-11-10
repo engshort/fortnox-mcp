@@ -47,3 +47,8 @@ Det kräver en verifierad anställd, dag, lönekod och timlön. Förberedelsen v
 hela avsedda underlaget och ändringarna. Om personalkortets timlön eller själva
 underlaget ändras måste förberedelsen göras om. Skapande, uppdatering och
 borttagning godkänns och verifieras separat. Månadslön är ännu inte godkänd.
+
+I testbuilden kan `list_financial_accounts` visa kontoplanen i sidor om högst
+100 konton. Fortsättningen hör till samma företag och räkenskapsår. Inaktiva
+och egna konton behålls. En fullständigt hämtad kontoplan betyder inte att
+saldon och en finansiell rapport är avstämda; de begränsningarna visas separat.

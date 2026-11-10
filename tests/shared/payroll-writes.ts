@@ -144,9 +144,10 @@ async function setup(
 }
 export function payrollWriteContract(fixture: () => Promise<StateStore>) {
   describe("S09 verified-profile payroll writes", () => {
-    for (const errorEnvelope of [false, true])
-      it(`uses the documented DELETE status without inventing an empty-body requirement (error envelope: ${errorEnvelope})`, async () => {
+    for (const bodyKind of ["null", "string", "error"] as const)
+      it(`uses the documented DELETE status without inventing an empty-body requirement (error envelope: ${bodyKind})`, async () => {
         const f = await setup(await fixture());
+        const errorEnvelope = bodyKind === "error";
         const p = await f.service.prepare(f.actor, "create", {
           company_id: f.a.id,
           fields,
@@ -164,7 +165,9 @@ export function payrollWriteContract(fixture: () => Promise<StateStore>) {
         });
         f.flags.deleteBody = errorEnvelope
           ? JSON.stringify({ ErrorInformation: { Code: "SYNTHETIC" } })
-          : "null";
+          : bodyKind === "string"
+            ? JSON.stringify("Synthetic delete acknowledgement")
+            : "null";
         expect(
           (
             await f.service.writes.execute(

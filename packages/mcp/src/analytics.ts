@@ -4,6 +4,7 @@ import {
   accountingDate,
   DomainError,
   type FinancialAnalysis,
+  financialAccountsQuery,
   financialBasis,
   financialMovementQuery,
   financialQuery,
@@ -277,6 +278,52 @@ export function registerFinancialReads(
       financialMovementQuery,
       movementPage,
       (actor, value) => service.movements(actor, value),
+    );
+  if (provider.enabled.includes("financial.accounts"))
+    register(
+      "list_financial_accounts",
+      "List fiscal-year chart accounts",
+      "Read at most 100 chart accounts for an explicit company/year, including zero/inactive references returned by the provider. Continuation binds the company/year and rechecks the first-page anchor. Chart-record completeness does not establish verified balance units or a reconciled financial report; pagination is not an atomic snapshot.",
+      financialAccountsQuery,
+      z
+        .object({
+          company_id: z.string().uuid(),
+          financial_year: z.number().int().positive().safe(),
+          records: z
+            .array(
+              z
+                .object({
+                  number: account,
+                  name: z.string().max(200),
+                  active: z.boolean(),
+                  opening: money.nullable(),
+                  provider_closing: money.nullable(),
+                })
+                .strict(),
+            )
+            .max(100),
+          complete: z.boolean(),
+          coverage: z.literal("chart_records_only"),
+          page: z
+            .object({
+              number: z.number().int().min(1).max(10000),
+              metadata_verified: z.boolean(),
+              exhausted: z.boolean(),
+              total_records: z.number().int().nonnegative().safe().nullable(),
+              next: financialAccountsQuery.shape.continuation
+                .unwrap()
+                .nullable(),
+            })
+            .strict(),
+          sources: financialBasis.shape.sources.min(1).max(2),
+          retrieved: financialBasis.shape.retrieved,
+          consistency: z.literal("not_atomic"),
+          value_origin: z.literal("provider"),
+          currency: z.null(),
+          balance_units_verified: z.literal(false),
+        })
+        .strict(),
+      (actor, value) => provider.accounts(actor, value),
     );
   if (provider.enabled.includes("financial.account"))
     register(

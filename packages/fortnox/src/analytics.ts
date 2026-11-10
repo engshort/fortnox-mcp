@@ -8,6 +8,7 @@ import {
   type FinancialBasis,
   type FinancialProvider,
   type FinancialQuery,
+  financialAccountsQuery,
   parseAmount,
   parseSie4,
   type SieExport,
@@ -160,11 +161,112 @@ export class FortnoxFinancialReads implements FinancialProvider {
       records,
       complete: valid && next === null,
       next_page: next,
+      total_resources:
+        valid && m.success ? (m.data["@TotalResources"] ?? null) : null,
       source: {
         operation: "financial.accounts",
         record_id: `${financialYear}:${page}`,
         sha256: await accountingHash(raw),
       },
+    };
+  }
+  async accounts(actor: AccountingActor, input: unknown) {
+    const query = financialAccountsQuery.parse(input),
+      started = this.now();
+    const connection = await this.connections.authorize(
+      actor.ownerId,
+      actor.clientId,
+      query.company_id,
+    );
+    const key = JSON.stringify([
+      "financial-accounts/1",
+      query.company_id,
+      query.financial_year,
+    ]);
+    if (query.continuation && query.continuation.query_key !== key)
+      throw new DomainError("CONNECTION_CONFLICT");
+    const first = await this.accountPage(
+      actor,
+      query.company_id,
+      query.financial_year,
+      1,
+      started + 30000,
+    );
+    const page = query.continuation?.next_page ?? 1;
+    if (
+      query.continuation &&
+      (query.continuation.query_key !== key ||
+        query.continuation.anchor_sha256 !== first.source.sha256 ||
+        first.next_page === null)
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    const current =
+      page === 1
+        ? first
+        : await this.accountPage(
+            actor,
+            query.company_id,
+            query.financial_year,
+            page,
+            started + 30000,
+          );
+    if (page !== 1) {
+      const check = await this.accountPage(
+        actor,
+        query.company_id,
+        query.financial_year,
+        1,
+        started + 30000,
+      );
+      if (check.source.sha256 !== first.source.sha256)
+        throw new DomainError("CONNECTION_CONFLICT");
+    }
+    const after = await this.connections.authorize(
+      actor.ownerId,
+      actor.clientId,
+      query.company_id,
+    );
+    if (
+      after.generation !== connection.generation ||
+      after.tenant !== connection.tenant
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    return {
+      company_id: query.company_id,
+      financial_year: query.financial_year,
+      records: current.records.map((r) => ({
+        number: r.Number,
+        name: r.Description,
+        active: r.Active,
+        opening: r.BalanceBroughtForward ?? null,
+        provider_closing: r.BalanceCarriedForward ?? null,
+      })),
+      complete:
+        page === 1 &&
+        current.complete &&
+        (current.total_resources === null ||
+          current.total_resources === current.records.length),
+      coverage: "chart_records_only" as const,
+      page: {
+        number: page,
+        metadata_verified: current.complete || current.next_page !== null,
+        exhausted: current.complete,
+        total_records: current.total_resources,
+        next:
+          current.next_page === null
+            ? null
+            : {
+                next_page: current.next_page,
+                anchor_sha256: first.source.sha256,
+                query_key: key,
+              },
+      },
+      sources: page === 1 ? [current.source] : [first.source, current.source],
+      retrieved: { started_at: started, finished_at: this.now() },
+      consistency: "not_atomic" as const,
+      value_origin: "provider" as const,
+      currency: null,
+      balance_units_verified: false as const,
     };
   }
   async account(

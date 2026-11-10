@@ -425,3 +425,35 @@ cases, all 13 packaged/native-Worker smoke cases and all five CI flows. The
 maintenance follow-up separately passed final-status, exact-intent and lost-
 acknowledgement tests in both runtimes; subsequent retained-response recovery
 and JSON-response cases are recorded with their own run.
+
+## Actual complete hourly input lifecycle through MCP
+
+At a2cef28 the retained final-200 deletion receipt reconciled the original
+intent by exact not-found readback, with no new provider write. The independent
+product MCP lifecycle then prepared/created, prepared/updated and prepared/deleted
+a new synthetic hourly input. Every intended readback matched, and a final MCP
+read independently confirmed absence. Repeated references sent exactly one POST,
+one PUT and one DELETE in total. Wrong company and unverified salary code were
+denied. The captured actual DELETE response was HTTP 200 with a JSON string,
+which the corrected transport accepts without assuming an empty body. No raw
+response string, IDs or payroll values are included in public evidence. This
+remains product-domain-service/provider evidence using an in-memory SDK transport,
+not ChatGPT acceptance or ordinary product activation.
+
+## Efficient bounded chart discovery
+
+`list_financial_accounts` independently gates the existing financial.accounts
+operation and returns at most 100 provider chart records. It binds continuation
+to company/year and the first-page source hash, rechecks that anchor around each
+continued page, validates every row's year and checks connection generation
+after retrieval. It preserves inactive/custom/zero references and unknown
+balances without inventing zero. Source record totals, retrieval window and
+non-atomic pagination are explicit. A last continuation is never a complete
+collection; completeness describes chart records, not reconciled financial
+statements or verified balance units. No financial cache or new provider
+operation is introduced. This enables independent bounded detail-read acceptance
+without reloading the entire SIE/chart for every display page.
+
+The chart-discovery and DELETE JSON-response follow-up passed 10 targeted cases
+in Node/SQLite and the same 10 in actual local workerd/D1, plus typecheck and
+lint. These checks do not establish complete live chart/balance coverage.

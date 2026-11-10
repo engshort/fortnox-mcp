@@ -139,6 +139,99 @@ async function setup(state: StateStore) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("discovers chart pages with company/year/anchor binding and never calls the last continuation a complete collection", async () => {
+      const f = await setup(await fixture());
+      let changed = false,
+        requests = 0,
+        totalPages = 2,
+        totalRecords = 2;
+      f.provider.config.fetch = async (input) => {
+        const url = new URL((input as Request).url),
+          page = Number(url.searchParams.get("page"));
+        requests++;
+        return Response.json({
+          Accounts: [
+            {
+              Number: page === 1 ? 1930 : 9901,
+              Description:
+                changed && page === 1 ? "Changed anchor" : "Synthetic chart",
+              Active: page === 1,
+              Year: 7,
+              ...(page === 2
+                ? { BalanceBroughtForward: "0", BalanceCarriedForward: "0" }
+                : {}),
+            },
+          ],
+          MetaInformation: {
+            "@CurrentPage": page,
+            "@TotalPages": totalPages,
+            "@TotalResources": totalRecords,
+          },
+        });
+      };
+      const first = await f.adapter.accounts(f.actor, {
+        company_id: f.a.id,
+        financial_year: 7,
+      });
+      expect(first).toMatchObject({
+        complete: false,
+        coverage: "chart_records_only",
+        records: [{ number: 1930, opening: null }],
+        page: {
+          number: 1,
+          metadata_verified: true,
+          exhausted: false,
+          next: { next_page: 2 },
+        },
+      });
+      const last = await f.adapter.accounts(f.actor, {
+        company_id: f.a.id,
+        financial_year: 7,
+        continuation: first.page.next,
+      });
+      expect(last).toMatchObject({
+        complete: false,
+        records: [{ number: 9901, active: false, opening: "0.00" }],
+        page: { number: 2, exhausted: true, next: null },
+        consistency: "not_atomic",
+        balance_units_verified: false,
+      });
+      expect(requests).toBe(4);
+      const before = requests;
+      await expect(
+        f.adapter.accounts(f.actor, {
+          company_id: f.a.id,
+          financial_year: 8,
+          continuation: first.page.next,
+        }),
+      ).rejects.toThrow("CONNECTION_CONFLICT");
+      expect(requests).toBe(before);
+      changed = true;
+      await expect(
+        f.adapter.accounts(f.actor, {
+          company_id: f.a.id,
+          financial_year: 7,
+          continuation: first.page.next,
+        }),
+      ).rejects.toThrow("CONNECTION_CONFLICT");
+      await expect(
+        f.adapter.accounts(f.actor, {
+          company_id: crypto.randomUUID(),
+          financial_year: 7,
+        }),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      totalPages = 1;
+      totalRecords = 99;
+      expect(
+        await f.adapter.accounts(f.actor, {
+          company_id: f.a.id,
+          financial_year: 7,
+        }),
+      ).toMatchObject({
+        complete: false,
+        page: { exhausted: true, total_records: 99 },
+      });
+    });
     it("exposes strict financial MCP reads with explicit partial results and exact voucher amounts", async () => {
       const f = await setup(await fixture());
       const server = companyServer({
@@ -166,6 +259,7 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
           "get_financial_account",
           "get_financial_analysis",
           "get_financial_voucher",
+          "list_financial_accounts",
           "list_financial_movements",
         ]);
         expect(
@@ -174,6 +268,23 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
               t.annotations?.readOnlyHint && !t.annotations.destructiveHint,
           ),
         ).toBe(true);
+        expect(
+          (
+            await client.callTool({
+              name: "list_financial_accounts",
+              arguments: { company_id: f.a.id, financial_year: 7 },
+            })
+          ).structuredContent,
+        ).toMatchObject({
+          status: "ok",
+          data: {
+            complete: true,
+            coverage: "chart_records_only",
+            records: [{ number: 1930 }, { number: 4000 }, { number: 9901 }],
+            balance_units_verified: false,
+            page: { number: 1, exhausted: true, next: null },
+          },
+        });
         const report = await client.callTool({
           name: "get_financial_analysis",
           arguments: f.query,
