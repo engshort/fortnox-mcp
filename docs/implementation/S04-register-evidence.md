@@ -9,7 +9,9 @@ Customers, suppliers and articles have focused list/detail, prepare/create and
 prepare/update MCP tools. Updates retain omitted fields, show the modeled
 before/after/diff and compare a hash of the entire provider source (including
 unmodeled fields) immediately before claiming execution. Unsupported fields,
-empty strings and `API_BLANK` are rejected. Field clearing needs separate
+empty strings and `API_BLANK` are rejected. Provider reads preserve optional
+text and article price/VAT fields returned as `null`; this does not authorize clearing a field in a
+write. Omitted fields remain outside the update payload. Field clearing needs separate
 per-field acceptance. Article creation explicitly selects `SERVICE`; stock
 adjustment and bank-instruction maintenance are outside this profile.
 
@@ -107,3 +109,37 @@ and local workerd/D1 contracts verify ownership, Origin, stale revisions,
 connection preservation and saving again after forgetting. Browser checks use
 synthetic data; they do not inspect the owner's browser or establish ChatGPT
 acceptance.
+
+## First actual register run (2026-11-10)
+
+At `d27afa6`, a standard OAuth/PKCE-authorized Node MCP SDK client completed
+39 successful read calls across the two allowlisted test companies. Customer,
+supplier and article lists were empty and complete. Payment/delivery terms,
+delivery methods, currencies, units, price lists and payment methods passed
+list/detail checks. Cost-center and project lists were empty; their detail
+operations and article-price reads were not established. Two read-only write
+attempts and a foreign-company read were denied. This is actual provider/MCP
+evidence, not ChatGPT acceptance or a negative provider-license test.
+
+After the owner enabled writes for the first company, one synthetic customer
+create reached Fortnox. Its readback rejected optional text fields returned as
+`null`, leaving the durable execution `outcome_unknown`. No customer create was
+resent. A bounded diagnostic read returned HTTP 200 and identified the nullable
+fields without publishing their values. The nullable-read correction has a
+shared regression for preserving provider nulls, rejecting caller null-clearing,
+and updating only an explicitly supplied name. Read-only reconciliation of the
+original intent succeeded on `feca765` without resending. Customer and supplier
+create/update/readback and exact-identity filtered lists then passed in both
+companies after the owner enabled writes for each.
+
+An article create including price/VAT remained uncertain; its exact-ID read
+returned 404 and no resend occurred. A separate basic service article in the
+other company returned HTTP 201, but its detail read revealed a null sales
+price rejected by the read schema. The read projection now preserves nullable
+article prices/VAT as well. This does not establish article price writes, and
+the first article intent remains unresolved pending exact evidence.
+
+Private evidence retains timestamps, provider identities, intent references,
+response hashes and cleanup rules outside git. These partial observations do
+not promote an operation, complete #21 or establish the remaining permission,
+precision, filter, pagination and client cases.

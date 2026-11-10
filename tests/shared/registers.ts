@@ -205,6 +205,76 @@ function ref(p: {
 }
 export function registersContract(fixture: () => Promise<StateStore>) {
   describe("company register workflows", () => {
+    it("reads provider nulls without treating them as caller-authorized field clearing", async () => {
+      const f = await registerFixture(await fixture());
+      f.seed("customer", "C-NULL", {
+        Name: "Synthetic null fields",
+        Active: true,
+        Address1: null,
+        Address2: null,
+        City: null,
+        ZipCode: null,
+        CountryCode: null,
+        Phone1: null,
+        CostCenter: null,
+      });
+      const record = (
+        await f.service.get(f.actor, f.a.id, "customer", "C-NULL")
+      ).record;
+      expect(record.fields.Address1).toBeNull();
+      await expect(
+        f.service.writes.prepare(f.actor, f.a.id, "customer.update", {
+          id: "C-NULL",
+          fields: { Address1: null },
+        }),
+      ).rejects.toThrow();
+      const p = await f.service.writes.prepare(
+        f.actor,
+        f.a.id,
+        "customer.update",
+        { id: "C-NULL", fields: { Name: "Synthetic preserved nulls" } },
+      );
+      expect(p.preview).toMatchObject({
+        before: { Address1: null },
+        after: { Address1: null, Name: "Synthetic preserved nulls" },
+      });
+      await expect(
+        f.service.writes.execute(f.actor, "customer.update", ref(p)),
+      ).resolves.toMatchObject({ state: "succeeded" });
+      const write = f.requests.find((r) => r.method === "PUT");
+      expect(write?.body).not.toContain("Address1");
+      expect(
+        (await f.service.get(f.actor, f.a.id, "customer", "C-NULL")).record
+          .fields.Address1,
+      ).toBeNull();
+      f.seed("article", "A-NULL", {
+        Description: "Synthetic unpriced service",
+        Type: "SERVICE",
+        SalesPrice: null,
+        PurchasePrice: null,
+        VAT: null,
+      });
+      const article = await f.service.get(f.actor, f.a.id, "article", "A-NULL");
+      expect(article.record.fields.SalesPrice).toBeNull();
+      const update = await f.service.writes.prepare(
+        f.actor,
+        f.a.id,
+        "article.update",
+        { id: "A-NULL", fields: { Description: "Synthetic renamed service" } },
+      );
+      await expect(
+        f.service.writes.execute(f.actor, "article.update", ref(update)),
+      ).resolves.toMatchObject({ state: "succeeded" });
+      expect(
+        f.requests.filter((r) => r.method === "PUT").at(-1)?.body,
+      ).not.toContain("SalesPrice");
+      await expect(
+        f.service.writes.prepare(f.actor, f.a.id, "article.update", {
+          id: "A-NULL",
+          fields: { SalesPrice: null },
+        }),
+      ).rejects.toThrow();
+    });
     it("creates, reads and updates each writable register through durable intents", async () => {
       const f = await registerFixture(await fixture());
       for (const resource of [

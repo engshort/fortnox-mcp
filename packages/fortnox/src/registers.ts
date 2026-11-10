@@ -32,7 +32,7 @@ import {
 
 const label = z.string().max(4096);
 const reference = z.object({ Code: registerId, Description: label });
-const optionalText = z.string().max(1024).optional();
+const optionalText = z.string().max(1024).nullable().optional();
 const projectedParty = {
   Active: z.boolean().optional(),
   Name: label,
@@ -71,9 +71,9 @@ export const registerOutputFields = {
     Type: optionalText,
     Unit: optionalText,
     SupplierNumber: optionalText,
-    SalesPrice: registerDecimal.optional(),
-    PurchasePrice: registerDecimal.optional(),
-    VAT: registerDecimal.optional(),
+    SalesPrice: registerDecimal.nullable().optional(),
+    PurchasePrice: registerDecimal.nullable().optional(),
+    VAT: registerDecimal.nullable().optional(),
   }),
   terms_of_payment: reference,
   terms_of_delivery: reference.extend({ DescriptionEnglish: optionalText }),
