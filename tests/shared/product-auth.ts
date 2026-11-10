@@ -99,6 +99,17 @@ export function ownerContract(fixture: () => Promise<AuthConfig>) {
         403,
       );
       const restarted = createAdmin(config);
+      for (const email of [input.email, "unknown@example.invalid"]) {
+        const denied = await restarted.fetch(
+          request("/auth/sign-in/email", {
+            email,
+            password: "Wrong-synthetic-password",
+          }),
+        );
+        expect(denied.status).toBe(401);
+        expect(await denied.json()).toEqual({ error: "SIGN_IN_FAILED" });
+        expect(denied.headers.get("set-cookie")).toBeNull();
+      }
       const login = await restarted.fetch(
         request("/auth/sign-in/email", {
           email: input.email,

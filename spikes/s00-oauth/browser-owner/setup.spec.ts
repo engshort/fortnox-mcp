@@ -112,12 +112,18 @@ test("owner bootstraps, stores write-only credentials, switches language and sig
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   await page.getByLabel("Email").fill("browser-owner@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("incorrect-synthetic-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByText("Sign-in failed. Check your email and password.", { exact:true })).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveValue("browser-owner@example.invalid");
+  await expect(page.getByLabel("Password", { exact:true })).toHaveValue("");
+  await page.screenshot({path:join(tmpdir(),`owner-login-retry-${info.project.name}.png`),fullPage:true});
   await page.getByLabel("Password", { exact: true }).fill("synthetic-browser-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Your companies" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
+  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);
 });
 
 
@@ -194,7 +200,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await expect(page.getByText(execution, { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
+  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);
 });
 
 test("payroll consent excludes existing receipt access and refreshes stale program revision", async ({page}) => {

@@ -91,8 +91,7 @@ TypeScript checks cover the portable domain and both runtime configurations.
 
 ## Remaining evidence
 
-No actual SIE export, positive ledger reconciliation, salary request or ChatGPT
-acceptance has run for this milestone. No issue/gate is closed. Full analytical read breadth, financial MCP contracts, payroll writes and live acceptance remain in progress. Source rights for vendored/generated material retain G05; this work
+Actual SIE/chart retrieval is observed below; positive independent ledger reconciliation, salary-transaction writes and ChatGPT acceptance are still pending. No issue/gate is closed. Full analytical read breadth, financial MCP contracts, payroll writes and live acceptance remain in progress. Source rights for vendored/generated material retain G05; this work
 uses independent schemas and synthetic fixtures, without redistributing the
 external OpenAPI input.
 
@@ -190,3 +189,24 @@ Primary sources for this correction and test-code candidates:
 The latter documents hourly code 11 and monthly code 12; company-specific
 availability and transaction field semantics still require actual verification.
 The owner authorized both monthly and hourly synthetic examples.
+
+## Successful actual financial reads and login follow-up
+
+After the SIE header correction at f57a33e, both test companies returned a bounded
+financial report and a matching-source-version continuation page through MCP.
+The report correctly remained partial for omitted opening/zero balances,
+export coverage and effective-row semantics. This is source retrieval evidence,
+not positive G07 reconciliation or full S08/ChatGPT acceptance. Both synthetic
+employee profiles (hourly and monthly) were created and read back; no salary
+transaction, payslip or payout has been created by that preparation.
+
+A sign-in error follow-up separates failed credentials from expired sessions.
+The prior wrapper mapped every password-login failure, including service errors,
+to AUTH_REQUIRED and displayed a misleading expired-session message. The new
+wrapper uses a uniform SIGN_IN_FAILED for unknown email/wrong password, preserves
+rate limits and separates session-creation/service failures. It never returns
+upstream messages or distinguishes account existence. The form clears password
+and one-time code values while retaining email for a retry. Shared owner tests
+exercise wrong and unknown credentials followed by a valid login; browser tests
+exercise the same visible retry path. This does not reset the owner's password
+or change session/cookie authorization.

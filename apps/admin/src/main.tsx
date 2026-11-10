@@ -365,17 +365,32 @@ function App() {
         "Företaget har ett pågående eller okänt skrivutfall. Stäm av utfallet under Drift innan du ändrar programanslutningen.",
         "The company has a pending or unknown write outcome. Reconcile it under Operations before changing program access.",
       )
-    : message === "AUTH_REQUIRED"
+    : message === "SIGN_IN_FAILED"
       ? t(
-          "Din session har gått ut. Logga in igen.",
-          "Your session has expired. Sign in again.",
+          "Inloggningen misslyckades. Kontrollera e-post och lösenord.",
+          "Sign-in failed. Check your email and password.",
         )
-      : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+      : message === "AUTH_UNAVAILABLE"
         ? t(
-            "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
-            "Could not complete the action. Check the connection and try again.",
+            "Inloggningstjänsten kunde inte skapa en session. Försök igen om en stund.",
+            "The sign-in service could not create a session. Try again shortly.",
           )
-        : message;
+        : message === "RATE_LIMITED"
+          ? t(
+              "För många försök. Vänta en minut och försök igen.",
+              "Too many attempts. Wait one minute and try again.",
+            )
+          : message === "AUTH_REQUIRED"
+            ? t(
+                "Din session har gått ut. Logga in igen.",
+                "Your session has expired. Sign in again.",
+              )
+            : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+              ? t(
+                  "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
+                  "Could not complete the action. Check the connection and try again.",
+                )
+              : message;
   if (!admin)
     return (
       <div className="auth-page">
