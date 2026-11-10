@@ -3,6 +3,8 @@ import {
   registerOperationIds,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
+import { loadFinancialTestProfile } from "./financial-test-profile.js";
+import { loadPayrollTestProfile } from "./payroll-test-profile.js";
 import { startProduct } from "./product-runtime.js";
 
 declare const __REGISTER_TEST_SOURCE_COMMIT__: string;
@@ -19,10 +21,47 @@ void (async () => {
     )
   )
     throw new Error("Unclassified test operation");
+  const payrollWrites = await loadPayrollTestProfile(
+    process.env.PAYROLL_TEST_PROFILE_FILE,
+    __REGISTER_TEST_SOURCE_COMMIT__,
+  );
+  const financialMappings = await loadFinancialTestProfile(
+    process.env.FINANCIAL_TEST_PROFILE_FILE,
+    __REGISTER_TEST_SOURCE_COMMIT__,
+  );
   await startProduct(undefined, {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
+    ...(payrollWrites ? { payrollWrites } : {}),
+    ...(financialMappings ? { financialMappings } : {}),
+    openItemReads: z
+      .array(z.enum(["open_receivable.list", "open_payable.list"]))
+      .max(2)
+      .parse(JSON.parse(process.env.OPEN_ITEM_TEST_OPERATIONS ?? "[]")),
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
+    financialReads: z
+      .array(
+        z.enum([
+          "financial.accounts",
+          "financial.account",
+          "financial.year",
+          "financial.sie4",
+          "financial.voucher",
+        ]),
+      )
+      .max(5)
+      .parse(JSON.parse(process.env.FINANCIAL_TEST_OPERATIONS ?? "[]")),
+    payrollReads: z
+      .array(
+        z.enum([
+          "payroll_employee.list",
+          "payroll_employee.get",
+          "salary_transaction.list",
+          "salary_transaction.get",
+        ]),
+      )
+      .max(4)
+      .parse(JSON.parse(process.env.PAYROLL_TEST_OPERATIONS ?? "[]")),
     documentReads: z
       .array(
         z.enum([
@@ -38,7 +77,7 @@ void (async () => {
       .parse(JSON.parse(process.env.DOCUMENT_TEST_OPERATIONS ?? "[]")),
     consentScopes: z
       .array(z.string())
-      .max(7)
+      .max(8)
       .parse(JSON.parse(process.env.REGISTER_TEST_EXTRA_CONSENT ?? "[]")),
   });
 })().catch(() => {

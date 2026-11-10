@@ -6,6 +6,11 @@ import {
   Connections,
   CredentialVault,
   DomainError,
+  FinancialAnalysis,
+  LiquidityAnalysis,
+  OpenItems,
+  PayrollInputs,
+  type PayrollOperation,
   previewProgram,
   programChange,
   programStatus,
@@ -32,12 +37,23 @@ import {
 import {
   diagnoseConnection,
   diagnosisInput,
+  type FinancialMapping,
+  type FinancialReadOperation,
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxFinancialReads,
+  FortnoxOpenItems,
+  FortnoxPayrollReads,
+  FortnoxPayrollWrites,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
+  financialReadOperations,
+  type OpenItemReadOperation,
+  openItemReadOperations,
+  type PayrollWriteProfile,
+  payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -79,6 +95,19 @@ export interface ProductBusinessTest {
   operations: readonly RegisterOperation[];
   documentReads?: readonly string[];
   consentScopes?: readonly string[];
+  payrollReads?: readonly PayrollOperation[];
+  payrollWrites?: {
+    operations: readonly PayrollOperation[];
+    profiles: readonly PayrollWriteProfile[];
+  };
+  financialReads?: readonly FinancialReadOperation[];
+  financialMappings?: readonly {
+    company_id: string;
+    financial_year: number;
+    mapping: FinancialMapping;
+    cash_account_numbers: readonly number[];
+  }[];
+  openItemReads?: readonly OpenItemReadOperation[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -203,7 +232,47 @@ export function createProductApplication(
   businessTest?: ProductBusinessTest,
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  const financialReads = businessTest?.financialReads ?? [];
+  const openItemReads = businessTest?.openItemReads ?? [];
+  if (
+    new Set(openItemReads).size !== openItemReads.length ||
+    openItemReads.some((id) => !openItemReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    new Set(financialReads).size !== financialReads.length ||
+    financialReads.some((id) => !financialReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const payrollReads = businessTest?.payrollReads ?? [];
+  if (
+    payrollReads.length > 4 ||
+    new Set(payrollReads).size !== payrollReads.length ||
+    payrollReads.some(
+      (id) => !(payrollReadOperationIds as readonly string[]).includes(id),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   const documentReads = businessTest?.documentReads ?? [];
+  const payrollWriteOperations = businessTest?.payrollWrites?.operations ?? [];
+  if (
+    new Set(payrollWriteOperations).size !== payrollWriteOperations.length ||
+    payrollWriteOperations.some(
+      (op) =>
+        ![
+          "salary_transaction.create",
+          "salary_transaction.update",
+          "salary_transaction.delete",
+        ].includes(op),
+    ) ||
+    (businessTest?.payrollWrites &&
+      (payrollWriteOperations.length === 0 ||
+        businessTest.payrollWrites.profiles.length === 0 ||
+        !payrollReads.includes("payroll_employee.get") ||
+        !payrollReads.includes("salary_transaction.get")))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const payrollOperations = [...payrollReads, ...payrollWriteOperations];
   if (
     businessTest &&
     (fileTest ||
@@ -245,6 +314,7 @@ export function createProductApplication(
           "payment",
           "connectfile",
           "inbox",
+          "salary",
         ].includes(scope),
     )
   )
@@ -269,6 +339,10 @@ export function createProductApplication(
     new CredentialVault(settings.keys, settings.activeKey),
   );
   const programGates = () => ({
+    payrollConsent:
+      !!businessTest &&
+      now() < businessTest.until &&
+      businessTest.consentScopes?.includes("salary") === true,
     references: settings.testMode && settings.accountingReferences === true,
     receiptConsent:
       settings.testMode && settings.receiptProviderConsent === true,
@@ -333,6 +407,98 @@ export function createProductApplication(
         businessTest.operations,
       )
     : undefined;
+  const financialProvider =
+    businessTest && financialReads.length
+      ? new FortnoxFinancialReads(
+          connections,
+          provider,
+          financialReads,
+          () => now() < businessTest.until,
+          now,
+          (company, year) =>
+            businessTest.financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            )?.mapping,
+        )
+      : undefined;
+  const financial = financialProvider
+    ? {
+        provider: financialProvider,
+        service: new FinancialAnalysis(connections, financialProvider, true),
+      }
+    : undefined;
+  const openItems =
+    businessTest && openItemReads.length
+      ? new OpenItems(
+          connections,
+          new FortnoxOpenItems(
+            connections,
+            provider,
+            openItemReads,
+            () => now() < businessTest.until,
+            now,
+          ),
+          (["receivable", "payable"] as const).filter((kind) =>
+            openItemReads.includes(
+              kind === "receivable"
+                ? "open_receivable.list"
+                : "open_payable.list",
+            ),
+          ),
+          now,
+        )
+      : undefined;
+  const liquidity =
+    financial &&
+    openItems &&
+    openItems.enabled.length === 2 &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (op) => financialReads.includes(op),
+    )
+      ? new LiquidityAnalysis(
+          connections,
+          financial.service,
+          openItems,
+          true,
+          now,
+          (company, year) => {
+            const profile = businessTest?.financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            );
+            return profile
+              ? {
+                  account_numbers: profile.cash_account_numbers,
+                  version: profile.mapping.version,
+                  sha256: profile.mapping.sha256,
+                }
+              : undefined;
+          },
+        )
+      : undefined;
+  const payroll =
+    businessTest && payrollReads.length
+      ? new PayrollInputs(
+          connections,
+          businessTest.payrollWrites
+            ? new FortnoxPayrollWrites(
+                connections,
+                provider,
+                businessTest.payrollWrites.profiles,
+                payrollOperations,
+                () => now() < businessTest.until,
+                now,
+              )
+            : new FortnoxPayrollReads(
+                connections,
+                provider,
+                payrollReads,
+                () => now() < businessTest.until,
+                now,
+              ),
+          payrollOperations,
+          now,
+        )
+      : undefined;
   const salesDocuments =
     businessTest?.documentReads?.length && registers
       ? new SalesDocuments(
@@ -401,6 +567,10 @@ export function createProductApplication(
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
+      ...(payroll ? { payroll } : {}),
+      ...(openItems ? { openItems } : {}),
+      ...(liquidity ? { liquidity } : {}),
+      ...(financial ? { financial } : {}),
       ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
@@ -430,6 +600,9 @@ export function createProductApplication(
                   active: now() < businessTest.until,
                   operations: businessTest.operations,
                   document_operations: businessTest.documentReads ?? [],
+                  payroll_operations: payrollOperations,
+                  financial_read_operations: financialReads,
+                  open_item_read_operations: openItemReads,
                   financial_writes: false,
                 },
               }
@@ -482,7 +655,11 @@ export function createProductApplication(
           JSON.stringify({
             clients: rows
               .slice(0, 100)
-              .filter((r) => r.value.ownerId === session.user.id)
+              .filter(
+                (r) =>
+                  r.value.ownerId === session.user.id &&
+                  !r.id.startsWith("owner-recovery:"),
+              )
               .map((r) => ({
                 client_id: r.id,
                 companies: Object.entries(r.value.companies).map(
@@ -501,6 +678,31 @@ export function createProductApplication(
             partial: rows.length > 100,
           }),
         );
+      }
+      const businessReconcile =
+        /^\/admin\/companies\/([^/]+)\/business\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (businessReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          if (!registers || !businessTest || now() >= businessTest.until)
+            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const result = await registers.writes.reconcileOwner(
+            session.user.id,
+            z.string().uuid().parse(businessReconcile[1]),
+            z.string().uuid().parse(businessReconcile[2]),
+          );
+          return safeResponse(JSON.stringify(result));
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
       }
       const programRoute =
         /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
@@ -579,6 +781,8 @@ export function createProductApplication(
               (await runtime.state.get("installation", "restore"))?.value ??
               null,
             capabilities: {
+              business_reconciliation:
+                !!registers && !!businessTest && now() < businessTest.until,
               writes: false,
               provider_files: false,
               review_host: false,
@@ -634,6 +838,23 @@ export function createProductApplication(
                   })),
               ),
             ]),
+            observed_differences: companies.flatMap((c) =>
+              (c.business?.executions ?? [])
+                .filter(
+                  (e) =>
+                    e.state === "applied_different" &&
+                    e.difference &&
+                    e.reference,
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  id: e.id,
+                  operation: e.operation,
+                  reference: e.reference,
+                  difference: e.difference,
+                })),
+            ),
             investigations: companies.flatMap((c) =>
               (c.bookkeeping?.executions ?? [])
                 .filter(

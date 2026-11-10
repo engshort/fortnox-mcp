@@ -1,4 +1,5 @@
 import {
+  accountingHash,
   type BusinessOperation,
   BusinessWrites,
   Connections,
@@ -122,6 +123,119 @@ export function businessWritesContract(fixture: () => Promise<StateStore>) {
         restarted.prepare(f.actor, f.a.id, "create", { text: "Synthetic" }),
       ).rejects.toThrow("OUTCOME_UNKNOWN");
     });
+    it("persists a known different result without success, replay or changing the original intent", async () => {
+      const f = await setup();
+      const expected = await accountingHash({ Amount: "0.01" });
+      const observed = await accountingHash({ Amount: "0.00" });
+      f.op.evidence = async () => ({
+        target: null,
+        fields: ["Amount"],
+        digest: expected,
+      });
+      const difference = {
+        expected_digest: expected,
+        observed_digest: observed,
+        fields: ["Amount"],
+        proof: "retained_provider_response_and_exact_readback" as const,
+      };
+      const dispatch = f.op.dispatch;
+      f.op.dispatch = async (...args) => ({
+        ...(await dispatch(...args)),
+        state: "applied_different",
+        difference,
+      });
+      const p = await f.service.prepare(f.actor, f.a.id, "create", {
+        text: "Synthetic",
+      });
+      const ref = {
+        company_id: p.company_id,
+        proposal_id: p.proposal_id,
+        proposal_hash: p.proposal_hash,
+      };
+      const result = await f.service.execute(f.actor, "create", ref);
+      expect(result).toEqual({
+        state: "applied_different",
+        reference: "synthetic-record-1",
+        difference,
+      });
+      const restarted = new BusinessWrites(
+        new Connections(f.state, new CredentialVault({ a: keyA }, "a")),
+        { create: f.op },
+      );
+      expect(await restarted.execute(f.actor, "create", ref)).toEqual(result);
+      expect(await restarted.reconcile(f.actor, "create", ref)).toEqual(result);
+      expect(f.calls()).toBe(1);
+      const execution = (
+        await restarted.connections.list(f.actor.ownerId)
+      ).find((c) => c.id === f.a.id)?.business?.executions[0];
+      expect(execution).toMatchObject({
+        hash: ref.proposal_hash,
+        evidence: { digest: expected },
+        difference,
+      });
+      // The original intent remains terminal; a separate reviewed correction can be prepared.
+      expect(
+        await restarted.prepare(f.actor, f.a.id, "create", {
+          text: "Separate correction",
+        }),
+      ).toHaveProperty("proposal_id");
+    });
+    for (const invalid of [
+      "expected_digest",
+      "field",
+      "reference",
+      "missing_reference",
+      "equal_digests",
+    ] as const)
+      it(`keeps uncertainty when difference reconciliation has invalid ${invalid} evidence`, async () => {
+        const f = await setup();
+        const expected = await accountingHash({ Amount: "0.01" });
+        f.op.evidence = async () => ({
+          target: null,
+          fields: ["Amount"],
+          digest: expected,
+        });
+        f.op.dispatch = async (_a, _c, _p, before) => {
+          await before();
+          return {
+            state: "outcome_unknown",
+            ...(invalid === "missing_reference"
+              ? {}
+              : { reference: "synthetic-record-1" }),
+          };
+        };
+        f.op.reconcile = async () => ({
+          state: "applied_different",
+          reference:
+            invalid === "reference" ? "different-record" : "synthetic-record-1",
+          difference: {
+            expected_digest:
+              invalid === "expected_digest" ? "a".repeat(64) : expected,
+            observed_digest:
+              invalid === "equal_digests" ? expected : "b".repeat(64),
+            fields: [invalid === "field" ? "Secret" : "Amount"],
+            proof: "retained_provider_response_and_exact_readback",
+          },
+        });
+        const p = await f.service.prepare(f.actor, f.a.id, "create", {
+          text: "Synthetic",
+        });
+        const ref = {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        };
+        await f.service.execute(f.actor, "create", ref);
+        await expect(
+          f.service.reconcile(f.actor, "create", ref),
+        ).rejects.toThrow();
+        expect((await f.service.status(f.actor, ref)).state).toBe(
+          "outcome_unknown",
+        );
+        await expect(
+          f.service.prepare(f.actor, f.a.id, "create", { text: "Synthetic" }),
+        ).rejects.toThrow("OUTCOME_UNKNOWN");
+      });
     it("rejects changed documents and policy changes before dispatch", async () => {
       const f = await setup();
       const p = await f.service.prepare(f.actor, f.a.id, "create", {
@@ -255,6 +369,17 @@ export function businessWritesContract(fixture: () => Promise<StateStore>) {
           ...success,
           id: crypto.randomUUID(),
           state: "outcome_unknown",
+        });
+        c.business?.executions.push({
+          ...success,
+          id: crypto.randomUUID(),
+          state: "applied_different",
+          difference: {
+            expected_digest: "a".repeat(64),
+            observed_digest: "b".repeat(64),
+            fields: ["Amount"],
+            proof: "retained_provider_response_and_exact_readback",
+          },
         });
       });
       await cleanupProduct(f.state, Date.now() + 31 * 86400000);

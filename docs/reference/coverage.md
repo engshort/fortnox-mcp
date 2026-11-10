@@ -279,3 +279,57 @@ retains the isolated test profile and expiry; invoice/order/payment provider
 lifecycles and payroll remain unavailable. Existing operation ledgers retain their
 classification and missing acceptance. See [implementation/evidence and S04/S05
 handoff](../implementation/S11-company-programs.md).
+
+## Milestone 7 work in progress
+
+The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Full financial breadth and actual G07/ChatGPT evidence remain pending; a narrow hourly create/update/delete lifecycle has passed product MCP/domain and actual provider readback. No full financial correctness or payroll gate is closed.
+
+The M07 known-effect follow-up distinguishes `applied_different` from intended
+success and uncertain delivery. Only an acknowledged exact provider identity
+plus verified stable-field readback can establish it; original hashes and
+bounded field-name/hash evidence remain. Owner Operations shows discrepancies
+separately. This recovery classification activates no provider capability and
+provides no payroll correctness or client-acceptance claim.
+
+M7 adds a bounded explicit-account period/company comparison through the same
+financial source contracts. Both companies are authorized before reads and after
+completion; each report retains its own coverage, currency and reconciliation.
+The local operation remains unverified/default-off pending actual acceptance.
+Prepared payroll inputs also bind their verified reference profile so changed
+operation evidence cannot silently authorize an earlier preparation.
+
+M7 current receivable/payable observations use two fixed unfiltered list
+operations, explicit company ownership, bounded pages and source-bound
+continuation. Unknown fields remain visible. Provider credit/currency semantics
+are still unverified, so expected cash-flow sums remain unavailable. Historical
+reskontra is not inferred from current invoice status. Ordinary activation is off.
+
+The bounded M7 liquidity input tool combines selected booked accounts and current
+invoice pages with an explicit due-date assumption. Private company/year mappings
+are source-bound; missing mapping or sign/currency/source evidence prevents a
+complete result. No live bank state, currency conversion or payment initiation
+is introduced. Actual positive ledger/reskontra reconciliation remains pending.
+
+At f89d3d8, actual public OAuth MCP checks confirmed partial liquidity results in
+both sandboxes, historical/foreign-company rejection and read-only denial of all
+three payroll write preparations without a provider write. The known employee
+remained readable and a missing employee returned not-found. CI passed 353 Node
+and 290 actual local workerd/D1 cases. These observations extend the
+[dated delivery evidence](../implementation/M07-analysis-payroll.md#latest-isolated-build-verification);
+zero-state balance matches do not establish positive SIE reconciliation or close
+G07/G10. Actual ChatGPT acceptance remains separate.
+
+A subsequent owner-booked voucher passed independent public OAuth MCP
+reconciliation: its three ordinary rows matched SIE references and exact signed
+movements, and opening plus movements matched all three account-detail closing
+balances. Before/day/after queries selected movements correctly with unchanged
+sources. This bounded positive observation does not establish complete report
+coverage: missing openings, closing-source disagreement, unsupported SIE period
+records and unverified semantics remain explicit. G07/G10 and ChatGPT acceptance
+remain open; no provider write or capability promotion occurred in this check.
+
+Conflicting account-list/SIE opening or closing values are now withheld in the
+combined report, with their source-disagreement limitation preserved. Independent
+detail reads retain their provider label and do not promote report coverage.
+Nine financial transport cases passed in each of Node/SQLite and actual local
+workerd/D1; ordinary activation remains off.

@@ -5,17 +5,17 @@
   "sourceStrategy": "Independent schemas and finite method/path mapping; no copied specification or generated provider code",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/business-writes.ts": "5682e1480c3ea6479b61348e17232008aeb6419cb891d3da88348fa4c4556ad7",
+    "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
     "packages/core/src/sales-documents.ts": "b83dbeca9d6565e25c8c6daac50ec9f92430924448647bede5a42fc6a56bbfe0",
-    "packages/fortnox/src/document-http.ts": "bec3be9bc520246a3d3d37fbef9275641bb2da3871e9fcdcc6a85869bdaa5e02",
+    "packages/fortnox/src/document-http.ts": "f5401bb3f774bd272abffae4879ef3c020595bb6b9a24bb0ba35b2e88798f33c",
     "packages/fortnox/src/sales-documents.ts": "e0dde695f9d28aaaed7ec6f5f4079fceab4baed1728e96903dd48fa986895cac",
-    "packages/fortnox/src/index.ts": "a6d6d36aa46e413f7dad954bee39853f70c46af2ef1645c8be0de6634150605b",
-    "packages/mcp/src/sales-documents.ts": "b480026d543e14f7cd3aaf17ce4087ae14872e57574f587dd2e7e8ef0afa7be1",
-    "packages/mcp/src/companies.ts": "8b0e7cb4b3209bea42ee83c89b6391a48c04558d713aa4657ca66db4c1f73eee",
-    "apps/shared/product.ts": "514c1b227c7239e8f9bdb7de9a1bb830d747468385083173c5d185bf73d4a99c",
-    "apps/node/src/register-test-main.ts": "3434c3d769edde319f18379f7a92a8a7ecf60f9415d58c69c83d7c4b7e4be6ba",
-    "packages/core/src/programs.ts": "dd7ff03119c059184c02ec62ef86f5b78c3f1c9e228a91215783bb28b6579e85"
+    "packages/fortnox/src/index.ts": "44288ec54293e167604a549e01f4cd5af0a8ef1d6515b14052395287630f78bb",
+    "packages/mcp/src/sales-documents.ts": "e43a51429854cb27544e63cf53208bf0f79a83a05a1dc16c27c30032d238de76",
+    "packages/mcp/src/companies.ts": "db266aa62eabc53f75f7d721d448d9f65e111df044da90757562cad3e6696ef0",
+    "apps/shared/product.ts": "d5de75d1802e51afc7862619e21601694bc1297cc9a1a8b428f00f6ca48702cb",
+    "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
+    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "operations": [
     {

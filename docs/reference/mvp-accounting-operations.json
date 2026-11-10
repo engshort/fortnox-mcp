@@ -6,12 +6,12 @@
   "sourceHashes": {
     "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
     "packages/core/src/bookkeeping.ts": "e0bb40cbc6078824336a08b6681fe88c75d338c84264878c2782f2dcb769857d",
-    "packages/core/src/connections.ts": "69d695c338ad4a2ff7606e39477adfb43e3eacff18cdd8b71a68849b1b63bd9c",
+    "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/fortnox/src/accounting.ts": "dd59308d4f4bd1772d1ec30ddddea1eef38d9b962ab75fe2384261644765b1af",
-    "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
+    "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20",
-    "packages/core/src/programs.ts": "dd7ff03119c059184c02ec62ef86f5b78c3f1c9e228a91215783bb28b6579e85"
+    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "gates": {
     "referenceOperations": "#92",
@@ -144,7 +144,7 @@
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
       "parameters": {
         "financialyear": "required explicit positive integer",
-        "Number": "explicit integer 1000\u20139999; at most 20 distinct selected accounts per reference call",
+        "Number": "explicit integer 1000–9999; at most 20 distinct selected accounts per reference call",
         "pagination": "not accepted on detail reads"
       },
       "responseEnvelope": "Account",

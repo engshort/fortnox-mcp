@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import {
+  accountingHash,
   Bookkeeping,
   BusinessWrites,
   Connections,
@@ -52,6 +53,41 @@ async function uncertain(state: StateStore) {
       },
     },
   });
+  const expected = await accountingHash({ Amount: "0.01" });
+  const difference = {
+    expected_digest: expected,
+    observed_digest: await accountingHash({ Amount: "0.00" }),
+    fields: ["Amount"],
+    proof: "retained_provider_response_and_exact_readback" as const,
+  };
+  const known = new BusinessWrites(f.connections, {
+    known: {
+      enabled: true,
+      scope: "bookkeeping",
+      prepare: async () => ({ input: {}, baseline: null, preview: {} }),
+      validate: async () => {},
+      evidence: async () => ({
+        target: null,
+        fields: ["Amount"],
+        digest: expected,
+      }),
+      dispatch: async (_a, _c, _p, before) => {
+        await before();
+        return {
+          state: "applied_different",
+          reference: "synthetic-different-row",
+          difference,
+        };
+      },
+    },
+  });
+  const kp = await known.prepare(f.actor, f.a.id, "known", {});
+  const knownRef = {
+    company_id: kp.company_id,
+    proposal_id: kp.proposal_id,
+    proposal_hash: kp.proposal_hash,
+  };
+  await known.execute(f.actor, "known", knownRef);
   const proposal = await business.prepare(f.actor, f.a.id, "create", {});
   const businessRef = {
     company_id: proposal.company_id,
@@ -59,7 +95,7 @@ async function uncertain(state: StateStore) {
     proposal_hash: proposal.proposal_hash,
   };
   await business.execute(f.actor, "create", businessRef);
-  return { f, p, businessRef };
+  return { f, p, businessRef, knownRef, difference };
 }
 async function verify(
   state: StateStore,
@@ -108,6 +144,11 @@ async function verify(
     { state: "outcome_unknown" },
   );
   expect(calls).toBe(0);
+  expect(await business.status(f.actor, record.knownRef)).toEqual({
+    state: "applied_different",
+    reference: "synthetic-different-row",
+    difference: record.difference,
+  });
 }
 it("bookkeeping and business unknown intents survive closing and reopening SQLite", async () => {
   const dir = mkdtempSync(join(tmpdir(), "m3-sqlite-"));

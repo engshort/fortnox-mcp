@@ -149,7 +149,12 @@ function Operations({
   t: Translate;
   perform: (action: () => Promise<unknown>) => Promise<void>;
 }) {
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const labels: Record<string, string> = {
+    business_reconciliation: t(
+      "Avstämning av registerutfall",
+      "Register outcome reconciliation",
+    ),
     writes: t("Bokföringsskrivningar", "Bookkeeping writes"),
     provider_files: t("Fortnox-filer", "Fortnox files"),
     review_host: t("Granskning i AI-klienten", "AI client review"),
@@ -227,6 +232,38 @@ function Operations({
                   : t("Kvitto eller filkoppling", "Receipt or file connection")}
             </p>
             <code>{outcome.id}</code>
+            {outcome.kind === "business" &&
+              state.capabilities.business_reconciliation && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void perform(async () => {
+                      const result = await api<{ state: string }>(
+                        `/admin/companies/${outcome.company_id}/business/${outcome.id}/reconcile`,
+                        {},
+                      );
+                      setRecoveryMessage(
+                        result.state === "succeeded"
+                          ? t(
+                              "Utfallet har stämts av mot Fortnox.",
+                              "The outcome was reconciled against Fortnox.",
+                            )
+                          : result.state === "applied_different"
+                            ? t(
+                                "Skrivningen har identifierats i Fortnox med avvikande innehåll. Granska avvikelsen nedan.",
+                                "The write was identified in Fortnox with different content. Review the difference below.",
+                              )
+                            : t(
+                                "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
+                                "The outcome remains unknown. No new write was sent.",
+                              ),
+                      );
+                    })
+                  }
+                >
+                  {t("Läs om utfallet", "Read outcome again")}
+                </button>
+              )}
             <p>
               {t(
                 "Kontrollera status och stäm av utfallet i det befintliga arbetsflödet. Skicka inte ett nytt försök medan utfallet är okänt.",
@@ -235,6 +272,7 @@ function Operations({
             </p>
           </article>
         ))}
+        <Message>{recoveryMessage}</Message>
         {state.investigations.length ? (
           <Investigations state={state} t={t} perform={perform} />
         ) : !(state.uncertain_outcomes ?? []).length ? (
@@ -246,6 +284,54 @@ function Operations({
           </p>
         ) : null}
       </section>
+      {!!state.observed_differences?.length && (
+        <section className="content-section">
+          <h2>
+            {t("Genomfört med avvikelse", "Applied with different content")}
+          </h2>
+          <p>
+            {t(
+              "Fortnox har bekräftat skrivningen, men återläsningen avviker från förberedelsen. Detta är inte ett godkänt avsett resultat. Samma skrivning skickas inte igen. Kontrollera resultatet och förbered eventuell rättelse separat.",
+              "Fortnox acknowledged the write, but readback differs from preparation. This is not a successful intended result. The same write will not be resent. Review it and prepare any correction separately.",
+            )}
+          </p>
+          {state.observed_differences.map((item) => (
+            <article
+              className="grant-row"
+              key={`${item.company_id}-${item.id}`}
+            >
+              <Link href={`/admin/companies/${item.company_id}`}>
+                {item.company_name}
+              </Link>
+              <p>{item.operation}</p>
+              <p>
+                {t("Fortnox-referens", "Fortnox reference")}:{" "}
+                <code>{item.reference}</code>
+              </p>
+              <p>
+                {t("Avvikande fält", "Different fields")}:{" "}
+                {item.difference.fields.join(", ")}
+              </p>
+              <details>
+                <summary>
+                  {t("Visa kontrollhashar", "Show evidence hashes")}
+                </summary>
+                <p>
+                  {t("Förberett", "Expected")}:{" "}
+                  <code>{item.difference.expected_digest}</code>
+                </p>
+                <p>
+                  {t("Återläst", "Observed")}:{" "}
+                  <code>{item.difference.observed_digest}</code>
+                </p>
+                <p>
+                  {t("Avsikt", "Intent")}: <code>{item.id}</code>
+                </p>
+              </details>
+            </article>
+          ))}
+        </section>
+      )}
       <button
         className="secondary"
         type="button"
@@ -332,17 +418,32 @@ function App() {
         "Företaget har ett pågående eller okänt skrivutfall. Stäm av utfallet under Drift innan du ändrar programanslutningen.",
         "The company has a pending or unknown write outcome. Reconcile it under Operations before changing program access.",
       )
-    : message === "AUTH_REQUIRED"
+    : message === "SIGN_IN_FAILED"
       ? t(
-          "Din session har gått ut. Logga in igen.",
-          "Your session has expired. Sign in again.",
+          "Inloggningen misslyckades. Kontrollera e-post och lösenord.",
+          "Sign-in failed. Check your email and password.",
         )
-      : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+      : message === "AUTH_UNAVAILABLE"
         ? t(
-            "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
-            "Could not complete the action. Check the connection and try again.",
+            "Inloggningstjänsten kunde inte skapa en session. Försök igen om en stund.",
+            "The sign-in service could not create a session. Try again shortly.",
           )
-        : message;
+        : message === "RATE_LIMITED"
+          ? t(
+              "För många försök. Vänta en minut och försök igen.",
+              "Too many attempts. Wait one minute and try again.",
+            )
+          : message === "AUTH_REQUIRED"
+            ? t(
+                "Din session har gått ut. Logga in igen.",
+                "Your session has expired. Sign in again.",
+              )
+            : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+              ? t(
+                  "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
+                  "Could not complete the action. Check the connection and try again.",
+                )
+              : message;
   if (!admin)
     return (
       <div className="auth-page">

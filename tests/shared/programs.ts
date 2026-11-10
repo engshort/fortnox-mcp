@@ -2,6 +2,8 @@ import {
   type AccountingProvider,
   assertScopeProgram,
   Bookkeeping,
+  type BusinessExecution,
+  BusinessWrites,
   Connections,
   CredentialVault,
   type ProgramChange,
@@ -19,6 +21,7 @@ import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 const gates = {
   references: true,
   receiptConsent: true,
+  payrollConsent: true,
   registerScopes: ["customer", "article", "supplier", "settings", "currency"],
 };
 const bookkeeping: ProgramChange = {
@@ -175,6 +178,156 @@ export function programContract(fixture: () => Promise<StateStore>) {
         f.provider.finish("owner", "session", flow.callback),
       ).rejects.toThrow("AUTH_REQUIRED");
       expect(f.calls()).toBe(calls);
+    },
+  );
+  it("collects salary consent only with its own gate and never treats consent as payroll activation", async () => {
+    const f = await seed();
+    const change: ProgramChange = {
+      program: "payroll",
+      features: ["payroll-input"],
+      expected_revision: 0,
+    };
+    expect(() =>
+      previewProgram(f.a, change, { references: true, receiptConsent: true }),
+    ).toThrow("CAPABILITY_UNAVAILABLE");
+    const flow = await f.begin(f.a.id, change);
+    expect(flow.url.searchParams.get("scope")).toBe(
+      "companyinformation profile salary",
+    );
+    const result = await f.provider.finish("owner", "session", flow.callback);
+    expect(result.scopes).toContain("salary");
+    expect(
+      programStatus(result, gates).programs.find((p) => p.id === "payroll")
+        ?.availability,
+    ).toBe("planned");
+    await expect(
+      f.connections.authorize("owner", "old-client", f.a.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    expect(
+      (await f.connections.authorize("owner", "old-client", f.b.id)).scopes,
+    ).not.toContain("salary");
+  });
+  it("adds payroll consent without deleting a tenant-bound unknown article outcome or enabling duplicate writes", async () => {
+    const f = await seed();
+    const execution: BusinessExecution = {
+      id: crypto.randomUUID(),
+      hash: "a".repeat(64),
+      operation: "article.create",
+      client: "old-client",
+      generation: f.a.generation,
+      created: Date.now(),
+      state: "outcome_unknown",
+      tenant: f.a.tenant,
+    };
+    await f.connections.mutate("owner", f.a.id, (c) => {
+      c.scopes.push("article");
+      c.business = { proposals: [], executions: [execution] };
+    });
+    const flow = await f.begin(f.a.id, {
+      program: "payroll",
+      features: ["payroll-input"],
+      expected_revision: 0,
+    });
+    const current = await f.provider.finish("owner", "session", flow.callback);
+    expect(current.business?.executions).toEqual([execution]);
+    expect(current.generation).toBe(f.a.generation + 1);
+    await expect(
+      f.connections.authorize("owner", "old-client", f.a.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await f.connections.grant("owner", "new-recovery-test-client", [f.a.id]);
+    await f.connections.setAccountingPolicy(
+      "owner",
+      f.a.id,
+      current.policyVersion,
+      "review_required",
+      false,
+    );
+    const operation = {
+      scope: "article",
+      enabled: true,
+      prepare: async () => {
+        throw new Error("must not prepare");
+      },
+      validate: async () => {},
+      dispatch: async () => {
+        throw new Error("must not dispatch");
+      },
+      reconcile: async (actor: {
+        ownerId: string;
+        clientId: string;
+        scopes: readonly string[];
+      }) => {
+        expect(actor.scopes).toEqual(["mcp:read"]);
+        expect(
+          (await f.connections.authorize(actor.ownerId, actor.clientId, f.a.id))
+            .generation,
+        ).toBe(current.generation);
+        expect(
+          (await f.connections.list("owner"))[0]?.business?.executions[0]
+            ?.client,
+        ).toBe("old-client");
+        return { state: "outcome_unknown" as const };
+      },
+    };
+    const writes = new BusinessWrites(f.connections, {
+      "article.create": operation,
+    });
+    const actor = {
+      ownerId: "owner",
+      clientId: "new-recovery-test-client",
+      scopes: ["mcp:read", "mcp:write"],
+    };
+    expect(
+      (await writes.reconcileOwner("owner", f.a.id, execution.id)).state,
+    ).toBe("outcome_unknown");
+    await expect(
+      f.connections.authorize(
+        "owner",
+        `owner-recovery:owner:${f.a.id}`,
+        f.a.id,
+      ),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await expect(
+      writes.reconcileOwner("foreign-owner", f.a.id, execution.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await expect(
+      writes.prepare(actor, f.a.id, "article.create", {}),
+    ).rejects.toThrow("OUTCOME_UNKNOWN");
+  });
+  it.each(["submitting", "legacy", "payroll", "wrong-tenant"])(
+    "still blocks payroll consent for %s uncertainty",
+    async (kind) => {
+      const f = await seed();
+      await f.connections.mutate("owner", f.a.id, (c) => {
+        c.business = {
+          proposals: [],
+          executions: [
+            {
+              id: crypto.randomUUID(),
+              hash: "a".repeat(64),
+              operation:
+                kind === "payroll"
+                  ? "salary_transaction.create"
+                  : "article.create",
+              client: "old-client",
+              generation: c.generation,
+              created: Date.now(),
+              state: kind === "submitting" ? "submitting" : "outcome_unknown",
+              ...(kind !== "legacy"
+                ? { tenant: kind === "wrong-tenant" ? "100002" : c.tenant }
+                : {}),
+            },
+          ],
+        };
+      });
+      await expect(
+        f.begin(f.a.id, {
+          program: "payroll",
+          features: ["payroll-input"],
+          expected_revision: 0,
+        }),
+      ).rejects.toThrow("OUTCOME_UNKNOWN");
+      expect(f.calls()).toBe(0);
     },
   );
   it("keeps scope unions company-bound with concurrent flows and verifies each target tenant", async () => {
@@ -510,6 +663,14 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
         }),
       );
     expect((await req(base, undefined, config.origin, false)).status).toBe(401);
+    const recoveryPath = `${base}/business/${crypto.randomUUID()}/reconcile`;
+    expect((await req(recoveryPath, {}, config.origin, false)).status).toBe(
+      401,
+    );
+    expect(
+      (await req(recoveryPath, {}, "https://foreign.invalid")).status,
+    ).toBe(403);
+    expect((await req(recoveryPath, {})).status).toBe(400);
     expect((await req(`${base}/bookkeeping`)).status).toBe(200);
     expect(
       (await req(`${base}/programs`, undefined, config.origin, false)).status,
@@ -561,6 +722,7 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
       partial: false,
     });
     const execution = crypto.randomUUID();
+    const different = crypto.randomUUID();
     await app.connections.mutate(owner.response.user.id, a.id, (c) => {
       c.business = {
         proposals: [],
@@ -574,6 +736,22 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
             created: Date.now(),
             state: "outcome_unknown",
           },
+          {
+            id: different,
+            hash: "1".repeat(64),
+            operation: "salary_transaction.create",
+            client: "synthetic-client-grant",
+            generation: c.generation,
+            created: Date.now(),
+            state: "applied_different",
+            reference: "synthetic-row",
+            difference: {
+              expected_digest: "a".repeat(64),
+              observed_digest: "b".repeat(64),
+              fields: ["Amount", "Total"],
+              proof: "retained_provider_response_and_exact_readback",
+            },
+          },
         ],
       };
     });
@@ -582,6 +760,14 @@ export function programHttpContract(fixture: () => Promise<AuthConfig>) {
     expect(await status.json()).toMatchObject({
       uncertain_outcomes: [
         { company_id: a.id, kind: "business", id: execution },
+      ],
+      observed_differences: [
+        {
+          company_id: a.id,
+          id: different,
+          reference: "synthetic-row",
+          difference: { fields: ["Amount", "Total"] },
+        },
       ],
     });
     expect(calls).toBe(0);

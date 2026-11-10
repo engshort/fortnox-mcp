@@ -1,5 +1,4 @@
 import {
-  assertNoUncertainWrites,
   type Ciphertext,
   type Connection,
   type Connections,
@@ -144,6 +143,7 @@ export class FortnoxConnections {
               "invoice",
               "supplierinvoice",
               "payment",
+              "salary",
             ].includes(s),
         ))
     )
@@ -441,7 +441,6 @@ export class FortnoxConnections {
           programSelection(target).revision !== flow.extension.revision
         )
           throw new DomainError("CONNECTION_CONFLICT");
-        assertNoUncertainWrites(target);
         previewProgram(target, flow.extension.change, this.gates());
       }
       const input = flowSecret.parse(
@@ -547,6 +546,7 @@ export class FortnoxConnections {
             { ...identity, mode: flow.mode },
             flow.extension.selection,
             credentials,
+            flow.extension.change,
           );
         }
         return await this.config.connections.reconnect(

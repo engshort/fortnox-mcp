@@ -22,7 +22,13 @@ export interface BusinessExecution {
   client: string;
   generation: number;
   created: number;
-  state: "submitting" | "succeeded" | "failed" | "outcome_unknown";
+  state:
+    | "submitting"
+    | "succeeded"
+    | "failed"
+    | "outcome_unknown"
+    | "applied_different";
+  difference?: BusinessDifference;
   reference?: string | undefined;
   tenant?: string;
   evidence?: BusinessEvidence;
@@ -35,6 +41,64 @@ const businessEvidence = z
   })
   .strict();
 export type BusinessEvidence = z.infer<typeof businessEvidence>;
+export const businessDifference = z
+  .object({
+    expected_digest: z.string().regex(/^[a-f0-9]{64}$/),
+    observed_digest: z.string().regex(/^[a-f0-9]{64}$/),
+    fields: z
+      .array(z.string().regex(/^[A-Z][A-Za-z0-9]{0,63}$/))
+      .min(1)
+      .max(64),
+    proof: z.literal("retained_provider_response_and_exact_readback"),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      v.expected_digest !== v.observed_digest &&
+      new Set(v.fields).size === v.fields.length,
+  );
+export type BusinessDifference = z.infer<typeof businessDifference>;
+const resultSchema = z
+  .object({
+    state: z.enum([
+      "succeeded",
+      "failed",
+      "outcome_unknown",
+      "applied_different",
+    ]),
+    reference: z.string().min(1).max(128).optional(),
+    difference: businessDifference.optional(),
+  })
+  .strict()
+  .refine((v) =>
+    v.state === "applied_different"
+      ? !!v.reference && !!v.difference
+      : v.difference === undefined,
+  );
+function verifiedResult(
+  input: unknown,
+  evidence: BusinessEvidence | undefined,
+  knownReference?: string,
+  reconciling = false,
+) {
+  const result = resultSchema.parse(input);
+  if (reconciling && result.state === "failed")
+    throw new DomainError("VALIDATION_FAILED");
+  if (
+    result.state === "applied_different" &&
+    (!evidence ||
+      result.difference?.expected_digest !== evidence.digest ||
+      result.difference.fields.some((f) => !evidence.fields.includes(f)) ||
+      (reconciling && (!knownReference || result.reference !== knownReference)))
+  )
+    throw new DomainError("VALIDATION_FAILED");
+  return {
+    state: result.state,
+    ...(result.reference ? { reference: result.reference } : {}),
+    ...(result.difference ? { difference: result.difference } : {}),
+  };
+}
+
 export interface BusinessState {
   proposals: BusinessProposal[];
   executions: BusinessExecution[];
@@ -53,7 +117,8 @@ export interface PreparedBusinessWrite {
   preview: unknown;
 }
 export type BusinessWriteResult = {
-  state: "succeeded" | "failed" | "outcome_unknown";
+  state: "succeeded" | "failed" | "outcome_unknown" | "applied_different";
+  difference?: BusinessDifference;
   reference?: string | undefined;
 };
 // Only independently registered domain operations may be dispatched. No method,
@@ -245,6 +310,7 @@ export class BusinessWrites {
       ? {
           state: e.state === "submitting" ? "outcome_unknown" : e.state,
           ...(e.reference ? { reference: e.reference } : {}),
+          ...(e.difference ? { difference: e.difference } : {}),
         }
       : { state: "prepared" as const };
   }
@@ -327,13 +393,7 @@ export class BusinessWrites {
         dispatched = true;
       });
       if (!dispatched) result = { state: "failed" };
-      result = z
-        .object({
-          state: z.enum(["succeeded", "failed", "outcome_unknown"]),
-          reference: z.string().min(1).max(128).optional(),
-        })
-        .strict()
-        .parse(result);
+      result = verifiedResult(result, evidence);
     } catch {
       result = { state: dispatched ? "outcome_unknown" : "failed" };
     }
@@ -345,6 +405,7 @@ export class BusinessWrites {
       if (e?.state !== "submitting") throw new DomainError("INTENT_CONFLICT");
       e.state = result.state;
       if (result.reference) e.reference = result.reference;
+      if (result.difference) e.difference = result.difference;
     });
     await this.authorize(actor, ref.company_id, op);
     return result;
@@ -365,7 +426,7 @@ export class BusinessWrites {
         e.operation === operation,
     );
     if (!execution) throw new DomainError("PROPOSAL_STALE");
-    if (execution.state === "succeeded" || execution.state === "failed")
+    if (["succeeded", "failed", "applied_different"].includes(execution.state))
       return this.status(actor, ref);
     if (
       execution.tenant
@@ -381,13 +442,12 @@ export class BusinessWrites {
     )
       return this.status(actor, ref);
     if (!op.reconcile) throw new DomainError("CAPABILITY_UNAVAILABLE");
-    const result = z
-      .object({
-        state: z.enum(["succeeded", "outcome_unknown"]),
-        reference: z.string().min(1).max(128).optional(),
-      })
-      .strict()
-      .parse(await op.reconcile(actor, ref.company_id, execution));
+    const result = verifiedResult(
+      await op.reconcile(actor, ref.company_id, execution),
+      execution.evidence,
+      execution.reference,
+      true,
+    );
     await this.authorize(actor, ref.company_id, op, false);
     await this.connections.mutate(actor.ownerId, ref.company_id, (c) => {
       if (c.generation !== before.generation || c.tenant !== before.tenant)
@@ -402,8 +462,80 @@ export class BusinessWrites {
       if (e.state === "submitting" || e.state === "outcome_unknown") {
         e.state = result.state;
         if (result.reference) e.reference = result.reference;
+        if (result.difference) e.difference = result.difference;
       }
     });
     return this.status(actor, ref);
+  }
+  // Called only by the authenticated same-origin owner administration route.
+  // The owner can reconcile retained tenant-bound evidence after an additive
+  // consent invalidates the originating MCP grant. No dispatch or reference
+  // attestation is performed and no identity on the old intent is rewritten.
+  async reconcileOwner(owner: string, company: string, id: string) {
+    z.string().uuid().parse(company);
+    z.string().uuid().parse(id);
+    const before = (await this.connections.list(owner)).find(
+      (c) => c.id === company,
+    );
+    const execution = before?.business?.executions.find((e) => e.id === id);
+    if (!before || !execution || execution.tenant !== before.tenant)
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const op = Object.hasOwn(this.operations, execution.operation)
+      ? this.operations[execution.operation]
+      : undefined;
+    if (!op?.reconcile || !before.scopes.includes(op.scope))
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    assertScopeProgram(before, op.scope);
+    if (["succeeded", "failed", "applied_different"].includes(execution.state))
+      return {
+        state: execution.state,
+        reference: execution.reference,
+        ...(execution.difference ? { difference: execution.difference } : {}),
+      };
+    if (
+      execution.state === "submitting" &&
+      execution.created + 120000 > this.now()
+    )
+      return {
+        state: "outcome_unknown" as const,
+        reference: execution.reference,
+      };
+    const result = await this.connections.ownerRecoveryRead(
+      owner,
+      company,
+      async (actor) => {
+        const value = await op.reconcile?.(actor, company, execution);
+        return verifiedResult(
+          value,
+          execution.evidence,
+          execution.reference,
+          true,
+        );
+      },
+    );
+    await this.connections.mutate(owner, company, (c) => {
+      if (
+        c.generation !== before.generation ||
+        c.tenant !== execution.tenant ||
+        c.state !== "active"
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      assertScopeProgram(c, op.scope);
+      if (!c.scopes.includes(op.scope))
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      const current = c.business?.executions.find(
+        (e) =>
+          e.id === id &&
+          e.hash === execution.hash &&
+          e.client === execution.client,
+      );
+      if (!current) throw new DomainError("PROPOSAL_STALE");
+      if (["submitting", "outcome_unknown"].includes(current.state)) {
+        current.state = result.state;
+        if (result.reference) current.reference = result.reference;
+        if (result.difference) current.difference = result.difference;
+      }
+    });
+    return result;
   }
 }

@@ -113,7 +113,7 @@ export function parseExactProviderJson(text: string): unknown {
     ),
   );
 }
-export async function boundedResponse(response: Response, max = 65536) {
+export async function boundedBytes(response: Response, max = 65536) {
   const reader = response.body?.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -139,7 +139,10 @@ export async function boundedResponse(response: Response, max = 65536) {
     out.set(c, offset);
     offset += c.length;
   }
-  return new TextDecoder().decode(out);
+  return out;
+}
+export async function boundedResponse(response: Response, max = 65536) {
+  return new TextDecoder().decode(await boundedBytes(response, max));
 }
 // Durable no-burst pacing: at most one reservation per 210 ms per client/tenant.
 // Unlike an isolate-local token bucket, separate Worker instances share this CAS.

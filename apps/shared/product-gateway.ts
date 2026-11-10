@@ -242,6 +242,7 @@ export function createProductGateway(
         identity = await auth.api.verifyProductToken({
           body: { token: authorization.slice(7) },
         });
+        if (identity.clientId.startsWith("owner-recovery:")) throw new Error();
       } catch {
         return challenge();
       }

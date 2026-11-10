@@ -395,23 +395,51 @@ export function ProgramConnectionDialog({
   const [preview, setPreview] = useState<ProgramPreview | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [latestPrograms, setLatestPrograms] = useState<
+    Company["programs"] | null
+  >(null);
   const [files, setFiles] = useState(
     company.programs.features.includes("receipt-files"),
   );
   const available =
-    company.programs.programs.find((p) => p.id === program)?.connect_features ??
+    latestPrograms?.programs.find((p) => p.id === program)?.connect_features ??
     [];
   const features: FeatureId[] = [
     ...available.filter((id) => id !== "receipt-files"),
-    ...(files ? ["receipt-files" as const] : []),
+    ...(available.includes("receipt-files") && files
+      ? ["receipt-files" as const]
+      : []),
   ];
   const featureKey = features.join(",");
   const selection = {
     program,
     features,
-    expected_revision: company.programs.revision,
+    expected_revision: latestPrograms?.revision ?? company.programs.revision,
   };
   useEffect(() => {
+    let active = true;
+    setLatestPrograms(null);
+    void api<Company["programs"]>(
+      `/admin/companies/${company.company_id}/programs`,
+    )
+      .then((current) => {
+        if (active) setLatestPrograms(current);
+      })
+      .catch(() => {
+        if (active)
+          setError(
+            t(
+              "Anslutningen kunde inte läsas. Ladda om sidan och försök igen.",
+              "Could not read the connection. Reload the page and try again.",
+            ),
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [company.company_id, t]);
+  useEffect(() => {
+    if (!latestPrograms) return;
     let active = true;
     setPreview(null);
     setError("");
@@ -420,26 +448,34 @@ export function ProgramConnectionDialog({
       {
         program,
         features: featureKey.split(","),
-        expected_revision: company.programs.revision,
+        expected_revision: latestPrograms.revision,
       },
     )
       .then((result) => {
         if (active) setPreview(result);
       })
-      .catch(() => {
+      .catch((failure: unknown) => {
         if (active)
           setError(
-            t(
-              "Åtkomsten kunde inte förberedas. Kontrollera anslutningen och försök igen.",
-              "Could not prepare access. Check the connection and try again.",
-            ),
+            failure instanceof Error &&
+              failure.message.includes("OUTCOME_UNKNOWN")
+              ? t(
+                  "En tidigare skrivning har okänt resultat. Utred resultatet innan du ändrar den berörda åtkomsten.",
+                  "A previous write has an unknown outcome. Reconcile it before changing the affected access.",
+                )
+              : t(
+                  "Åtkomsten kunde inte förberedas. Kontrollera anslutningen och försök igen.",
+                  "Could not prepare access. Check the connection and try again.",
+                ),
           );
       });
     return () => {
       active = false;
     };
-  }, [company.company_id, company.programs.revision, program, featureKey, t]);
-  const label = company.programs.programs.find((p) => p.id === program);
+  }, [company.company_id, latestPrograms, program, featureKey, t]);
+  const label = (latestPrograms ?? company.programs).programs.find(
+    (p) => p.id === program,
+  );
   return (
     <dialog
       ref={ref}
@@ -498,7 +534,7 @@ export function ProgramConnectionDialog({
               <dt>{t("Redan anslutet", "Already connected")}</dt>
               <dd>
                 {t("Företagsuppgifter", "Company information")}
-                {company.programs.programs
+                {(latestPrograms ?? company.programs).programs
                   .filter((p) => p.selected)
                   .map((p) => `, ${t(p.sv, p.en)}`)
                   .join("")}
@@ -526,7 +562,10 @@ export function ProgramConnectionDialog({
                 checked={files}
                 onChange={(e) => setFiles(e.target.checked)}
                 disabled={
-                  busy || company.programs.features.includes("receipt-files")
+                  busy ||
+                  (latestPrograms ?? company.programs).features.includes(
+                    "receipt-files",
+                  )
                 }
               />
               <span>

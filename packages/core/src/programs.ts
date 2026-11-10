@@ -14,6 +14,7 @@ export const featureId = z.enum([
   "receipt-files",
   "customer-registers",
   "supplier-registers",
+  "payroll-input",
 ]);
 export type FeatureId = z.infer<typeof featureId>;
 export const baseScopes = ["companyinformation", "profile"] as const;
@@ -33,6 +34,10 @@ export const featureLabels = {
   "supplier-registers": {
     sv: "Leverantörer och nödvändiga referenser",
     en: "Suppliers and required references",
+  },
+  "payroll-input": {
+    sv: "Löneunderlag och verifierade referenser",
+    en: "Payroll input and verified references",
   },
 } as const;
 const programCapabilities = {
@@ -114,10 +119,15 @@ export const programManifest = [
     en: "Payroll",
     scopes: ["salary"],
     implementation: "not_implemented",
-    features: [],
+    features: ["payroll-input"],
   },
 ] as const;
 export const featureManifest = {
+  "payroll-input": {
+    scopes: ["salary"],
+    dependsOn: [],
+    implementation: "not_implemented",
+  },
   references: {
     scopes: ["bookkeeping", "settings", "costcenter", "project"],
     dependsOn: [],
@@ -148,6 +158,8 @@ export interface ProgramGates {
   references: boolean;
   receiptConsent: boolean;
   registerScopes?: readonly string[];
+  // Consent permits evidence collection only; payroll execution has its own gate.
+  payrollConsent?: boolean;
 }
 // Older snapshots already have explicit provider consent. Derivation changes no
 // credential, generation, grant or operation activation gate.
@@ -210,6 +222,7 @@ export function assertScopeProgram(c: Connection, scope: string) {
     if ((p.scopes as readonly string[]).includes(scope)) assertProgram(c, p.id);
 }
 function featureScopes(id: FeatureId, gates: ProgramGates): string[] {
+  if (id === "payroll-input") return gates.payrollConsent ? ["salary"] : [];
   if (id === "references")
     return gates.references ? [...featureManifest.references.scopes] : [];
   if (id === "receipt-files")
@@ -254,6 +267,48 @@ export function assertNoUncertainWrites(c: Connection) {
   )
     throw new DomainError("OUTCOME_UNKNOWN");
 }
+// An additive payroll consent need not erase or block reconciliation of a
+// tenant-bound register/document outcome. In-flight writes, legacy unbound
+// outcomes and bookkeeping/receipt/payroll uncertainty still prevent extension.
+// This exception affects consent only; BusinessWrites still blocks new writes.
+export function assertProgramConsentChange(
+  c: Connection,
+  input: ProgramChange,
+) {
+  if (
+    input.program !== "payroll" ||
+    input.features.length !== 1 ||
+    input.features[0] !== "payroll-input"
+  ) {
+    assertNoUncertainWrites(c);
+    return;
+  }
+  if (
+    (c.bookkeeping?.executions ?? []).some((e) =>
+      ["submitting", "outcome_unknown"].includes(e.state),
+    ) ||
+    (c.receiptBatches ?? []).some((b) =>
+      b.items.some((i) =>
+        Object.values(i.steps).some((s) =>
+          ["submitting", "outcome_unknown"].includes(s.state),
+        ),
+      ),
+    )
+  )
+    throw new DomainError("OUTCOME_UNKNOWN");
+  for (const execution of c.business?.executions ?? []) {
+    if (execution.state === "submitting")
+      throw new DomainError("OUTCOME_UNKNOWN");
+    if (
+      execution.state === "outcome_unknown" &&
+      (execution.tenant !== c.tenant ||
+        !/^(?:customer|supplier|article|offer|order|invoice)\./.test(
+          execution.operation,
+        ))
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
+  }
+}
 export function previewProgram(
   c: Connection,
   input: ProgramChange,
@@ -263,7 +318,7 @@ export function previewProgram(
   const selected = programSelection(c);
   if (c.state !== "active" || selected.revision !== input.expected_revision)
     throw new DomainError("CONNECTION_CONFLICT");
-  assertNoUncertainWrites(c);
+  assertProgramConsentChange(c, input);
   const manifest = programManifest.find((p) => p.id === input.program);
   if (
     !manifest ||

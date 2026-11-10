@@ -1,5 +1,6 @@
 import {
   type AccountingActor,
+  businessDifference,
   businessReference,
   DomainError,
   priceSelection,
@@ -52,7 +53,14 @@ const envelope = (data: z.ZodType) =>
 const execution = envelope(
   z
     .object({
-      state: z.enum(["prepared", "succeeded", "failed", "outcome_unknown"]),
+      state: z.enum([
+        "prepared",
+        "succeeded",
+        "failed",
+        "outcome_unknown",
+        "applied_different",
+      ]),
+      difference: businessDifference.optional(),
       reference: z.string().optional(),
     })
     .strict(),

@@ -113,7 +113,11 @@ export function Login({
     onError("");
     const form = event.currentTarget,
       data = Object.fromEntries(new FormData(form));
-    form.reset();
+    // Clear secrets promptly while preserving the email for a failed retry.
+    for (const field of form.querySelectorAll<HTMLInputElement>(
+      'input[type="password"]',
+    ))
+      field.value = "";
     try {
       await api(
         reset

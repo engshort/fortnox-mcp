@@ -112,12 +112,37 @@ test("owner bootstraps, stores write-only credentials, switches language and sig
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   await page.getByLabel("Email").fill("browser-owner@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("incorrect-synthetic-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByText("Sign-in failed. Check your email and password.", { exact:true })).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveValue("browser-owner@example.invalid");
+  await expect(page.getByLabel("Password", { exact:true })).toHaveValue("");
+  await page.screenshot({path:join(tmpdir(),`owner-login-retry-${info.project.name}.png`),fullPage:true});
   await page.getByLabel("Password", { exact: true }).fill("synthetic-browser-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Your companies" })).toBeVisible();
+  await page.route("**/admin/state", async (route) => {
+    const response = await route.fetch();
+    const state = await response.json();
+    state.observed_differences = [{
+      company_id: "00000000-0000-4000-8000-000000000001", company_name: "Synthetic company",
+      id: "00000000-0000-4000-8000-000000000002", operation: "salary_transaction.create", reference: "synthetic-row",
+      difference: { expected_digest: "a".repeat(64), observed_digest: "b".repeat(64), fields: ["Amount", "Total"],
+        proof: "retained_provider_response_and_exact_readback" },
+    }];
+    await route.fulfill({ response, json: state });
+  });
+  await page.goto(`${origin}/admin/operations`);
+  await expect(page.getByRole("heading", { name: "Applied with different content", exact: true })).toBeVisible();
+  await expect(page.getByText("Different fields: Amount, Total", { exact: true })).toBeVisible();
+  await expect(page.getByText(/This is not a successful intended result/)).toBeVisible();
+  await page.getByText("Show evidence hashes", { exact: true }).click();
+  await expect(page.getByText("a".repeat(64), { exact: true })).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), `m7-known-difference-${info.project.name}.png`), fullPage: true });
+  await page.unroute("**/admin/state");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
+  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);
 });
 
 
@@ -194,5 +219,43 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await expect(page.getByText(execution, { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
+  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);
+});
+
+test("payroll consent excludes existing receipt access and refreshes stale program revision", async ({page}) => {
+  const login=await page.request.post(`${origin}/auth/sign-in/email`,{headers:{origin},data:{email:"browser-owner@example.invalid",password:"synthetic-browser-password"}});
+  expect(login.ok()).toBe(true);
+  const state=await (await page.request.get(`${origin}/admin/state`)).json();
+  const company=state.companies.find((c:{state:string})=>c.state==="active");
+  if(!company)throw new Error("Synthetic active company missing");
+  const freshRevision=company.programs.revision+5;
+  const payrollFeature={id:"payroll-input",sv:"Löneunderlag och verifierade referenser",en:"Payroll input and verified references"};
+  const exposePayroll=(programs:any)=>{
+    programs.features=[...new Set([...programs.features,"receipt-files"])];
+    const payroll=programs.programs.find((p:{id:string})=>p.id==="payroll");
+    payroll.can_connect=true;payroll.connect_features=["payroll-input"];payroll.connection_features=[payrollFeature];
+  };
+  await page.route("**/admin/state",async(route)=>{
+    const response=await route.fetch(), current=await response.json();
+    const selected=current.companies.find((c:{company_id:string})=>c.company_id===company.company_id);
+    exposePayroll(selected.programs);
+    await route.fulfill({response,json:current});
+  });
+  await page.route(`**/admin/companies/${company.company_id}/programs`,async(route)=>{
+    const response=await route.fetch(), current=await response.json();
+    exposePayroll(current);current.revision=freshRevision;
+    await route.fulfill({response,json:current});
+  });
+  let previews=0;
+  await page.route(`**/admin/companies/${company.company_id}/programs/preview`,async(route)=>{
+    previews++;
+    expect(route.request().postDataJSON()).toEqual({program:"payroll",features:["payroll-input"],expected_revision:freshRevision});
+    await route.fulfill({status:400,contentType:"application/json",json:{error:"CONNECTION_REQUEST_FAILED",reason:"OUTCOME_UNKNOWN",stage:"program_connection"}});
+  });
+  await page.goto(`${origin}/admin/companies/${company.company_id}/payroll`);
+  await page.getByRole("button",{name:"Anslut program",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Anslut Lön",exact:true});
+  await expect(dialog.getByRole("status")).toContainText("En tidigare skrivning har okänt resultat");
+  await expect(dialog.getByRole("button",{name:"Fortsätt till Fortnox",exact:true})).toBeDisabled();
+  expect(previews).toBe(1);
 });

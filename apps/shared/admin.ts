@@ -204,9 +204,30 @@ export function createAdmin(config: AuthConfig) {
             body: JSON.stringify(body),
           }),
         );
+        let status = response.ok ? 200 : 401;
+        let error = "AUTH_REQUIRED";
+        if (!response.ok && url.pathname === "/auth/sign-in/email") {
+          // Never return the provider's message or distinguish an unknown email
+          // from a wrong password. A failed login is not an expired session.
+          const failure = (await response.json().catch(() => null)) as {
+            code?: unknown;
+          } | null;
+          if (response.status === 429) {
+            status = 429;
+            error = "RATE_LIMITED";
+          } else if (failure?.code === "INVALID_EMAIL_OR_PASSWORD") {
+            error = "SIGN_IN_FAILED";
+          } else if (response.status === 400) {
+            status = 400;
+            error = "VALIDATION_FAILED";
+          } else {
+            status = 503;
+            error = "AUTH_UNAVAILABLE";
+          }
+        }
         const safe = safeResponse(
-          response.ok ? '{"ok":true}' : '{"error":"AUTH_REQUIRED"}',
-          response.ok ? 200 : 401,
+          response.ok ? '{"ok":true}' : JSON.stringify({ error }),
+          status,
         );
         for (const cookie of response.headers.getSetCookie())
           safe.headers.append("set-cookie", cookie);

@@ -160,6 +160,18 @@ revalidates source state. Standard client approvals do not authorize manual
 vouchers or override read-only, restore, provider or ownership checks.
 See [the foundation evidence](../implementation/S04-S05-business-writes.md).
 
+`applied_different` is a terminal known-effect result, distinct from intended
+success and from uncertain delivery. It requires a retained exact provider-response
+reference, exact-ID readback, and operation-specific evidence that stable identity
+fields match. The expected digest must equal the immutable execution evidence;
+the observed digest must differ. Store only the two hashes and bounded changed
+field names. Reconciliation may not introduce a different or previously unknown
+reference to establish this result. Only explicitly implemented adapters can
+classify it; generic mismatches remain unknown. The original intent is never
+resent and its hash is never replaced. Show the discrepancy to the owner and
+prepare any correction as a separate validated intent. This status establishes
+neither successful intended content nor a cause for the observed difference.
+
 ### S04 register tools (isolated test profile only)
 
 `list_customers`/`list_suppliers`/`list_articles` accept only their resource's
@@ -176,7 +188,7 @@ empty values and `API_BLANK` do not provide an unverified clearing shortcut.
 
 `reconcile_customer_create`/`reconcile_customer_update` and counterparts perform
 only authenticated reads against trusted IDs. Exact field digests can establish
-matching current state. Unknown identity, mismatch or absence stays unknown;
+matching current state. Unknown identity, unproven mismatch or absence stays unknown;
 no reconciliation tool resends. `get_register_write_status` reads only the
 initiating client's durable proposal/execution. No tool supplies manual-voucher
 approval, a provider URL, arbitrary method/body or bank instructions.
@@ -212,3 +224,74 @@ S04/S05 test entry permits at most six document read operations and refuses writ
 activation. Contracts, evidence and outstanding acceptance are in the
 [S05 record](../implementation/S05-documents.md) and
 [operation ledger](../reference/s05-sales-operations.json).
+
+### Bounded payroll-input writes (disabled by default)
+
+`prepare_salary_transaction_create`, `_update` and `_delete` accept strict
+resource-specific fields/version selections. They return an encrypted immutable
+business reference and complete modeled before/after/diff. Corresponding
+`create_salary_transaction`, `update_salary_transaction` and
+`delete_salary_transaction` tools take only that reference. Each effect and its
+`reconcile_salary_transaction_*` tool is registered only when independently
+enabled. `get_salary_transaction_write_status` performs an authorized local read.
+Preparation mutates bounded local state; execution consumes a single intent.
+No payroll calculation, payslip, tax calculation or payout is exposed.
+
+The first provider write adapter accepts only trusted company/employee/date/code-11
+profiles with separate action evidence, a verified unit amount and quantity
+precision. It rechecks active employment and applicable dated hourly pay before
+execution. Missing evidence, changed wages, dimensions/expenses/nonzero VAT or
+unmodeled source fields prevent editing. Exact response identity and readback
+are required; known numeric discrepancies remain distinct from success. Delete
+requires the verified acknowledged final response and exact-ID not-found
+readback. A lost delete acknowledgement cannot be resolved by absence alone.
+The ordinary product and existing leased read-only profile enable none of these
+write operations; operator probes and SDK evidence are separate from ChatGPT
+acceptance.
+
+The salary DELETE contract does not declare a response-body schema. A verified
+final status with bounded empty or valid JSON content is an acknowledgement;
+recognized ErrorInformation, malformed JSON, 202 or a lost response remains
+unknown. It still requires exact not-found readback. An operator's already
+captured final-200 receipt may reconcile its original intent/hash by a later
+exact read; no tool accepts status assertions or a replacement row identity.
+
+`list_financial_accounts` returns at most 100 chart records with company/year
+and first-page-anchor-bound continuation. A continued page rechecks that anchor
+and reauthorizes the connection generation. Missing balances remain null. Page
+exhaustion is separate from whole-collection completeness, and chart completeness
+never asserts verified balance units or financial reconciliation.
+
+`compare_financial_periods` takes explicit left/right company/year/date
+selections and 1–50 shared accounts. It performs both authorized reads and
+returns separate reports plus exact right-minus-left period differences when
+currency, mapping, calculation version and returned account identities match.
+It accepts no caller-supplied reports or completeness assertions. Both companies
+must remain authorized through completion; no currency conversion or statutory
+consolidation is performed.
+
+A payroll preparation binds the validated employee/code reference profile and
+its operation evidence. A changed verification profile requires preparation
+again, including when the intended amounts remain valid under the new profile.
+
+The isolated test entry may advertise individually verified salary-input writes
+from a private source-bound profile, within its existing tenant allowlist and
+operation lease. Ordinary product ENV cannot activate them. The profile is never
+an MCP argument or a tool result and contains no client approval override.
+
+`list_receivables` and `list_payables` are separate read-only tools for current
+invoice observations. They require an explicit company and default to booked
+items; unbooked inclusion is explicit. They scan at most 100 unfiltered source
+records, preserve unknown status/amounts, and locally exclude known paid/cancelled
+items. Continuation binds company/resource/selection/source. Totals are per
+currency and page; unknown credit/currency semantics prevent signed cash flow.
+Current status never proves a historical unpaid balance. Due dates are not
+promises of payment or bank payment instructions.
+
+`get_liquidity_basis` requires an explicit company/year, today's Stockholm date,
+1–20 selected cash/bank account numbers and an explicit `due_date_only` interval
+of at most 90 days. It authorizes ledger/invoice/supplier-invoice scopes before
+reads. Source windows, classifications, page continuations and excluded foreign
+currencies remain visible. Unknown monetary/sign/reference data prevents a
+complete projection. Scope is selected accounts and returned invoice pages,
+not all future cash movements, a live bank balance or a payment instruction.

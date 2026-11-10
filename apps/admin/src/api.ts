@@ -1,4 +1,4 @@
-import type { ProgramStatus } from "@fortnox-mcp/core";
+import type { BusinessDifference, ProgramStatus } from "@fortnox-mcp/core";
 export interface Company {
   company_id: string;
   name: string;
@@ -40,6 +40,14 @@ export interface InstallationState {
     company_name: string;
     kind: "bookkeeping" | "business" | "receipt";
     id: string;
+  }>;
+  observed_differences?: Array<{
+    company_id: string;
+    company_name: string;
+    id: string;
+    operation: string;
+    reference: string;
+    difference: BusinessDifference;
   }>;
 }
 export async function api<T = { ok?: boolean; url?: string }>(

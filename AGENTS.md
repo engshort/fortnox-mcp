@@ -30,3 +30,18 @@ Follow `docs/testing.md`. Test observable domain behavior, isolation and failure
 Update coverage status, relevant contracts and user documentation in the same PR when behavior changes. New modules begin disabled until their capabilities and risks are classified. Do not edit approved product decisions to justify a shortcut; propose a decision change explicitly.
 
 Do not merge, publish packages, create a stable release or operate on production Fortnox accounts unless the user's task authorizes that action. Development access does not imply permission to use production data. Keep test credentials outside git.
+
+## Owner-authorized sandbox work (2026-11-10)
+
+The owner confirmed that the Fortnox companies used for this project are dedicated
+agent sandboxes. The configured, allowlisted test companies are authorized for
+autonomous synthetic-data creation, changes, booking, correction and cleanup,
+including fixtures needed for acceptance. Do not ask repeatedly for permission
+for this work. Keep provider identifiers, test inputs and credentials private.
+
+Continue using the common authenticated company/policy/validation/write-intent
+layers. Sandbox authorization is permission to conduct tests, not evidence that
+a capability passed them. Preserve uncertain outcomes, reconcile before another
+write and report actual provider differences honestly. This authorization does
+not change a company's recorded manual-voucher policy, prove a human review,
+activate ordinary product capabilities or authorize unrelated installations.

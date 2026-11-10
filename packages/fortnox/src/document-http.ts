@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import type { FortnoxConnections } from "./connections.js";
 import {
+  boundedBytes,
   boundedResponse,
   FortnoxHttp,
   type ProviderContext,
@@ -85,6 +86,30 @@ export class DocumentHttp {
     url: URL,
     until = Infinity,
   ): Promise<Record<string, unknown>> {
+    const { bytes } = await this.readBody(context, url, until, false);
+    try {
+      return z
+        .record(z.string(), z.unknown())
+        .parse(
+          parseExactProviderJson(
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+          ),
+        );
+    } catch {
+      throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
+    }
+  }
+  async readSie(context: ProviderContext, url: URL, until = Infinity) {
+    if (url.origin !== "https://api.fortnox.se" || url.pathname !== "/3/sie/4")
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    return this.readBody(context, url, until, true);
+  }
+  private async readBody(
+    context: ProviderContext,
+    url: URL,
+    until: number,
+    sie: boolean,
+  ) {
     const deadline = Math.min(until, this.now() + 15000);
     let renew = false,
       renewed = false;
@@ -99,6 +124,7 @@ export class DocumentHttp {
           new Request(url, {
             headers: {
               authorization: `Bearer ${token}`,
+              // Fortnox validates Accept as JSON even for binary SIE downloads.
               accept: "application/json",
             },
             redirect: "manual",
@@ -145,24 +171,32 @@ export class DocumentHttp {
               : "provider_error",
         );
       }
-      let raw: unknown;
+      let bytes: Uint8Array;
       try {
-        raw = parseExactProviderJson(await boundedResponse(response, 262144));
+        bytes = await boundedBytes(response, sie ? 2097152 : 262144);
       } catch {
         throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
       }
       await context.assertActive();
-      return z.record(z.string(), z.unknown()).parse(raw);
+      return { bytes, content_type: response.headers.get("content-type") };
     }
     throw new ProviderError("UPSTREAM_UNAVAILABLE", "read_budget");
   }
   async submit(
     context: ProviderContext,
     url: URL,
-    method: "POST" | "PUT" | "GET",
+    method: "POST" | "PUT" | "GET" | "DELETE",
     body: string | undefined,
     beforeDispatch: () => Promise<void>,
   ): Promise<Record<string, unknown> | null> {
+    if (
+      method === "DELETE" &&
+      (url.origin !== "https://api.fortnox.se" ||
+        !/^\/3\/salarytransactions\/[1-9]\d{0,9}$/.test(url.pathname) ||
+        url.search ||
+        body !== undefined)
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     await this.budget.permit(context, this.now() + 15000);
     const token = await context.token(false);
     await context.assertActive();
@@ -189,9 +223,30 @@ export class DocumentHttp {
         await response.body?.cancel();
         return null;
       }
+      const text = await boundedResponse(response, 262144);
+      if (method === "DELETE") {
+        // This endpoint documents a final 200 without a response-body schema.
+        // A JSON null/array/object is not a lost response. Known error envelopes
+        // and malformed JSON are still rejected; 202 is never final proof.
+        if (![200, 204].includes(response.status)) return null;
+        if (text.trim() !== "") {
+          const parsed = parseExactProviderJson(text);
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            "ErrorInformation" in parsed
+          )
+            return null;
+        }
+        await context.assertActive();
+        return {
+          deletion_acknowledged: true,
+          response_status: response.status,
+        };
+      }
       const raw = z
         .record(z.string(), z.unknown())
-        .parse(parseExactProviderJson(await boundedResponse(response, 262144)));
+        .parse(parseExactProviderJson(text));
       await context.assertActive();
       return raw;
     } catch {

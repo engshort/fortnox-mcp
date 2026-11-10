@@ -1,6 +1,6 @@
 # S08 — Full financial data basis
 
-Status: not started. Depends on S04, document/accounting read contracts and G07.
+Status: implementation in progress; see [milestone 7 delivery and evidence](M07-analysis-payroll.md). Original full acceptance below remains required. Depends on S04, document/accounting read contracts and G07.
 
 ## Deliver
 

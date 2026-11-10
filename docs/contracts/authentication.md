@@ -88,5 +88,5 @@ Cancellation/failure does not delete the working local credential. Actual upstre
 invalidation remains subject to provider acceptance and normal reconnect handling.
 Local disable retains provider scopes but blocks current domain/provider calls;
 shared scopes remain usable by other enabled programs. Reactivation requires a new
-explicit consent flow. Uncertain writes block program changes until reconciliation.
+explicit consent flow. Uncertain writes block changes to affected programs and all local disable operations. A narrowly additive payroll consent may proceed with an older tenant-bound register/document outcome, preserving that outcome and its write block. In-flight, unbound, bookkeeping, receipt and payroll uncertainty still block it. Owner-only same-origin reconciliation uses a temporary read-only internal identity; old MCP grants and intent identities remain immutable.
 See [implementation and acceptance boundaries](../implementation/S11-company-programs.md).

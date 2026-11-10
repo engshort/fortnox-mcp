@@ -2,6 +2,10 @@ import {
   type Bookkeeping,
   type Connections,
   DomainError,
+  type FinancialAnalysis,
+  type LiquidityAnalysis,
+  type OpenItems,
+  type PayrollInputs,
   type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
@@ -15,6 +19,7 @@ import {
   diagnosisInput,
   diagnosisOutput,
   type FortnoxConnections,
+  type FortnoxFinancialReads,
   FortnoxHttp,
   ProviderError,
 } from "@fortnox-mcp/fortnox";
@@ -22,6 +27,10 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerFinancialReads } from "./analytics.js";
+import { registerLiquidity } from "./liquidity.js";
+import { registerOpenItems } from "./open-items.js";
+import { registerPayrollTools } from "./payroll.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
@@ -115,6 +124,10 @@ export function companyServer(context: {
   receiptAttachments?: ReceiptAttachments;
   receiptWorkflow?: ReceiptWorkflow;
   registers?: Registers;
+  payroll?: PayrollInputs;
+  openItems?: OpenItems;
+  liquidity?: LiquidityAnalysis;
+  financial?: { service: FinancialAnalysis; provider: FortnoxFinancialReads };
   salesDocuments?: SalesDocuments;
 }) {
   const server = new McpServer(
@@ -354,6 +367,19 @@ export function companyServer(context: {
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.registers)
     registerRegisters(server, context.registers, context.identity);
+  if (context.financial)
+    registerFinancialReads(
+      server,
+      context.financial.service,
+      context.financial.provider,
+      context.identity,
+    );
+  if (context.payroll)
+    registerPayrollTools(server, context.payroll, context.identity);
+  if (context.openItems)
+    registerOpenItems(server, context.openItems, context.identity);
+  if (context.liquidity)
+    registerLiquidity(server, context.liquidity, context.identity);
   if (context.salesDocuments)
     registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)
