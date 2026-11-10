@@ -3,7 +3,7 @@
 Registerflöden finns i en separat, tidsbegränsad testbuild. De är ännu inte
 aktiverade i den vanliga installationen. Faktisk Fortnox- och ChatGPT-acceptans
 återstår innan funktionerna kan annonseras som verifierade. Dokumentflödena
-för offerter, order och fakturor utvecklas i nästa del av S05.
+för offerter, order och fakturor är under utveckling i S05 och är avstängda.
 
 I testbuilden kan du be klienten att söka efter och läsa kunder, leverantörer,
 artiklar och referenser för ett uttryckligen valt företag. Ofullständiga listor

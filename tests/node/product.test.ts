@@ -11,6 +11,7 @@ import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
 import { diagnosticsContract } from "../shared/diagnostics.js";
 import { disconnectContract } from "../shared/disconnect.js";
+import { documentRowsContract } from "../shared/document-rows.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
@@ -18,9 +19,11 @@ import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
 import { registersContract } from "../shared/registers.js";
+import { salesDocumentsContract } from "../shared/sales-documents.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
 const opened: DatabaseSync[] = [];
+documentRowsContract();
 afterEach(() => {
   for (const db of opened) db.close();
   opened.length = 0;
@@ -86,3 +89,4 @@ accountingMigrationContract(async () => {
 
 businessWritesContract(async () => (await fixture()).state);
 registersContract(async () => (await fixture()).state);
+salesDocumentsContract(async () => (await fixture()).state);
