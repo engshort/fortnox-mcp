@@ -149,3 +149,13 @@ Authorization is rechecked after I/O. Successful diagnosis verifies that bounded
 read only; it activates no financial/file operation. The fixed M14 file-only
 experiment catalog is unchanged. Existing local documentation tools remain local
 and do not acquire a provider proxy or activate operations from OpenAPI content.
+
+### S04/S05 business write preparation
+
+The internal business dispatcher accepts only registered domain operations and
+never exposes an HTTP method/path/body proxy. Future focused tools use strict
+`company_id`, `proposal_id` and `proposal_hash` references. Prepared bodies bind
+the initiating client, current company generation/policy and operation; execution
+revalidates source state. Standard client approvals do not authorize manual
+vouchers or override read-only, restore, provider or ownership checks.
+See [the foundation evidence](../implementation/S04-S05-business-writes.md).

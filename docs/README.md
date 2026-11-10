@@ -1,5 +1,9 @@
 # Documentation map
 
+S04/S05: [business write foundation](implementation/S04-S05-business-writes.md)
+and [Swedish register/document status](users/register-och-fakturor.sv.md).
+No new provider capability is enabled by the foundation.
+
 Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
 [English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
 and [pending actual acceptance](implementation/M05-actual-acceptance.md).

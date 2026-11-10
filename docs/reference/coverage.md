@@ -243,3 +243,10 @@ codes are implemented; this is no additional verified provider-operation claim.
 M05 offline maintenance adds encrypted snapshot/candidate restore, session/grant/
 review revocation, interval write blocking and transactional credential/file-key
 rotation. No provider operation is added or promoted by restore or reconciliation.
+
+## S04/S05 business write foundation
+
+The shared [business write foundation](../implementation/S04-S05-business-writes.md)
+adds bounded encrypted proposals, domain authorization, atomic claims and
+conservative uncertain outcomes. It enables zero provider operations and changes
+no existing verification gate or default activation setting.

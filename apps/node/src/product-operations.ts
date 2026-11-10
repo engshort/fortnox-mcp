@@ -166,6 +166,12 @@ export async function restoreDatabase(options: {
             c.generation++;
             c.policyVersion++;
             delete c.renewal;
+            if (c.business) {
+              c.business.proposals = [];
+              for (const execution of c.business.executions)
+                if (execution.state === "submitting")
+                  execution.state = "outcome_unknown";
+            }
             if (c.bookkeeping) {
               c.bookkeeping.proposals = [];
               for (const execution of c.bookkeeping.executions)
