@@ -197,27 +197,39 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
 });
 
-test("connection dialog refreshes stale program revision and explains unresolved outcomes", async ({page}) => {
+test("payroll consent excludes existing receipt access and refreshes stale program revision", async ({page}) => {
   const login=await page.request.post(`${origin}/auth/sign-in/email`,{headers:{origin},data:{email:"browser-owner@example.invalid",password:"synthetic-browser-password"}});
   expect(login.ok()).toBe(true);
   const state=await (await page.request.get(`${origin}/admin/state`)).json();
   const company=state.companies.find((c:{state:string})=>c.state==="active");
   if(!company)throw new Error("Synthetic active company missing");
   const freshRevision=company.programs.revision+5;
+  const payrollFeature={id:"payroll-input",sv:"Löneunderlag och verifierade referenser",en:"Payroll input and verified references"};
+  const exposePayroll=(programs:any)=>{
+    programs.features=[...new Set([...programs.features,"receipt-files"])];
+    const payroll=programs.programs.find((p:{id:string})=>p.id==="payroll");
+    payroll.can_connect=true;payroll.connect_features=["payroll-input"];payroll.connection_features=[payrollFeature];
+  };
+  await page.route("**/admin/state",async(route)=>{
+    const response=await route.fetch(), current=await response.json();
+    const selected=current.companies.find((c:{company_id:string})=>c.company_id===company.company_id);
+    exposePayroll(selected.programs);
+    await route.fulfill({response,json:current});
+  });
   await page.route(`**/admin/companies/${company.company_id}/programs`,async(route)=>{
     const response=await route.fetch(), current=await response.json();
-    current.revision=freshRevision;
+    exposePayroll(current);current.revision=freshRevision;
     await route.fulfill({response,json:current});
   });
   let previews=0;
   await page.route(`**/admin/companies/${company.company_id}/programs/preview`,async(route)=>{
     previews++;
-    expect(route.request().postDataJSON()).toEqual({program:"bookkeeping",features:["references"],expected_revision:freshRevision});
+    expect(route.request().postDataJSON()).toEqual({program:"payroll",features:["payroll-input"],expected_revision:freshRevision});
     await route.fulfill({status:400,contentType:"application/json",json:{error:"CONNECTION_REQUEST_FAILED",reason:"OUTCOME_UNKNOWN",stage:"program_connection"}});
   });
-  await page.goto(`${origin}/admin/companies/${company.company_id}/bookkeeping`);
+  await page.goto(`${origin}/admin/companies/${company.company_id}/payroll`);
   await page.getByRole("button",{name:"Anslut program",exact:true}).click();
-  const dialog=page.getByRole("dialog",{name:"Anslut Bokföring",exact:true});
+  const dialog=page.getByRole("dialog",{name:"Anslut Lön",exact:true});
   await expect(dialog.getByRole("status")).toContainText("En tidigare skrivning har okänt resultat");
   await expect(dialog.getByRole("button",{name:"Fortsätt till Fortnox",exact:true})).toBeDisabled();
   expect(previews).toBe(1);

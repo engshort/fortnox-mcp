@@ -14,7 +14,7 @@
     "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
     "apps/shared/product.ts": "a35941cb51797a6c93559ef840f6601699f18ddc5732ee802b91a6e8afef8b7c",
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
-    "apps/admin/src/company-pages.tsx": "5c031090ea72347917fae9ce9e141e7b494129cf53300352e04dbbd6af8661d1",
+    "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
     "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b"
   },
   "operations": [

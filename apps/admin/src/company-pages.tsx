@@ -406,7 +406,9 @@ export function ProgramConnectionDialog({
     [];
   const features: FeatureId[] = [
     ...available.filter((id) => id !== "receipt-files"),
-    ...(files ? ["receipt-files" as const] : []),
+    ...(available.includes("receipt-files") && files
+      ? ["receipt-files" as const]
+      : []),
   ];
   const featureKey = features.join(",");
   const selection = {

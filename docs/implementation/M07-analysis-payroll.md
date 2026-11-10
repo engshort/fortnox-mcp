@@ -119,3 +119,13 @@ salary code. Employee employment dates, exact decimals, provider rights and
 license evidence are checked on preparation and again at execution. No financial
 or personal payload is retained in execution metadata. No provider payroll
 adapter or ordinary product payroll activation is claimed yet.
+
+## Consent dialog regression
+
+The initial dialog accidentally carried an existing receipt-file selection into
+an unrelated payroll request. The server correctly rejected the extra feature.
+The corrected dialog includes an optional selection only when the current
+program exposes it. A desktop/mobile regression starts with existing
+receipt-files access, refreshes the server's newer program revision, and asserts
+that the payroll preview sends exactly payroll-input. This UI defect did not
+create a Fortnox flow, alter scopes or dispatch a payroll write.
