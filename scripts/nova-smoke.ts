@@ -21,7 +21,7 @@ const metadata = await call("/.well-known/oauth-authorization-server");
 assert.equal(metadata.status, 200);
 assert.equal(
   ((await metadata.json()) as { issuer: string }).issuer,
-  origin.origin,
+  `${origin.origin}/auth`,
 );
 assert.equal((await call("/admin/state")).status, 401);
 assert.equal(
