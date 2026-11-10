@@ -6,9 +6,11 @@ a release or enable Fortnox operations. No Cloudflare Tunnel or Worker is used.
 
 ## Installation and network
 
-Public DNS points directly to the public ingress host. Its Nginx terminates
+Public DNS points directly to ISS. ISS forwards TCP 80/443 to Nova's existing
+80/443 listeners; ISS does not need Nginx or ISPConfig. Nova's Nginx terminates
 HTTPS using a renewed certificate for the exact hostname, redirects HTTP and
-proxies this hostname to Nova `172.30.77.10:13001`. See
+proxies this hostname to `172.30.77.10:13001`. Apply the reviewed settings through
+persistent ISPConfig site configuration, preserving other websites. See
 `deploy/nova/public-nginx.conf`. Both proxies clear forwarded authority headers,
 preserve browser Origin, and disable buffering, caching, request logs and retries.
 Public SSH needs a dedicated forwarded TCP port to Nova's SSH server.
@@ -25,6 +27,11 @@ existing image initializer and the public HTTPS origin. Retain its secrets and
 the named `fortnox-mcp-nova-data` volume across releases. No application port is
 published. The private proxy permits only the documented ISS/WireGuard addresses.
 Retrieve the one-time bootstrap code privately; never send it to CI.
+
+The initializer explicitly sets mounted secret files to 0444 after creation:
+restrictive operator umasks and ISPConfig default ACLs must not prevent UID 10001
+from reading the individual read-only mounts. Their host parent remains 0700.
+Likewise ensure the dedicated SSH private key is exactly 0600 after creation.
 
 Install a dedicated Ed25519 deploy key with this authorized_keys restriction,
 substituting absolute root and Node paths:
