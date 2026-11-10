@@ -43,7 +43,15 @@ export async function api<T = { ok?: boolean; url?: string }>(
           body: JSON.stringify(body),
         }),
   });
-  const value = await response.json();
+  const value = await response.json().catch(() => {
+    // Upstream access gateways can return text/HTML. Never echo their body or
+    // expose JSON parser excerpts (which may contain private response content).
+    throw new Error(
+      response.status === 401 || response.status === 403
+        ? "AUTH_REQUIRED"
+        : "REQUEST_FAILED",
+    );
+  });
   if (!response.ok)
     throw new Error(
       value &&
