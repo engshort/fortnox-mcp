@@ -2,6 +2,8 @@ import {
   type Connection,
   type Connections,
   DomainError,
+  programId,
+  programStatus,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import { companyInformation, type FortnoxConnections } from "./connections.js";
@@ -36,6 +38,21 @@ export const diagnosisOutput = z
     ]),
     correlation_id: z.string().uuid(),
     checked_at: z.string().datetime(),
+    programs: z.array(
+      z
+        .object({
+          id: programId,
+          selected: z.boolean(),
+          connection: z.enum([
+            "connected",
+            "not_connected",
+            "disconnected",
+            "reconnect_required",
+          ]),
+          availability: z.enum(["planned", "verification_pending"]),
+        })
+        .strict(),
+    ),
     capabilities: z.array(
       z
         .object({
@@ -77,6 +94,7 @@ export async function diagnoseConnection(
     reason: "verification_pending",
     correlation_id: crypto.randomUUID(),
     checked_at: new Date().toISOString(),
+    programs: [],
     capabilities: [
       {
         id: "company_information",
@@ -102,6 +120,15 @@ export async function diagnoseConnection(
   };
   try {
     const c = await context.authorize(company);
+    result.programs = programStatus(c, {
+      references: false,
+      receiptConsent: false,
+    }).programs.map(({ id, selected, connection, availability }) => ({
+      id,
+      selected,
+      connection,
+      availability,
+    }));
     if (c.state !== "active") {
       result.status = "disconnected";
       result.reason =

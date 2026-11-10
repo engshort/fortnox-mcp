@@ -139,6 +139,7 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
       connections,
       testTenants: ["100001", "100002"],
       scopes,
+      programGates: { references: true, receiptConsent: true },
       fetch: transport,
     });
     await provider.token("owner", old, true);
@@ -161,6 +162,13 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
             clientSecret: "synthetic-client-secret",
           },
           reconnectId,
+          reconnectId
+            ? {
+                program: "bookkeeping",
+                features: ["references", "receipt-files"],
+                expected_revision: 0,
+              }
+            : undefined,
         ),
       );
       expect(url.searchParams.get("scope")).toBe(scopes.join(" "));
@@ -185,7 +193,6 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
     await expect(
       connections.authorize("owner", "old-client", b?.id ?? ""),
     ).rejects.toThrow("COMPANY_FORBIDDEN");
-    await connections.disconnect("owner", old.id);
     await finish("service", "service-code", old.id);
     const a = (await connections.list("owner")).find((c) => c.id === old.id);
     if (!a) throw new Error("fixture");

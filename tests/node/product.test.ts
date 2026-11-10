@@ -17,6 +17,7 @@ import { maintenanceContract } from "../shared/maintenance.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
+import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
 import { registersContract } from "../shared/registers.js";
 import { salesDocumentsContract } from "../shared/sales-documents.js";
@@ -90,3 +91,6 @@ accountingMigrationContract(async () => {
 businessWritesContract(async () => (await fixture()).state);
 registersContract(async () => (await fixture()).state);
 salesDocumentsContract(async () => (await fixture()).state);
+
+programContract(async () => (await fixture()).state);
+programHttpContract(fixture);

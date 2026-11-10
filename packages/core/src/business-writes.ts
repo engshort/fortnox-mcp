@@ -3,6 +3,7 @@ import { accountingHash } from "./accounting.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Ciphertext, Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
+import { assertScopeProgram } from "./programs.js";
 
 export interface BusinessProposal {
   id: string;
@@ -142,6 +143,7 @@ export class BusinessWrites {
       actor.clientId,
       company,
     );
+    assertScopeProgram(c, op.scope);
     if (!op.enabled || !c.scopes.includes(op.scope) || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.connections.assertWritesAllowed();

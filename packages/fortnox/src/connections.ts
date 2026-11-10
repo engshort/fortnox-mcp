@@ -1,9 +1,15 @@
 import {
+  assertNoUncertainWrites,
   type Ciphertext,
   type Connection,
   type Connections,
   type Credentials,
   DomainError,
+  type ProgramChange,
+  type ProgramGates,
+  type ProgramSelection,
+  previewProgram,
+  programSelection,
 } from "@fortnox-mcp/core";
 import * as oauth from "oauth4webapi";
 import { z } from "zod";
@@ -76,6 +82,13 @@ interface Flow {
   claimed: boolean;
   reconnectId?: string;
   reconnectGeneration?: number;
+  extension?: {
+    generation: number;
+    revision: number;
+    policy: number;
+    selection: Omit<ProgramSelection, "revision">;
+    change: ProgramChange;
+  };
 }
 const flowSecret = z
   .object({
@@ -92,6 +105,7 @@ export interface FortnoxConfig {
   testTenants: readonly string[];
   now?: () => number;
   scopes?: readonly string[];
+  programGates?: ProgramGates | (() => ProgramGates);
 }
 export const companyInformation = z.object({
   CompanyInformation: z.object({
@@ -135,6 +149,14 @@ export class FortnoxConnections {
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
   }
+  private gates() {
+    return typeof this.config.programGates === "function"
+      ? this.config.programGates()
+      : (this.config.programGates ?? {
+          references: false,
+          receiptConsent: false,
+        });
+  }
   private redirect() {
     return `${this.config.origin}/admin/fortnox/callback`;
   }
@@ -143,6 +165,7 @@ export class FortnoxConnections {
     session: string,
     input: z.infer<typeof consentInput>,
     reconnectId?: string,
+    extension?: ProgramChange,
   ) {
     consentInput.parse(input);
     const target = reconnectId
@@ -150,8 +173,19 @@ export class FortnoxConnections {
           (c) => c.id === reconnectId,
         )
       : undefined;
-    if (reconnectId && (!target || target.state === "active"))
+    if (reconnectId && (!target || (!extension && target.state === "active")))
       throw new DomainError("CONNECTION_CONFLICT");
+    if (extension && (!target || target.mode !== input.mode))
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const preview =
+      extension && target
+        ? previewProgram(target, extension, this.gates())
+        : undefined;
+    const scopes =
+      preview?.scopes ??
+      (target
+        ? target.scopes
+        : (this.config.scopes ?? ["companyinformation", "profile"]));
     const id = crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
@@ -160,7 +194,7 @@ export class FortnoxConnections {
         clientId: input.clientId,
         clientSecret: input.clientSecret,
         verifier,
-        scopes: this.config.scopes ?? ["companyinformation", "profile"],
+        scopes,
       },
       JSON.stringify([owner, id, session]),
     );
@@ -174,6 +208,20 @@ export class FortnoxConnections {
       claimed: false,
       ...(target
         ? { reconnectId: target.id, reconnectGeneration: target.generation }
+        : {}),
+      ...(preview && target && extension
+        ? {
+            extension: {
+              generation: target.generation,
+              revision: preview.expected_revision,
+              policy: target.policyVersion,
+              selection: {
+                enabled: preview.enabled,
+                features: preview.features,
+              },
+              change: extension,
+            },
+          }
         : {}),
     };
     for (let n = 0; n < 8; n++) {
@@ -196,9 +244,7 @@ export class FortnoxConnections {
           client_id: input.clientId,
           response_type: "code",
           redirect_uri: this.redirect(),
-          scope: (this.config.scopes ?? ["companyinformation", "profile"]).join(
-            " ",
-          ),
+          scope: scopes.join(" "),
           access_type: "offline",
           ...(input.mode === "service" ? { account_type: "service" } : {}),
           state,
@@ -266,6 +312,15 @@ export class FortnoxConnections {
         throw new DomainError("RECONNECT_REQUIRED");
       }
     };
+  }
+  async pending(owner: string) {
+    const rows = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    return (rows?.value ?? [])
+      .filter((f) => !f.claimed && f.expiresAt > this.now())
+      .flatMap((f) => (f.reconnectId ? [f.reconnectId] : []));
   }
   private credentials(
     input: Pick<Credentials, "clientId" | "clientSecret">,
@@ -369,6 +424,26 @@ export class FortnoxConnections {
     if (!flow) throw new DomainError("AUTH_REQUIRED");
     let stage: ConsentStage = "flow_decryption";
     try {
+      const target = flow.reconnectId
+        ? (await this.config.connections.list(owner)).find(
+            (c) => c.id === flow.reconnectId,
+          )
+        : undefined;
+      if (
+        flow.reconnectId &&
+        (!target || target.generation !== flow.reconnectGeneration)
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      if (flow.extension && target) {
+        if (
+          target.state !== "active" ||
+          target.policyVersion !== flow.extension.policy ||
+          programSelection(target).revision !== flow.extension.revision
+        )
+          throw new DomainError("CONNECTION_CONFLICT");
+        assertNoUncertainWrites(target);
+        previewProgram(target, flow.extension.change, this.gates());
+      }
       const input = flowSecret.parse(
         await this.config.connections.vault.openData(
           flow.secret,
@@ -411,7 +486,12 @@ export class FortnoxConnections {
         requested,
       );
       stage = "tenant_verification";
-      const identity = await this.verify(owner, initial, undefined, requested);
+      const identity = await this.verify(
+        owner,
+        initial,
+        target?.tenant,
+        requested,
+      );
       let credentials = initial;
       if (flow.mode === "user" && !initial.refreshToken)
         throw new DomainError("RECONNECT_REQUIRED");
@@ -451,17 +531,31 @@ export class FortnoxConnections {
         if (
           !previous ||
           previous.generation !== flow.reconnectGeneration ||
-          previous.state === "active"
+          (!flow.extension && previous.state === "active")
         )
           throw new DomainError("CONNECTION_CONFLICT");
-        if (previous.tenant === identity.tenant)
-          return await this.config.connections.reconnect(
+        if (previous.tenant !== identity.tenant)
+          throw new DomainError("COMPANY_FORBIDDEN");
+        if (flow.extension) {
+          if (programSelection(previous).revision !== flow.extension.revision)
+            throw new DomainError("CONNECTION_CONFLICT");
+          previewProgram(previous, flow.extension.change, this.gates());
+          return await this.config.connections.extendPrograms(
             owner,
             previous.id,
-            previous.generation,
+            flow.extension,
             { ...identity, mode: flow.mode },
+            flow.extension.selection,
             credentials,
           );
+        }
+        return await this.config.connections.reconnect(
+          owner,
+          previous.id,
+          previous.generation,
+          { ...identity, mode: flow.mode },
+          credentials,
+        );
       }
       return await this.config.connections.add(
         owner,

@@ -5,6 +5,8 @@ import {
   type AccountingReferences,
   type AccountingYears,
   accountingDate,
+  assertFeature,
+  assertProgram,
   type Connections,
   DomainError,
   parseAmount,
@@ -191,6 +193,8 @@ export class FortnoxAccounting implements AccountingProvider {
       company,
     );
     const required = providerOperations[operation].scope;
+    assertProgram(c, "bookkeeping");
+    assertFeature(c, "references");
     if (!this.gates.references || !actor.scopes.includes("mcp:read"))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!c.scopes.includes(required))
@@ -210,6 +214,8 @@ export class FortnoxAccounting implements AccountingProvider {
         );
         if (current.generation !== generation)
           throw new DomainError("COMPANY_FORBIDDEN");
+        assertProgram(current, "bookkeeping");
+        assertFeature(current, "references");
       },
       token: (force) => this.provider.token(actor.ownerId, c, force),
     };

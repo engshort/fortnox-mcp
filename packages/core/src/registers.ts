@@ -9,6 +9,7 @@ import {
 import type { Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
 import { parseAmount } from "./money.js";
+import { assertScopeProgram } from "./programs.js";
 
 // Independently modeled bounded register profile. Provider URLs, account defaults,
 // stock adjustments, bank instructions and delivery-channel defaults are excluded.
@@ -283,6 +284,7 @@ export class Registers {
       actor.clientId,
       company,
     );
+    assertScopeProgram(c, registerScope(resource));
     if (!c.scopes.includes(registerScope(resource)))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;

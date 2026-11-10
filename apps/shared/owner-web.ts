@@ -14,15 +14,41 @@ export function ownerWeb(
     router.get(path, () =>
       safeResponse(shell, 200, "text/html; charset=utf-8"),
     );
-  for (const path of ["/admin", "/admin/fortnox/api-credentials"])
-    router.get(path, async (c) => {
-      try {
-        await authorize(c.req.raw);
-      } catch {
-        return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
-      }
-      return safeResponse(shell, 200, "text/html; charset=utf-8");
-    });
+  const protectedShell = async (request: Request) => {
+    try {
+      await authorize(request);
+    } catch {
+      return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
+    }
+    return safeResponse(shell, 200, "text/html; charset=utf-8");
+  };
+  router.get("/admin", async (c) => {
+    const response = await protectedShell(c.req.raw);
+    return response.status === 200
+      ? new Response(null, {
+          status: 303,
+          headers: {
+            location: "/admin/companies",
+            "cache-control": "no-store",
+          },
+        })
+      : response;
+  });
+  for (const path of [
+    "/admin/fortnox/api-credentials",
+    "/admin/companies",
+    "/admin/companies/:id",
+    "/admin/companies/:id/bookkeeping",
+    "/admin/companies/:id/invoicing",
+    "/admin/companies/:id/order-offer",
+    "/admin/companies/:id/payroll",
+    "/admin/companies/:id/access",
+    "/admin/ai-clients",
+    "/admin/settings",
+    "/admin/operations",
+    "/admin/help",
+  ])
+    router.get(path, (c) => protectedShell(c.req.raw));
   for (const name of ["admin.js", "admin.css"] as const)
     router.get(`/admin-assets/${name}`, async () =>
       assets

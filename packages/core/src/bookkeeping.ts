@@ -9,6 +9,7 @@ import {
 } from "./accounting.js";
 import type { Ciphertext, Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
+import { assertFeature, assertProgram } from "./programs.js";
 
 export const voucherReference = z
   .object({
@@ -142,6 +143,8 @@ export class Bookkeeping {
       actor.clientId,
       company,
     );
+    assertProgram(c, "bookkeeping");
+    assertFeature(c, "references");
     if (!this.gates.references) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write && (!this.gates.writes || c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");

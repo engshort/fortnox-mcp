@@ -1,9 +1,14 @@
 import {
   Bookkeeping,
+  baseScopes,
   type ClientFile,
+  type CompanyGrant,
   Connections,
   CredentialVault,
   DomainError,
+  previewProgram,
+  programChange,
+  programStatus,
   proposalReference,
   ReceiptAttachments,
   ReceiptFileError,
@@ -243,20 +248,28 @@ export function createProductApplication(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
   );
+  const programGates = () => ({
+    references: settings.testMode && settings.accountingReferences === true,
+    receiptConsent:
+      settings.testMode && settings.receiptProviderConsent === true,
+    registerScopes:
+      businessTest && now() < businessTest.until
+        ? [
+            ...new Set(
+              businessTest.operations.map((id) =>
+                registerScope(id.split(".")[0] as RegisterResource),
+              ),
+            ),
+          ]
+        : [],
+  });
   const provider = new FortnoxConnections({
     origin: settings.origin,
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: [
-      ...new Set([
-        ...requestedFortnoxScopes(settings),
-        ...(businessTest?.operations.map((id) =>
-          registerScope(id.split(".")[0] as RegisterResource),
-        ) ?? []),
-        ...(businessTest?.consentScopes ?? []),
-      ]),
-    ],
+    scopes: baseScopes,
+    programGates,
   });
   const integration = new IntegrationSettings(
     runtime.state,
@@ -405,6 +418,8 @@ export function createProductApplication(
     if (
       url.pathname === "/admin" ||
       url.pathname === "/admin/state" ||
+      url.pathname === "/admin/clients" ||
+      url.pathname.startsWith("/admin/companies/") ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
       let session: Awaited<ReturnType<typeof requireOwner>>;
@@ -417,8 +432,102 @@ export function createProductApplication(
       } catch {
         return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
       }
+      if (url.pathname === "/admin/clients" && request.method === "GET") {
+        const rows = await runtime.state.list<CompanyGrant>(
+          "company-grants",
+          101,
+        );
+        const companies = await connections.list(session.user.id);
+        return safeResponse(
+          JSON.stringify({
+            clients: rows
+              .slice(0, 100)
+              .filter((r) => r.value.ownerId === session.user.id)
+              .map((r) => ({
+                client_id: r.id,
+                companies: Object.entries(r.value.companies).map(
+                  ([id, generation]) => ({
+                    company_id: id,
+                    name: companies.find((c) => c.id === id)?.name ?? id,
+                    current: companies.some(
+                      (c) =>
+                        c.id === id &&
+                        c.generation === generation &&
+                        c.state === "active",
+                    ),
+                  }),
+                ),
+              })),
+            partial: rows.length > 100,
+          }),
+        );
+      }
+      const programRoute =
+        /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
+          url.pathname,
+        );
+      if (programRoute) {
+        try {
+          const companyId = z.string().uuid().parse(programRoute[1]);
+          const company = (await connections.list(session.user.id)).find(
+            (c) => c.id === companyId,
+          );
+          if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+          const gates = programGates();
+          if (!programRoute[2] && request.method === "GET")
+            return safeResponse(
+              JSON.stringify({
+                ...programStatus(company, gates),
+                pending: (await provider.pending(session.user.id)).includes(
+                  companyId,
+                ),
+              }),
+            );
+          if (request.method !== "POST" || !programRoute[2])
+            return safeResponse('{"error":"NOT_FOUND"}', 404);
+          if (request.headers.get("origin") !== settings.origin)
+            return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+          const body = await boundedJson(request);
+          if (programRoute[2] === "disable") {
+            const input = programChange.omit({ features: true }).parse(body);
+            await connections.disableProgram(
+              session.user.id,
+              companyId,
+              input.program,
+              input.expected_revision,
+            );
+            return safeResponse('{"ok":true}');
+          }
+          const input = programChange.parse(body);
+          const preview = previewProgram(company, input, gates);
+          if (programRoute[2] === "preview")
+            return safeResponse(JSON.stringify(preview));
+          const credentials = await connections.credentials(
+            session.user.id,
+            company,
+          );
+          return safeResponse(
+            JSON.stringify({
+              url: await provider.start(
+                session.user.id,
+                session.session.id,
+                {
+                  mode: company.mode,
+                  clientId: credentials.clientId,
+                  clientSecret: credentials.clientSecret,
+                },
+                companyId,
+                input,
+              ),
+            }),
+          );
+        } catch (error) {
+          return connectionFailure(error, "program_connection");
+        }
+      }
       if (request.method === "GET" && url.pathname === "/admin/state") {
         const companies = await connections.list(session.user.id);
+        const pending = await provider.pending(session.user.id);
         return safeResponse(
           JSON.stringify({
             owner: { email: session.user.email },
@@ -443,7 +552,48 @@ export function createProductApplication(
               review: c.review,
               read_only: c.readOnly,
               policy_version: c.policyVersion,
+              organization_number: c.organizationNumber,
+              programs: {
+                ...programStatus(c, programGates()),
+                pending: pending.includes(c.id),
+              },
             })),
+            uncertain_outcomes: companies.flatMap((c) => [
+              ...(c.bookkeeping?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "bookkeeping",
+                  id: e.id,
+                })),
+              ...(c.business?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "business",
+                  id: e.id,
+                })),
+              ...(c.receiptBatches ?? []).flatMap((b) =>
+                b.items
+                  .filter((item) =>
+                    Object.values(item.steps).some((step) =>
+                      ["submitting", "outcome_unknown"].includes(step.state),
+                    ),
+                  )
+                  .map((item) => ({
+                    company_id: c.id,
+                    company_name: c.name,
+                    kind: "receipt",
+                    id: item.id,
+                  })),
+              ),
+            ]),
             investigations: companies.flatMap((c) =>
               (c.bookkeeping?.executions ?? [])
                 .filter(
@@ -617,16 +767,29 @@ export function createProductApplication(
         if (!settings.testMode)
           return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
         try {
-          await provider.finish(session.user.id, session.session.id, url);
+          const company = await provider.finish(
+            session.user.id,
+            session.session.id,
+            url,
+          );
           return new Response(null, {
             status: 303,
             headers: {
-              location: `${settings.origin}/admin`,
+              location: `${settings.origin}/admin/companies/${company.id}`,
               "cache-control": "no-store",
               "referrer-policy": "no-referrer",
             },
           });
         } catch (error) {
+          if (request.headers.get("accept")?.includes("text/html"))
+            return new Response(null, {
+              status: 303,
+              headers: {
+                location: `${settings.origin}/admin/companies?connection_error=failed`,
+                "cache-control": "no-store",
+                "referrer-policy": "no-referrer",
+              },
+            });
           return connectionFailure(error, "flow_validation");
         }
       }

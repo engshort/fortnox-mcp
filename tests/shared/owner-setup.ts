@@ -94,7 +94,8 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
       200,
     );
     expect((await f.request("/admin/state", undefined, {})).status).toBe(401);
-    const shell = await f.request("/admin");
+    expect((await f.request("/admin")).status).toBe(303);
+    const shell = await f.request("/admin/companies");
     expect(shell.status).toBe(200);
     expect(await shell.text()).toContain("/admin-assets/admin.js");
     expect(shell.headers.get("content-security-policy")).toContain(

@@ -460,7 +460,9 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
       expect(
         (
           await f.app.fetch(
-            new Request(`${f.runtime.origin}/admin`, { headers: { cookie } }),
+            new Request(`${f.runtime.origin}/admin/companies`, {
+              headers: { cookie },
+            }),
           )
         ).status,
       ).toBe(200);

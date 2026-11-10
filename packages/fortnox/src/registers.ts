@@ -1,6 +1,7 @@
 import {
   type AccountingActor,
   articleFields,
+  assertScopeProgram,
   type Connections,
   customerFields,
   DomainError,
@@ -261,6 +262,7 @@ export class FortnoxRegisters implements RegisterProvider {
         actor.clientId,
         company,
       );
+      assertScopeProgram(current, registerScope(resource));
       if (
         !this.active() ||
         current.generation !== c.generation ||

@@ -198,11 +198,15 @@ it("boots the actual Node entry behind HTTPS proxy headers, keeps secure session
     const cookies = accepted.headers.getSetCookie();
     expect(cookies.some((c) => /; Secure/i.test(c))).toBe(true);
     const cookie = cookies.map((c) => c.split(";")[0]).join("; ");
-    expect((await request("/admin", { headers: { cookie } })).status).toBe(200);
+    expect(
+      (await request("/admin/companies", { headers: { cookie } })).status,
+    ).toBe(200);
     await stop();
     child = start();
     await ready();
-    expect((await request("/admin", { headers: { cookie } })).status).toBe(200);
+    expect(
+      (await request("/admin/companies", { headers: { cookie } })).status,
+    ).toBe(200);
     expect(
       (
         await request("/admin/bootstrap", {

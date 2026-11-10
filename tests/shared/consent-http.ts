@@ -83,9 +83,7 @@ export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
     );
     expect(response.status).toBe(200);
     const url = new URL(((await response.json()) as { url: string }).url);
-    expect(url.searchParams.get("scope")).toBe(
-      "companyinformation profile bookkeeping settings costcenter project inbox connectfile",
-    );
+    expect(url.searchParams.get("scope")).toBe("companyinformation profile");
     expect(app.bookkeeping.gates.writes).toBe(false);
     expect(app.bookkeeping.gates.reviewHost).toBe(false);
     expect(await app.connections.list(owner.response.user.id)).toEqual([]);

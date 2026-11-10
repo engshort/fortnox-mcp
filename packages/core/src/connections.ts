@@ -3,6 +3,13 @@ import type { BookkeepingState } from "./bookkeeping.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
+import {
+  assertNoUncertainWrites,
+  type ProgramId,
+  type ProgramSelection,
+  programManifest,
+  programSelection,
+} from "./programs.js";
 import type { ReceiptBatch } from "./receipts.js";
 
 export const connectionCredentials = z
@@ -86,6 +93,7 @@ export interface Connection {
   name: string;
   organizationNumber: string;
   scopes: string[];
+  programs?: ProgramSelection;
   generation: number;
   policyVersion: number;
   review: "review_required" | "client_managed";
@@ -455,6 +463,70 @@ export class Connections {
       c.review = "review_required";
       delete c.renewal;
       c.secret = await this.vault.seal(credentials, this.binding(owner, c));
+    });
+  }
+
+  async extendPrograms(
+    owner: string,
+    id: string,
+    expected: { generation: number; revision: number; policy: number },
+    input: Pick<
+      Connection,
+      "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
+    >,
+    selection: Omit<ProgramSelection, "revision">,
+    credentials: Credentials,
+  ) {
+    return this.mutate(owner, id, async (c) => {
+      if (
+        c.state !== "active" ||
+        c.generation !== expected.generation ||
+        programSelection(c).revision !== expected.revision ||
+        c.policyVersion !== expected.policy ||
+        c.tenant !== input.tenant ||
+        c.mode !== input.mode ||
+        c.scopes.some((s) => !input.scopes.includes(s)) ||
+        c.renewal
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      assertNoUncertainWrites(c);
+      c.generation++;
+      c.policyVersion++;
+      c.name = input.name;
+      c.organizationNumber = input.organizationNumber;
+      c.scopes = input.scopes;
+      c.programs = { ...selection, revision: expected.revision + 1 };
+      if (c.bookkeeping) c.bookkeeping.proposals = [];
+      if (c.business) c.business.proposals = [];
+      c.secret = await this.vault.seal(credentials, this.binding(owner, c));
+    });
+  }
+
+  async disableProgram(
+    owner: string,
+    id: string,
+    program: ProgramId,
+    expected: number,
+  ) {
+    return this.mutate(owner, id, (c) => {
+      const selected = programSelection(c);
+      if (selected.revision !== expected || c.state !== "active")
+        throw new DomainError("CONNECTION_CONFLICT");
+      assertNoUncertainWrites(c);
+      c.programs = {
+        revision: selected.revision + 1,
+        enabled: selected.enabled.filter((p) => p !== program),
+        features: selected.features.filter(
+          (id) =>
+            !(
+              (programManifest.find((p) => p.id === program)?.features ??
+                []) as readonly string[]
+            ).includes(id),
+        ),
+      };
+      c.policyVersion++;
+      if (c.bookkeeping) c.bookkeeping.proposals = [];
+      if (c.business) c.business.proposals = [];
     });
   }
 

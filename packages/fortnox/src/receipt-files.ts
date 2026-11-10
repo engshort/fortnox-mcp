@@ -2,6 +2,7 @@ import {
   type AccountingActor,
   type AccountingProvider,
   type AttachmentReference,
+  assertScopeProgram,
   attachmentReference,
   type Connections,
   DomainError,
@@ -107,6 +108,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
       actor.clientId,
       company,
     );
+    assertScopeProgram(c, scope);
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!this.provider.config.testTenants.includes(c.tenant))
       throw new DomainError("COMPANY_FORBIDDEN");
@@ -125,6 +127,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
           actor.clientId,
           company,
         );
+        assertScopeProgram(current, scope);
         if (
           current.generation !== c.generation ||
           current.policyVersion !== c.policyVersion ||
