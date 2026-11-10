@@ -15,6 +15,15 @@ import { DocumentHttp } from "./document-http.js";
 import { ProviderError } from "./http.js";
 import type { FortnoxPayrollWrites } from "./payroll-writes.js";
 
+const retainedDeleteResponse = z
+  .object({
+    intent_id: z.string().uuid(),
+    proposal_hash: z.string().regex(/^[a-f0-9]{64}$/),
+    status: z.literal(200),
+    receipt_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
 // Operator-only update/delete acceptance, never installed in an MCP catalog.
 // The target comes exclusively from a retained successful synthetic intent.
 // Candidate operations do not assert their own verified-action evidence.
@@ -28,9 +37,14 @@ export class FortnoxPayrollMaintenanceProbe {
     readonly action: "update" | "delete",
     readonly active: () => boolean = () => false,
     readonly now = Date.now,
+    deleteResponse?: z.infer<typeof retainedDeleteResponse>,
   ) {
     businessReference.parse(known);
     z.enum(["update", "delete"]).parse(action);
+    const acknowledged =
+      deleteResponse === undefined
+        ? undefined
+        : retainedDeleteResponse.parse(deleteResponse);
     const operation = `salary_transaction.${action}`;
     const http = new DocumentHttp(
       connections,
@@ -199,6 +213,25 @@ export class FortnoxPayrollMaintenanceProbe {
             company,
             e,
           ): Promise<BusinessWriteResult> => {
+            // Only an operator's captured response receipt can add this proof;
+            // no model supplies a reference, status or success attestation.
+            if (
+              action === "delete" &&
+              acknowledged?.intent_id === e.id &&
+              acknowledged.proposal_hash === e.hash &&
+              e.reference &&
+              e.evidence?.target === e.reference
+            ) {
+              try {
+                await reads.get(actor, company, e.reference);
+              } catch (error) {
+                if (
+                  error instanceof ProviderError &&
+                  error.reason === "record_not_found"
+                )
+                  return { state: "succeeded", reference: e.reference };
+              }
+            }
             if (action === "update" && e.reference && e.evidence) {
               try {
                 const row = await reads.get(actor, company, e.reference);

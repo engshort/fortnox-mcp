@@ -1,4 +1,5 @@
 import {
+  accountingHash,
   type BusinessReference,
   PayrollInputs,
   type PayrollOperation,
@@ -49,6 +50,8 @@ async function setup(
     extra: false,
     numericDifference: false,
     deleteStatus: deleteStatus as number,
+    blockDeleteReadback: false,
+    deleteBody: "",
   };
   const calls: string[] = [];
   let seq = 0;
@@ -93,8 +96,11 @@ async function setup(
       }
       if (req.method === "DELETE") {
         rows.delete(id ?? "");
+        if (flags.blockDeleteReadback) flags.deny = true;
         if (flags.lost === "DELETE") throw Error("synthetic lost response");
-        return new Response(null, { status: flags.deleteStatus });
+        return new Response(flags.deleteBody || null, {
+          status: flags.deleteStatus,
+        });
       }
       if (id)
         return rows.has(id)
@@ -138,6 +144,135 @@ async function setup(
 }
 export function payrollWriteContract(fixture: () => Promise<StateStore>) {
   describe("S09 verified-profile payroll writes", () => {
+    for (const errorEnvelope of [false, true])
+      it(`uses the documented DELETE status without inventing an empty-body requirement (error envelope: ${errorEnvelope})`, async () => {
+        const f = await setup(await fixture());
+        const p = await f.service.prepare(f.actor, "create", {
+          company_id: f.a.id,
+          fields,
+        });
+        await f.service.writes.execute(
+          f.actor,
+          "salary_transaction.create",
+          ref(p),
+        );
+        const current = await f.service.get(f.actor, f.a.id, "1");
+        const d = await f.service.prepare(f.actor, "delete", {
+          company_id: f.a.id,
+          id: "1",
+          expected_version: current.record.version,
+        });
+        f.flags.deleteBody = errorEnvelope
+          ? JSON.stringify({ ErrorInformation: { Code: "SYNTHETIC" } })
+          : "null";
+        expect(
+          (
+            await f.service.writes.execute(
+              f.actor,
+              "salary_transaction.delete",
+              ref(d),
+            )
+          ).state,
+        ).toBe(errorEnvelope ? "outcome_unknown" : "succeeded");
+        expect(f.calls.filter((c) => c === "DELETE")).toHaveLength(1);
+      });
+    it("reconciles a retained final response and exact absence, never absence alone or a different intent", async () => {
+      const f = await setup(await fixture(), [
+        ...payrollReadOperationIds,
+        "salary_transaction.create",
+      ]);
+      const created = await f.service.prepare(f.actor, "create", {
+        company_id: f.a.id,
+        fields,
+      });
+      await f.service.writes.execute(
+        f.actor,
+        "salary_transaction.create",
+        ref(created),
+      );
+      const update = new FortnoxPayrollMaintenanceProbe(
+        f.connections,
+        f.provider,
+        f.adapter,
+        ref(created),
+        "update",
+        () => true,
+      );
+      const u = await update.writes.prepare(
+        f.actor,
+        f.a.id,
+        "salary_transaction.update",
+        {},
+      );
+      await update.writes.execute(f.actor, "salary_transaction.update", ref(u));
+      const cleanup = (
+        proof?: ConstructorParameters<typeof FortnoxPayrollMaintenanceProbe>[7],
+      ) =>
+        new FortnoxPayrollMaintenanceProbe(
+          f.connections,
+          f.provider,
+          f.adapter,
+          ref(u),
+          "delete",
+          () => true,
+          Date.now,
+          proof,
+        );
+      const d = await cleanup().writes.prepare(
+        f.actor,
+        f.a.id,
+        "salary_transaction.delete",
+        {},
+      );
+      f.flags.blockDeleteReadback = true;
+      expect(
+        (
+          await cleanup().writes.execute(
+            f.actor,
+            "salary_transaction.delete",
+            ref(d),
+          )
+        ).state,
+      ).toBe("outcome_unknown");
+      f.flags.deny = false;
+      expect(
+        (
+          await cleanup().writes.reconcile(
+            f.actor,
+            "salary_transaction.delete",
+            ref(d),
+          )
+        ).state,
+      ).toBe("outcome_unknown");
+      const proof = {
+        intent_id: d.proposal_id,
+        proposal_hash: d.proposal_hash,
+        status: 200 as const,
+        receipt_sha256: await accountingHash({
+          status: 200,
+          method: "DELETE",
+          intent: ref(d),
+        }),
+      };
+      expect(
+        (
+          await cleanup({
+            ...proof,
+            proposal_hash: "0".repeat(64),
+          }).writes.reconcile(f.actor, "salary_transaction.delete", ref(d))
+        ).state,
+      ).toBe("outcome_unknown");
+      expect(
+        (
+          await cleanup(proof).writes.reconcile(
+            f.actor,
+            "salary_transaction.delete",
+            ref(d),
+          )
+        ).state,
+      ).toBe("succeeded");
+      expect(f.calls.filter((c) => c === "DELETE")).toHaveLength(1);
+    });
     for (const status of [200, 204, 202] as const)
       it(`requires a verified final deletion acknowledgement (${status}) before accepting absence`, async () => {
         const f = await setup(

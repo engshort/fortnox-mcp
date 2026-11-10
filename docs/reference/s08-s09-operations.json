@@ -18,7 +18,7 @@
     "apps/admin/src/main.tsx": "cf2cadc3a0700654333417ef1a4d14f1163372c11b52693c362168f2a8dd5855",
     "packages/fortnox/src/analytics.ts": "7c669e8670b695b37e6124a35600040200697e0034712f5161173b3f01daf85d",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
-    "packages/fortnox/src/document-http.ts": "184bd153949af56ca2363958fed244f5f076d89be0e0c484a8d19421bde32f68",
+    "packages/fortnox/src/document-http.ts": "f5401bb3f774bd272abffae4879ef3c020595bb6b9a24bb0ba35b2e88798f33c",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "12dddd2e24b4947133c7ba7e0bf8c999ef1afcb720025c76112d8325f2e57fb3",
     "packages/mcp/src/companies.ts": "6186743919d67cdb9f8c7c92c003ecbcbb917b86e229fbe7a622417a59e24fed",
@@ -27,7 +27,7 @@
     "packages/fortnox/src/payroll-test-employee.ts": "d5fa34fc58e6dca28dc732ea61533616b5c930b693983879bb7930938aad3723",
     "packages/fortnox/src/payroll-probe.ts": "7c3ee07b47613b8e7cffd5e24626dd8d5d84854643ed869b579a7a2fc10d18e0",
     "packages/fortnox/src/payroll-writes.ts": "6b270a9ff01fd684109467c1d89b57023acdd82b652c65cbad92e82b1f613582",
-    "packages/fortnox/src/payroll-maintenance-probe.ts": "b2d4ee4f54bbebadf72be0adca1e9a13310b1d740ccb6d21881017f0c6eb734e",
+    "packages/fortnox/src/payroll-maintenance-probe.ts": "bed5cb9e19ec29e8decca7574e2d9d734266f45ba736d37ef7641e9f1c5fdfbc",
     "packages/fortnox/src/index.ts": "91bbb1125db3bf8acd8a7c646a0ebb2d62f53d88048c2e69cbaf9925f0426c10"
   },
   "operations": [
@@ -146,7 +146,7 @@
       "enabledByDefault": false,
       "effect": "payroll_input_delete",
       "precision": "Exact bounded quantity and cents; only explicit company/employee/date/code-11 profiles with action-specific evidence; current or dated hourly pay rechecked; no universal formula",
-      "retry": "Single durable dispatch; require the profile-verified final empty acknowledgement (documented default HTTP 200) plus exact-ID not-found readback; lost acknowledgement or HTTP 202 remains unknown",
+      "retry": "Single durable dispatch; require profile-verified final acknowledgement (documented default HTTP 200; bounded empty or valid JSON, no error envelope) plus exact-ID not-found readback; lost acknowledgement or HTTP 202 remains unknown",
       "syntheticTests": [
         "tests/shared/payroll.ts",
         "tests/shared/business-writes.ts",

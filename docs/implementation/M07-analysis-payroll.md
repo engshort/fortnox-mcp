@@ -351,7 +351,7 @@ before/after/diff, re-read the full source version and preserve identity. Rows
 with unmodeled fields, dimensions, expenses or nonzero VAT are uneditable. Each
 write uses BusinessWrites and pre-dispatch authorization; provider rejects/lost
 responses never trigger a resend. A wrong update response identity cannot
-replace the original target. Delete needs the verified final empty response (HTTP 200 by documented default)
+replace the original target. Delete needs the verified final response (HTTP 200 by documented default)
 and an exact-ID not-found read; absence after a lost acknowledgement remains
 unknown. These tools are absent when their operation is disabled. The ordinary
 product and existing leased read-only entry still enable no payroll writes.
@@ -386,3 +386,42 @@ while the verified profile selects exactly one accepted status (documented
 default 200). The operator probe can observe either final status separately;
 202, nonempty responses, missing acknowledgement or inconclusive readback remain
 unknown. No actual undocumented status is claimed before the experiment.
+
+## Actual maintenance observation and retained response recovery
+
+At b839428 the exact synthetic MCP-created row updated successfully and its
+fixed intended fields matched actual readback. The single subsequent DELETE
+returned HTTP 200, captured by the private operator transport. Initial final
+verification remained unknown. A separate exact-ID GET then returned not-found;
+no DELETE was repeated. The raw response body was not retained, so its format
+is not inferred from the status observation.
+
+The operator-only recovery extension accepts a hash of that captured final
+response receipt, bound to the existing intent ID/hash. It introduces no row
+identity and must match the already retained target/reference. The operator
+loader separately checks the prior successful update, same tenant/client and
+the one captured DELETE acknowledgement. Only a subsequent exact-ID not-found
+read can resolve it. Missing response proof, a different intent/hash, forbidden
+reads or a still-existing row remain unknown. A lost acknowledgement is never
+replaced by absence alone. No model-callable status/reference attestation or
+new provider write is added. Actual reconciliation is recorded when performed.
+
+This distinguishes a retained final response from a lost response. Fortnox's
+[response guidance](https://www.fortnox.se/developer/guides-and-good-to-know/responses)
+defines successful responses in the 200 range; the supplied operation reference
+explicitly lists 200 for salary-transaction deletion without a response-body
+schema. The ordinary adapter's body-shape acceptance still needs separately
+captured actual evidence before advertising deletion.
+
+The initial empty-body restriction was an implementation assumption, not a
+provider contract. The corrected transport accepts a bounded empty or valid
+JSON final response for the profile's verified status; recognized error
+envelopes, malformed JSON and 202 remain unknown. Exact-ID not-found readback
+is still required. This corrects response handling without weakening missing-
+acknowledgement recovery or changing any approved product decision.
+
+The full 54d12c0 regression passed 332 Node/SQLite and 271 actual workerd/D1
+cases, all 13 packaged/native-Worker smoke cases and all five CI flows. The
+maintenance follow-up separately passed final-status, exact-intent and lost-
+acknowledgement tests in both runtimes; subsequent retained-response recovery
+and JSON-response cases are recorded with their own run.

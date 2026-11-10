@@ -225,10 +225,19 @@ export class DocumentHttp {
       }
       const text = await boundedResponse(response, 262144);
       if (method === "DELETE") {
-        // Retain a final empty acknowledgement. The operation's verified
-        // profile decides which status is accepted; 202 is never final proof.
-        if (![200, 204].includes(response.status) || text.trim() !== "")
-          return null;
+        // This endpoint documents a final 200 without a response-body schema.
+        // A JSON null/array/object is not a lost response. Known error envelopes
+        // and malformed JSON are still rejected; 202 is never final proof.
+        if (![200, 204].includes(response.status)) return null;
+        if (text.trim() !== "") {
+          const parsed = parseExactProviderJson(text);
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            "ErrorInformation" in parsed
+          )
+            return null;
+        }
         await context.assertActive();
         return {
           deletion_acknowledged: true,

@@ -243,8 +243,15 @@ precision. It rechecks active employment and applicable dated hourly pay before
 execution. Missing evidence, changed wages, dimensions/expenses/nonzero VAT or
 unmodeled source fields prevent editing. Exact response identity and readback
 are required; known numeric discrepancies remain distinct from success. Delete
-requires the verified acknowledged final empty response and exact-ID not-found
+requires the verified acknowledged final response and exact-ID not-found
 readback. A lost delete acknowledgement cannot be resolved by absence alone.
 The ordinary product and existing leased read-only profile enable none of these
 write operations; operator probes and SDK evidence are separate from ChatGPT
 acceptance.
+
+The salary DELETE contract does not declare a response-body schema. A verified
+final status with bounded empty or valid JSON content is an acknowledgement;
+recognized ErrorInformation, malformed JSON, 202 or a lost response remains
+unknown. It still requires exact not-found readback. An operator's already
+captured final-200 receipt may reconcile its original intent/hash by a later
+exact read; no tool accepts status assertions or a replacement row identity.
