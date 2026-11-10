@@ -58,3 +58,7 @@ uttryckliga företag, räkenskapsår och perioder. Båda företagen kräver åtk
 Varje underlag visar egna källor och begränsningar. Olika valutor eller
 oförenliga definitioner ger ingen beräknad differens. Jämförelsen gör ingen
 valutaomräkning eller juridisk koncernredovisning.
+
+Operatören kan öppna ett tidsbegränsat klientprov för den verifierade
+anställda, dagen och lönekoden. Det aktiverar inte lönekörning, lönebesked eller
+utbetalning. Vanliga installationer får inte automatiskt skrivåtkomst till Lön.

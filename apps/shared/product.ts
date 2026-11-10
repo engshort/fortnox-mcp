@@ -41,10 +41,12 @@ import {
   FortnoxConsentError,
   FortnoxFinancialReads,
   FortnoxPayrollReads,
+  FortnoxPayrollWrites,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
   financialReadOperations,
+  type PayrollWriteProfile,
   payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
@@ -88,6 +90,10 @@ export interface ProductBusinessTest {
   documentReads?: readonly string[];
   consentScopes?: readonly string[];
   payrollReads?: readonly PayrollOperation[];
+  payrollWrites?: {
+    operations: readonly PayrollOperation[];
+    profiles: readonly PayrollWriteProfile[];
+  };
   financialReads?: readonly FinancialReadOperation[];
   now?: () => number;
 }
@@ -229,6 +235,25 @@ export function createProductApplication(
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   const documentReads = businessTest?.documentReads ?? [];
+  const payrollWriteOperations = businessTest?.payrollWrites?.operations ?? [];
+  if (
+    new Set(payrollWriteOperations).size !== payrollWriteOperations.length ||
+    payrollWriteOperations.some(
+      (op) =>
+        ![
+          "salary_transaction.create",
+          "salary_transaction.update",
+          "salary_transaction.delete",
+        ].includes(op),
+    ) ||
+    (businessTest?.payrollWrites &&
+      (payrollWriteOperations.length === 0 ||
+        businessTest.payrollWrites.profiles.length === 0 ||
+        !payrollReads.includes("payroll_employee.get") ||
+        !payrollReads.includes("salary_transaction.get")))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const payrollOperations = [...payrollReads, ...payrollWriteOperations];
   if (
     businessTest &&
     (fileTest ||
@@ -383,14 +408,23 @@ export function createProductApplication(
     businessTest && payrollReads.length
       ? new PayrollInputs(
           connections,
-          new FortnoxPayrollReads(
-            connections,
-            provider,
-            payrollReads,
-            () => now() < businessTest.until,
-            now,
-          ),
-          payrollReads,
+          businessTest.payrollWrites
+            ? new FortnoxPayrollWrites(
+                connections,
+                provider,
+                businessTest.payrollWrites.profiles,
+                payrollOperations,
+                () => now() < businessTest.until,
+                now,
+              )
+            : new FortnoxPayrollReads(
+                connections,
+                provider,
+                payrollReads,
+                () => now() < businessTest.until,
+                now,
+              ),
+          payrollOperations,
           now,
         )
       : undefined;
@@ -493,7 +527,7 @@ export function createProductApplication(
                   active: now() < businessTest.until,
                   operations: businessTest.operations,
                   document_operations: businessTest.documentReads ?? [],
-                  payroll_operations: payrollReads,
+                  payroll_operations: payrollOperations,
                   financial_read_operations: financialReads,
                   financial_writes: false,
                 },

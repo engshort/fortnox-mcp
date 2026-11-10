@@ -13,8 +13,8 @@
     "packages/fortnox/src/index.ts": "91bbb1125db3bf8acd8a7c646a0ebb2d62f53d88048c2e69cbaf9925f0426c10",
     "packages/mcp/src/sales-documents.ts": "e43a51429854cb27544e63cf53208bf0f79a83a05a1dc16c27c30032d238de76",
     "packages/mcp/src/companies.ts": "6186743919d67cdb9f8c7c92c003ecbcbb917b86e229fbe7a622417a59e24fed",
-    "apps/shared/product.ts": "83e1179250061ac5e7d3a5bf2de772bf55a4adfd9010467ede6c749a5d12ef00",
-    "apps/node/src/register-test-main.ts": "2a167abf2f4d2ab896ca5485a8337322eb71c7c5934c9b681017908ade8f3f4f",
+    "apps/shared/product.ts": "9afffca6654b7f3c099848b5c57a0c13d00140f10a10c6f300518b76cc639d15",
+    "apps/node/src/register-test-main.ts": "f72a993c414761ea10b1a3f30633987c1d3652f3a420644b5838cb6305307c89",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "operations": [

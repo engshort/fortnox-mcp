@@ -3,6 +3,7 @@ import {
   registerOperationIds,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
+import { loadPayrollTestProfile } from "./payroll-test-profile.js";
 import { startProduct } from "./product-runtime.js";
 
 declare const __REGISTER_TEST_SOURCE_COMMIT__: string;
@@ -19,8 +20,13 @@ void (async () => {
     )
   )
     throw new Error("Unclassified test operation");
+  const payrollWrites = await loadPayrollTestProfile(
+    process.env.PAYROLL_TEST_PROFILE_FILE,
+    __REGISTER_TEST_SOURCE_COMMIT__,
+  );
   await startProduct(undefined, {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
+    ...(payrollWrites ? { payrollWrites } : {}),
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
     financialReads: z

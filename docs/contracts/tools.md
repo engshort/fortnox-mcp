@@ -273,3 +273,8 @@ consolidation is performed.
 A payroll preparation binds the validated employee/code reference profile and
 its operation evidence. A changed verification profile requires preparation
 again, including when the intended amounts remain valid under the new profile.
+
+The isolated test entry may advertise individually verified salary-input writes
+from a private source-bound profile, within its existing tenant allowlist and
+operation lease. Ordinary product ENV cannot activate them. The profile is never
+an MCP argument or a tool result and contains no client approval override.

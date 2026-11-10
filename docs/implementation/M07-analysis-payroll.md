@@ -478,3 +478,21 @@ The comparison/reference-binding follow-up passed 10 targeted Node/SQLite cases
 and the same 10 actual local workerd/D1 cases, operation-source-ledger validation,
 typecheck and lint. Actual cross-company comparison and ChatGPT evidence remain
 pending; these tests do not promote default support.
+
+## Isolated payroll acceptance profile
+
+Only the separately built Node test entry can load `PAYROLL_TEST_PROFILE_FILE`.
+The bounded JSON file must be private, regular, not a symbolic link and bound to
+the exact compiled source commit. It supplies explicit per-action evidence and
+company/employee/code/date/rate profiles. Ordinary product startup never loads
+this file. The existing test-tenant allowlist, company grants, one-hour operation
+lease, restore/read-only/unknown-write guards and current reference validation
+still apply. The public health catalog exposes operation names, never profiles.
+
+This permits the next public OAuth MCP/client acceptance attempt for the already
+provider-verified hourly create/update/delete slice. Merely loading a profile is
+not actual ChatGPT acceptance or ordinary capability activation.
+
+Private-file/source/operation rejection passed two Node cases, and the shared
+isolated-profile rejection passed in actual local workerd/D1; typecheck and lint
+also passed. Public OAuth write/client acceptance remains a separate next step.

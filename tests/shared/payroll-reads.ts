@@ -817,5 +817,30 @@ export function payrollReadProfileContract(fixture: () => Promise<AuthConfig>) {
           },
         ),
       ).toThrow("CAPABILITY_UNAVAILABLE");
+    for (const payrollWrites of [
+      { operations: ["payroll_employee.create"], profiles: [] },
+      {
+        operations: ["salary_transaction.create", "salary_transaction.create"],
+        profiles: [],
+      },
+      { operations: ["salary_transaction.create"], profiles: [] },
+    ] as Array<{ operations: PayrollOperation[]; profiles: [] }>)
+      expect(() =>
+        createProductApplication(
+          settings,
+          config,
+          async () => {
+            throw new Error("must not call provider");
+          },
+          undefined,
+          {
+            sourceCommit: "a".repeat(40),
+            until: Date.now() + 60000,
+            operations: ["customer.list"],
+            payrollReads: ["payroll_employee.get", "salary_transaction.get"],
+            payrollWrites,
+          },
+        ),
+      ).toThrow("CAPABILITY_UNAVAILABLE");
   });
 }

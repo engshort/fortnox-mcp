@@ -12,7 +12,7 @@
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
-    "apps/shared/product.ts": "83e1179250061ac5e7d3a5bf2de772bf55a4adfd9010467ede6c749a5d12ef00",
+    "apps/shared/product.ts": "9afffca6654b7f3c099848b5c57a0c13d00140f10a10c6f300518b76cc639d15",
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
     "apps/admin/src/main.tsx": "cf2cadc3a0700654333417ef1a4d14f1163372c11b52693c362168f2a8dd5855",
@@ -22,13 +22,14 @@
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "12dddd2e24b4947133c7ba7e0bf8c999ef1afcb720025c76112d8325f2e57fb3",
     "packages/mcp/src/companies.ts": "6186743919d67cdb9f8c7c92c003ecbcbb917b86e229fbe7a622417a59e24fed",
-    "apps/node/src/register-test-main.ts": "2a167abf2f4d2ab896ca5485a8337322eb71c7c5934c9b681017908ade8f3f4f",
+    "apps/node/src/register-test-main.ts": "f72a993c414761ea10b1a3f30633987c1d3652f3a420644b5838cb6305307c89",
     "packages/mcp/src/analytics.ts": "424143edf0fe5861cae6135489e023ee741a237455a75d3783d291a86e333fcd",
     "packages/fortnox/src/payroll-test-employee.ts": "d5fa34fc58e6dca28dc732ea61533616b5c930b693983879bb7930938aad3723",
     "packages/fortnox/src/payroll-probe.ts": "7c3ee07b47613b8e7cffd5e24626dd8d5d84854643ed869b579a7a2fc10d18e0",
     "packages/fortnox/src/payroll-writes.ts": "6b270a9ff01fd684109467c1d89b57023acdd82b652c65cbad92e82b1f613582",
     "packages/fortnox/src/payroll-maintenance-probe.ts": "bed5cb9e19ec29e8decca7574e2d9d734266f45ba736d37ef7641e9f1c5fdfbc",
-    "packages/fortnox/src/index.ts": "91bbb1125db3bf8acd8a7c646a0ebb2d62f53d88048c2e69cbaf9925f0426c10"
+    "packages/fortnox/src/index.ts": "91bbb1125db3bf8acd8a7c646a0ebb2d62f53d88048c2e69cbaf9925f0426c10",
+    "apps/node/src/payroll-test-profile.ts": "53d0926a9ab2f441c45a825e2186735428b41572c78cc103ed2df62e3df6b366"
   },
   "operations": [
     {
