@@ -6,6 +6,7 @@ export * from "./connections.js";
 export * from "./diagnostics.js";
 export * from "./http.js";
 export * from "./payroll.js";
+export * from "./payroll-writes.js";
 export * from "./receipt-files.js";
 export * from "./registers.js";
 export * from "./sales-documents.js";

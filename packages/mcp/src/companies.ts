@@ -26,7 +26,7 @@ import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/valida
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
 import { registerFinancialReads } from "./analytics.js";
-import { registerPayrollReads } from "./payroll.js";
+import { registerPayrollTools } from "./payroll.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
@@ -369,7 +369,7 @@ export function companyServer(context: {
       context.identity,
     );
   if (context.payroll)
-    registerPayrollReads(server, context.payroll, context.identity);
+    registerPayrollTools(server, context.payroll, context.identity);
   if (context.salesDocuments)
     registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)

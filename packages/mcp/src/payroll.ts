@@ -1,13 +1,19 @@
 import {
   type AccountingActor,
   accountingDate,
+  businessDifference,
+  businessReference,
   DomainError,
   type PayrollInputs,
   type PayrollOperation,
+  payrollCreate,
+  payrollDelete,
   payrollEmployee,
   payrollEmployeeId,
   payrollObservedFields,
   payrollRowId,
+  payrollUpdate,
+  salaryTransactionFields,
 } from "@fortnox-mcp/core";
 import { ProviderError } from "@fortnox-mcp/fortnox";
 import type { McpServer } from "@modelcontextprotocol/server";
@@ -51,7 +57,7 @@ const pageOutput = (row: z.ZodType) =>
       next_page: z.number().int().min(1).max(10000).nullable(),
     })
     .strict();
-export function registerPayrollReads(
+export function registerPayrollTools(
   server: McpServer,
   service: PayrollInputs,
   identity: AccountingActor | null,
@@ -66,6 +72,7 @@ export function registerPayrollReads(
       actor: AccountingActor,
       value: Record<string, unknown>,
     ) => Promise<unknown>,
+    effect?: "prepare" | "create" | "update" | "delete" | "reconcile",
   ) => {
     if (!service.enabled.includes(operation)) return;
     const schema = output(zdata);
@@ -73,14 +80,15 @@ export function registerPayrollReads(
       name,
       {
         title,
-        description:
-          "Reads a bounded payroll-input resource. Requires explicit company access and salary consent. No payroll calculation, payslip or payout operation.",
+        description: effect
+          ? "Prepares, executes or reconciles only the named payroll-input effect using an immutable intent. Exact fields and current employee/code rights are required. No payroll calculation, payslip or payout operation."
+          : "Reads a bounded payroll-input resource. Requires explicit company access and salary consent. No payroll calculation, payslip or payout operation.",
         inputSchema: input,
         outputSchema: schema,
         annotations: {
-          readOnlyHint: true,
-          destructiveHint: false,
-          idempotentHint: true,
+          readOnlyHint: !effect,
+          destructiveHint: effect === "update" || effect === "delete",
+          idempotentHint: effect !== "prepare",
           openWorldHint: false,
         },
       },
@@ -180,4 +188,104 @@ export function registerPayrollReads(
     (actor, v) =>
       service.get(actor, String(v.company_id), String(v.salary_row)),
   );
+  const execution = z
+    .object({
+      state: z.enum([
+        "prepared",
+        "succeeded",
+        "failed",
+        "outcome_unknown",
+        "applied_different",
+      ]),
+      reference: payrollRowId.optional(),
+      difference: businessDifference.optional(),
+    })
+    .strict();
+  const preparation = businessReference
+    .extend({
+      expires_at: z.number().int().nonnegative().safe(),
+      preview: z
+        .object({
+          action: z.enum(["create", "update", "delete"]),
+          employee_id: payrollEmployeeId,
+          date: accountingDate,
+          before: payrollObservedFields.nullable(),
+          after: salaryTransactionFields.nullable(),
+          diff: z
+            .array(
+              z
+                .object({
+                  field: z.enum([
+                    "EmployeeId",
+                    "Date",
+                    "SalaryCode",
+                    "Number",
+                    "Amount",
+                    "Total",
+                    "TextRow",
+                  ]),
+                  before: z.string().nullable(),
+                  after: z.string().nullable(),
+                })
+                .strict(),
+            )
+            .max(7),
+          effect: z.literal("payroll_input_only"),
+        })
+        .strict(),
+    })
+    .strict();
+  for (const action of ["create", "update", "delete"] as const) {
+    const op = `salary_transaction.${action}` as const;
+    register(
+      `prepare_salary_transaction_${action}`,
+      op,
+      `Prepare payroll input ${action}`,
+      action === "create"
+        ? payrollCreate
+        : action === "update"
+          ? payrollUpdate
+          : payrollDelete,
+      preparation,
+      (actor, v) => service.prepare(actor, action, v),
+      "prepare",
+    );
+    register(
+      `${action}_salary_transaction`,
+      op,
+      `${action} payroll input`,
+      businessReference,
+      execution,
+      (actor, v) =>
+        service.writes.execute(actor, op, businessReference.parse(v)),
+      action,
+    );
+    register(
+      `reconcile_salary_transaction_${action}`,
+      op,
+      `Reconcile payroll input ${action}`,
+      businessReference,
+      execution,
+      (actor, v) =>
+        service.writes.reconcile(actor, op, businessReference.parse(v)),
+      "reconcile",
+    );
+  }
+  if (
+    service.enabled.some((op) =>
+      [
+        "salary_transaction.create",
+        "salary_transaction.update",
+        "salary_transaction.delete",
+      ].includes(op),
+    )
+  )
+    register(
+      "get_salary_transaction_write_status",
+      "salary_transaction.get",
+      "Read payroll write status",
+      businessReference,
+      execution,
+      (actor, v) => service.writes.status(actor, businessReference.parse(v)),
+    );
 }

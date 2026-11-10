@@ -328,3 +328,34 @@ synthetic name/email/profile fields are unchanged; wage readback compares exact
 normalized decimals. It uses the same absence check, durable create intent,
 exact-ID readback, tenant/grant/scope/lease and unknown-outcome rules. Formula
 behavior and operation activation remain unverified until separately observed.
+
+## Verified-profile provider/MCP write implementation
+
+At e5514b4 the new fixed-wage hourly employee and code-11 candidate matched all
+prepared fields on exact actual readback. The separate fixed-wage monthly
+candidate still returned different content and is not an accepted monthly
+workflow. Both use synthetic data; no payroll or payout was run.
+
+The new provider adapter defaults to no profiles or enabled operations. Trusted
+installation code must supply separate acceptance hashes for create, update and
+delete, bound to one company, employee, code 11 and date interval. A create
+observation does not unlock update/delete. The adapter re-reads active TJM/TIM
+employment and the applicable dated hourly wage (or today's explicitly current
+wage); changed rate or missing dated coverage blocks preparation/execution.
+Quantity precision and the exact unit amount are part of the verified profile.
+It exposes no code-12/monthly formula or employee-management tool.
+
+Focused MCP prepare/execute/reconcile/status tools use strict schemas, immutable
+references and accurate effect annotations. Updates show complete modeled
+before/after/diff, re-read the full source version and preserve identity. Rows
+with unmodeled fields, dimensions, expenses or nonzero VAT are uneditable. Each
+write uses BusinessWrites and pre-dispatch authorization; provider rejects/lost
+responses never trigger a resend. A wrong update response identity cannot
+replace the original target. Delete needs the documented empty HTTP 200 response
+and an exact-ID not-found read; absence after a lost acknowledgement remains
+unknown. These tools are absent when their operation is disabled. The ordinary
+product and existing leased read-only entry still enable no payroll writes.
+
+Actual acceptance of this provider/MCP implementation, update/delete rights and
+ChatGPT behavior remain separate pending evidence. The candidate helpers do not
+set their own production evidence or promote a capability after one probe.

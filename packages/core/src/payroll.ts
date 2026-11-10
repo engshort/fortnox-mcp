@@ -88,6 +88,7 @@ export interface PayrollReferences {
     profile: "quantity_times_unit_amount";
     quantity_scale: number;
     evidence_sha256: string;
+    unit_amount?: string;
   }>;
 }
 export interface PayrollRecord {
@@ -193,6 +194,8 @@ export function validatePayrollInput(
   if (
     new Exact(NumberValue).lte(0) ||
     new Exact(Amount).lte(0) ||
+    (profile.unit_amount !== undefined &&
+      parseAmount(profile.unit_amount, 2) !== Amount) ||
     !new Exact(NumberValue).times(Amount).eq(Total)
   )
     throw new DomainError("VALIDATION_FAILED");

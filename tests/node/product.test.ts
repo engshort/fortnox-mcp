@@ -25,6 +25,7 @@ import {
   payrollReadContract,
   payrollReadProfileContract,
 } from "../shared/payroll-reads.js";
+import { payrollWriteContract } from "../shared/payroll-writes.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { programContract, programHttpContract } from "../shared/programs.js";
@@ -118,6 +119,7 @@ analyticsCalculationContract();
 analyticsAuthorizationContract(async () => (await fixture()).state);
 
 payrollContract(async () => (await fixture()).state);
+payrollWriteContract(async () => (await fixture()).state);
 
 payrollReadContract(async () => (await fixture()).state);
 payrollReadProfileContract(fixture);

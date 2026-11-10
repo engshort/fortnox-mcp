@@ -185,10 +185,18 @@ export class DocumentHttp {
   async submit(
     context: ProviderContext,
     url: URL,
-    method: "POST" | "PUT" | "GET",
+    method: "POST" | "PUT" | "GET" | "DELETE",
     body: string | undefined,
     beforeDispatch: () => Promise<void>,
   ): Promise<Record<string, unknown> | null> {
+    if (
+      method === "DELETE" &&
+      (url.origin !== "https://api.fortnox.se" ||
+        !/^\/3\/salarytransactions\/[1-9]\d{0,9}$/.test(url.pathname) ||
+        url.search ||
+        body !== undefined)
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     await this.budget.permit(context, this.now() + 15000);
     const token = await context.token(false);
     await context.assertActive();
@@ -215,9 +223,17 @@ export class DocumentHttp {
         await response.body?.cancel();
         return null;
       }
+      const text = await boundedResponse(response, 262144);
+      if (method === "DELETE") {
+        // The documented salary delete response is empty HTTP 200. Absence
+        // without this acknowledged response cannot establish delivery.
+        if (response.status !== 200 || text.trim() !== "") return null;
+        await context.assertActive();
+        return { deletion_acknowledged: true };
+      }
       const raw = z
         .record(z.string(), z.unknown())
-        .parse(parseExactProviderJson(await boundedResponse(response, 262144)));
+        .parse(parseExactProviderJson(text));
       await context.assertActive();
       return raw;
     } catch {

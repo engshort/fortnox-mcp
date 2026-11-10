@@ -41,3 +41,9 @@ i `get_financial_voucher`; varje sådan läsning kräver fortfarande företagså
 `get_financial_account` läser Fortnox egna ingående och utgående värden för ett
 bestämt konto och räkenskapsår. De är inte ett saldo på valfritt datum. Saknade
 värden förblir saknade, och ej verifierade valutaenheter anges uttryckligen.
+
+Ett smalt timlöneflöde är nu implementerat bakom avstängda operationsgränser.
+Det kräver en verifierad anställd, dag, lönekod och timlön. Förberedelsen visar
+hela avsedda underlaget och ändringarna. Om personalkortets timlön eller själva
+underlaget ändras måste förberedelsen göras om. Skapande, uppdatering och
+borttagning godkänns och verifieras separat. Månadslön är ännu inte godkänd.

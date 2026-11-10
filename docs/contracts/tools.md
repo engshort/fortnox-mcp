@@ -224,3 +224,27 @@ S04/S05 test entry permits at most six document read operations and refuses writ
 activation. Contracts, evidence and outstanding acceptance are in the
 [S05 record](../implementation/S05-documents.md) and
 [operation ledger](../reference/s05-sales-operations.json).
+
+### Bounded payroll-input writes (disabled by default)
+
+`prepare_salary_transaction_create`, `_update` and `_delete` accept strict
+resource-specific fields/version selections. They return an encrypted immutable
+business reference and complete modeled before/after/diff. Corresponding
+`create_salary_transaction`, `update_salary_transaction` and
+`delete_salary_transaction` tools take only that reference. Each effect and its
+`reconcile_salary_transaction_*` tool is registered only when independently
+enabled. `get_salary_transaction_write_status` performs an authorized local read.
+Preparation mutates bounded local state; execution consumes a single intent.
+No payroll calculation, payslip, tax calculation or payout is exposed.
+
+The first provider write adapter accepts only trusted company/employee/date/code-11
+profiles with separate action evidence, a verified unit amount and quantity
+precision. It rechecks active employment and applicable dated hourly pay before
+execution. Missing evidence, changed wages, dimensions/expenses/nonzero VAT or
+unmodeled source fields prevent editing. Exact response identity and readback
+are required; known numeric discrepancies remain distinct from success. Delete
+requires the documented acknowledged empty HTTP 200 and exact-ID not-found
+readback. A lost delete acknowledgement cannot be resolved by absence alone.
+The ordinary product and existing leased read-only profile enable none of these
+write operations; operator probes and SDK evidence are separate from ChatGPT
+acceptance.
