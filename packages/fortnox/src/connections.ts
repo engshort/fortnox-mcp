@@ -210,6 +210,29 @@ export class FortnoxConnections {
     }
     throw new DomainError("RATE_LIMITED");
   }
+  // Cancels only this authenticated owner's current browser session. Claimed
+  // exchanges remain untouched; cancellation cannot interrupt token storage.
+  async cancelPending(owner: string, session: string) {
+    for (let n = 0; n < 8; n++) {
+      const row = await this.config.connections.state.get<Flow[]>(
+        "fortnox-flows",
+        owner,
+      );
+      if (!row) return;
+      const flows = row.value.filter((f) => f.session !== session || f.claimed);
+      if (
+        flows.length === row.value.length ||
+        (await this.config.connections.state.put(
+          "fortnox-flows",
+          owner,
+          flows,
+          row.version,
+        ))
+      )
+        return;
+    }
+    throw new DomainError("RATE_LIMITED");
+  }
   private upstream(): NonNullable<
     oauth.ProtectedResourceRequestOptions[typeof oauth.customFetch]
   > {

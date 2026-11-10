@@ -7,6 +7,64 @@ import { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
+  it("cancels only unclaimed consent flows of the same owner and browser session", async () => {
+    const state = await fixture();
+    const connections = new Connections(
+      state,
+      new CredentialVault({ a: keyA }, "a"),
+    );
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections,
+      testTenants: ["100001", "100002"],
+      fetch: async () => {
+        throw new Error("Cancellation must not contact Fortnox");
+      },
+    });
+    const input = {
+      mode: "service" as const,
+      clientId: "synthetic-client",
+      clientSecret: "synthetic-private-secret",
+    };
+    const cancelled = new URL(
+      await provider.start("owner", "session-A", input),
+    );
+    await provider.start("owner", "session-B", input);
+    await provider.start("other-owner", "session-A", input);
+    const snapshot = await state.get<{ session: string; claimed: boolean }[]>(
+      "fortnox-flows",
+      "owner",
+    );
+    if (!snapshot) throw new Error("Missing synthetic flows");
+    snapshot.value.push({
+      ...snapshot.value[0],
+      session: "session-A",
+      claimed: true,
+    } as { session: string; claimed: boolean });
+    await state.put("fortnox-flows", "owner", snapshot.value, snapshot.version);
+    await provider.cancelPending("owner", "session-A");
+    const remaining = await state.get<{ session: string; claimed: boolean }[]>(
+      "fortnox-flows",
+      "owner",
+    );
+    expect(remaining?.value.map((f) => [f.session, f.claimed])).toEqual([
+      ["session-B", false],
+      ["session-A", true],
+    ]);
+    expect(
+      (await state.get<unknown[]>("fortnox-flows", "other-owner"))?.value,
+    ).toHaveLength(1);
+    const callback = new URL(
+      "https://product.example.invalid/admin/fortnox/callback",
+    );
+    callback.search = new URLSearchParams({
+      state: cancelled.searchParams.get("state") ?? "",
+      code: "synthetic-code",
+    }).toString();
+    await expect(
+      provider.finish("owner", "session-A", callback),
+    ).rejects.toThrow("AUTH_REQUIRED");
+  });
   it("requests receipt scopes only through fresh consent and retains stored scope sets through both token lifecycles", async () => {
     const connections = new Connections(
       await fixture(),

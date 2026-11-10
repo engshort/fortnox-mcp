@@ -107,6 +107,27 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
     ).toBe(403);
     expect(f.calls()).toBe(0);
   });
+  it("requires the owner session and same Origin to cancel pending consent", async () => {
+    const f = await seed();
+    const path = "/admin/fortnox/cancel-consent";
+    expect((await f.request(path, {}, {})).status).toBe(401);
+    expect(
+      (await f.request(path, {}, { authorization: "Bearer synthetic-token" }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await f.request(
+          path,
+          {},
+          { cookie: f.cookie, origin: "https://foreign.invalid" },
+        )
+      ).status,
+    ).toBe(403);
+    expect((await f.request(path, { owner: "other-owner" })).status).toBe(400);
+    expect((await f.request(path, {})).status).toBe(200);
+    expect(f.calls()).toBe(0);
+  });
   it("encrypts write-only owner credentials and never exports secrets in status", async () => {
     const f = await seed();
     const credentials = {

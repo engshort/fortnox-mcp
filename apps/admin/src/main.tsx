@@ -292,6 +292,17 @@ function Integration({
             >
               {t("Fortsätt till Fortnox", "Continue to Fortnox")}
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                void perform(() => api("/admin/fortnox/cancel-consent", {}))
+              }
+            >
+              {t(
+                "Avbryt väntande samtycken i denna session",
+                "Cancel pending consents in this session",
+              )}
+            </button>
           </form>
           {!state.test_mode && (
             <p>

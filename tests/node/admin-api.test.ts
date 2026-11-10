@@ -3,6 +3,43 @@ import { api } from "../../apps/admin/src/api.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("shows only allowlisted consent diagnostics", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      Response.json(
+        {
+          error: "CONNECTION_REQUEST_FAILED",
+          reason: "RATE_LIMITED",
+          stage: "consent_start",
+          provider_error: "private provider message",
+        },
+        { status: 400 },
+      ),
+    ),
+  );
+  await expect(api("/admin/fortnox/start", {})).rejects.toThrow(
+    new Error("CONNECTION_REQUEST_FAILED (RATE_LIMITED, consent_start)"),
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      Response.json(
+        {
+          error: "CONNECTION_REQUEST_FAILED",
+          reason: "PRIVATE_TOKEN",
+          stage: "private callback",
+          provider_error: "private provider message",
+        },
+        { status: 400 },
+      ),
+    ),
+  );
+  await expect(api("/admin/fortnox/start", {})).rejects.toThrow(
+    new Error("CONNECTION_REQUEST_FAILED"),
+  );
+});
+
 it("reports non-JSON gateway failures without revealing their response body", async () => {
   for (const [status, error] of [
     [401, "AUTH_REQUIRED"],

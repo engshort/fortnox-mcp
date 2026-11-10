@@ -493,6 +493,11 @@ export function createProductApplication(
           return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
         try {
           const body = await boundedJson(request);
+          if (url.pathname === "/admin/fortnox/cancel-consent") {
+            z.object({}).strict().parse(body);
+            await provider.cancelPending(session.user.id, session.session.id);
+            return safeResponse('{"ok":true}');
+          }
           if (url.pathname === "/admin/fortnox/configuration") {
             await integration.save(
               session.user.id,

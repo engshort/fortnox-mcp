@@ -20,6 +20,12 @@ Om ett åtkomstskydd framför installationen avvisar formuläret visar klienten
 `AUTH_REQUIRED` eller `REQUEST_FAILED`. Kontrollera då även åtkomstskyddets
 inloggning. Privata svar från mellanliggande proxyer visas inte som feltext.
 
+`CONNECTION_REQUEST_FAILED` visar även begränsade felkoder för steg och orsak.
+Om orsaken är `RATE_LIMITED` efter upprepade anslutningsförsök kan du välja
+**Avbryt väntande samtycken i denna session** innan du startar om. Avbrottet
+ogiltigförklarar oanvända länkar i samma inloggning; det kopplar inte från
+anslutna företag och avbryter inte ett tokenutbyte som redan påbörjats.
+
 Operatören kör `node --import tsx scripts/product-operator.ts .data/operator.json` med privat JSON innehållande `origin`, `secret`, `database`, `output` och `action` (`bootstrap` eller `reset`). Återställning kräver också ägarens `email`. Filen och utdata ska ligga utanför git med privata filrättigheter. Databasens migrationer ska redan vara applicerade. Hemligheter ska inte skickas som kommandoradsargument.
 
 För D1: skapa motsvarande engångskod privat, beräkna SHA-256 och sätt en tio minuters sluttid. Importera en granskad privat SQL-instruktion som endast infogar posten `installation`/`owner` i `product_state` om den inte finns (`ON CONFLICT DO NOTHING`), med version 1 och värdet `{phase:"ready",ownerId:"",tokenHash:<hash>,expiresAt:<UTC-millis>}`. Kontrollera att exakt en post skapades. Återanvänd aldrig en befintlig installations ägare eller hemligheter. Produktionskonton ingår inte i testet.

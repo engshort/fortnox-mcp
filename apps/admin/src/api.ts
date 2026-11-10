@@ -52,6 +52,56 @@ export async function api<T = { ok?: boolean; url?: string }>(
         : "REQUEST_FAILED",
     );
   });
+  const diagnostic =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  if (!response.ok && diagnostic.error === "CONNECTION_REQUEST_FAILED") {
+    // Only fixed public codes are shown; never echo arbitrary provider text.
+    const reason = [
+      "RATE_LIMITED",
+      "AUTH_REQUIRED",
+      "RECONNECT_REQUIRED",
+      "VALIDATION_FAILED",
+      "CAPABILITY_UNAVAILABLE",
+      "CONNECTION_CONFLICT",
+    ].includes(String(diagnostic.reason))
+      ? String(diagnostic.reason)
+      : null;
+    const stage = [
+      "consent_start",
+      "flow_validation",
+      "flow_decryption",
+      "authorization_response",
+      "code_exchange",
+      "code_response",
+      "initial_credentials",
+      "tenant_verification",
+      "service_exchange",
+      "service_response",
+      "service_credentials",
+      "service_tenant_verification",
+      "connection_storage",
+    ].includes(String(diagnostic.stage))
+      ? String(diagnostic.stage)
+      : null;
+    const provider = [
+      "invalid_request",
+      "invalid_client",
+      "invalid_grant",
+      "unauthorized_client",
+      "invalid_scope",
+      "access_denied",
+      "server_error",
+      "temporarily_unavailable",
+    ].includes(String(diagnostic.provider_error))
+      ? String(diagnostic.provider_error)
+      : null;
+    const details = [reason, stage, provider].filter(Boolean);
+    throw new Error(
+      `CONNECTION_REQUEST_FAILED${details.length ? ` (${details.join(", ")})` : ""}`,
+    );
+  }
   if (!response.ok)
     throw new Error(
       value &&
