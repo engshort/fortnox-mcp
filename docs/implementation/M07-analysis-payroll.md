@@ -351,7 +351,7 @@ before/after/diff, re-read the full source version and preserve identity. Rows
 with unmodeled fields, dimensions, expenses or nonzero VAT are uneditable. Each
 write uses BusinessWrites and pre-dispatch authorization; provider rejects/lost
 responses never trigger a resend. A wrong update response identity cannot
-replace the original target. Delete needs the documented empty HTTP 200 response
+replace the original target. Delete needs the verified final empty response (HTTP 200 by documented default)
 and an exact-ID not-found read; absence after a lost acknowledgement remains
 unknown. These tools are absent when their operation is disabled. The ordinary
 product and existing leased read-only entry still enable no payroll writes.
@@ -359,3 +359,30 @@ product and existing leased read-only entry still enable no payroll writes.
 Actual acceptance of this provider/MCP implementation, update/delete rights and
 ChatGPT behavior remain separate pending evidence. The candidate helpers do not
 set their own production evidence or promote a capability after one probe.
+
+## Actual hourly MCP/provider acceptance, 2026-11-10
+
+At 54d12c0, a separately prepared hourly input with a different integer quantity
+passed strict product MCP schemas, current employee/dated-wage references,
+BusinessWrites dispatch and exact Fortnox readback. Repeating the same immutable
+MCP reference returned the retained success; instrumentation counted one POST.
+The client used an in-memory MCP SDK transport with the owner's current
+company/client grant. This is actual domain/provider evidence, not a public HTTP
+OAuth or ChatGPT-host observation. No ordinary product operation was activated.
+The row/intent/profile receipts and cleanup plan are retained privately.
+
+A separate operator-only maintenance probe can test update/delete on that exact
+retained successful synthetic row. It takes no caller-selected row or fields:
+its target must come from the retained successful create/update intent in the
+same tenant/client, and current content must match that intent's evidence.
+It permits only the synthetic marker/employee/date/code profile, rechecks wage
+and employment, binds the full source version and uses BusinessWrites plus the
+same fixed provider transport. Update tests a fixed third quantity; delete
+requires acknowledged delivery and exact absence. Candidate rights are not
+advertised or inserted into the verified profile by the helper.
+
+The delete transport retains empty final HTTP 200/204 acknowledgement metadata,
+while the verified profile selects exactly one accepted status (documented
+default 200). The operator probe can observe either final status separately;
+202, nonempty responses, missing acknowledgement or inconclusive readback remain
+unknown. No actual undocumented status is claimed before the experiment.

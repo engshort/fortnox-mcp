@@ -243,7 +243,7 @@ precision. It rechecks active employment and applicable dated hourly pay before
 execution. Missing evidence, changed wages, dimensions/expenses/nonzero VAT or
 unmodeled source fields prevent editing. Exact response identity and readback
 are required; known numeric discrepancies remain distinct from success. Delete
-requires the documented acknowledged empty HTTP 200 and exact-ID not-found
+requires the verified acknowledged final empty response and exact-ID not-found
 readback. A lost delete acknowledgement cannot be resolved by absence alone.
 The ordinary product and existing leased read-only profile enable none of these
 write operations; operator probes and SDK evidence are separate from ChatGPT

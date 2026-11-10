@@ -36,6 +36,7 @@ export const payrollWriteProfile = z
     to: accountingDate,
     hourly_pay: z.string().transform((v) => parseAmount(v, 2)),
     quantity_scale: z.number().int().min(0).max(6),
+    delete_status: z.union([z.literal(200), z.literal(204)]).default(200),
     evidence: z
       .object({
         create: z
@@ -269,7 +270,12 @@ export class FortnoxPayrollWrites implements PayrollProvider {
       version: await accountingHash(source),
       editable:
         !!profile &&
-        !!(profile.evidence.update || profile.evidence.delete) &&
+        !!(
+          (profile.evidence.update &&
+            this.enabled.includes("salary_transaction.update")) ||
+          (profile.evidence.delete &&
+            this.enabled.includes("salary_transaction.delete"))
+        ) &&
         salaryTransactionFields.safeParse(fields).success,
     };
   }
@@ -331,7 +337,11 @@ export class FortnoxPayrollWrites implements PayrollProvider {
       before,
     );
     if (action === "delete") {
-      if (raw?.deletion_acknowledged && id) {
+      if (
+        raw?.deletion_acknowledged &&
+        raw.response_status === profile.delete_status &&
+        id
+      ) {
         try {
           await this.get(actor, company, id);
         } catch (error) {

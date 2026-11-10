@@ -12,17 +12,18 @@ import {
 } from "@fortnox-mcp/fortnox";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
+import { FortnoxPayrollMaintenanceProbe } from "../../packages/fortnox/src/payroll-maintenance-probe.js";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
 
 const fields = {
-  EmployeeId: "SYNTHETIC",
-  Date: "2026-01-01",
+  EmployeeId: "SYNM7ABC123",
+  Date: "2026-11-10",
   SalaryCode: "11",
   Number: "1",
   Amount: "0.01",
   Total: "0.01",
-  TextRow: "Synthetic input",
+  TextRow: "SYNTHETIC M7 MCP INPUT",
 };
 const ref = (p: BusinessReference) => ({
   company_id: p.company_id,
@@ -32,6 +33,7 @@ const ref = (p: BusinessReference) => ({
 async function setup(
   state: StateStore,
   enabled: readonly PayrollOperation[] = payrollOperationIds,
+  deleteStatus: 200 | 204 = 200,
 ) {
   const f = await accountingFixture(state);
   await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
@@ -46,6 +48,7 @@ async function setup(
     wrongId: false,
     extra: false,
     numericDifference: false,
+    deleteStatus: deleteStatus as number,
   };
   const calls: string[] = [];
   let seq = 0;
@@ -91,7 +94,7 @@ async function setup(
       if (req.method === "DELETE") {
         rows.delete(id ?? "");
         if (flags.lost === "DELETE") throw Error("synthetic lost response");
-        return new Response(null, { status: 200 });
+        return new Response(null, { status: flags.deleteStatus });
       }
       if (id)
         return rows.has(id)
@@ -112,10 +115,11 @@ async function setup(
     company_id: f.a.id,
     employee_id: fields.EmployeeId,
     code: "11" as const,
-    from: "2026-01-01",
-    to: "2026-01-01",
+    from: fields.Date,
+    to: fields.Date,
     hourly_pay: "0.01",
     quantity_scale: 0,
+    delete_status: deleteStatus,
     evidence: {
       create: "a".repeat(64),
       update: "b".repeat(64),
@@ -134,6 +138,169 @@ async function setup(
 }
 export function payrollWriteContract(fixture: () => Promise<StateStore>) {
   describe("S09 verified-profile payroll writes", () => {
+    for (const status of [200, 204, 202] as const)
+      it(`requires a verified final deletion acknowledgement (${status}) before accepting absence`, async () => {
+        const f = await setup(
+          await fixture(),
+          payrollOperationIds,
+          status === 204 ? 204 : 200,
+        );
+        const p = await f.service.prepare(f.actor, "create", {
+          company_id: f.a.id,
+          fields,
+        });
+        await f.service.writes.execute(
+          f.actor,
+          "salary_transaction.create",
+          ref(p),
+        );
+        const current = await f.service.get(f.actor, f.a.id, "1");
+        const d = await f.service.prepare(f.actor, "delete", {
+          company_id: f.a.id,
+          id: "1",
+          expected_version: current.record.version,
+        });
+        f.flags.deleteStatus = status;
+        expect(
+          (
+            await f.service.writes.execute(
+              f.actor,
+              "salary_transaction.delete",
+              ref(d),
+            )
+          ).state,
+        ).toBe(status === 202 ? "outcome_unknown" : "succeeded");
+        expect(
+          (
+            await f.service.writes.execute(
+              f.actor,
+              "salary_transaction.delete",
+              ref(d),
+            )
+          ).state,
+        ).toBe(status === 202 ? "outcome_unknown" : "succeeded");
+        expect(f.calls.filter((c) => c === "DELETE")).toHaveLength(1);
+      });
+    for (const lostAck of [false, true])
+      it(`probes update/delete only from retained synthetic intents (lost acknowledgement: ${lostAck})`, async () => {
+        const f = await setup(await fixture(), [
+          ...payrollReadOperationIds,
+          "salary_transaction.create",
+        ]);
+        const p = await f.service.prepare(f.actor, "create", {
+          company_id: f.a.id,
+          fields,
+        });
+        await f.service.writes.execute(
+          f.actor,
+          "salary_transaction.create",
+          ref(p),
+        );
+        const invalid = new FortnoxPayrollMaintenanceProbe(
+          f.connections,
+          f.provider,
+          f.adapter,
+          { ...ref(p), proposal_hash: "0".repeat(64) },
+          "update",
+          () => true,
+        );
+        await expect(
+          invalid.writes.prepare(
+            f.actor,
+            f.a.id,
+            "salary_transaction.update",
+            {},
+          ),
+        ).rejects.toThrow("PROPOSAL_STALE");
+        expect(
+          (await f.service.get(f.actor, f.a.id, "1")).record.editable,
+        ).toBe(false);
+        const probe = new FortnoxPayrollMaintenanceProbe(
+          f.connections,
+          f.provider,
+          f.adapter,
+          ref(p),
+          "update",
+          () => true,
+        );
+        const u = await probe.writes.prepare(
+          f.actor,
+          f.a.id,
+          "salary_transaction.update",
+          {},
+        );
+        expect(u.preview).toMatchObject({
+          after: { Number: "3", Amount: "0.01", Total: "0.03" },
+        });
+        expect(
+          (
+            await probe.writes.execute(
+              f.actor,
+              "salary_transaction.update",
+              ref(u),
+            )
+          ).state,
+        ).toBe("succeeded");
+        expect(
+          (
+            await probe.writes.execute(
+              f.actor,
+              "salary_transaction.update",
+              ref(u),
+            )
+          ).state,
+        ).toBe("succeeded");
+        const cleanup = new FortnoxPayrollMaintenanceProbe(
+          f.connections,
+          f.provider,
+          f.adapter,
+          ref(u),
+          "delete",
+          () => true,
+        );
+        const d = await cleanup.writes.prepare(
+          f.actor,
+          f.a.id,
+          "salary_transaction.delete",
+          {},
+        );
+        f.flags.lost = lostAck ? "DELETE" : "";
+        expect(
+          (
+            await cleanup.writes.execute(
+              f.actor,
+              "salary_transaction.delete",
+              ref(d),
+            )
+          ).state,
+        ).toBe(lostAck ? "outcome_unknown" : "succeeded");
+        expect(
+          (
+            await cleanup.writes.execute(
+              f.actor,
+              "salary_transaction.delete",
+              ref(d),
+            )
+          ).state,
+        ).toBe(lostAck ? "outcome_unknown" : "succeeded");
+        if (lostAck)
+          expect(
+            (
+              await cleanup.writes.reconcile(
+                f.actor,
+                "salary_transaction.delete",
+                ref(d),
+              )
+            ).state,
+          ).toBe("outcome_unknown");
+        expect(f.calls.filter((c) => c !== "GET")).toEqual([
+          "POST",
+          "PUT",
+          "DELETE",
+        ]);
+        expect(f.service.enabled).not.toContain("salary_transaction.update");
+        expect(f.service.enabled).not.toContain("salary_transaction.delete");
+      });
     it("retains acknowledged numeric differences without claiming intended success", async () => {
       const f = await setup(await fixture());
       const p = await f.service.prepare(f.actor, "create", {

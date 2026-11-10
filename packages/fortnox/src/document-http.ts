@@ -225,11 +225,15 @@ export class DocumentHttp {
       }
       const text = await boundedResponse(response, 262144);
       if (method === "DELETE") {
-        // The documented salary delete response is empty HTTP 200. Absence
-        // without this acknowledged response cannot establish delivery.
-        if (response.status !== 200 || text.trim() !== "") return null;
+        // Retain a final empty acknowledgement. The operation's verified
+        // profile decides which status is accepted; 202 is never final proof.
+        if (![200, 204].includes(response.status) || text.trim() !== "")
+          return null;
         await context.assertActive();
-        return { deletion_acknowledged: true };
+        return {
+          deletion_acknowledged: true,
+          response_status: response.status,
+        };
       }
       const raw = z
         .record(z.string(), z.unknown())
