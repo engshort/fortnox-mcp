@@ -196,3 +196,29 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   expect(errors).toEqual([]);
   expect(consoleMessages.filter((message) => !message.includes("status of 409"))).toEqual([]);
 });
+
+test("connection dialog refreshes stale program revision and explains unresolved outcomes", async ({page}) => {
+  const login=await page.request.post(`${origin}/auth/sign-in/email`,{headers:{origin},data:{email:"browser-owner@example.invalid",password:"synthetic-browser-password"}});
+  expect(login.ok()).toBe(true);
+  const state=await (await page.request.get(`${origin}/admin/state`)).json();
+  const company=state.companies.find((c:{state:string})=>c.state==="active");
+  if(!company)throw new Error("Synthetic active company missing");
+  const freshRevision=company.programs.revision+5;
+  await page.route(`**/admin/companies/${company.company_id}/programs`,async(route)=>{
+    const response=await route.fetch(), current=await response.json();
+    current.revision=freshRevision;
+    await route.fulfill({response,json:current});
+  });
+  let previews=0;
+  await page.route(`**/admin/companies/${company.company_id}/programs/preview`,async(route)=>{
+    previews++;
+    expect(route.request().postDataJSON()).toEqual({program:"bookkeeping",features:["references"],expected_revision:freshRevision});
+    await route.fulfill({status:400,contentType:"application/json",json:{error:"CONNECTION_REQUEST_FAILED",reason:"OUTCOME_UNKNOWN",stage:"program_connection"}});
+  });
+  await page.goto(`${origin}/admin/companies/${company.company_id}/bookkeeping`);
+  await page.getByRole("button",{name:"Anslut program",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Anslut Bokföring",exact:true});
+  await expect(dialog.getByRole("status")).toContainText("En tidigare skrivning har okänt resultat");
+  await expect(dialog.getByRole("button",{name:"Fortsätt till Fortnox",exact:true})).toBeDisabled();
+  expect(previews).toBe(1);
+});

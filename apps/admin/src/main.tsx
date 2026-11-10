@@ -149,7 +149,12 @@ function Operations({
   t: Translate;
   perform: (action: () => Promise<unknown>) => Promise<void>;
 }) {
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const labels: Record<string, string> = {
+    business_reconciliation: t(
+      "Avstämning av registerutfall",
+      "Register outcome reconciliation",
+    ),
     writes: t("Bokföringsskrivningar", "Bookkeeping writes"),
     provider_files: t("Fortnox-filer", "Fortnox files"),
     review_host: t("Granskning i AI-klienten", "AI client review"),
@@ -227,6 +232,33 @@ function Operations({
                   : t("Kvitto eller filkoppling", "Receipt or file connection")}
             </p>
             <code>{outcome.id}</code>
+            {outcome.kind === "business" &&
+              state.capabilities.business_reconciliation && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void perform(async () => {
+                      const result = await api<{ state: string }>(
+                        `/admin/companies/${outcome.company_id}/business/${outcome.id}/reconcile`,
+                        {},
+                      );
+                      setRecoveryMessage(
+                        result.state === "succeeded"
+                          ? t(
+                              "Utfallet har stämts av mot Fortnox.",
+                              "The outcome was reconciled against Fortnox.",
+                            )
+                          : t(
+                              "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
+                              "The outcome remains unknown. No new write was sent.",
+                            ),
+                      );
+                    })
+                  }
+                >
+                  {t("Läs om utfallet", "Read outcome again")}
+                </button>
+              )}
             <p>
               {t(
                 "Kontrollera status och stäm av utfallet i det befintliga arbetsflödet. Skicka inte ett nytt försök medan utfallet är okänt.",
@@ -235,6 +267,7 @@ function Operations({
             </p>
           </article>
         ))}
+        <Message>{recoveryMessage}</Message>
         {state.investigations.length ? (
           <Investigations state={state} t={t} perform={perform} />
         ) : !(state.uncertain_outcomes ?? []).length ? (

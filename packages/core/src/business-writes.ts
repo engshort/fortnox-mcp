@@ -406,4 +406,71 @@ export class BusinessWrites {
     });
     return this.status(actor, ref);
   }
+  // Called only by the authenticated same-origin owner administration route.
+  // The owner can reconcile retained tenant-bound evidence after an additive
+  // consent invalidates the originating MCP grant. No dispatch or reference
+  // attestation is performed and no identity on the old intent is rewritten.
+  async reconcileOwner(owner: string, company: string, id: string) {
+    z.string().uuid().parse(company);
+    z.string().uuid().parse(id);
+    const before = (await this.connections.list(owner)).find(
+      (c) => c.id === company,
+    );
+    const execution = before?.business?.executions.find((e) => e.id === id);
+    if (!before || !execution || execution.tenant !== before.tenant)
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const op = Object.hasOwn(this.operations, execution.operation)
+      ? this.operations[execution.operation]
+      : undefined;
+    if (!op?.reconcile || !before.scopes.includes(op.scope))
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    assertScopeProgram(before, op.scope);
+    if (execution.state === "succeeded" || execution.state === "failed")
+      return { state: execution.state, reference: execution.reference };
+    if (
+      execution.state === "submitting" &&
+      execution.created + 120000 > this.now()
+    )
+      return {
+        state: "outcome_unknown" as const,
+        reference: execution.reference,
+      };
+    const result = await this.connections.ownerRecoveryRead(
+      owner,
+      company,
+      async (actor) => {
+        const value = await op.reconcile?.(actor, company, execution);
+        return z
+          .object({
+            state: z.enum(["succeeded", "outcome_unknown"]),
+            reference: z.string().min(1).max(128).optional(),
+          })
+          .strict()
+          .parse(value);
+      },
+    );
+    await this.connections.mutate(owner, company, (c) => {
+      if (
+        c.generation !== before.generation ||
+        c.tenant !== execution.tenant ||
+        c.state !== "active"
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      assertScopeProgram(c, op.scope);
+      if (!c.scopes.includes(op.scope))
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      const current = c.business?.executions.find(
+        (e) =>
+          e.id === id &&
+          e.hash === execution.hash &&
+          e.client === execution.client,
+      );
+      if (!current) throw new DomainError("PROPOSAL_STALE");
+      if (["submitting", "outcome_unknown"].includes(current.state)) {
+        current.state = result.state;
+        if (result.reference) current.reference = result.reference;
+      }
+    });
+    return result;
+  }
 }

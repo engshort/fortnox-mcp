@@ -6,7 +6,8 @@ ordinary product. Tracks [S08/#25](https://github.com/engshort/fortnox-mcp/issue
 [G07/#37](https://github.com/engshort/fortnox-mcp/issues/37) and
 [G10/#40](https://github.com/engshort/fortnox-mcp/issues/40).
 Original issue acceptance remains authoritative. The separate milestone 6 work
-in [#118](https://github.com/engshort/fortnox-mcp/pull/118) remains open.
+in [#118](https://github.com/engshort/fortnox-mcp/pull/118) was merged as
+`7524e8f`; its remaining actual acceptance is not closed by that merge.
 
 ## Delivery sequence in one PR
 
@@ -65,8 +66,15 @@ The separate one-hour test entry may explicitly offer the `payroll-input`
 connection feature to collect `salary` consent. The ordinary product never reads
 this test setting. Consent does not activate salary operations. Extending a
 connection preserves other scopes, verifies the tenant, increments its generation
-and invalidates old client grants. Existing unresolved-write restrictions still
-apply. A company with an unknown register outcome is not silently reconnected.
+and invalidates old client grants. An owner-requested additive payroll consent
+may proceed with a retained tenant-bound register/document outcome. In-flight,
+legacy unbound, accounting, receipt and payroll uncertainty still blocks it.
+The outcome is not cleared and BusinessWrites still refuses new writes. An
+owner-only POST can reconcile known evidence using a reserved read-only identity
+that expires within one minute and is revoked after the call. It never issues a
+bearer token, rewrites the originating client, attests an ID or sends a write.
+The dialog refreshes current program choices/revision when opened and explains
+unknown-outcome errors instead of hiding them behind a generic message.
 
 The owner confirmed Fortnox Lön is available and requested fresh consent on
 2026-11-10. Synthetic employee and salary-code evidence still need private
@@ -99,3 +107,15 @@ external OpenAPI input.
   [global parameters](https://www.fortnox.se/developer/guides-and-good-to-know/parameters).
 - [SIE 4B specification, 2008-09-30](https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf),
   sections 5, #RAR, #IB/#UB/#RES and #TRANS/#RTRANS/#BTRANS.
+
+## Bounded payroll domain
+
+`PayrollInputs` independently models salary-transaction list/get/create/update/
+delete behind an empty default operation allowlist. Every write uses
+`BusinessWrites`, current references and immutable complete-field previews/diffs.
+The initial code profile requires separately verified per-employee code evidence
+for quantity times unit amount; this formula is not assumed for every Fortnox
+salary code. Employee employment dates, exact decimals, provider rights and
+license evidence are checked on preparation and again at execution. No financial
+or personal payload is retained in execution metadata. No provider payroll
+adapter or ordinary product payroll activation is claimed yet.

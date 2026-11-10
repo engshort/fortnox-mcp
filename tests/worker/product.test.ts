@@ -21,6 +21,7 @@ import { documentRowsContract } from "../shared/document-rows.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
+import { payrollContract } from "../shared/payroll.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { programContract, programHttpContract } from "../shared/programs.js";
@@ -123,3 +124,5 @@ salesMcpContract(async () => (await fixture()).state);
 documentReadProfileContract(fixture);
 analyticsCalculationContract();
 analyticsAuthorizationContract(async () => (await fixture()).state);
+
+payrollContract(async () => (await fixture()).state);

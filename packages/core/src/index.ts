@@ -8,6 +8,7 @@ export * from "./document-rows.js";
 export * from "./errors.js";
 export * from "./intents.js";
 export * from "./money.js";
+export * from "./payroll.js";
 export * from "./ports.js";
 export * from "./programs.js";
 export * from "./receipt-files.js";

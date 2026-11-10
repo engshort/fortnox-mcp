@@ -68,9 +68,13 @@ proposals. Domain and provider adapters check current selections before calls.
 Reconnecting another feature cannot resurrect a disabled feature. Shared scopes
 remain usable for another enabled program, subject to its operation gates.
 
-Program replacement and local disable refuse any submitting/unknown accounting,
-business or receipt step until reconciliation, including uncertainty appearing
-while consent is pending. This avoids making the required recovery path stale.
+Program replacement and local disable normally refuse submitting/unknown accounting,
+business or receipt steps, including uncertainty appearing while consent is pending.
+Milestone 7 permits only additive payroll consent alongside older tenant-bound
+register/document outcomes. All original scopes and execution identities survive;
+new writes stay blocked. Owner-only read reconciliation keeps the recovery path
+available after the originating client grant becomes stale. In-flight, unbound,
+bookkeeping, receipt and payroll outcomes retain the original block.
 Ordinary disconnect remains the existing immediate local revocation path; its
 separate recovery contract and live acceptance are not changed by this slice.
 

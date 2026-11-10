@@ -5,6 +5,8 @@ import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
 import {
   assertNoUncertainWrites,
+  assertProgramConsentChange,
+  type ProgramChange,
   type ProgramId,
   type ProgramSelection,
   programManifest,
@@ -112,6 +114,7 @@ export interface ConnectionSet {
 export interface CompanyGrant {
   ownerId: string;
   companies: Record<string, number>;
+  expiresAt?: number;
 }
 export class Connections {
   constructor(
@@ -249,6 +252,8 @@ export class Connections {
     const connection = (await this.list(owner)).find((c) => c.id === company);
     if (
       grant?.value.ownerId !== owner ||
+      (grant.value.expiresAt !== undefined &&
+        grant.value.expiresAt <= Date.now()) ||
       !connection ||
       !Object.hasOwn(grant.value.companies, company)
     )
@@ -267,6 +272,8 @@ export class Connections {
     return connection;
   }
   async grant(owner: string, grantId: string, selected: readonly string[]) {
+    if (grantId.startsWith("owner-recovery:"))
+      throw new DomainError("COMPANY_FORBIDDEN");
     const companies: Record<string, number> = {};
     const connections = await this.list(owner);
     for (const id of selected) {
@@ -296,6 +303,60 @@ export class Connections {
         return;
     }
     throw new DomainError("CONNECTION_CONFLICT");
+  }
+  // Owner administration only. No bearer token is ever issued for this reserved
+  // internal client. One bounded row per company is revoked after the read.
+  // Original MCP grants and originating execution identities remain immutable.
+  async ownerRecoveryRead<T>(
+    owner: string,
+    company: string,
+    read: (actor: {
+      ownerId: string;
+      clientId: string;
+      scopes: readonly string[];
+    }) => Promise<T>,
+  ): Promise<T> {
+    const c = (await this.list(owner)).find((value) => value.id === company);
+    if (c?.state !== "active") throw new DomainError("COMPANY_FORBIDDEN");
+    const clientId = `owner-recovery:${owner}:${company}`;
+    const prior = await this.state.get<CompanyGrant>(
+      "company-grants",
+      clientId,
+    );
+    if (
+      prior &&
+      Object.keys(prior.value.companies).length &&
+      (prior.value.expiresAt ?? Infinity) > Date.now()
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    if (
+      !(await this.state.put(
+        "company-grants",
+        clientId,
+        {
+          ownerId: owner,
+          companies: { [company]: c.generation },
+          expiresAt: Date.now() + 60000,
+        },
+        prior?.version ?? null,
+      ))
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    try {
+      return await read({ ownerId: owner, clientId, scopes: ["mcp:read"] });
+    } finally {
+      const current = await this.state.get<CompanyGrant>(
+        "company-grants",
+        clientId,
+      );
+      if (current?.value.ownerId === owner)
+        await this.state.put(
+          "company-grants",
+          clientId,
+          { ownerId: owner, companies: {} },
+          current.version,
+        );
+    }
   }
   async credentials(owner: string, c: Connection) {
     const current = (await this.list(owner)).find((x) => x.id === c.id);
@@ -476,6 +537,7 @@ export class Connections {
     >,
     selection: Omit<ProgramSelection, "revision">,
     credentials: Credentials,
+    change: ProgramChange,
   ) {
     return this.mutate(owner, id, async (c) => {
       if (
@@ -489,7 +551,30 @@ export class Connections {
         c.renewal
       )
         throw new DomainError("CONNECTION_CONFLICT");
-      assertNoUncertainWrites(c);
+      assertProgramConsentChange(c, change);
+      const selected = programSelection(c);
+      const sameSet = (a: readonly string[], b: readonly string[]) =>
+        JSON.stringify([...new Set(a)].sort()) ===
+        JSON.stringify([...new Set(b)].sort());
+      if (
+        change.expected_revision !== expected.revision ||
+        !sameSet(selection.enabled, [...selected.enabled, change.program]) ||
+        !sameSet(selection.features, [
+          ...selected.features,
+          ...change.features,
+        ]) ||
+        (change.program === "payroll" &&
+          input.scopes.some(
+            (scope) =>
+              ![
+                ...c.scopes,
+                "salary",
+                "companyinformation",
+                "profile",
+              ].includes(scope),
+          ))
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
       c.generation++;
       c.policyVersion++;
       c.name = input.name;

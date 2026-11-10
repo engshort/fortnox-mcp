@@ -5,14 +5,14 @@
   "sourceStrategy": "Independent schemas/mappings; no copied specification or generated provider code",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/business-writes.ts": "5682e1480c3ea6479b61348e17232008aeb6419cb891d3da88348fa4c4556ad7",
+    "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
     "packages/core/src/registers.ts": "db3bbae5ad5f6f2881b2a66d52af1afdbe697d2142a2a4baf071fffa152f2ab8",
     "packages/fortnox/src/registers.ts": "1581f4fe562ca3fbca5f5cd1146bd12722b9b76cf9e818a2dd12f47158741845",
     "packages/mcp/src/registers.ts": "16d7acecdf6a93cfb11bf820d0b0481b40cf04f1815a78626e121d53622a7346",
-    "apps/shared/product.ts": "59d477c74938214f0db041dfc7c0d0e863200039aea52ac9c56abe5a063bbffa",
+    "apps/shared/product.ts": "a35941cb51797a6c93559ef840f6601699f18ddc5732ee802b91a6e8afef8b7c",
     "apps/node/src/register-test-main.ts": "a5fab397f7017a03dd8e4ed3a7c8118cbb32300c779e1d4571bab5aaaa2bc7cc",
-    "packages/fortnox/src/connections.ts": "3fdd519a6ef971259c508cc7100e116142dbed10c1e76c64361a1f3ac5336eda",
-    "packages/core/src/programs.ts": "389cad61c7262b7c90c3dca8ac3312c580b145c9807c6d3004c671ae7402a0e0"
+    "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
+    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },
   "operations": [
     {

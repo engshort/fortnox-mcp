@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "scope": "S08/S09 local domain foundation; G07/G10 still open",
+  "reviewedAt": "2026-11-10",
+  "sourceStrategy": "Independent implementation, no vendored/generated external specification",
+  "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+  "sourceHashes": {
+    "packages/core/src/analytics.ts": "39e673ecd78d713b6320459d0439c1bf08957c7cefe5d1c84080cf9a5305f5dd",
+    "packages/core/src/sie.ts": "0d2e8f47a62805232a49bd7268c89586e57bf8213417212030ce2a21aa4f7d4f",
+    "packages/core/src/payroll.ts": "00ed4027739cd6ba37309039dde01c555f029211bb1a65b9e682f9208e9ed0e4",
+    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff",
+    "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
+    "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
+    "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
+    "apps/shared/product.ts": "a35941cb51797a6c93559ef840f6601699f18ddc5732ee802b91a6e8afef8b7c",
+    "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
+    "apps/admin/src/company-pages.tsx": "5c031090ea72347917fae9ce9e141e7b494129cf53300352e04dbbd6af8661d1",
+    "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b"
+  },
+  "operations": [
+    {
+      "localId": "salary_transaction.list",
+      "method": "GET",
+      "path": "/3/salarytransactions",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
+      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "syntheticTests": [
+        "tests/shared/payroll.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "salary_transaction.get",
+      "method": "GET",
+      "path": "/3/salarytransactions/{SalaryRow}",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
+      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "syntheticTests": [
+        "tests/shared/payroll.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "salary_transaction.create",
+      "method": "POST",
+      "path": "/3/salarytransactions",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "payroll_input_write",
+      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
+      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "syntheticTests": [
+        "tests/shared/payroll.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "salary_transaction.update",
+      "method": "PUT",
+      "path": "/3/salarytransactions/{SalaryRow}",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "payroll_input_write",
+      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
+      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "syntheticTests": [
+        "tests/shared/payroll.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "salary_transaction.delete",
+      "method": "DELETE",
+      "path": "/3/salarytransactions/{SalaryRow}",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; company licence and user rights require actual operation evidence",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "payroll_input_delete",
+      "precision": "Explicit verified per-employee code profile; exact two-decimal unit amount/total and bounded quantity precision; no universal salary-code formula",
+      "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
+      "syntheticTests": [
+        "tests/shared/payroll.ts",
+        "tests/shared/business-writes.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
+      ]
+    },
+    {
+      "localId": "financial_report.calculate",
+      "method": "LOCAL",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read_and_compute_request_local",
+      "precision": "Exact signed debit-minus-credit cents; explicit fiscal-year and source boundaries",
+      "retry": "No provider write; incomplete or unknown source evidence never becomes complete",
+      "syntheticTests": [
+        "tests/shared/analytics.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "sie4.parse",
+      "method": "LOCAL",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "status": "domain_implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read_and_compute_request_local",
+      "precision": "Exact signed debit-minus-credit cents; explicit fiscal-year and source boundaries",
+      "retry": "No provider write; incomplete or unknown source evidence never becomes complete",
+      "syntheticTests": [
+        "tests/shared/analytics.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    }
+  ]
+}

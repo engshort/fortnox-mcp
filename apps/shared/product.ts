@@ -487,7 +487,11 @@ export function createProductApplication(
           JSON.stringify({
             clients: rows
               .slice(0, 100)
-              .filter((r) => r.value.ownerId === session.user.id)
+              .filter(
+                (r) =>
+                  r.value.ownerId === session.user.id &&
+                  !r.id.startsWith("owner-recovery:"),
+              )
               .map((r) => ({
                 client_id: r.id,
                 companies: Object.entries(r.value.companies).map(
@@ -506,6 +510,31 @@ export function createProductApplication(
             partial: rows.length > 100,
           }),
         );
+      }
+      const businessReconcile =
+        /^\/admin\/companies\/([^/]+)\/business\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (businessReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          if (!registers || !businessTest || now() >= businessTest.until)
+            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const result = await registers.writes.reconcileOwner(
+            session.user.id,
+            z.string().uuid().parse(businessReconcile[1]),
+            z.string().uuid().parse(businessReconcile[2]),
+          );
+          return safeResponse(JSON.stringify(result));
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
       }
       const programRoute =
         /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
@@ -584,6 +613,8 @@ export function createProductApplication(
               (await runtime.state.get("installation", "restore"))?.value ??
               null,
             capabilities: {
+              business_reconciliation:
+                !!registers && !!businessTest && now() < businessTest.until,
               writes: false,
               provider_files: false,
               review_host: false,

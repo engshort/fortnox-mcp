@@ -120,7 +120,7 @@ fortfarande gäller, men inte om klienten har en aktiv inloggning.
 **Inaktivera program lokalt** stoppar programmets funktioner på servern.
 Fortnox-scopes återkallas inte; andra programs gemensamma åtkomst bevaras. För att
 återaktivera programmet krävs ett nytt anslutningsflöde. Programändringar blockeras
-vid ett pågående eller okänt skrivutfall tills det har stämts av. Befintlig
+vid ett pågående eller okänt skrivutfall tills det har stämts av. Ett separat Lön-samtycke kan dock läggas till vid ett äldre företagsbundet registerutfall. Utfallet behålls och fortsätter blockera nya skrivningar; ägaren kan läsa om det under Drift. Befintlig
 **Koppla från** finns under företagets **Åtkomst**.
 
 **Inställningar** innehåller ägare och Fortnox API-uppgifter. **Drift** innehåller
