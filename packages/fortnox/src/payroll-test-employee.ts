@@ -6,6 +6,7 @@ import {
   BusinessWrites,
   type Connections,
   DomainError,
+  parseAmount,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import type { FortnoxConnections } from "./connections.js";
@@ -17,6 +18,7 @@ const testEmployee = z
     EmployeeId: z.string().regex(/^SYNM7[A-Z0-9]{6,10}$/),
     EmploymentDate: accountingDate,
     SalaryForm: z.enum(["TIM", "MAN"]).default("TIM"),
+    ConfigureTestWage: z.boolean().default(false),
   })
   .strict();
 // Operator-only synthetic test provisioning. This is never a model-callable
@@ -38,7 +40,7 @@ export class FortnoxPayrollTestEmployee {
       now,
     );
     const fields = (input: unknown) => {
-      const v = testEmployee.parse(input);
+      const { ConfigureTestWage, ...v } = testEmployee.parse(input);
       return {
         ...v,
         FirstName: "Synthetic",
@@ -48,8 +50,20 @@ export class FortnoxPayrollTestEmployee {
         PersonelType: "TJM",
         SalaryForm: v.SalaryForm,
         Inactive: false,
+        ...(ConfigureTestWage
+          ? { [v.SalaryForm === "TIM" ? "HourlyPay" : "MonthlySalary"]: "0.01" }
+          : {}),
       };
     };
+    const select = (row: Record<string, unknown>, keys: readonly string[]) =>
+      Object.fromEntries(
+        keys.map((key) => [
+          key,
+          key === "HourlyPay" || key === "MonthlySalary"
+            ? parseAmount(z.string().parse(row[key]), 2)
+            : row[key],
+        ]),
+      );
     const absent = async (
       actor: AccountingActor,
       company: string,
@@ -75,9 +89,7 @@ export class FortnoxPayrollTestEmployee {
       const intended = fields(input);
       try {
         const row = await this.read(actor, company, intended.EmployeeId);
-        const selected = Object.fromEntries(
-          Object.keys(intended).map((key) => [key, row[key]]),
-        );
+        const selected = select(row, Object.keys(intended));
         if (
           (await accountingHash(selected)) === (await accountingHash(intended))
         )
@@ -139,9 +151,7 @@ export class FortnoxPayrollTestEmployee {
             if (!e.evidence?.target) return { state: "outcome_unknown" };
             try {
               const row = await this.read(actor, company, e.evidence.target);
-              const selected = Object.fromEntries(
-                e.evidence.fields.map((key) => [key, row[key]]),
-              );
+              const selected = select(row, e.evidence.fields);
               return {
                 state:
                   (await accountingHash(selected)) === e.evidence.digest

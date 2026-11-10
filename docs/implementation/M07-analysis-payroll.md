@@ -158,8 +158,9 @@ company identifiers; public evidence contains no personal data.
 The owner subsequently authorized creating a synthetic employee through the API.
 A separate operator-only helper uses BusinessWrites and a fixed synthetic profile
 with a reserved preallocated ID, required name/email and an explicit employment
-date. It accepts no real identity, bank account, wage or arbitrary employee
-fields. Existing IDs stop preparation. Exact-ID readback must match every
+date. It accepts no real identity, bank account, arbitrary wage or arbitrary employee
+fields. A later explicit fixture option permits only a fixed 0.01 synthetic
+hourly/monthly wage; it is never a model-callable setting. Existing IDs stop preparation. Exact-ID readback must match every
 intended field; missing or inconclusive responses remain outcome_unknown and
 are never resent. It is not an employee-management MCP tool. The helper is
 restricted by the same company grants, salary scope, test-tenant allowlist,
@@ -315,3 +316,15 @@ reports every changed numeric field and keeps the original fixed candidate hash.
 A changed employee/date/code/marker still fails closed; this is neither formula
 verification nor successful intended input. The cause and supported monthly
 field contract remain unverified. No input was resent or payroll/payout executed.
+
+The monthly row subsequently reconciled by exact retained identity and original
+hash to `applied_different` for Number/Amount, without provider writes. Both
+original zero-wage employees and both candidate rows remain private fixtures.
+
+A separate explicit provisioning option can create a new synthetic employee
+with a fixed 0.01 hourly or monthly wage to test the provider formula hypothesis.
+It accepts no wage value, arbitrary employee data or real identifier. Required
+synthetic name/email/profile fields are unchanged; wage readback compares exact
+normalized decimals. It uses the same absence check, durable create intent,
+exact-ID readback, tenant/grant/scope/lease and unknown-outcome rules. Formula
+behavior and operation activation remain unverified until separately observed.

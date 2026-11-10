@@ -488,6 +488,79 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
       ).rejects.toThrow("PROPOSAL_STALE");
       expect(posts).toBe(1);
     });
+    for (const form of ["TIM", "MAN"] as const)
+      it(`provisions a fixed minimal ${form} wage only on an explicit synthetic fixture request`, async () => {
+        const f = await setup(await fixture());
+        let row: Record<string, unknown> | null = null,
+          posts = 0;
+        const wage = form === "TIM" ? "HourlyPay" : "MonthlySalary";
+        f.provider.config.fetch = async (input) => {
+          const req = input as Request;
+          if (req.method === "POST") {
+            posts++;
+            row = ((await req.json()) as { Employee: Record<string, unknown> })
+              .Employee;
+            expect(row).not.toHaveProperty("ConfigureTestWage");
+            expect(row?.[wage]).toBe("0.01");
+            return Response.json({ Employee: row });
+          }
+          return row
+            ? Response.json({ Employee: { ...row, [wage]: "0.0100" } })
+            : Response.json({}, { status: 404 });
+        };
+        const service = new FortnoxPayrollTestEmployee(
+          f.connections,
+          f.provider,
+          () => true,
+        );
+        const p = await service.writes.prepare(
+          f.actor,
+          f.a.id,
+          "payroll_employee.create",
+          {
+            EmployeeId: "SYNM7ABC123",
+            EmploymentDate: "2026-01-01",
+            SalaryForm: form,
+            ConfigureTestWage: true,
+          },
+        );
+        const ref = {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        };
+        expect(
+          (
+            await service.writes.execute(
+              f.actor,
+              "payroll_employee.create",
+              ref,
+            )
+          ).state,
+        ).toBe("succeeded");
+        expect(
+          (
+            await service.writes.execute(
+              f.actor,
+              "payroll_employee.create",
+              ref,
+            )
+          ).state,
+        ).toBe("succeeded");
+        expect(posts).toBe(1);
+        expect(
+          JSON.stringify(await f.connections.snapshot(f.actor.ownerId)),
+        ).not.toContain('"0.01"');
+        await expect(
+          service.writes.prepare(f.actor, f.a.id, "payroll_employee.create", {
+            EmployeeId: "SYNM7ABC456",
+            EmploymentDate: "2026-01-01",
+            SalaryForm: form,
+            ConfigureTestWage: true,
+            [wage]: "50000",
+          }),
+        ).rejects.toThrow();
+      });
     it("retains an uncertain test employee creation and never retries after a lost answer", async () => {
       const f = await setup(await fixture());
       let posts = 0;
