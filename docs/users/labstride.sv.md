@@ -12,6 +12,10 @@ inte bevis för att installationen är redo eller att hela flödet har verifiera
 
 ## Starta och godkänn arbetet
 
+Agenten ska alltid använda svenska i chattar, planer, frågor, lägesuppdateringar
+och slutsvar. Offentlig kod, utvecklardokumentation, commit-meddelanden och
+PR-text ska fortsatt vara på engelska.
+
 1. Import av ärenden är passiv och får inte starta en agent. Efter importen
    måste ägaren göra en ny behörig övergång till **Approved** för att starta
    arbetet. Ett godkännande som följde med importen räcker inte.

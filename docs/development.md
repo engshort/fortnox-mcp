@@ -94,6 +94,10 @@ installation readiness or end-to-end acceptance.
 
 ### Start and approve work
 
+The agent must always use Swedish in chats, plans, questions, progress updates
+and final replies. Public code, developer documentation, commit messages and
+PR text remain in English.
+
 1. Import issues inertly: import alone must not start an agent. Starting an issue
    requires a fresh owner-authorized transition to **Approved** after import;
    an imported approval value is not a new authorization.

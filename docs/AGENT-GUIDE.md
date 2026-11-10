@@ -1,5 +1,8 @@
 # Agent guide
 
+Always use Swedish in chats, plans, questions, progress updates and final replies.
+Keep public code, developer documentation, commit messages and PR text in English.
+
 Start with [repository instructions](../AGENTS.md), the [documentation index](README.md),
 the [approved decisions](decisions.md) and the [implementation queue](implementation/README.md).
 Read the current task's scope, relevant contracts and source references before
