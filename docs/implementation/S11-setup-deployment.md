@@ -30,5 +30,6 @@ Replace planned setup instructions with actual versioned commands and screenshot
 
 The [company/program slice](S11-company-programs.md) implements the approved C
 design, protected deep links and incremental company-bound consent on PR #118.
-Its offline/browser evidence is separate from actual provider and hosted-client
-acceptance; no new operation is enabled.
+This implementation/local-verification slice is complete. The owner explicitly
+excluded actual Fortnox acceptance from this delivery. Its offline/browser evidence
+does not establish provider or hosted-client support; no new operation is enabled.

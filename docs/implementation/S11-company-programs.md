@@ -2,9 +2,15 @@
 
 Scope: the approved C design and company/program structure in #117, including
 S02/S03 consent and authorization. This implementation is based on PR #118 at
-`d27afa60313baeb035d9c3801d88090851f05667`, as requested by the owner. It preserves
+`3530f0395439672ef3b9763cbf89083e08bc0997`, as requested by the owner. It preserves
 that PR's isolated, expiring register profile, credential verification/forgetting
 and session-bound consent cancellation. It does not enable new provider operations.
+
+Status: implementation and local verification complete. The owner explicitly
+excluded actual Fortnox acceptance from this delivery. No live provider test is
+required to finish this task, and none is reported as performed or passed.
+Existing operation classifications and activation gates remain unchanged.
+Merge, deployment and release publication remain outside this delivery.
 
 ## Owner application
 
@@ -88,7 +94,7 @@ tools cannot administer program selection or grant themselves consent.
 Browser callbacks redirect to the selected company on success or a bounded failure
 notice on failure; protocol callers retain the existing structured error response.
 
-## Verification and remaining acceptance
+## Verification and delivery boundary
 
 Shared Node/SQLite and actual local workerd/D1 contracts cover minimal initial
 consent, owner/origin/company authorization, service and user extension, two
@@ -113,7 +119,8 @@ libraries under `/tmp`; these are test-environment prerequisites, not app assets
 Final local verification on this change:
 
 - `npm run typecheck`, `npm run lint` and `npm run build`: passed.
-- `npm test`: 255 Node/SQLite tests and 195 local workerd/D1 tests passed.
+- `npm test`: 256 Node/SQLite tests and 196 local workerd/D1 tests passed after
+  synchronizing the two latest #118 register-read fixes.
 - `npm run test:build`: 10 artifact tests and 3 native Worker/CLI tests passed.
 - Owner Playwright: all 4 desktop/mobile cases passed, including unresolved
   business outcomes remaining visible after disconnect and navigation refresh.
@@ -125,13 +132,14 @@ Final local verification on this change:
   of provider acceptance.
 
 Actual service-account scope extension, provider cancellation/invalidation,
-licenses, negative permissions and hosted client reconsent require a separately
-authorized test-company session. Synthetic UI or domain results do not promote
-provider coverage, complete the corresponding gates or authorize deployment.
+licenses, negative permissions and hosted client reconsent were not exercised.
+These are separate evidence gaps for future capability acceptance, not unfinished
+work in this owner-approved delivery scope. Synthetic UI or domain results do not
+promote provider coverage, complete the corresponding gates or authorize deployment.
 
 ## S04/S05 acceptance handoff
 
-Use `codex/company-programs` (implementation through `bf56593`, consent/domain
+Use `codex/company-programs` (implementation through `1c259d4`, consent/domain
 commit `0ab6d11`) and this new company/program interface as the UI base for
 continued S04/S05 work. Preserve the #118 operation allowlist, expiry and
 separate test database. Build future invoice/order/payment adapters behind their
@@ -139,3 +147,5 @@ own classified manifest features; never enable a program from a green OAuth
 connection alone. Add new scopes through company-bound preview/consent and retain
 stale-grant, uncertainty, restore and local-disable regressions. Browser acceptance
 should navigate through Companies → company → program, not the retired setup tabs.
+Actual Fortnox acceptance was explicitly skipped for this #117 delivery; any later
+live S04/S05 session needs its own authorized test-company scope.
