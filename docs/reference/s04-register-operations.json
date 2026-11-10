@@ -9,8 +9,8 @@
     "packages/core/src/registers.ts": "db3bbae5ad5f6f2881b2a66d52af1afdbe697d2142a2a4baf071fffa152f2ab8",
     "packages/fortnox/src/registers.ts": "1581f4fe562ca3fbca5f5cd1146bd12722b9b76cf9e818a2dd12f47158741845",
     "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
-    "apps/shared/product.ts": "9afffca6654b7f3c099848b5c57a0c13d00140f10a10c6f300518b76cc639d15",
-    "apps/node/src/register-test-main.ts": "f72a993c414761ea10b1a3f30633987c1d3652f3a420644b5838cb6305307c89",
+    "apps/shared/product.ts": "73e43a85a828cf40042419ab42ec8a02eac6385a14bd5755e044e508e030db9b",
+    "apps/node/src/register-test-main.ts": "050d5a7acdbaa42377f2727a1fb9426ac44f4c0a498e5e7f53ba42601f2b5144",
     "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
     "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
   },

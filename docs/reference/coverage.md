@@ -282,7 +282,7 @@ handoff](../implementation/S11-company-programs.md).
 
 ## Milestone 7 work in progress
 
-The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Provider analysis breadth, payroll execution and actual acceptance remain pending. No full financial correctness or payroll gate is closed.
+The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Full financial breadth and actual G07/ChatGPT evidence remain pending; a narrow hourly create/update/delete lifecycle has passed product MCP/domain and actual provider readback. No full financial correctness or payroll gate is closed.
 
 The M07 known-effect follow-up distinguishes `applied_different` from intended
 success and uncertain delivery. Only an acknowledged exact provider identity
@@ -297,3 +297,9 @@ completion; each report retains its own coverage, currency and reconciliation.
 The local operation remains unverified/default-off pending actual acceptance.
 Prepared payroll inputs also bind their verified reference profile so changed
 operation evidence cannot silently authorize an earlier preparation.
+
+M7 current receivable/payable observations use two fixed unfiltered list
+operations, explicit company ownership, bounded pages and source-bound
+continuation. Unknown fields remain visible. Provider credit/currency semantics
+are still unverified, so expected cash-flow sums remain unavailable. Historical
+reskontra is not inferred from current invoice status. Ordinary activation is off.

@@ -16,10 +16,11 @@ anställd, dag och lönekod. Företaget behöver rätt Fortnox-licens, behörigh
 och ett nytt samtycke för Lön. Ett samtycke aktiverar inte overifierade operationer.
 Full löneberäkning, lönebesked och utbetalning ingår inte.
 
-Ett kommande exempel är att förbereda ett uttryckligt engångsunderlag för en
-syntetisk testanställd, granska innehållet och därefter registrera det med vanlig
-klientbekräftelse. Exemplet är ännu inte faktiskt godkänt i Fortnox. Vid okänt
-resultat ska samma skrivning inte skickas på nytt innan resultatet har utretts.
+Ett verifierat sandlådeexempel är att förbereda ett uttryckligt timunderlag för
+en syntetisk testanställd och därefter skapa, ändra och ta bort det. Hela kedjan
+har passerat produktens MCP-lager och Fortnox med separat återläsning. Faktisk
+ChatGPT-acceptans återstår. Vid okänt resultat ska samma skrivning inte skickas
+på nytt innan resultatet har utretts.
 
 Driftsidan skiljer okända skrivutfall från ”Genomfört med avvikelse”. Det senare
 betyder att skrivningen har en säker Fortnox-referens men att återläst innehåll
@@ -62,3 +63,10 @@ valutaomräkning eller juridisk koncernredovisning.
 Operatören kan öppna ett tidsbegränsat klientprov för den verifierade
 anställda, dagen och lönekoden. Det aktiverar inte lönekörning, lönebesked eller
 utbetalning. Vanliga installationer får inte automatiskt skrivåtkomst till Lön.
+
+`list_receivables` och `list_payables` visar aktuell kund- respektive
+leverantörsreskontra i begränsade sidor. Okända belopp eller statusfält visas
+som okända. Sidans summeringar hålls per valuta och gäller bara sidan.
+Historiskt obetalt belopp kan inte återskapas från dagens status. Förväntat
+betalningsflöde beräknas först när valuta och kredittecken har verifierats;
+förfallodatum är inget löfte om att betalning sker.

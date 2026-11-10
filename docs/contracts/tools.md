@@ -278,3 +278,12 @@ The isolated test entry may advertise individually verified salary-input writes
 from a private source-bound profile, within its existing tenant allowlist and
 operation lease. Ordinary product ENV cannot activate them. The profile is never
 an MCP argument or a tool result and contains no client approval override.
+
+`list_receivables` and `list_payables` are separate read-only tools for current
+invoice observations. They require an explicit company and default to booked
+items; unbooked inclusion is explicit. They scan at most 100 unfiltered source
+records, preserve unknown status/amounts, and locally exclude known paid/cancelled
+items. Continuation binds company/resource/selection/source. Totals are per
+currency and page; unknown credit/currency semantics prevent signed cash flow.
+Current status never proves a historical unpaid balance. Due dates are not
+promises of payment or bank payment instructions.

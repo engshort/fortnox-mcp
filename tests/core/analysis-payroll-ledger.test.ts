@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { payrollOperationIds } from "@fortnox-mcp/core";
-import { financialReadOperations } from "@fortnox-mcp/fortnox";
+import {
+  financialReadOperations,
+  openItemReadOperations,
+} from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 
 it("pins analytical/payroll operation sources without promoting operator probes to accepted support", () => {
@@ -31,6 +34,7 @@ it("pins analytical/payroll operation sources without promoting operator probes 
     [
       ...payrollOperationIds,
       ...financialReadOperations,
+      ...openItemReadOperations,
       "financial_report.calculate",
       "financial_report.compare",
       "sie4.parse",

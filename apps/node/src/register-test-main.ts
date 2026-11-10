@@ -27,6 +27,10 @@ void (async () => {
   await startProduct(undefined, {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
     ...(payrollWrites ? { payrollWrites } : {}),
+    openItemReads: z
+      .array(z.enum(["open_receivable.list", "open_payable.list"]))
+      .max(2)
+      .parse(JSON.parse(process.env.OPEN_ITEM_TEST_OPERATIONS ?? "[]")),
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
     financialReads: z

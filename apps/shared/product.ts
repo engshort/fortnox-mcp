@@ -7,6 +7,7 @@ import {
   CredentialVault,
   DomainError,
   FinancialAnalysis,
+  OpenItems,
   PayrollInputs,
   type PayrollOperation,
   previewProgram,
@@ -40,12 +41,15 @@ import {
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxFinancialReads,
+  FortnoxOpenItems,
   FortnoxPayrollReads,
   FortnoxPayrollWrites,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
   financialReadOperations,
+  type OpenItemReadOperation,
+  openItemReadOperations,
   type PayrollWriteProfile,
   payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
@@ -95,6 +99,7 @@ export interface ProductBusinessTest {
     profiles: readonly PayrollWriteProfile[];
   };
   financialReads?: readonly FinancialReadOperation[];
+  openItemReads?: readonly OpenItemReadOperation[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -220,6 +225,12 @@ export function createProductApplication(
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
   const financialReads = businessTest?.financialReads ?? [];
+  const openItemReads = businessTest?.openItemReads ?? [];
+  if (
+    new Set(openItemReads).size !== openItemReads.length ||
+    openItemReads.some((id) => !openItemReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
     new Set(financialReads).size !== financialReads.length ||
     financialReads.some((id) => !financialReadOperations.includes(id))
@@ -404,6 +415,27 @@ export function createProductApplication(
         service: new FinancialAnalysis(connections, financialProvider, true),
       }
     : undefined;
+  const openItems =
+    businessTest && openItemReads.length
+      ? new OpenItems(
+          connections,
+          new FortnoxOpenItems(
+            connections,
+            provider,
+            openItemReads,
+            () => now() < businessTest.until,
+            now,
+          ),
+          (["receivable", "payable"] as const).filter((kind) =>
+            openItemReads.includes(
+              kind === "receivable"
+                ? "open_receivable.list"
+                : "open_payable.list",
+            ),
+          ),
+          now,
+        )
+      : undefined;
   const payroll =
     businessTest && payrollReads.length
       ? new PayrollInputs(
@@ -497,6 +529,7 @@ export function createProductApplication(
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
       ...(payroll ? { payroll } : {}),
+      ...(openItems ? { openItems } : {}),
       ...(financial ? { financial } : {}),
       ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
@@ -529,6 +562,7 @@ export function createProductApplication(
                   document_operations: businessTest.documentReads ?? [],
                   payroll_operations: payrollOperations,
                   financial_read_operations: financialReads,
+                  open_item_read_operations: openItemReads,
                   financial_writes: false,
                 },
               }

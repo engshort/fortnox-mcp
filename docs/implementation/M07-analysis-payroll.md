@@ -496,3 +496,43 @@ not actual ChatGPT acceptance or ordinary capability activation.
 Private-file/source/operation rejection passed two Node cases, and the shared
 isolated-profile rejection passed in actual local workerd/D1; typecheck and lint
 also passed. Public OAuth write/client acceptance remains a separate next step.
+
+## Actual all-account zero-balance coverage
+
+Source e2b565c was deployed in the isolated leased test build. Public OAuth MCP
+SDK acceptance discovered and independently detail-read all 1,339 chart accounts
+in each of the two allowlisted sandboxes (2,678 detail reads). Every record had
+explicit zero opening/closing balances. Both initial/final financial source
+versions matched, and no account read failed. Rotating MCP access was renewed
+between batches; no owner session was impersonated. Private evidence contains
+account numbers, flags and hashes, not a replicated chart with names/amounts.
+
+This independently proves the observed zero-state account coverage. It does not
+establish nonempty posting/correction semantics, a complete SIE export, arbitrary
+future zero inference, classification, booked liquidity or ChatGPT acceptance.
+Those limitations remain in product results and the original G07 acceptance.
+
+## Current receivable/payable observations
+
+The portable `OpenItems` service and two finite provider list adapters back
+`list_receivables` and `list_payables`. Each reads at most 100 unfiltered source
+records, preserving unknown amounts/status/dates and exposing only current
+provider state. Paid/cancelled records are excluded locally; unbooked records
+require an explicit selection. The adapter cannot invent a historical unpaid
+amount or apply an unverified server filter that omits records.
+
+Continuation binds company, resource, selection and first-page source hash,
+which is rechecked around continued reads. Both company generation and scope are
+checked after retrieval. Per-currency sums cover only the returned page and do
+not establish a complete collection. Unknown balance-currency/credit semantics
+block signed expected cash flow. Even with verified signs, due date is an
+explicit expectation input rather than proof of future payment. Ordinary
+activation is off, and actual nonempty reskontra/credit/partial-payment acceptance
+remains pending.
+
+The current-open-item slice passed four observable cases in Node/SQLite and the
+same four in actual local workerd/D1: strict MCP output/current-state limits,
+source-bound continuation, rights/disconnect/read-only behavior, exact page-only
+currency/sign calculations and invalid-money rejection. Typecheck, lint and the
+operation/source ledger check passed. These are synthetic provider contracts;
+nonempty actual balance/credit/currency evidence remains separate.

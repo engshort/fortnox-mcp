@@ -5,6 +5,7 @@ export * from "./analytics.js";
 export * from "./connections.js";
 export * from "./diagnostics.js";
 export * from "./http.js";
+export * from "./open-items.js";
 export * from "./payroll.js";
 export * from "./payroll-writes.js";
 export * from "./receipt-files.js";
