@@ -244,8 +244,8 @@ It does not establish a successful intended-input flow or G10 closure.
 The follow-up adds `applied_different`, a terminal result for acknowledged exact
 provider identity with matching stable fields but different observed content.
 It never reports intended success or changes the original execution digest.
-The operator-only salary experiment can classify only Amount/Total differences
-after exact readback and normalized employee/date/code/quantity/marker checks.
+The operator-only salary experiment can classify only Number/Amount/Total differences
+after exact readback and normalized employee/date/code/marker checks.
 Recovery additionally requires the original private prepared fields to match
 the retained immutable digest and fixed synthetic profile. No model-supplied
 reference or name/date/amount heuristic can establish identity. Missing exact
@@ -296,7 +296,22 @@ mobile Chromium flows rendered the discrepancy, separate unknown list and
 evidence hashes, with no horizontal overflow or unexpected browser errors.
 Browser plugin not available; the existing Playwright owner harness was used.
 Typecheck, lint, build and all 13 packaged build/native-Worker smoke cases
-passed. The full Node suite passed all 320 cases; the full Worker result and
-latest-head CI are recorded separately when complete. A previous CI failure
+passed. The full Node suite passed all 320 cases; all 260 full Worker cases also passed. Latest-head CI is recorded separately. A previous CI failure
 was an outdated register-test-entry source hash; the operation ledgers now pin
 the current source files without promoting any operation to supported status.
+
+## Actual discrepancy follow-up, 2026-11-10
+
+At 3b1b4f4 the earlier hourly intent reconciled to `applied_different` using its
+retained exact response reference and original private receipt. Amount/Total
+were the differing fields, the original hashes were preserved and no provider
+write was sent. The separate monthly candidate then returned a retained exact
+row whose Number/Amount differed while its Total matched. That result initially
+remained unknown because the experimental proof treated quantity as stable.
+
+The follow-up treats the three numeric fields as mutable content while requiring
+exact acknowledged row identity and unchanged employee/date/code/marker. It
+reports every changed numeric field and keeps the original fixed candidate hash.
+A changed employee/date/code/marker still fails closed; this is neither formula
+verification nor successful intended input. The cause and supported monthly
+field contract remain unverified. No input was resent or payroll/payout executed.

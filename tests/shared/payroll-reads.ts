@@ -212,12 +212,12 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
         ).rejects.toThrow();
         expect(posts).toBe(1);
       });
-    for (const recovery of [false, true])
-      it(`reports a retained exact salary row with different amounts without replay (${recovery ? "recovery" : "dispatch"})`, async () => {
+    for (const recovery of [false, true, "number"] as const)
+      it(`reports a retained exact salary row with different amounts without replay (${recovery === "number" ? "quantity difference" : recovery ? "recovery" : "dispatch"})`, async () => {
         const f = await setup(await fixture());
         let row: Record<string, unknown> | null = null,
           posts = 0,
-          readFails = recovery,
+          readFails = recovery === true,
           changedStableField = false;
         f.provider.config.fetch = async (input) => {
           const req = input as Request,
@@ -249,7 +249,7 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
               SalaryTransaction: {
                 ...row,
                 ...(changedStableField ? { SalaryCode: "OTHER" } : {}),
-                Number: "1.0000",
+                Number: recovery === "number" ? "0" : "1.0000",
                 Amount: "0",
                 Total: "0.00",
                 SalaryRow: 1,
@@ -296,7 +296,7 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
           "salary_transaction.create",
           ref,
         );
-        if (recovery) {
+        if (recovery === true) {
           expect(result).toEqual({ state: "outcome_unknown", reference: "1" });
           readFails = false;
           // No retained original fields, or a changed original, cannot prove a difference.
@@ -336,7 +336,10 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
           state: "applied_different",
           reference: "1",
           difference: {
-            fields: ["Amount", "Total"],
+            fields:
+              recovery === "number"
+                ? ["Number", "Amount", "Total"]
+                : ["Amount", "Total"],
             proof: "retained_provider_response_and_exact_readback",
           },
         });

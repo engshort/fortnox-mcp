@@ -155,7 +155,8 @@ export class FortnoxPayrollProbe {
         if (observed === digest) return { state: "succeeded", reference: id };
         if (expected && (await payrollFieldsHash(expected)) === digest) {
           // Only the fixed candidate profile can prove stable identity fields.
-          // A changed employee/date/code/quantity/marker remains unknown.
+          // A changed employee/date/code/marker remains unknown. Numeric fields
+          // are content, not identity; company code formulas may replace them.
           const fixed = fields({
             EmployeeId: expected.EmployeeId,
             Date: expected.Date,
@@ -165,12 +166,13 @@ export class FortnoxPayrollProbe {
           if (
             (await payrollFieldsHash({
               ...row.fields,
+              Number: expected.Number,
               Amount: expected.Amount,
               Total: expected.Total,
             })) === digest
           ) {
             const changed: string[] = [];
-            for (const name of ["Amount", "Total"] as const)
+            for (const name of ["Number", "Amount", "Total"] as const)
               if (
                 (await payrollFieldsHash({
                   ...expected,
