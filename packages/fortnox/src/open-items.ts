@@ -87,30 +87,38 @@ export class FortnoxOpenItems implements OpenItemProvider {
     url.searchParams.set("limit", "100");
     if (kind === "receivable") url.searchParams.set("sortby", "documentnumber");
     const raw = await this.http.read(context, url, until);
-    const records = z
-      .array(z.record(z.string(), z.unknown()))
-      .max(100)
-      .parse(raw[resource.envelope])
-      .map((r) =>
-        openItemRecord.parse({
-          id: r[resource.id],
-          counterparty_id: r[resource.counterparty] || null,
-          invoice_date: date(r.InvoiceDate),
-          due_date: date(r.DueDate),
-          currency: r.Currency || null,
-          balance: r.Balance ?? null,
-          booked: boolean(r.Booked),
-          cancelled: boolean(r.Cancelled),
-          credit:
-            kind === "receivable"
-              ? r.Credit === "true"
-                ? true
-                : r.Credit === "false"
-                  ? false
-                  : null
-              : boolean(r.Credit),
-        }),
+    let records: z.infer<typeof openItemRecord>[];
+    try {
+      records = z
+        .array(z.record(z.string(), z.unknown()))
+        .max(100)
+        .parse(raw[resource.envelope])
+        .map((r) =>
+          openItemRecord.parse({
+            id: r[resource.id],
+            counterparty_id: r[resource.counterparty] || null,
+            invoice_date: date(r.InvoiceDate),
+            due_date: date(r.DueDate),
+            currency: r.Currency || null,
+            balance: r.Balance ?? null,
+            booked: boolean(r.Booked),
+            cancelled: boolean(r.Cancelled),
+            credit:
+              kind === "receivable"
+                ? r.Credit === "true"
+                  ? true
+                  : r.Credit === "false"
+                    ? false
+                    : null
+                : boolean(r.Credit),
+          }),
+        );
+    } catch {
+      throw new ProviderError(
+        "UPSTREAM_UNAVAILABLE",
+        "invalid_open_item_response",
       );
+    }
     const meta = metadata.safeParse(raw.MetaInformation);
     const valid =
       meta.success &&

@@ -557,6 +557,8 @@ export class FortnoxFinancialReads implements FinancialProvider {
     const normalized = {
       company_id: query.company_id,
       financial_year: query.financial_year,
+      mapping_version: mapping?.version ?? "unmapped/1",
+      mapping_sha256: mapping?.sha256 ?? null,
       currency,
       accounts,
       movements,

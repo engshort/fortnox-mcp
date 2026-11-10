@@ -139,6 +139,33 @@ async function setup(state: StateStore) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("invalidates continuations when trusted mapping evidence changes even if account classifications stay the same", async () => {
+      const f = await setup(await fixture());
+      const mapping = {
+        version: "synthetic/1",
+        sha256: "c".repeat(64),
+        accounts: { 1930: "assets" as const },
+      };
+      const provider = new FortnoxFinancialReads(
+        f.connections,
+        f.provider,
+        financialReadOperations,
+        () => true,
+        Date.now,
+        () => mapping,
+      );
+      const service = new FinancialAnalysis(f.connections, provider, true);
+      const first = await service.report(f.actor, { ...f.query, page_size: 1 });
+      expect(first.accounts_page.next).not.toBeNull();
+      mapping.sha256 = "d".repeat(64);
+      await expect(
+        service.report(f.actor, {
+          ...f.query,
+          page_size: 1,
+          continuation: first.accounts_page.next,
+        }),
+      ).rejects.toThrow("CONNECTION_CONFLICT");
+    });
     it("discovers chart pages with company/year/anchor binding and never calls the last continuation a complete collection", async () => {
       const f = await setup(await fixture());
       let changed = false,

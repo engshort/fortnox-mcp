@@ -3,6 +3,7 @@ import {
   type Connections,
   DomainError,
   type FinancialAnalysis,
+  type LiquidityAnalysis,
   type OpenItems,
   type PayrollInputs,
   type ReceiptAttachments,
@@ -27,6 +28,7 @@ import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/valida
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
 import { registerFinancialReads } from "./analytics.js";
+import { registerLiquidity } from "./liquidity.js";
 import { registerOpenItems } from "./open-items.js";
 import { registerPayrollTools } from "./payroll.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
@@ -124,6 +126,7 @@ export function companyServer(context: {
   registers?: Registers;
   payroll?: PayrollInputs;
   openItems?: OpenItems;
+  liquidity?: LiquidityAnalysis;
   financial?: { service: FinancialAnalysis; provider: FortnoxFinancialReads };
   salesDocuments?: SalesDocuments;
 }) {
@@ -375,6 +378,8 @@ export function companyServer(context: {
     registerPayrollTools(server, context.payroll, context.identity);
   if (context.openItems)
     registerOpenItems(server, context.openItems, context.identity);
+  if (context.liquidity)
+    registerLiquidity(server, context.liquidity, context.identity);
   if (context.salesDocuments)
     registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)

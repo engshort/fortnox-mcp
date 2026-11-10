@@ -37,6 +37,7 @@ it("pins analytical/payroll operation sources without promoting operator probes 
       ...openItemReadOperations,
       "financial_report.calculate",
       "financial_report.compare",
+      "financial_liquidity.calculate",
       "sie4.parse",
       "financial_movements.list",
       "payroll_employee.create",

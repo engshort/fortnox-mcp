@@ -7,6 +7,7 @@ import {
   CredentialVault,
   DomainError,
   FinancialAnalysis,
+  LiquidityAnalysis,
   OpenItems,
   PayrollInputs,
   type PayrollOperation,
@@ -36,6 +37,7 @@ import {
 import {
   diagnoseConnection,
   diagnosisInput,
+  type FinancialMapping,
   type FinancialReadOperation,
   FortnoxAccounting,
   FortnoxConnections,
@@ -99,6 +101,12 @@ export interface ProductBusinessTest {
     profiles: readonly PayrollWriteProfile[];
   };
   financialReads?: readonly FinancialReadOperation[];
+  financialMappings?: readonly {
+    company_id: string;
+    financial_year: number;
+    mapping: FinancialMapping;
+    cash_account_numbers: readonly number[];
+  }[];
   openItemReads?: readonly OpenItemReadOperation[];
   now?: () => number;
 }
@@ -407,6 +415,10 @@ export function createProductApplication(
           financialReads,
           () => now() < businessTest.until,
           now,
+          (company, year) =>
+            businessTest.financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            )?.mapping,
         )
       : undefined;
   const financial = financialProvider
@@ -434,6 +446,33 @@ export function createProductApplication(
             ),
           ),
           now,
+        )
+      : undefined;
+  const liquidity =
+    financial &&
+    openItems &&
+    openItems.enabled.length === 2 &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (op) => financialReads.includes(op),
+    )
+      ? new LiquidityAnalysis(
+          connections,
+          financial.service,
+          openItems,
+          true,
+          now,
+          (company, year) => {
+            const profile = businessTest?.financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            );
+            return profile
+              ? {
+                  account_numbers: profile.cash_account_numbers,
+                  version: profile.mapping.version,
+                  sha256: profile.mapping.sha256,
+                }
+              : undefined;
+          },
         )
       : undefined;
   const payroll =
@@ -530,6 +569,7 @@ export function createProductApplication(
       ...(registers ? { registers } : {}),
       ...(payroll ? { payroll } : {}),
       ...(openItems ? { openItems } : {}),
+      ...(liquidity ? { liquidity } : {}),
       ...(financial ? { financial } : {}),
       ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),

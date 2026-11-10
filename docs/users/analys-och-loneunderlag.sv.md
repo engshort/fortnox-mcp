@@ -70,3 +70,10 @@ som okända. Sidans summeringar hålls per valuta och gäller bara sidan.
 Historiskt obetalt belopp kan inte återskapas från dagens status. Förväntat
 betalningsflöde beräknas först när valuta och kredittecken har verifierats;
 förfallodatum är inget löfte om att betalning sker.
+
+`get_liquidity_basis` kombinerar valda bokförda konton med en begränsad sida
+kund- och leverantörsfakturor. Ange dagens datum, räkenskapsår och ett uttryckligt
+antagande att betalning sker på förfallodagen, högst 90 dagar framåt. Resultatet
+visar vilka källor och sidor som ingår. Okända belopp eller teckenregler kan ge
+ett ofullständigt underlag utan beräknad prognos. Andra valutor räknas inte om,
+och konton klassificeras inte automatiskt som bankkonton utifrån numret.

@@ -287,3 +287,11 @@ items. Continuation binds company/resource/selection/source. Totals are per
 currency and page; unknown credit/currency semantics prevent signed cash flow.
 Current status never proves a historical unpaid balance. Due dates are not
 promises of payment or bank payment instructions.
+
+`get_liquidity_basis` requires an explicit company/year, today's Stockholm date,
+1–20 selected cash/bank account numbers and an explicit `due_date_only` interval
+of at most 90 days. It authorizes ledger/invoice/supplier-invoice scopes before
+reads. Source windows, classifications, page continuations and excluded foreign
+currencies remain visible. Unknown monetary/sign/reference data prevents a
+complete projection. Scope is selected accounts and returned invoice pages,
+not all future cash movements, a live bank balance or a payment instruction.

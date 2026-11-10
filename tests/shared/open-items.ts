@@ -27,6 +27,7 @@ async function setup(state: StateStore) {
     denied: false,
     noMeta: false,
     disconnect: false,
+    invalidMoney: false,
   };
   const provider = new FortnoxConnections({
     origin: "https://product.example.invalid",
@@ -49,7 +50,7 @@ async function setup(state: StateStore) {
         InvoiceDate: "2026-01-01",
         DueDate: "2026-02-01",
         Currency: "SEK",
-        Balance: "0.10",
+        Balance: flags.invalidMoney ? "0.001" : "0.10",
         Booked: true,
         Cancelled: false,
         Credit: payable ? false : "false",
@@ -223,6 +224,11 @@ export function openItemsContract(fixture: () => Promise<StateStore>) {
         "CAPABILITY_UNAVAILABLE",
       );
       f.flags.denied = false;
+      f.flags.invalidMoney = true;
+      await expect(f.service.list(f.actor, query)).rejects.toThrow(
+        "UPSTREAM_UNAVAILABLE",
+      );
+      f.flags.invalidMoney = false;
       f.flags.disconnect = true;
       await expect(f.service.list(f.actor, query)).rejects.toThrow();
     });

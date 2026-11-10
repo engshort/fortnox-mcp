@@ -536,3 +536,56 @@ source-bound continuation, rights/disconnect/read-only behavior, exact page-only
 currency/sign calculations and invalid-money rejection. Typecheck, lint and the
 operation/source ledger check passed. These are synthetic provider contracts;
 nonempty actual balance/credit/currency evidence remains separate.
+
+## Actual public OAuth MCP follow-up
+
+At 83c20b3 the isolated HTTPS build loaded its private source-bound hourly
+profile. Public OAuth MCP SDK acceptance prepared/created, prepared/updated and
+prepared/deleted another synthetic input, with exact independent readback and
+final not-found. Repeated immutable references produced the retained results;
+the private transport observer recorded exactly POST, PUT, DELETE, all HTTP 200.
+Wrong company and an unverified code were rejected. This is actual public product
+transport/domain/provider evidence, not actual ChatGPT acceptance. No payroll,
+payslip or payout occurred, and the lifecycle row was deleted on success.
+
+Both companies also passed public current receivable/payable reads (zero source
+records), an explicit two-company account comparison (compatible, incomplete)
+and foreign-company denial. These empty observations do not establish nonempty
+invoice/currency/credit semantics. All five latest-head CI flows passed for
+83c20b3, including [S01](https://github.com/engshort/fortnox-mcp/actions/runs/42767345857),
+[Docker HTTPS](https://github.com/engshort/fortnox-mcp/actions/runs/42767346071),
+[source packet](https://github.com/engshort/fortnox-mcp/actions/runs/42767346004),
+[OAuth](https://github.com/engshort/fortnox-mcp/actions/runs/42767346036) and
+[S00](https://github.com/engshort/fortnox-mcp/actions/runs/42767345768).
+The full local baseline passed 349 Node and 287 actual workerd/D1 cases, plus
+all 13 packaged/native-Worker cases, typecheck, lint and build.
+
+## Liquidity inputs and explicit classification
+
+`get_liquidity_basis` combines at most 20 selected booked account balances with
+one bounded current page from each invoice source. The explicit observation day
+must be today in Stockholm; expected dates cover at most 90 days and use the
+explicit `due_date_only` assumption. Historical current-status inference is
+rejected. It authorizes all three source scopes before reading and rechecks the
+company and observation day afterward.
+
+Amounts remain exact and in the ledger currency. Unknown balance/credit/currency
+semantics block expected-flow calculations, other currencies remain excluded and
+counted, and missing amounts block the projected figure. The scope is selected
+accounts and returned invoice pages, with continuation references retained.
+Source coverage and non-atomic retrieval remain visible. Due date is not a
+payment promise, and a booked balance is never called a live bank balance.
+
+A separate private source-bound financial test profile supplies explicit
+company/year account classifications and cash/bank selections. It cannot infer
+BAS ranges or classify a non-asset account as cash. Both classification version
+and evidence hash appear in the result. Missing cash classification prevents
+complete status; ordinary startup never loads this test file. This configuration
+is not financial-semantics acceptance and cannot enable provider writes.
+
+The liquidity/classification follow-up passed seven targeted Node/SQLite cases
+and the same seven in actual workerd/D1, plus the private financial-profile and
+source-ledger Node checks, typecheck and lint. Trusted mapping evidence now
+participates in financial source versions, invalidating older continuations even
+when classifications have the same values. Malformed provider invoice money is
+reported as an upstream response failure, rather than invalid caller input.

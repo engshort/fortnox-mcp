@@ -3,6 +3,7 @@ import {
   registerOperationIds,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
+import { loadFinancialTestProfile } from "./financial-test-profile.js";
 import { loadPayrollTestProfile } from "./payroll-test-profile.js";
 import { startProduct } from "./product-runtime.js";
 
@@ -24,9 +25,14 @@ void (async () => {
     process.env.PAYROLL_TEST_PROFILE_FILE,
     __REGISTER_TEST_SOURCE_COMMIT__,
   );
+  const financialMappings = await loadFinancialTestProfile(
+    process.env.FINANCIAL_TEST_PROFILE_FILE,
+    __REGISTER_TEST_SOURCE_COMMIT__,
+  );
   await startProduct(undefined, {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
     ...(payrollWrites ? { payrollWrites } : {}),
+    ...(financialMappings ? { financialMappings } : {}),
     openItemReads: z
       .array(z.enum(["open_receivable.list", "open_payable.list"]))
       .max(2)

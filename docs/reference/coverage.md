@@ -303,3 +303,9 @@ operations, explicit company ownership, bounded pages and source-bound
 continuation. Unknown fields remain visible. Provider credit/currency semantics
 are still unverified, so expected cash-flow sums remain unavailable. Historical
 reskontra is not inferred from current invoice status. Ordinary activation is off.
+
+The bounded M7 liquidity input tool combines selected booked accounts and current
+invoice pages with an explicit due-date assumption. Private company/year mappings
+are source-bound; missing mapping or sign/currency/source evidence prevents a
+complete result. No live bank state, currency conversion or payment initiation
+is introduced. Actual positive ledger/reskontra reconciliation remains pending.

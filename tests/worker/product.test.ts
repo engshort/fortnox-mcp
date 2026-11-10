@@ -20,6 +20,7 @@ import { disconnectContract } from "../shared/disconnect.js";
 import { documentRowsContract } from "../shared/document-rows.js";
 import { financialReadContract } from "../shared/financial-reads.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
+import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { openItemsContract } from "../shared/open-items.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
@@ -141,3 +142,5 @@ payrollReadProfileContract(fixture);
 financialReadContract(async () => (await fixture()).state);
 
 openItemsContract(async () => (await fixture()).state);
+
+liquidityContract(async () => (await fixture()).state);
