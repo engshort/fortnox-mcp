@@ -589,3 +589,41 @@ source-ledger Node checks, typecheck and lint. Trusted mapping evidence now
 participates in financial source versions, invalidating older continuations even
 when classifications have the same values. Malformed provider invoice money is
 reported as an upstream response failure, rather than invalid caller input.
+
+## Latest isolated-build verification
+
+At f89d3d89d4f9816c64a85993f0141476c4d7656a, public HTTPS/OAuth MCP SDK
+checks passed in both allowlisted sandboxes for current liquidity inputs with
+explicit classification. Results correctly remained partial: export coverage and
+invoice sign/currency semantics are unverified, so no projected balance was
+invented. Historical current-status queries and foreign-company access were
+rejected. This adds transport/domain/provider evidence, not ChatGPT acceptance.
+
+The same build passed separate payroll negative checks. With company read-only
+mode temporarily enabled through the owner-domain service, create, update and
+delete preparations were rejected; reading the known employee still succeeded.
+A missing synthetic employee returned the provider's not-found response. The
+transport observation confirmed that no payroll write occurred. The original
+read-only setting was restored, preserving the company's recorded manual-voucher
+policy throughout. These observations do not establish every provider license or
+permission-denial variant.
+
+All five latest-head CI flows passed: [S01](https://github.com/engshort/fortnox-mcp/actions/runs/42769077764),
+[Docker HTTPS](https://github.com/engshort/fortnox-mcp/actions/runs/42769077861),
+[source packet](https://github.com/engshort/fortnox-mcp/actions/runs/42769077648),
+[OAuth](https://github.com/engshort/fortnox-mcp/actions/runs/42769077686) and
+[S00](https://github.com/engshort/fortnox-mcp/actions/runs/42769077683).
+S01 ran 353 Node/domain cases, 290 actual local workerd/D1 cases, typecheck,
+lint, build and all 13 packaged/native-Worker cases. Docker verification ran
+in CI; no local Docker execution is claimed.
+
+The subsequent positive-ledger acceptance attempt did not find the expected
+booked fixture. Independent account-detail reads in both sandboxes and their
+available fiscal years still reported zero balances for the two selected
+accounts; movement reads in the intended company returned no movements. The
+company/year selection was independently checked against the company listing.
+Matching zero balances are not positive posting/SIE reconciliation evidence.
+The attempt remains partial, with private receipts preserved; no provider write,
+policy change or capability promotion was used to make it pass. Owner
+confirmation of the booked fixture, nonempty invoice semantics and actual
+ChatGPT acceptance remain outstanding. Issues #25, #26, #37 and #40 remain open.

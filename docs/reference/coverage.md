@@ -309,3 +309,12 @@ invoice pages with an explicit due-date assumption. Private company/year mapping
 are source-bound; missing mapping or sign/currency/source evidence prevents a
 complete result. No live bank state, currency conversion or payment initiation
 is introduced. Actual positive ledger/reskontra reconciliation remains pending.
+
+At f89d3d8, actual public OAuth MCP checks confirmed partial liquidity results in
+both sandboxes, historical/foreign-company rejection and read-only denial of all
+three payroll write preparations without a provider write. The known employee
+remained readable and a missing employee returned not-found. CI passed 353 Node
+and 290 actual local workerd/D1 cases. These observations extend the
+[dated delivery evidence](../implementation/M07-analysis-payroll.md#latest-isolated-build-verification);
+zero-state balance matches do not establish positive SIE reconciliation or close
+G07/G10. Actual ChatGPT acceptance remains separate.
