@@ -1,3 +1,4 @@
+import type { ProgramStatus } from "@fortnox-mcp/core";
 export interface Company {
   company_id: string;
   name: string;
@@ -6,6 +7,8 @@ export interface Company {
   review: "review_required" | "client_managed";
   read_only: boolean;
   policy_version: number;
+  organization_number: string;
+  programs: ProgramStatus & { pending?: boolean };
 }
 export interface Investigation {
   company_id: string;
@@ -32,6 +35,12 @@ export interface InstallationState {
   capabilities: Record<string, boolean>;
   companies: Company[];
   investigations: Investigation[];
+  uncertain_outcomes: Array<{
+    company_id: string;
+    company_name: string;
+    kind: "bookkeeping" | "business" | "receipt";
+    id: string;
+  }>;
 }
 export async function api<T = { ok?: boolean; url?: string }>(
   path: string,
@@ -70,6 +79,7 @@ export async function api<T = { ok?: boolean; url?: string }>(
       "VALIDATION_FAILED",
       "CAPABILITY_UNAVAILABLE",
       "CONNECTION_CONFLICT",
+      "OUTCOME_UNKNOWN",
     ].includes(String(diagnostic.reason))
       ? String(diagnostic.reason)
       : null;

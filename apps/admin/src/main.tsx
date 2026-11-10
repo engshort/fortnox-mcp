@@ -1,821 +1,510 @@
-import type { ConnectionDiagnosis } from "@fortnox-mcp/fortnox";
-import {
-  type FormEvent,
-  type ReactNode,
-  useEffect,
-  useId,
-  useState,
-} from "react";
+import type { ProgramId } from "@fortnox-mcp/core";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { api, type Company, type InstallationState } from "./api.js";
+import { api, type InstallationState } from "./api.js";
+import {
+  AddCompanyDialog,
+  CompanyLayout,
+  CompanyListPage,
+  ProgramConnectionDialog,
+  Status,
+} from "./company-pages.js";
+import {
+  ApiCredentials,
+  Integration,
+  Investigations,
+  type Language,
+  Login,
+  Message,
+  type Translate,
+} from "./forms.js";
+import { Link, usePath } from "./navigation.js";
+import { AppShell } from "./shell.js";
 import "./style.css";
 
-type Language = "sv" | "en";
-type Translate = (sv: string, en: string) => string;
-function Field({
-  name,
-  label,
-  type = "text",
-  ...props
-}: {
-  name: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  disabled?: boolean;
-  minLength?: number;
-  maxLength?: number;
-  min?: number;
-}) {
-  const id = useId();
-  return (
-    <label className="field" htmlFor={id}>
-      {label}
-      <input id={id} name={name} type={type} required {...props} />
-    </label>
-  );
-}
-function Message({ children }: { children: ReactNode }) {
-  return (
-    <p className="status" role="status" aria-live="polite">
-      {children}
-    </p>
-  );
-}
-function Diagnosis({ company, t }: { company: string; t: Translate }) {
-  const [result, setResult] = useState<ConnectionDiagnosis | null>(null);
-  const [busy, setBusy] = useState(false);
+type Clients = {
+  clients: {
+    client_id: string;
+    companies: { company_id: string; name: string; current: boolean }[];
+  }[];
+  partial: boolean;
+};
+function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
+  const [clients, setClients] = useState<Clients | null>(null);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void api<Clients>("/admin/clients")
+      .then((value) => {
+        if (active) setClients(value);
+      })
+      .catch(() => {
+        if (active)
+          setError(
+            t(
+              "Klienternas åtkomst kunde inte hämtas.",
+              "Could not load client access.",
+            ),
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [t]);
+  return (
+    <>
+      <h1>{t("AI-klienter", "AI clients")}</h1>
+      <p className="intro">
+        {t(
+          "Anslut din AI-klient och se vilka företag den fått tillgång till.",
+          "Connect your AI client and see its company grants.",
+        )}
+      </p>
+      <section className="content-section">
+        <h2>{t("Anslut ChatGPT", "Connect ChatGPT")}</h2>
+        <p>
+          {t(
+            "Skapa en egen anslutning med installationsadressen nedan. Logga in som installationsägare och godkänn begärda behörigheter till företagen.",
+            "Create a custom connection with the installation URL below. Sign in as installation owner and approve the requested company access.",
+          )}
+        </p>
+        <code>{state.mcp_url}</code>
+        <button
+          type="button"
+          onClick={() =>
+            void navigator.clipboard
+              .writeText(state.mcp_url)
+              .then(() => setCopied(true))
+              .catch(() =>
+                setError(
+                  t(
+                    "Kopiera den synliga adressen manuellt.",
+                    "Copy the visible URL manually.",
+                  ),
+                ),
+              )
+          }
+        >
+          {t("Kopiera MCP-adress", "Copy MCP URL")}
+        </button>
+        <Message>
+          {copied ? t("Adressen är kopierad.", "URL copied.") : ""}
+        </Message>
+      </section>
+      <section className="content-section">
+        <h2>{t("Företagsgodkännanden", "Company grants")}</h2>
+        <p>
+          {t(
+            "Ett sparat godkännande visar beviljad företagsåtkomst. Det visar inte om klienten har en aktiv inloggning. Nya företag eller utökad åtkomst kräver ett nytt klientgodkännande.",
+            "A stored grant shows company access, not whether the client has an active session. New companies or extended access require fresh client consent.",
+          )}
+        </p>
+        {!clients && !error && (
+          <p>{t("Hämtar godkännanden…", "Loading grants…")}</p>
+        )}
+        {clients && !clients.clients.length && (
+          <p>
+            {t(
+              "Inga företagsgodkännanden finns ännu.",
+              "No company grants yet.",
+            )}
+          </p>
+        )}
+        {clients?.clients.map((client) => (
+          <article className="grant-row" key={client.client_id}>
+            <h3>{t("Klient", "Client")}</h3>
+            <code>{client.client_id}</code>
+            {client.companies.map((c) => (
+              <div className="grant-company" key={c.company_id}>
+                <Link href={`/admin/companies/${c.company_id}`}>{c.name}</Link>
+                <Status positive={c.current}>
+                  {c.current
+                    ? t("Aktuell företagsåtkomst", "Current company access")
+                    : t("Nytt godkännande krävs", "Fresh consent required")}
+                </Status>
+              </div>
+            ))}
+          </article>
+        ))}
+        {clients?.partial && (
+          <p className="notice">
+            {t(
+              "Listan är ofullständig. Högst 100 godkännanden visas.",
+              "Partial list: up to 100 grants are shown.",
+            )}
+          </p>
+        )}
+        <Message>{error}</Message>
+      </section>
+    </>
+  );
+}
+function Operations({
+  state,
+  t,
+  perform,
+}: {
+  state: InstallationState;
+  t: Translate;
+  perform: (action: () => Promise<unknown>) => Promise<void>;
+}) {
   const labels: Record<string, string> = {
-    available: t("Avgränsad läsning fungerar", "Bounded read available"),
-    disconnected: t(
-      "Anslutningen behöver återanslutas",
-      "Reconnect the connection",
-    ),
-    missing_permission: t("Nödvändig scope saknas", "Required scope missing"),
-    upstream_error: t("Fortnox kunde inte nås", "Provider unavailable"),
-    verification_blocked: t("Verifiering återstår", "Verification pending"),
-    not_implemented: t("Inte implementerad", "Not implemented"),
-    unknown: t(
-      "Behörighets- eller licensorsak okänd",
-      "Permission or license cause unknown",
-    ),
+    writes: t("Bokföringsskrivningar", "Bookkeeping writes"),
+    provider_files: t("Fortnox-filer", "Fortnox files"),
+    review_host: t("Granskning i AI-klienten", "AI client review"),
+    files: t("Tillfällig filhantering", "Temporary file handling"),
   };
   return (
-    <div className="separated">
-      <button
-        type="button"
-        className="secondary"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          setError("");
-          try {
-            setResult(
-              await api<ConnectionDiagnosis>("/admin/fortnox/diagnose", {
-                company_id: company,
-              }),
-            );
-          } catch {
-            setError(
-              t("Diagnostiken kunde inte slutföras.", "Diagnosis failed."),
-            );
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        {t("Kontrollera anslutning", "Check connection")}
-      </button>
-      <Message>{error || (result ? labels[result.status] : "")}</Message>
-      {result && (
-        <>
+    <>
+      <h1>{t("Drift", "Operations")}</h1>
+      <p className="intro">
+        {t(
+          "Installationens funktioner, verifiering och återhämtning.",
+          "Installation capabilities, verification and recovery.",
+        )}
+      </p>
+      <section className="content-section">
+        <h2>
+          {t("Funktioner och verifiering", "Capabilities and verification")}
+        </h2>
+        <dl>
+          {Object.entries(state.capabilities).map(([name, enabled]) => (
+            <div key={name}>
+              <dt>{labels[name] ?? name}</dt>
+              <dd>
+                {enabled
+                  ? t(
+                      "Tillgänglig i testomfånget",
+                      "Available within test scope",
+                    )
+                  : t(
+                      "Avstängd – verifiering återstår",
+                      "Disabled — verification pending",
+                    )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p>
+          {t(
+            "Grönt serverstatus eller en anslutning godkänner inga finansiella operationer.",
+            "A healthy server or connection does not approve financial operations.",
+          )}
+        </p>
+      </section>
+      {state.restore && (
+        <section className="content-section">
+          <h2>{t("Återställning", "Restore")}</h2>
           <p>
-            {result.reason} · {result.correlation_id}
-          </p>
-          <ul>
-            {result.capabilities.map((c) => (
-              <li key={c.id}>
-                {c.id}: {labels[c.status]}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
-}
-function Login({
-  t,
-  onError,
-}: {
-  t: Translate;
-  onError: (value: string) => void;
-}) {
-  const setup = location.pathname === "/setup",
-    reset = location.pathname === "/reset-password";
-  const [busy, setBusy] = useState(false);
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    onError("");
-    const form = event.currentTarget,
-      data = Object.fromEntries(new FormData(form));
-    form.reset();
-    try {
-      await api(
-        reset
-          ? "/auth/reset-password"
-          : setup
-            ? "/admin/bootstrap"
-            : "/auth/sign-in/email",
-        data,
-      );
-      if (reset) {
-        location.assign("/sign-in");
-        return;
-      }
-      location.assign(
-        location.search ? `/auth/oauth2/authorize${location.search}` : "/admin",
-      );
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "REQUEST_FAILED");
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="login">
-      <h1>
-        {reset
-          ? t("Återställ lösenord", "Reset password")
-          : setup
-            ? t("Skapa installationsägare", "Create installation owner")
-            : t("Logga in", "Sign in")}
-      </h1>
-      <p>
-        {t(
-          "Engångskoder utfärdas privat av installationsoperatören. Skicka aldrig koder eller lösenord till ChatGPT.",
-          "One-time codes are issued privately by the installation operator. Never send codes or passwords to ChatGPT.",
-        )}
-      </p>
-      <form onSubmit={submit}>
-        {(setup || reset) && (
-          <Field
-            name="token"
-            label={t("Engångskod", "One-time code")}
-            type="password"
-          />
-        )}
-        {!reset && (
-          <Field name="email" label={t("E-post", "Email")} type="email" />
-        )}
-        <Field
-          name={reset ? "newPassword" : "password"}
-          label={t("Lösenord", "Password")}
-          type="password"
-          minLength={12}
-          maxLength={128}
-        />
-        <button type="submit" disabled={busy}>
-          {busy
-            ? t("Vänta…", "Please wait…")
-            : reset
-              ? t("Återställ lösenord", "Reset password")
-              : setup
-                ? t("Skapa ägare", "Create owner")
-                : t("Logga in", "Sign in")}
-        </button>
-      </form>
-      <p>
-        <a href="/sign-in">{t("Till inloggning", "Sign in")}</a> ·{" "}
-        <a href="/reset-password">
-          {t("Återställ lösenord", "Reset password")}
-        </a>
-      </p>
-    </section>
-  );
-}
-
-function ApiCredentials({
-  state,
-  t,
-  perform,
-}: {
-  state: InstallationState;
-  t: Translate;
-  perform: (action: () => Promise<unknown>) => Promise<void>;
-}) {
-  const operator = state.integration.source === "operator";
-  function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget,
-      body = Object.fromEntries(new FormData(form));
-    form.reset();
-    void perform(async () => {
-      await api("/admin/fortnox/configuration", body);
-      location.assign("/admin");
-    });
-  }
-  return (
-    <section className="login">
-      <p>
-        <a href="/admin">
-          {t("Till administrationen", "Back to administration")}
-        </a>
-      </p>
-      <h1>{t("Dina Fortnox-uppgifter", "Your Fortnox credentials")}</h1>
-      <p>
-        {t(
-          "Uppgifterna krypteras på servern och visas aldrig i ChatGPT.",
-          "Credentials are encrypted on the server and never shown in ChatGPT.",
-        )}
-      </p>
-      {operator ? (
-        <p>
-          {t(
-            "Uppgifterna hanteras av operatören. Ändra den privata serverkonfigurationen för att ersätta dem.",
-            "Credentials are operator-managed. Replace them through the private server configuration.",
-          )}
-        </p>
-      ) : (
-        <form onSubmit={save}>
-          <Field name="client_id" label="Client ID" maxLength={128} />
-          <Field
-            name="client_secret"
-            label="Client Secret"
-            type="password"
-            minLength={8}
-            maxLength={4096}
-          />
-          <button type="submit">
-            {t("Spara uppgifter", "Save credentials")}
-          </button>
-        </form>
-      )}
-      {state.integration.configured && (
-        <p>
-          {t(
-            "Uppgifter finns sparade. De återläses inte i formuläret.",
-            "Credentials are configured. Saved values are never returned to this form.",
-          )}
-        </p>
-      )}
-    </section>
-  );
-}
-
-function Integration({
-  state,
-  t,
-  perform,
-}: {
-  state: InstallationState;
-  t: Translate;
-  perform: (action: () => Promise<unknown>) => Promise<void>;
-}) {
-  function connect(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const mode = new FormData(event.currentTarget).get("mode");
-    void perform(async () => {
-      const result = await api("/admin/fortnox/start", { mode });
-      if (
-        !result.url ||
-        new URL(result.url).origin !== "https://apps.fortnox.se"
-      )
-        throw new Error("REQUEST_FAILED");
-      location.assign(result.url);
-    });
-  }
-  return (
-    <div className="columns">
-      <section>
-        <h2>Fortnox API</h2>
-        <p className={state.integration.verified ? "connection-approved" : ""}>
-          {state.integration.verified
-            ? t("Godkänd", "Approved")
-            : state.integration.configured
+            {state.restore.reconciled
               ? t(
-                  "Sparade uppgifter – väntar på godkänd anslutning",
-                  "Credentials saved — awaiting an approved connection",
+                  "Återställningens avstämning är registrerad.",
+                  "Restore reconciliation is recorded.",
                 )
-              : t("API-uppgifter saknas", "API credentials required")}
-        </p>
-        {state.integration.verified && state.integration.source === "owner" ? (
-          <button
-            type="button"
-            className="secondary"
-            onClick={() =>
-              void perform(() =>
-                api("/admin/fortnox/forget-configuration", {
-                  revision: state.integration.revision,
-                }),
-              )
-            }
+              : t(
+                  "Skrivningar är blockerade tills operatören stämt av hela intervallet som saknas i backupen.",
+                  "Writes are blocked until the operator reconciles the entire interval missing from the backup.",
+                )}
+          </p>
+        </section>
+      )}
+      <section className="content-section">
+        <h2>{t("Olösta skrivutfall", "Unresolved write outcomes")}</h2>
+        {(state.uncertain_outcomes ?? []).map((outcome) => (
+          <article
+            className="grant-row"
+            key={`${outcome.company_id}-${outcome.kind}-${outcome.id}`}
           >
-            {t("Glöm", "Forget")}
-          </button>
-        ) : !state.integration.verified ? (
-          <a href="/admin/fortnox/api-credentials">
-            {t("Ange Fortnox API uppgifter", "Enter Fortnox API credentials")}
-          </a>
-        ) : null}
-        <section className="separated">
-          <h2>{t("Anslut ett testföretag", "Connect a test company")}</h2>
-          <form onSubmit={connect}>
-            <fieldset>
-              <legend>{t("Anslutningstyp", "Connection type")}</legend>
-              <label className="choice">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="service"
-                  defaultChecked
-                />
-                {t("Servicekonto", "Service account")}
-              </label>
-              <label className="choice">
-                <input type="radio" name="mode" value="user" />
-                {t("Användare", "User")}
-              </label>
-            </fieldset>
-            <button
-              type="submit"
-              disabled={!state.integration.configured || !state.test_mode}
-            >
-              {t("Fortsätt till Fortnox", "Continue to Fortnox")}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                void perform(() => api("/admin/fortnox/cancel-consent", {}))
-              }
-            >
-              {t(
-                "Avbryt väntande samtycken i denna session",
-                "Cancel pending consents in this session",
-              )}
-            </button>
-          </form>
-          {!state.test_mode && (
+            <Link href={`/admin/companies/${outcome.company_id}`}>
+              {outcome.company_name}
+            </Link>
+            <p>
+              {outcome.kind === "bookkeeping"
+                ? t("Verifikation", "Voucher")
+                : outcome.kind === "business"
+                  ? t("Register eller dokument", "Register or document")
+                  : t("Kvitto eller filkoppling", "Receipt or file connection")}
+            </p>
+            <code>{outcome.id}</code>
             <p>
               {t(
-                "Operatören måste först konfigurera två auktoriserade testföretag. Inga produktionskonton.",
-                "The operator must first configure two authorized test tenants. No production accounts.",
+                "Kontrollera status och stäm av utfallet i det befintliga arbetsflödet. Skicka inte ett nytt försök medan utfallet är okänt.",
+                "Check status and reconcile the outcome in the existing workflow. Do not send a new attempt while the outcome is unknown.",
               )}
             </p>
-          )}
-        </section>
+          </article>
+        ))}
+        {state.investigations.length ? (
+          <Investigations state={state} t={t} perform={perform} />
+        ) : !(state.uncertain_outcomes ?? []).length ? (
+          <p>
+            {t(
+              "Inga olösta skrivutfall finns registrerade.",
+              "No unresolved write outcomes are recorded.",
+            )}
+          </p>
+        ) : null}
       </section>
-      <aside>
-        <h2>{t("I Fortnox", "In Fortnox")}</h2>
-        <ol>
-          <li>
-            {t("Skapa din egen integration.", "Create your own integration.")}
-          </li>
-          <li>
-            {t(
-              "Registrera callback-adressen.",
-              "Register the callback address.",
-            )}
-          </li>
-          <li>
-            {t("Välj nödvändiga behörigheter.", "Select the required scopes.")}
-          </li>
-        </ol>
-        <strong>{t("Callback-adress:", "Callback address:")}</strong>
-        <code>{state.callback}</code>
-        <p>
-          {t(
-            "Nytt företag eller nya behörigheter kräver ett nytt klientgodkännande.",
-            "New companies or scopes require fresh client consent.",
-          )}
-        </p>
-      </aside>
-    </div>
+      <button
+        className="secondary"
+        type="button"
+        onClick={() =>
+          void perform(() => api("/admin/fortnox/cancel-consent", {}))
+        }
+      >
+        {t(
+          "Avbryt väntande samtycken i denna session",
+          "Cancel pending consents in this session",
+        )}
+      </button>
+    </>
   );
 }
-
-function Companies({
-  state,
-  t,
-  perform,
-}: {
-  state: InstallationState;
-  t: Translate;
-  perform: (action: () => Promise<unknown>) => Promise<void>;
-}) {
-  function policy(event: FormEvent<HTMLFormElement>, company: Company) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    void perform(() =>
-      api("/admin/fortnox/policy", {
-        company_id: company.company_id,
-        policy_version: company.policy_version,
-        review: data.get("review"),
-        read_only: data.get("read_only") === "true",
-      }),
-    );
-  }
-  return (
-    <section>
-      <h2>{t("Dina företag", "Your companies")}</h2>
-      {!state.companies.length && (
-        <p>
-          {t("Inga företag är anslutna ännu.", "No companies connected yet.")}
-        </p>
-      )}
-      {state.companies.map((c) => (
-        <article
-          className="company"
-          key={`${c.company_id}-${c.policy_version}`}
-        >
-          <h3>{c.name}</h3>
-          <p>
-            {c.state} · {c.mode}
-          </p>
-          <Diagnosis company={c.company_id} t={t} />
-          {c.state === "active" ? (
-            <>
-              <form onSubmit={(e) => policy(e, c)}>
-                <label className="field">
-                  {t("Manuella verifikationer", "Manual vouchers")}
-                  <select name="review" defaultValue={c.review}>
-                    <option value="review_required">
-                      {t("Mänsklig granskning krävs", "Human review required")}
-                    </option>
-                    <option value="client_managed">
-                      {t("Klientens godkännanden", "Client-managed approvals")}
-                    </option>
-                  </select>
-                </label>
-                <label className="field">
-                  {t("Åtkomst", "Access")}
-                  <select name="read_only" defaultValue={String(c.read_only)}>
-                    <option value="true">
-                      {t("Skrivskyddad", "Read only")}
-                    </option>
-                    <option value="false">
-                      {t(
-                        "Tillåt verifierade skrivoperationer",
-                        "Allow verified write operations",
-                      )}
-                    </option>
-                  </select>
-                </label>
-                <button type="submit">
-                  {t("Spara policy", "Save policy")}
-                </button>
-              </form>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() =>
-                  void perform(() =>
-                    api("/admin/fortnox/disconnect", {
-                      company_id: c.company_id,
-                    }),
-                  )
-                }
-              >
-                {t("Koppla från", "Disconnect")}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                void perform(async () => {
-                  const result = await api("/admin/fortnox/start", {
-                    company_id: c.company_id,
-                    mode: c.mode,
-                  });
-                  if (
-                    !result.url ||
-                    new URL(result.url).origin !== "https://apps.fortnox.se"
-                  )
-                    throw new Error("REQUEST_FAILED");
-                  location.assign(result.url);
-                })
-              }
-            >
-              {t("Återanslut", "Reconnect")}
-            </button>
-          )}
-          <p>
-            {t(
-              "Policyändring ogiltigförklarar gamla förslag och aktiverar ingen overifierad operation.",
-              "Policy changes invalidate old proposals and do not enable unverified operations.",
-            )}
-          </p>
-        </article>
-      ))}
-      {state.investigations.map((ref) => (
-        <section className="separated" key={ref.proposal_id}>
-          <h3>{t("Utred okänt utfall", "Investigate unknown outcome")}</h3>
-          <p>{ref.proposal_id}</p>
-          <p>
-            {t(
-              "Kontrollera den faktiska verifikationen i Fortnox. Datum och belopp räcker inte som identitetsbevis.",
-              "Check the actual voucher in Fortnox. Date and amount alone do not prove identity.",
-            )}
-          </p>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              void perform(() =>
-                api("/admin/fortnox/attest-reference", {
-                  proposal: ref,
-                  reference: {
-                    financial_year: Number(data.get("financial_year")),
-                    series: data.get("series"),
-                    number: Number(data.get("number")),
-                  },
-                }),
-              );
-            }}
-          >
-            <Field
-              name="financial_year"
-              label={t("Räkenskapsårs-ID", "Financial year ID")}
-              type="number"
-              min={1}
-            />
-            <Field name="series" label={t("Serie", "Series")} />
-            <Field
-              name="number"
-              label={t("Verifikationsnummer", "Voucher number")}
-              type="number"
-              min={1}
-            />
-            <button type="submit">
-              {t(
-                "Registrera kontrollerad referens",
-                "Record checked reference",
-              )}
-            </button>
-          </form>
-          <p>
-            {t(
-              "Detta skickar ingen bokföring. Endast exakt återläsning kan lösa utfallet.",
-              "This submits no voucher. Only exact provider readback can resolve the outcome.",
-            )}
-          </p>
-        </section>
-      ))}
-    </section>
-  );
-}
-
 function App() {
+  const path = usePath();
+  const admin = path.startsWith("/admin");
   const [language, setLanguage] = useState<Language>(
-    document.cookie.includes("ui_language=en") ? "en" : "sv",
+    document.cookie.split("; ").includes("ui_language=en") ? "en" : "sv",
   );
-  const [state, setState] = useState<InstallationState | null>(null),
-    [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false),
-    [tab, setTab] = useState("fortnox");
-  const t: Translate = (sv, en) => (language === "sv" ? sv : en);
-  const credentialsPage =
-    location.pathname === "/admin/fortnox/api-credentials";
-  const admin = location.pathname === "/admin" || credentialsPage;
-  const load = async () =>
-    setState(await api<InstallationState>("/admin/state"));
+  const t: Translate = useCallback(
+    (sv, en) => (language === "sv" ? sv : en),
+    [language],
+  );
+  const [state, setState] = useState<InstallationState | null>(null);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const performing = useRef(false);
+  const [adding, setAdding] = useState(false);
+  const [program, setProgram] = useState<ProgramId | null>(null);
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+  const loadVersion = useRef(0);
+  const load = useCallback(async () => {
+    const version = ++loadVersion.current;
+    const value = await api<InstallationState>("/admin/state");
+    if (version === loadVersion.current) setState(value);
+  }, []);
   useEffect(() => {
     if (admin)
-      void api<InstallationState>("/admin/state")
-        .then(setState)
-        .catch((error) =>
-          setMessage(error instanceof Error ? error.message : "REQUEST_FAILED"),
-        );
-  }, [admin]);
+      void load().catch((e) =>
+        setMessage(e instanceof Error ? e.message : "REQUEST_FAILED"),
+      );
+  }, [admin, path, load]);
+  useEffect(() => {
+    if (!admin) return;
+    const refresh = () =>
+      void load().catch((error) =>
+        setMessage(error instanceof Error ? error.message : "REQUEST_FAILED"),
+      );
+    addEventListener("focus", refresh);
+    return () => removeEventListener("focus", refresh);
+  }, [admin, load]);
+  useEffect(() => {
+    setProgram(null);
+    setAdding(false);
+  }, [path]);
   async function perform(action: () => Promise<unknown>) {
-    if (busy) return;
+    if (performing.current) return;
+    performing.current = true;
     setBusy(true);
     setMessage("");
     try {
       await action();
       await load();
       setMessage(t("Uppdaterat.", "Updated."));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "REQUEST_FAILED");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "REQUEST_FAILED");
     } finally {
+      performing.current = false;
       setBusy(false);
     }
   }
-  const tabs = [
-    ["owner", t("Ägare", "Owner")],
-    ["fortnox", "Fortnox"],
-    ["companies", t("Företag", "Companies")],
-    ["chatgpt", "ChatGPT"],
-    ["status", "Status"],
-  ];
-  return (
-    <>
-      <header>
-        <div>
-          <strong>Fortnox MCP</strong>
-          <div className="header-actions">
-            <button
-              type="button"
-              onClick={() => {
-                const next = language === "sv" ? "en" : "sv";
-                setLanguage(next);
-                // biome-ignore lint/suspicious/noDocumentCookie: This is only a non-sensitive language preference; auth cookies remain HttpOnly.
-                document.cookie = `ui_language=${next}; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-              }}
-            >
-              {t("English", "Svenska")}
-            </button>
-            {admin && (
-              <button
-                type="button"
-                onClick={() =>
-                  void api("/auth/sign-out", {})
-                    .then(() => location.assign("/sign-in"))
-                    .catch(() => setMessage("AUTH_REQUIRED"))
-                }
-              >
-                {t("Logga ut", "Sign out")}
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-      <main>
-        {!admin ? (
-          <Login t={t} onError={setMessage} />
-        ) : credentialsPage ? (
-          state ? (
-            <fieldset disabled={busy}>
-              <ApiCredentials state={state} t={t} perform={perform} />
-            </fieldset>
-          ) : (
-            <p>
-              {t("Hämtar installationsstatus…", "Loading installation status…")}
-            </p>
+  function changeLanguage() {
+    const next = language === "sv" ? "en" : "sv";
+    setLanguage(next);
+    // biome-ignore lint/suspicious/noDocumentCookie: Non-sensitive preference only; session cookies remain HttpOnly.
+    document.cookie = `ui_language=${next}; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+  }
+  const errorMessage = message.includes("OUTCOME_UNKNOWN")
+    ? t(
+        "Företaget har ett pågående eller okänt skrivutfall. Stäm av utfallet under Drift innan du ändrar programanslutningen.",
+        "The company has a pending or unknown write outcome. Reconcile it under Operations before changing program access.",
+      )
+    : message === "AUTH_REQUIRED"
+      ? t(
+          "Din session har gått ut. Logga in igen.",
+          "Your session has expired. Sign in again.",
+        )
+      : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+        ? t(
+            "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
+            "Could not complete the action. Check the connection and try again.",
           )
-        ) : (
-          <>
-            <h1>{t("Din installation", "Your installation")}</h1>
-            <p className="intro">
-              {t(
-                "Anslut Fortnox och välj vilka företag din AI-klient får använda.",
-                "Connect Fortnox and choose which companies your AI client may use.",
-              )}
-            </p>
-            <nav aria-label={t("Installationssteg", "Installation steps")}>
-              {tabs.map(([id, label]) => (
-                <button
-                  type="button"
-                  key={id}
-                  aria-current={tab === id ? "step" : undefined}
-                  onClick={() => setTab(id ?? "fortnox")}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-            <p className="notice">
-              {t(
-                "Bokföring och Fortnox-filer är avstängda tills verifieringen är klar.",
-                "Bookkeeping and Fortnox files are disabled until verification is complete.",
-              )}
-            </p>
-            {state?.restore && !state.restore.reconciled && (
-              <p className="notice">
-                {t(
-                  "Installationen har återställts. Skrivningar är blockerade tills operatören stämt av hela intervallet som saknas i backupen.",
-                  "The installation was restored. Writes remain blocked until the operator reconciles the entire interval missing from the backup.",
-                )}
-              </p>
-            )}
-            {!state ? (
-              <p>
-                {t(
-                  "Hämtar installationsstatus…",
-                  "Loading installation status…",
-                )}
-              </p>
+        : message;
+  if (!admin)
+    return (
+      <div className="auth-page">
+        <header className="auth-header">
+          <strong>Fortnox MCP</strong>
+          <button type="button" className="secondary" onClick={changeLanguage}>
+            {t("English", "Svenska")}
+          </button>
+        </header>
+        <main>
+          <Login t={t} onError={setMessage} />
+          <Message>{errorMessage}</Message>
+        </main>
+      </div>
+    );
+  const match = /^\/admin\/companies\/([^/]+)(?:\/([^/]+))?$/.exec(path);
+  const company = state?.companies.find((c) => c.company_id === match?.[1]);
+  return (
+    <AppShell
+      path={path}
+      t={t}
+      language={language}
+      onLanguage={changeLanguage}
+      onSignOut={() =>
+        void api("/auth/sign-out", {})
+          .then(() => location.assign("/sign-in"))
+          .catch(() => setMessage("AUTH_REQUIRED"))
+      }
+    >
+      {state?.restore && !state.restore.reconciled && (
+        <p className="notice">
+          {t(
+            "Installationen har återställts. Skrivningar är blockerade tills avstämningen är klar.",
+            "The installation was restored. Writes remain blocked until reconciliation is complete.",
+          )}
+        </p>
+      )}
+      {new URLSearchParams(location.search).has("connection_error") && (
+        <p className="notice">
+          {t(
+            "Fortnox-anslutningen slutfördes inte. Kontrollera företagets anslutning och försök igen.",
+            "The Fortnox connection was not completed. Check the company connection and try again.",
+          )}
+        </p>
+      )}
+      {!state ? (
+        <p>
+          {t("Hämtar installationsstatus…", "Loading installation status…")}
+        </p>
+      ) : (
+        <fieldset disabled={busy} className="workspace">
+          {path === "/admin/companies" || path === "/admin" ? (
+            <CompanyListPage state={state} t={t} add={() => setAdding(true)} />
+          ) : match ? (
+            company ? (
+              <CompanyLayout
+                key={company.company_id}
+                company={company}
+                state={state}
+                page={match[2] ?? ""}
+                t={t}
+                add={() => setAdding(true)}
+                connect={setProgram}
+                perform={perform}
+              />
             ) : (
-              <fieldset className="workspace" disabled={busy}>
-                {tab === "owner" && (
-                  <section>
-                    <h2>{t("Installationsägare", "Installation owner")}</h2>
-                    <p>{state.owner.email}</p>
-                    <p>
+              <>
+                <h1>{t("Företaget hittades inte", "Company not found")}</h1>
+                <Link href="/admin/companies">
+                  {t("Till företagslistan", "Back to companies")}
+                </Link>
+              </>
+            )
+          ) : path === "/admin/ai-clients" ? (
+            <ClientPage state={state} t={t} />
+          ) : path === "/admin/operations" ? (
+            <Operations state={state} t={t} perform={perform} />
+          ) : path === "/admin/fortnox/api-credentials" ? (
+            <ApiCredentials state={state} t={t} perform={perform} />
+          ) : path === "/admin/settings" ? (
+            <>
+              <h1>{t("Inställningar", "Settings")}</h1>
+              <section className="content-section">
+                <Integration state={state} t={t} perform={perform} />
+              </section>
+              <section className="content-section">
+                <h2>{t("Installationsägare", "Installation owner")}</h2>
+                <p>{state.owner.email}</p>
+                <p>
+                  {t(
+                    "Endast ägaren får ändra integrationsuppgifter och företagspolicy.",
+                    "Only the owner may change integration credentials and company policy.",
+                  )}
+                </p>
+                <a href="/reset-password">
+                  {t(
+                    "Återställ lösenord med privat operatörskod",
+                    "Reset password with a private operator code",
+                  )}
+                </a>
+              </section>
+            </>
+          ) : path === "/admin/help" ? (
+            <>
+              <h1>{t("Hjälp", "Help")}</h1>
+              <section className="content-section">
+                <h2>{t("Kom igång", "Getting started")}</h2>
+                <ol>
+                  <li>
+                    <Link href="/admin/settings">
                       {t(
-                        "Endast den här ägarens session får ändra credentials och företagspolicy.",
-                        "Only this owner's session may change credentials and company policies.",
+                        "Spara dina egna Fortnox-uppgifter.",
+                        "Save your own Fortnox credentials.",
                       )}
-                    </p>
-                    <a href="/reset-password">
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/admin/companies">
                       {t(
-                        "Återställ lösenord med privat operatörskod",
-                        "Reset password with a private operator code",
+                        "Lägg till företag och välj program.",
+                        "Add companies and choose programs.",
                       )}
-                    </a>
-                  </section>
-                )}
-                {tab === "fortnox" && (
-                  <Integration state={state} t={t} perform={perform} />
-                )}
-                {tab === "companies" && (
-                  <Companies state={state} t={t} perform={perform} />
-                )}
-                {tab === "chatgpt" && (
-                  <section>
-                    <h2>{t("Anslut ChatGPT", "Connect ChatGPT")}</h2>
-                    <p>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/admin/ai-clients">
                       {t(
-                        "Skapa en egen anslutning med installationsadressen nedan. Logga in som installationsägare och godkänn endast de behörigheter och företag du vill ge klienten.",
-                        "Create a custom connection with the installation URL below. Sign in as installation owner and consent only to the scopes and companies you intend to grant.",
+                        "Anslut din AI-klient och godkänn företagsåtkomst.",
+                        "Connect your AI client and approve company access.",
                       )}
-                    </p>
-                    <code>{state.mcp_url}</code>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          .writeText(state.mcp_url)
-                          .then(() =>
-                            setMessage(
-                              t("Adressen är kopierad.", "URL copied."),
-                            ),
-                          )
-                          .catch(() =>
-                            setMessage(
-                              t(
-                                "Kopiera den synliga adressen manuellt.",
-                                "Copy the visible URL manually.",
-                              ),
-                            ),
-                          )
-                      }
-                    >
-                      {t("Kopiera MCP-adress", "Copy MCP URL")}
-                    </button>
-                    <p>
-                      {t(
-                        "Nya företag och fil-/skrivbehörigheter kräver nytt godkännande. Klientstöd gäller endast faktiskt verifierad miljö.",
-                        "New companies and file/write scopes require new consent. Client support applies only to actually verified environments.",
-                      )}
-                    </p>
-                  </section>
-                )}
-                {tab === "status" && (
-                  <section>
-                    <h2>
-                      {t(
-                        "Funktioner och verifiering",
-                        "Capabilities and verification",
-                      )}
-                    </h2>
-                    <dl>
-                      {Object.entries(state.capabilities).map(
-                        ([name, enabled]) => (
-                          <div key={name}>
-                            <dt>{name}</dt>
-                            <dd>
-                              {enabled
-                                ? t(
-                                    "Tillgänglig i testomfånget",
-                                    "Available within test scope",
-                                  )
-                                : t(
-                                    "Avstängd – verifiering återstår",
-                                    "Disabled — verification pending",
-                                  )}
-                            </dd>
-                          </div>
-                        ),
-                      )}
-                    </dl>
-                    <p>
-                      {t(
-                        "Grönt serverstatus eller sparade credentials godkänner inga finansiella operationer.",
-                        "A healthy server or saved credentials do not approve financial operations.",
-                      )}
-                    </p>
-                  </section>
-                )}
-              </fieldset>
-            )}
-          </>
-        )}
-        <Message>{message}</Message>
-      </main>
-      <footer>
-        {t(
-          "Egna credentials. Egen hosting. AGPL-3.0-only.",
-          "Your credentials. Your hosting. AGPL-3.0-only.",
-        )}
-      </footer>
-    </>
+                    </Link>
+                  </li>
+                </ol>
+                <p>
+                  <a href="https://github.com/engshort/fortnox-mcp/blob/main/docs/users/kom-igang.sv.md">
+                    {t("Användardokumentation", "User documentation")}
+                  </a>
+                </p>
+              </section>
+            </>
+          ) : (
+            <h1>{t("Sidan finns inte", "Page not found")}</h1>
+          )}
+        </fieldset>
+      )}
+      <Message>{errorMessage}</Message>
+      {message === "AUTH_REQUIRED" && (
+        <a href="/sign-in">{t("Logga in", "Sign in")}</a>
+      )}
+      {adding && state && (
+        <AddCompanyDialog state={state} t={t} close={() => setAdding(false)} />
+      )}
+      {program && company && (
+        <ProgramConnectionDialog
+          key={`${company.company_id}-${program}`}
+          company={company}
+          program={program}
+          t={t}
+          close={() => setProgram(null)}
+        />
+      )}
+    </AppShell>
   );
 }
 const root = document.getElementById("root");
