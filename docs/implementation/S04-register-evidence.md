@@ -10,7 +10,7 @@ prepare/update MCP tools. Updates retain omitted fields, show the modeled
 before/after/diff and compare a hash of the entire provider source (including
 unmodeled fields) immediately before claiming execution. Unsupported fields,
 empty strings and `API_BLANK` are rejected. Provider reads preserve optional
-text fields returned as `null`; this does not authorize clearing a field in a
+text and article price/VAT fields returned as `null`; this does not authorize clearing a field in a
 write. Omitted fields remain outside the update payload. Field clearing needs separate
 per-field acceptance. Article creation explicitly selects `SERVICE`; stock
 adjustment and bank-instruction maintenance are outside this profile.
@@ -128,7 +128,16 @@ resent. A bounded diagnostic read returned HTTP 200 and identified the nullable
 fields without publishing their values. The nullable-read correction has a
 shared regression for preserving provider nulls, rejecting caller null-clearing,
 and updating only an explicitly supplied name. Read-only reconciliation of the
-original intent is required before any further writes in that company.
+original intent succeeded on `feca765` without resending. Customer and supplier
+create/update/readback and exact-identity filtered lists then passed in both
+companies after the owner enabled writes for each.
+
+An article create including price/VAT remained uncertain; its exact-ID read
+returned 404 and no resend occurred. A separate basic service article in the
+other company returned HTTP 201, but its detail read revealed a null sales
+price rejected by the read schema. The read projection now preserves nullable
+article prices/VAT as well. This does not establish article price writes, and
+the first article intent remains unresolved pending exact evidence.
 
 Private evidence retains timestamps, provider identities, intent references,
 response hashes and cleanup rules outside git. These partial observations do

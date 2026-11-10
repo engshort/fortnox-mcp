@@ -247,6 +247,33 @@ export function registersContract(fixture: () => Promise<StateStore>) {
         (await f.service.get(f.actor, f.a.id, "customer", "C-NULL")).record
           .fields.Address1,
       ).toBeNull();
+      f.seed("article", "A-NULL", {
+        Description: "Synthetic unpriced service",
+        Type: "SERVICE",
+        SalesPrice: null,
+        PurchasePrice: null,
+        VAT: null,
+      });
+      const article = await f.service.get(f.actor, f.a.id, "article", "A-NULL");
+      expect(article.record.fields.SalesPrice).toBeNull();
+      const update = await f.service.writes.prepare(
+        f.actor,
+        f.a.id,
+        "article.update",
+        { id: "A-NULL", fields: { Description: "Synthetic renamed service" } },
+      );
+      await expect(
+        f.service.writes.execute(f.actor, "article.update", ref(update)),
+      ).resolves.toMatchObject({ state: "succeeded" });
+      expect(
+        f.requests.filter((r) => r.method === "PUT").at(-1)?.body,
+      ).not.toContain("SalesPrice");
+      await expect(
+        f.service.writes.prepare(f.actor, f.a.id, "article.update", {
+          id: "A-NULL",
+          fields: { SalesPrice: null },
+        }),
+      ).rejects.toThrow();
     });
     it("creates, reads and updates each writable register through durable intents", async () => {
       const f = await registerFixture(await fixture());

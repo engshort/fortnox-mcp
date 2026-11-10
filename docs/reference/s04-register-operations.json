@@ -7,7 +7,7 @@
   "sourceHashes": {
     "packages/core/src/business-writes.ts": "b6c302480a0bb5012d68fd1b2c1ba62be3dd47e57f1c8b406a178823f9d7a865",
     "packages/core/src/registers.ts": "037bcbc43d78b719df4a6360b13e970167d5fdc3cc5d04a5606ca4fdf48e63f7",
-    "packages/fortnox/src/registers.ts": "140a97d9ac0a1aeb2f56f3941b30ec9c3a4be26c04d0fbd3ed45235dec2985e4",
+    "packages/fortnox/src/registers.ts": "3958a97cff2fc078c10e715eec3b4795245eedd05aee3a067104b7da06ba2ab8",
     "packages/mcp/src/registers.ts": "16d7acecdf6a93cfb11bf820d0b0481b40cf04f1815a78626e121d53622a7346",
     "apps/shared/product.ts": "c1d2a47eac464ca076db07d1c80798f361e2c07e26b93851e00a96238777af08",
     "apps/node/src/register-test-main.ts": "712128d7d9615906bcc0924f04d2da58ea2f75f3f9335c87c2a94f90d5181ece",
