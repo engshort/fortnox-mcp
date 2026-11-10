@@ -115,6 +115,9 @@ behavior is tested independently in both adapters.
 Browser plugin availability: absent; use the repository's Playwright workflow.
 The host uses the existing Node 24.19.0 toolchain and extracted Chromium system
 libraries under `/tmp`; these are test-environment prerequisites, not app assets.
+The Docker/HTTPS smoke harness checks `/admin` redirecting to the company list
+and serving the HTML application both after bootstrap and after container
+recreation with the persisted owner session.
 
 Final local verification on this change:
 
