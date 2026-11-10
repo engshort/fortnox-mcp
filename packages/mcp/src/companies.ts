@@ -2,6 +2,7 @@ import {
   type Bookkeeping,
   type Connections,
   DomainError,
+  type FinancialAnalysis,
   type PayrollInputs,
   type ReceiptAttachments,
   type ReceiptFiles,
@@ -16,6 +17,7 @@ import {
   diagnosisInput,
   diagnosisOutput,
   type FortnoxConnections,
+  type FortnoxFinancialReads,
   FortnoxHttp,
   ProviderError,
 } from "@fortnox-mcp/fortnox";
@@ -23,6 +25,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerFinancialReads } from "./analytics.js";
 import { registerPayrollReads } from "./payroll.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
@@ -118,6 +121,7 @@ export function companyServer(context: {
   receiptWorkflow?: ReceiptWorkflow;
   registers?: Registers;
   payroll?: PayrollInputs;
+  financial?: { service: FinancialAnalysis; provider: FortnoxFinancialReads };
   salesDocuments?: SalesDocuments;
 }) {
   const server = new McpServer(
@@ -357,6 +361,13 @@ export function companyServer(context: {
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.registers)
     registerRegisters(server, context.registers, context.identity);
+  if (context.financial)
+    registerFinancialReads(
+      server,
+      context.financial.service,
+      context.financial.provider,
+      context.identity,
+    );
   if (context.payroll)
     registerPayrollReads(server, context.payroll, context.identity);
   if (context.salesDocuments)

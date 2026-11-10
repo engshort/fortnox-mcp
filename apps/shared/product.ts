@@ -6,6 +6,7 @@ import {
   Connections,
   CredentialVault,
   DomainError,
+  FinancialAnalysis,
   PayrollInputs,
   type PayrollOperation,
   previewProgram,
@@ -34,13 +35,16 @@ import {
 import {
   diagnoseConnection,
   diagnosisInput,
+  type FinancialReadOperation,
   FortnoxAccounting,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxFinancialReads,
   FortnoxPayrollReads,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
+  financialReadOperations,
   payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
@@ -84,6 +88,7 @@ export interface ProductBusinessTest {
   documentReads?: readonly string[];
   consentScopes?: readonly string[];
   payrollReads?: readonly PayrollOperation[];
+  financialReads?: readonly FinancialReadOperation[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -208,6 +213,12 @@ export function createProductApplication(
   businessTest?: ProductBusinessTest,
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  const financialReads = businessTest?.financialReads ?? [];
+  if (
+    new Set(financialReads).size !== financialReads.length ||
+    financialReads.some((id) => !financialReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   const payrollReads = businessTest?.payrollReads ?? [];
   if (
     payrollReads.length > 4 ||
@@ -352,6 +363,22 @@ export function createProductApplication(
         businessTest.operations,
       )
     : undefined;
+  const financialProvider =
+    businessTest && financialReads.length
+      ? new FortnoxFinancialReads(
+          connections,
+          provider,
+          financialReads,
+          () => now() < businessTest.until,
+          now,
+        )
+      : undefined;
+  const financial = financialProvider
+    ? {
+        provider: financialProvider,
+        service: new FinancialAnalysis(connections, financialProvider, true),
+      }
+    : undefined;
   const payroll =
     businessTest && payrollReads.length
       ? new PayrollInputs(
@@ -436,6 +463,7 @@ export function createProductApplication(
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
       ...(payroll ? { payroll } : {}),
+      ...(financial ? { financial } : {}),
       ...(salesDocuments ? { salesDocuments } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
@@ -466,6 +494,7 @@ export function createProductApplication(
                   operations: businessTest.operations,
                   document_operations: businessTest.documentReads ?? [],
                   payroll_operations: payrollReads,
+                  financial_read_operations: financialReads,
                   financial_writes: false,
                 },
               }

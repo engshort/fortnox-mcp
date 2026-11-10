@@ -23,6 +23,17 @@ void (async () => {
     sourceCommit: __REGISTER_TEST_SOURCE_COMMIT__,
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
+    financialReads: z
+      .array(
+        z.enum([
+          "financial.accounts",
+          "financial.year",
+          "financial.sie4",
+          "financial.voucher",
+        ]),
+      )
+      .max(4)
+      .parse(JSON.parse(process.env.FINANCIAL_TEST_OPERATIONS ?? "[]")),
     payrollReads: z
       .array(
         z.enum([

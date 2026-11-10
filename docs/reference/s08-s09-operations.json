@@ -12,7 +12,7 @@
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
     "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
-    "apps/shared/product.ts": "b132552a9d38dce2c3d93d5ff6fe8d9a20aa817d1438ee109beced9b467ce990",
+    "apps/shared/product.ts": "4b95ffd3c265e7961bf90d95efe5f1f4c5c53a0430b9e45f1ddb97f1c022c454",
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "0cc4ef41b3bb455c180f624e702b72af158cb4276c92a9e8a4f5c603f6470946",
     "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b",
@@ -21,8 +21,10 @@
     "packages/fortnox/src/document-http.ts": "2c0ce5fd9d34a146bc57ee01b0062e2cb26c9ce98e4c281e25389cb393ff1e0a",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "e03607c9919dd126fbd92d16700aa1719d1ed2acda10c804527264a4a17925e7",
-    "packages/mcp/src/companies.ts": "cb695ada6c45157428fc892b56bd8d12b2ba4eb093209e98710aba52ba674d6e",
-    "apps/node/src/register-test-main.ts": "d3a9c1b959d7b9cb6cc38691eadf909cbfb8b50eccdb2e7e71e55fb14363863f"
+    "packages/mcp/src/companies.ts": "cf9d99fc3a7b6a2be03039fb66e982b8ad5288989ac6e9fe9563cb2308b0b79e",
+    "apps/node/src/register-test-main.ts": "7128f6e61d47133422e6143d4ddbb631bd9f42e2c99626dc37712a8cc28ba62d",
+    "packages/mcp/src/analytics.ts": "6674b6da5e6cb7d484bec0e0ba95044c9c2da66209ebcca636d8917f643768b4",
+    "packages/fortnox/src/payroll-test-employee.ts": "67eb9950c9d175e4e9a38092df6f2f5af4db9950e2c7905d76171b52d27b1532"
   },
   "operations": [
     {
@@ -325,6 +327,29 @@
       "sources": [
         "https://api.fortnox.se/apidocs",
         "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "payroll_employee.create",
+      "method": "POST",
+      "path": "/3/employees",
+      "providerScope": "salary",
+      "license": "Fortnox Salary; explicit operator-authorized synthetic provisioning only, ordinary employee management unavailable",
+      "status": "operator_test_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "create_synthetic_test_employee",
+      "precision": "Fixed synthetic name/email, bounded reserved ID, explicit employment date; no person number, wage or bank fields",
+      "retry": "Durable single dispatch; exact preallocated ID plus payload digest readback; unknown outcome never retried",
+      "syntheticTests": [
+        "tests/shared/payroll-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/blog/mandatory-fields-in-the-employee-api"
       ]
     }
   ]

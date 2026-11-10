@@ -1,5 +1,6 @@
 import {
   calculateFinancialReport,
+  FinancialAnalysis,
   type FinancialQuery,
   type StateStore,
 } from "@fortnox-mcp/core";
@@ -8,7 +9,9 @@ import {
   FortnoxFinancialReads,
   financialReadOperations,
 } from "@fortnox-mcp/fortnox";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
+import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
 import { syntheticSie } from "./analytics.js";
 
@@ -125,6 +128,86 @@ async function setup(state: StateStore) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("exposes strict financial MCP reads with explicit partial results and exact voucher amounts", async () => {
+      const f = await setup(await fixture());
+      const server = companyServer({
+        identity: f.actor,
+        connections: f.connections,
+        provider: f.provider,
+        testMode: true,
+        financial: {
+          service: new FinancialAnalysis(f.connections, f.adapter, true),
+          provider: f.adapter,
+        },
+      });
+      const [ct, st] = InMemoryTransport.createLinkedPair();
+      const client = new Client({
+        name: "synthetic-financial-client",
+        version: "1",
+      });
+      await server.connect(st);
+      await client.connect(ct);
+      try {
+        const catalog = (await client.listTools()).tools.filter((t) =>
+          t.name.startsWith("get_financial_"),
+        );
+        expect(catalog.map((t) => t.name).sort()).toEqual([
+          "get_financial_analysis",
+          "get_financial_voucher",
+        ]);
+        expect(
+          catalog.every(
+            (t) =>
+              t.annotations?.readOnlyHint && !t.annotations.destructiveHint,
+          ),
+        ).toBe(true);
+        const report = await client.callTool({
+          name: "get_financial_analysis",
+          arguments: f.query,
+        });
+        expect(report.structuredContent).toMatchObject({
+          status: "ok",
+          data: {
+            complete: false,
+            data_complete: false,
+            accounts_page: { count: 3, exhausted: true },
+            totals_scope: "entire_account_selection",
+          },
+        });
+        const voucher = await client.callTool({
+          name: "get_financial_voucher",
+          arguments: {
+            company_id: f.a.id,
+            financial_year: 7,
+            series: "A",
+            number: 1,
+          },
+        });
+        expect(voucher.structuredContent).toMatchObject({
+          status: "ok",
+          data: {
+            rows: [{ debit: "9007199254740993.01" }],
+            row_semantics_verified: false,
+          },
+        });
+        const count = f.requests.length;
+        const denied = await client.callTool({
+          name: "get_financial_analysis",
+          arguments: { ...f.query, company_id: crypto.randomUUID() },
+        });
+        expect(denied.isError).toBe(true);
+        const invalid = await client.callTool({
+          name: "get_financial_analysis",
+          arguments: { ...f.query, complete: true },
+        });
+        expect(invalid.isError).toBe(true);
+        expect(f.requests).toHaveLength(count);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    });
+
     it("preserves chart balances, dimensions, inactive/custom accounts and separate source hashes", async () => {
       const f = await setup(await fixture());
       const basis = await f.adapter.basis(f.actor, f.query);

@@ -12,6 +12,7 @@ import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { createProductApplication } from "../../apps/shared/product.js";
 import type { AuthConfig } from "../../apps/shared/product-auth.js";
+import { FortnoxPayrollTestEmployee } from "../../packages/fortnox/src/payroll-test-employee.js";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
 import { keyA } from "./connections.js";
@@ -107,6 +108,132 @@ async function setup(state: StateStore) {
 }
 export function payrollReadContract(fixture: () => Promise<StateStore>) {
   describe("S09 finite payroll read transport", () => {
+    it("provisions only a synthetic test employee through a single durable intent and exact readback", async () => {
+      const f = await setup(await fixture());
+      let row: Record<string, unknown> | null = null,
+        posts = 0;
+      f.provider.config.fetch = async (input) => {
+        const req = input as Request;
+        if (req.method === "POST") {
+          posts++;
+          row = ((await req.json()) as { Employee: Record<string, unknown> })
+            .Employee;
+          return Response.json({ Employee: row });
+        }
+        return row
+          ? Response.json({ Employee: row })
+          : Response.json({}, { status: 404 });
+      };
+      const service = new FortnoxPayrollTestEmployee(
+        f.connections,
+        f.provider,
+        () => true,
+      );
+      const p = await service.writes.prepare(
+        f.actor,
+        f.a.id,
+        "payroll_employee.create",
+        { EmployeeId: "SYNM7ABC123", EmploymentDate: "2026-01-01" },
+      );
+      const results = await Promise.allSettled([
+        service.writes.execute(f.actor, "payroll_employee.create", {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        }),
+        service.writes.execute(f.actor, "payroll_employee.create", {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        }),
+      ]);
+      expect(posts).toBe(1);
+      expect(
+        results.some(
+          (r) => r.status === "fulfilled" && r.value.state === "succeeded",
+        ),
+      ).toBe(true);
+      expect(row).toMatchObject({
+        FirstName: "Synthetic",
+        LastName: "M7Test",
+        Email: "synthetic-m7@example.invalid",
+        Inactive: false,
+      });
+      expect(JSON.stringify(row)).not.toMatch(
+        /PersonalIdentityNumber|BankAccountNo|MonthlySalary|HourlyPay/,
+      );
+      await expect(
+        service.writes.prepare(f.actor, f.a.id, "payroll_employee.create", {
+          EmployeeId: "REAL_PERSON",
+          EmploymentDate: "2026-01-01",
+        }),
+      ).rejects.toThrow();
+      await expect(
+        service.writes.prepare(f.actor, f.a.id, "payroll_employee.create", {
+          EmployeeId: "SYNM7ABC123",
+          EmploymentDate: "2026-01-01",
+        }),
+      ).rejects.toThrow("PROPOSAL_STALE");
+      expect(posts).toBe(1);
+    });
+    it("retains an uncertain test employee creation and never retries after a lost answer", async () => {
+      const f = await setup(await fixture());
+      let posts = 0;
+      f.provider.config.fetch = async (input) => {
+        if ((input as Request).method === "POST") {
+          posts++;
+          throw Error("synthetic response lost");
+        }
+        return Response.json({}, { status: 404 });
+      };
+      const service = new FortnoxPayrollTestEmployee(
+        f.connections,
+        f.provider,
+        () => true,
+      );
+      const p = await service.writes.prepare(
+        f.actor,
+        f.a.id,
+        "payroll_employee.create",
+        { EmployeeId: "SYNM7ABC456", EmploymentDate: "2026-01-01" },
+      );
+      expect(
+        await service.writes.execute(f.actor, "payroll_employee.create", {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        }),
+      ).toMatchObject({
+        state: "outcome_unknown",
+        reference: "SYNM7ABC456",
+      });
+      expect(
+        await service.writes.execute(f.actor, "payroll_employee.create", {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        }),
+      ).toMatchObject({
+        state: "outcome_unknown",
+      });
+      expect(
+        await service.writes.reconcile(f.actor, "payroll_employee.create", {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        }),
+      ).toMatchObject({
+        state: "outcome_unknown",
+      });
+      expect(posts).toBe(1);
+      await expect(
+        service.writes.prepare(f.actor, f.a.id, "payroll_employee.create", {
+          EmployeeId: "SYNM7ABC789",
+          EmploymentDate: "2026-01-01",
+        }),
+      ).rejects.toThrow("OUTCOME_UNKNOWN");
+    });
+
     it("reads only minimal employee references and independent nullable salary fields", async () => {
       const f = await setup(await fixture());
       const employees = await f.service.employees(f.actor, f.a.id);

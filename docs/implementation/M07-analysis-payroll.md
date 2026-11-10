@@ -146,3 +146,28 @@ remain nullable. Read success does not attest write rights, code validity or
 employee eligibility. Records remain uneditable and no provider write is sent.
 Both companies completed fresh salary consent; synthetic employee/code evidence
 and actual operation acceptance are still separate requirements.
+
+## First actual read observations, 2026-11-10
+
+At commit b82efd7 the owner-approved MCP SDK client discovered exactly four
+payroll read tools, all annotated read-only. Both allowlisted companies returned
+a successful complete empty employee page. A foreign-company request was denied
+with COMPANY_FORBIDDEN. This proves neither employee detail, salary filtering,
+write rights nor ChatGPT acceptance. Private evidence retains source hashes and
+company identifiers; public evidence contains no personal data.
+
+The owner subsequently authorized creating a synthetic employee through the API.
+A separate operator-only helper uses BusinessWrites and a fixed synthetic profile
+with a reserved preallocated ID, required name/email and an explicit employment
+date. It accepts no real identity, bank account, wage or arbitrary employee
+fields. Existing IDs stop preparation. Exact-ID readback must match every
+intended field; missing or inconclusive responses remain outcome_unknown and
+are never resent. It is not an employee-management MCP tool. The helper is
+restricted by the same company grants, salary scope, test-tenant allowlist,
+read-only policy, unresolved-write guard and existing lease.
+
+The test-only financial MCP slice adds explicit-year analysis and exact voucher
+drill-down, using strict resource schemas and read-only annotations. The model
+cannot supply a basis, completeness flag or classification map. Ordinary product
+activation remains disabled. Full reskontra/liquidity and actual G07 evidence
+remain pending.
