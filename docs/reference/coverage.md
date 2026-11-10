@@ -250,3 +250,15 @@ The shared [business write foundation](../implementation/S04-S05-business-writes
 adds bounded encrypted proposals, domain authorization, atomic claims and
 conservative uncertain outcomes. It enables zero provider operations and changes
 no existing verification gate or default activation setting.
+
+### S04 bounded register profile
+
+The [32-operation ledger](s04-register-operations.json) covers customers,
+suppliers, service-article creation/common maintenance and ten reference
+collections. Independently written source, strict schemas and shared SQLite/D1
+behavior are implemented; actual provider/client acceptance is pending.
+All entries remain `implemented_unverified`, unsupported and disabled by default.
+Only a separate one-hour, two-tenant, isolated-database test entry exposes the
+explicitly selected operations. Stock changes, bank instructions, field clearing
+and all document operations remain outside this register slice. See the
+[implementation boundary](../implementation/S04-register-evidence.md).

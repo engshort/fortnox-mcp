@@ -11,3 +11,4 @@ export * from "./receipt-files.js";
 export * from "./receipt-provider.js";
 export * from "./receipt-workflow.js";
 export * from "./receipts.js";
+export * from "./registers.js";

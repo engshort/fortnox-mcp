@@ -11,6 +11,11 @@ import {
   ReceiptFiles,
   Receipts,
   ReceiptWorkflow,
+  type RegisterOperation,
+  type RegisterResource,
+  Registers,
+  registerOperationIds,
+  registerScope,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -25,6 +30,7 @@ import {
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxReceiptFiles,
+  FortnoxRegisters,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -56,6 +62,15 @@ export interface ProductSettings {
 export interface ProductFileTest {
   sourceCommit: string;
   until: number;
+  now?: () => number;
+}
+// A separately built, one-hour test entry supplies this profile. Ordinary ENV
+// cannot enable unverified register writes or broaden provider consent.
+export interface ProductBusinessTest {
+  sourceCommit: string;
+  until: number;
+  operations: readonly RegisterOperation[];
+  consentScopes?: readonly string[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -177,8 +192,38 @@ export function createProductApplication(
   },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
   fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
 ) {
-  const now = fileTest?.now ?? Date.now;
+  const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  if (
+    businessTest &&
+    (fileTest ||
+      !settings.testMode ||
+      settings.testTenants.length !== 2 ||
+      new Set(settings.testTenants).size !== 2 ||
+      !/^[a-f0-9]{40}$/.test(businessTest.sourceCommit) ||
+      /^0+$/.test(businessTest.sourceCommit) ||
+      !Number.isSafeInteger(businessTest.until) ||
+      businessTest.until <= now() ||
+      businessTest.until > now() + 3600000 ||
+      businessTest.operations.some((id) => !registerOperationIds.includes(id)))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    businessTest?.consentScopes?.some(
+      (scope) =>
+        ![
+          "offer",
+          "order",
+          "invoice",
+          "supplierinvoice",
+          "payment",
+          "connectfile",
+          "inbox",
+        ].includes(scope),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
     fileTest &&
     (!settings.testMode ||
@@ -203,7 +248,15 @@ export function createProductApplication(
     connections,
     fetch: fetcher,
     testTenants: settings.testTenants,
-    scopes: requestedFortnoxScopes(settings),
+    scopes: [
+      ...new Set([
+        ...requestedFortnoxScopes(settings),
+        ...(businessTest?.operations.map((id) =>
+          registerScope(id.split(".")[0] as RegisterResource),
+        ) ?? []),
+        ...(businessTest?.consentScopes ?? []),
+      ]),
+    ],
   });
   const integration = new IntegrationSettings(
     runtime.state,
@@ -234,6 +287,19 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
+  const registers = businessTest
+    ? new Registers(
+        connections,
+        new FortnoxRegisters(
+          connections,
+          provider,
+          businessTest.operations,
+          now,
+          () => now() < businessTest.until,
+        ),
+        businessTest.operations,
+      )
+    : undefined;
   const receiptFiles = runtime.receiptFiles
     ? new ReceiptFiles(
         connections,
@@ -283,6 +349,7 @@ export function createProductApplication(
       testMode: settings.testMode,
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
+      ...(registers ? { registers } : {}),
       ...(receiptFiles ? { receiptFiles } : {}),
       ...(receipts ? { receipts } : {}),
       ...(receiptAttachments ? { receiptAttachments } : {}),
@@ -295,12 +362,25 @@ export function createProductApplication(
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
+    if (url.pathname === "/mcp" && businessTest && now() >= businessTest.until)
+      return safeResponse('{"error":"BUSINESS_TEST_EXPIRED"}', 503);
     if (url.pathname === "/health" && request.method === "GET")
       return safeResponse(
         JSON.stringify({
           ok: true,
           product: "experimental",
           provider: settings.testMode ? "test_only" : "disabled",
+          ...(businessTest
+            ? {
+                register_test: {
+                  source_commit: businessTest.sourceCommit,
+                  expires_at: new Date(businessTest.until).toISOString(),
+                  active: now() < businessTest.until,
+                  operations: businessTest.operations,
+                  financial_writes: false,
+                },
+              }
+            : {}),
           ...(fileTest
             ? {
                 file_test: {

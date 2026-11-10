@@ -159,3 +159,24 @@ the initiating client, current company generation/policy and operation; executio
 revalidates source state. Standard client approvals do not authorize manual
 vouchers or override read-only, restore, provider or ownership checks.
 See [the foundation evidence](../implementation/S04-S05-business-writes.md).
+
+### S04 register tools (isolated test profile only)
+
+`list_customers`/`list_suppliers`/`list_articles` accept only their resource's
+modeled query filters and bounded `start_page`. Detail tools require company and
+exact `id`; price reads also require explicit price-list/article selection.
+Reference collections have separate tools; missing permissions never become an
+empty successful list. Paged reads without valid metadata remain incomplete.
+
+`prepare_customer_create`/`prepare_customer_update` (and supplier/article
+counterparts) accept strict resource fields. Execution tools take only the
+immutable business reference. Updates display modeled before/after/diff and
+revalidate the whole provider source version. Omission retains register fields;
+empty values and `API_BLANK` do not provide an unverified clearing shortcut.
+
+`reconcile_customer_create`/`reconcile_customer_update` and counterparts perform
+only authenticated reads against trusted IDs. Exact field digests can establish
+matching current state. Unknown identity, mismatch or absence stays unknown;
+no reconciliation tool resends. `get_register_write_status` reads only the
+initiating client's durable proposal/execution. No tool supplies manual-voucher
+approval, a provider URL, arbitrary method/body or bank instructions.

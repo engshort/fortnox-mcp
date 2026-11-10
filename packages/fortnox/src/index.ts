@@ -5,3 +5,4 @@ export * from "./connections.js";
 export * from "./diagnostics.js";
 export * from "./http.js";
 export * from "./receipt-files.js";
+export * from "./registers.js";

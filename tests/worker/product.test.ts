@@ -19,6 +19,7 @@ import { ownerSetupContract } from "../shared/owner-setup.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
+import { registersContract } from "../shared/registers.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
 async function fixture() {
@@ -96,3 +97,4 @@ accountingMigrationContract(async () => {
 });
 
 businessWritesContract(async () => (await fixture()).state);
+registersContract(async () => (await fixture()).state);

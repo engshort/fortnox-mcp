@@ -120,6 +120,16 @@ export class FortnoxConnections {
               "project",
               "inbox",
               "connectfile",
+              "customer",
+              "supplier",
+              "article",
+              "currency",
+              "price",
+              "offer",
+              "order",
+              "invoice",
+              "supplierinvoice",
+              "payment",
             ].includes(s),
         ))
     )

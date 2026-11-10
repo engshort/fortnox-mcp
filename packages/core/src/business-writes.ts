@@ -23,7 +23,17 @@ export interface BusinessExecution {
   created: number;
   state: "submitting" | "succeeded" | "failed" | "outcome_unknown";
   reference?: string | undefined;
+  tenant?: string;
+  evidence?: BusinessEvidence;
 }
+const businessEvidence = z
+  .object({
+    target: z.string().min(1).max(128).nullable(),
+    fields: z.array(z.string().regex(/^[A-Z][A-Za-z0-9]{0,63}$/)).max(64),
+    digest: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+export type BusinessEvidence = z.infer<typeof businessEvidence>;
 export interface BusinessState {
   proposals: BusinessProposal[];
   executions: BusinessExecution[];
@@ -50,6 +60,12 @@ export type BusinessWriteResult = {
 export interface BusinessOperation {
   scope: string;
   enabled: boolean;
+  evidence?(prepared: PreparedBusinessWrite): Promise<BusinessEvidence>;
+  reconcile?(
+    actor: AccountingActor,
+    company: string,
+    execution: BusinessExecution,
+  ): Promise<BusinessWriteResult>;
   prepare(
     actor: AccountingActor,
     company: string,
@@ -266,6 +282,9 @@ export class BusinessWrites {
     if ((await accountingHash({ operation, prepared })) !== p.hash)
       throw new DomainError("PROPOSAL_STALE");
     await op.validate(actor, ref.company_id, prepared);
+    const evidence = op.evidence
+      ? businessEvidence.parse(await op.evidence(prepared))
+      : undefined;
     await this.authorize(actor, ref.company_id, op);
     await this.connections.mutate(actor.ownerId, ref.company_id, (current) => {
       this.bound(current, actor, p);
@@ -289,6 +308,8 @@ export class BusinessWrites {
         generation: p.generation,
         created: this.now(),
         state: "submitting",
+        tenant: c.tenant,
+        ...(evidence ? { evidence } : {}),
       });
       current.business.proposals = current.business.proposals.filter(
         (v) => v.id !== p.id,
@@ -325,5 +346,62 @@ export class BusinessWrites {
     });
     await this.authorize(actor, ref.company_id, op);
     return result;
+  }
+  async reconcile(
+    actor: AccountingActor,
+    operation: string,
+    input: BusinessReference,
+  ) {
+    const ref = businessReference.parse(input),
+      op = this.operation(operation);
+    const before = await this.authorize(actor, ref.company_id, op, false);
+    const execution = before.business?.executions.find(
+      (e) =>
+        e.id === ref.proposal_id &&
+        e.hash === ref.proposal_hash &&
+        e.client === actor.clientId &&
+        e.operation === operation,
+    );
+    if (!execution) throw new DomainError("PROPOSAL_STALE");
+    if (execution.state === "succeeded" || execution.state === "failed")
+      return this.status(actor, ref);
+    if (
+      execution.tenant
+        ? execution.tenant !== before.tenant
+        : execution.generation !== before.generation
+    )
+      throw new DomainError("COMPANY_FORBIDDEN");
+    // Allow all bounded dispatch/readback work to finish before reconciling a
+    // claim interrupted by a crashed process. Absence never proves non-delivery.
+    if (
+      execution.state === "submitting" &&
+      execution.created + 120000 > this.now()
+    )
+      return this.status(actor, ref);
+    if (!op.reconcile) throw new DomainError("CAPABILITY_UNAVAILABLE");
+    const result = z
+      .object({
+        state: z.enum(["succeeded", "outcome_unknown"]),
+        reference: z.string().min(1).max(128).optional(),
+      })
+      .strict()
+      .parse(await op.reconcile(actor, ref.company_id, execution));
+    await this.authorize(actor, ref.company_id, op, false);
+    await this.connections.mutate(actor.ownerId, ref.company_id, (c) => {
+      if (c.generation !== before.generation || c.tenant !== before.tenant)
+        throw new DomainError("COMPANY_FORBIDDEN");
+      const e = c.business?.executions.find(
+        (e) =>
+          e.id === execution.id &&
+          e.hash === execution.hash &&
+          e.client === actor.clientId,
+      );
+      if (!e) throw new DomainError("PROPOSAL_STALE");
+      if (e.state === "submitting" || e.state === "outcome_unknown") {
+        e.state = result.state;
+        if (result.reference) e.reference = result.reference;
+      }
+    });
+    return this.status(actor, ref);
   }
 }

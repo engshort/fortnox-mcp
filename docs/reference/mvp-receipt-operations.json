@@ -24,13 +24,13 @@
     "apps/node/src/product-main.ts": "0a252a9d4aa20f8dfc2c37490b0e7c7dca996cb95a8d03ffa237c05cd9b67d30",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "9c16c53da78edb2f21d3c5fd53d6483592016339dc6dae0975fc8946c99df045",
-    "packages/fortnox/src/connections.ts": "e4eaa4e27a927540d342dbfd45a09781ae720f3257b3470bbf6d3b5114f9b875",
+    "apps/shared/product.ts": "a67ee991fab759d81e4b19f758aa1954bc8ff41d7964abeceb939259e2aa530e",
+    "packages/fortnox/src/connections.ts": "562a669ab6a8aeaf80247c5ea5ba39cbe4f14a1f49683c893a319f2a85727cd5",
     "apps/worker/src/receipt-test.ts": "18a078cd5741e78e9a8420e32adb5332f27e43fba48f411ead2460ea442f6f91",
-    "scripts/build.mjs": "cab5235967f2c8430e6f1c884be2e4e3b2e9dafc23f8d9e0d69226c9b83ec9ad",
+    "scripts/build.mjs": "5127c206cf3a7f3c5a70d08292ccb431e5ee609882059e61ba60c872c92b2e3b",
     "packages/mcp/src/receipt-files.ts": "f81286c1821cffcf81f4d19989fb38733ef6ece8ae7c4b840e1e7473188ca739",
     "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873",
-    "apps/node/src/product-runtime.ts": "3925f2662f17e5de484cf7498f2041625c996ec2ecb725ce128029209ef7ab64",
+    "apps/node/src/product-runtime.ts": "2eab0154ea7c9d726ef9e0c48388950c00c2de299c4f3e6836c2fe6f9bfa49f2",
     "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784"
   },
   "gates": {
