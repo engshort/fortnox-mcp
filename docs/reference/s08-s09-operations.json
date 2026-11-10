@@ -24,7 +24,8 @@
     "packages/mcp/src/companies.ts": "cf9d99fc3a7b6a2be03039fb66e982b8ad5288989ac6e9fe9563cb2308b0b79e",
     "apps/node/src/register-test-main.ts": "7128f6e61d47133422e6143d4ddbb631bd9f42e2c99626dc37712a8cc28ba62d",
     "packages/mcp/src/analytics.ts": "6674b6da5e6cb7d484bec0e0ba95044c9c2da66209ebcca636d8917f643768b4",
-    "packages/fortnox/src/payroll-test-employee.ts": "28078fc4498919976fd9ca81f9f41e3ad72f27d1b8e10da5df80acce51efcc80"
+    "packages/fortnox/src/payroll-test-employee.ts": "28078fc4498919976fd9ca81f9f41e3ad72f27d1b8e10da5df80acce51efcc80",
+    "packages/fortnox/src/payroll-probe.ts": "1930e91970822178458e3d2646ddd94a1fd68540f95a4860766caa5510e15dc9"
   },
   "operations": [
     {
@@ -92,14 +93,16 @@
       "retry": "Reads bounded; writes use a durable single-dispatch intent; lost response is outcome_unknown; never search by amount/date/employee to infer identity",
       "syntheticTests": [
         "tests/shared/payroll.ts",
-        "tests/shared/business-writes.ts"
+        "tests/shared/business-writes.ts",
+        "tests/shared/payroll-reads.ts"
       ],
       "liveEvidence": null,
       "clientEvidence": null,
       "sources": [
         "https://api.fortnox.se/apidocs",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes"
-      ]
+      ],
+      "acceptanceProbeImplemented": true
     },
     {
       "localId": "salary_transaction.update",

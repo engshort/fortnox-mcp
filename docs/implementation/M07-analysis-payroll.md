@@ -210,3 +210,16 @@ and one-time code values while retaining email for a retry. Shared owner tests
 exercise wrong and unknown credentials followed by a valid login; browser tests
 exercise the same visible retry path. This does not reset the owner's password
 or change session/cookie authorization.
+
+## Bounded salary-code acceptance experiment
+
+The operator-only candidate experiment uses the same durable BusinessWrites
+policy as the product. It binds one company and at most two previously created
+synthetic employees, verifies active employment and the exact hourly/monthly
+profile, and permits only fixed quantity 1, amount/total 0.01 and a synthetic
+marker. Code 11/12 are candidates from the official TJM table; the helper does
+not claim that company-specific availability or write rights are already
+verified. It rechecks the employee baseline and complete employee/day pages
+before dispatch. A retained exact SalaryRow plus matching normalized fields is
+required for success. Lost create responses never match by employee/date/amount
+and never cause a resend. Ordinary MCP payroll writes remain off.

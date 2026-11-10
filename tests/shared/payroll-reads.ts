@@ -12,6 +12,7 @@ import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { createProductApplication } from "../../apps/shared/product.js";
 import type { AuthConfig } from "../../apps/shared/product-auth.js";
+import { FortnoxPayrollProbe } from "../../packages/fortnox/src/payroll-probe.js";
 import { FortnoxPayrollTestEmployee } from "../../packages/fortnox/src/payroll-test-employee.js";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
@@ -108,6 +109,166 @@ async function setup(state: StateStore) {
 }
 export function payrollReadContract(fixture: () => Promise<StateStore>) {
   describe("S09 finite payroll read transport", () => {
+    for (const form of ["TIM", "MAN"] as const)
+      it(`accepts one fixed ${form} candidate input only after exact salary-row readback`, async () => {
+        const f = await setup(await fixture());
+        let row: Record<string, unknown> | null = null,
+          posts = 0;
+        f.provider.config.fetch = async (input) => {
+          const req = input as Request,
+            url = new URL(req.url);
+          if (url.pathname === "/3/employees/SYNM7ABC123")
+            return Response.json({
+              Employee: {
+                EmployeeId: "SYNM7ABC123",
+                Inactive: false,
+                EmploymentDate: "2026-01-01",
+                EmployedTo: null,
+                PersonelType: "TJM",
+                SalaryForm: form,
+              },
+            });
+          if (req.method === "POST") {
+            posts++;
+            row = (
+              (await req.json()) as {
+                SalaryTransaction: Record<string, unknown>;
+              }
+            ).SalaryTransaction;
+            return Response.json({
+              SalaryTransaction: { ...row, SalaryRow: 1 },
+            });
+          }
+          if (url.pathname === "/3/salarytransactions/1")
+            return Response.json({
+              SalaryTransaction: { ...row, Number: "1.0000", SalaryRow: 1 },
+            });
+          return Response.json({
+            SalaryTransactions: row ? [{ ...row, SalaryRow: 1 }] : [],
+            MetaInformation: { "@CurrentPage": 1, "@TotalPages": 1 },
+          });
+        };
+        const service = new FortnoxPayrollProbe(
+          f.connections,
+          f.provider,
+          f.a.id,
+          [{ id: "SYNM7ABC123", form }],
+          () => true,
+        );
+        const p = await service.writes.prepare(
+          f.actor,
+          f.a.id,
+          "salary_transaction.create",
+          { EmployeeId: "SYNM7ABC123", Date: "2026-01-01" },
+        );
+        const ref = {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        };
+        expect(
+          await service.writes.execute(
+            f.actor,
+            "salary_transaction.create",
+            ref,
+          ),
+        ).toEqual({ state: "succeeded", reference: "1" });
+        expect(
+          await service.writes.execute(
+            f.actor,
+            "salary_transaction.create",
+            ref,
+          ),
+        ).toMatchObject({ state: "succeeded" });
+        expect(posts).toBe(1);
+        expect(row).toMatchObject({
+          SalaryCode: form === "TIM" ? "11" : "12",
+          Amount: "0.01",
+          Total: "0.01",
+          TextRow: "SYNTHETIC M7 INPUT",
+        });
+        await expect(
+          service.writes.prepare(f.actor, f.a.id, "salary_transaction.create", {
+            EmployeeId: "SYNM7ABC123",
+            Date: "2026-01-01",
+          }),
+        ).rejects.toThrow("PROPOSAL_STALE");
+        await f.connections.mutate(f.actor.ownerId, f.b.id, (c) => {
+          c.readOnly = false;
+        });
+        await expect(
+          service.writes.prepare(f.actor, f.b.id, "salary_transaction.create", {
+            EmployeeId: "SYNM7ABC123",
+            Date: "2026-01-01",
+          }),
+        ).rejects.toThrow("COMPANY_FORBIDDEN");
+        await expect(
+          service.writes.prepare(f.actor, f.a.id, "salary_transaction.create", {
+            EmployeeId: "SYNM7ABC123",
+            Date: "2026-01-01",
+            Amount: "50000",
+          }),
+        ).rejects.toThrow();
+        expect(posts).toBe(1);
+      });
+    it("does not infer the identity of a candidate salary input after a lost response", async () => {
+      const f = await setup(await fixture());
+      let posts = 0;
+      f.provider.config.fetch = async (input) => {
+        const req = input as Request;
+        if (new URL(req.url).pathname.startsWith("/3/employees/"))
+          return Response.json({
+            Employee: {
+              EmployeeId: "SYNM7ABC123",
+              Inactive: false,
+              EmploymentDate: "2026-01-01",
+              PersonelType: "TJM",
+              SalaryForm: "TIM",
+            },
+          });
+        if (req.method === "POST") {
+          posts++;
+          throw Error("synthetic response lost");
+        }
+        return Response.json({
+          SalaryTransactions: [],
+          MetaInformation: { "@CurrentPage": 1, "@TotalPages": 1 },
+        });
+      };
+      const service = new FortnoxPayrollProbe(
+        f.connections,
+        f.provider,
+        f.a.id,
+        [{ id: "SYNM7ABC123", form: "TIM" }],
+        () => true,
+      );
+      const p = await service.writes.prepare(
+          f.actor,
+          f.a.id,
+          "salary_transaction.create",
+          { EmployeeId: "SYNM7ABC123", Date: "2026-01-01" },
+        ),
+        ref = {
+          company_id: p.company_id,
+          proposal_id: p.proposal_id,
+          proposal_hash: p.proposal_hash,
+        };
+      expect(
+        await service.writes.execute(f.actor, "salary_transaction.create", ref),
+      ).toEqual({ state: "outcome_unknown" });
+      expect(
+        await service.writes.reconcile(
+          f.actor,
+          "salary_transaction.create",
+          ref,
+        ),
+      ).toMatchObject({ state: "outcome_unknown" });
+      expect(
+        await service.writes.execute(f.actor, "salary_transaction.create", ref),
+      ).toMatchObject({ state: "outcome_unknown" });
+      expect(posts).toBe(1);
+    });
+
     it("provisions only a synthetic test employee through a single durable intent and exact readback", async () => {
       const f = await setup(await fixture());
       let row: Record<string, unknown> | null = null,
