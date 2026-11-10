@@ -16,6 +16,7 @@ const testEmployee = z
   .object({
     EmployeeId: z.string().regex(/^SYNM7[A-Z0-9]{6,10}$/),
     EmploymentDate: accountingDate,
+    SalaryForm: z.enum(["TIM", "MAN"]).default("TIM"),
   })
   .strict();
 // Operator-only synthetic test provisioning. This is never a model-callable
@@ -45,7 +46,7 @@ export class FortnoxPayrollTestEmployee {
         Email: "synthetic-m7@example.invalid",
         EmploymentForm: "TV",
         PersonelType: "TJM",
-        SalaryForm: "TIM",
+        SalaryForm: v.SalaryForm,
         Inactive: false,
       };
     };

@@ -8,7 +8,7 @@
     "packages/core/src/business-writes.ts": "ce91625d4b33b42cbcdb7c7e88b7b2dcad137ddabc081aa5448d04e81b5bfaf8",
     "packages/core/src/document-rows.ts": "8d0e72e0ae7f9d72751174ef9eb4abc8bc86e951a94df6805ffc8cfbb85c2f10",
     "packages/core/src/sales-documents.ts": "b83dbeca9d6565e25c8c6daac50ec9f92430924448647bede5a42fc6a56bbfe0",
-    "packages/fortnox/src/document-http.ts": "2c0ce5fd9d34a146bc57ee01b0062e2cb26c9ce98e4c281e25389cb393ff1e0a",
+    "packages/fortnox/src/document-http.ts": "2815b1989da924170360a2d339da8c458d76d1d8d9603bc12653f23ae0131a0a",
     "packages/fortnox/src/sales-documents.ts": "e0dde695f9d28aaaed7ec6f5f4079fceab4baed1728e96903dd48fa986895cac",
     "packages/fortnox/src/index.ts": "dafd7323c393fc14a7524dc4399f3b3a03d723c8e4bbc0938d7dad589ff91830",
     "packages/mcp/src/sales-documents.ts": "b480026d543e14f7cd3aaf17ce4087ae14872e57574f587dd2e7e8ef0afa7be1",

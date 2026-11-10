@@ -124,9 +124,8 @@ export class DocumentHttp {
           new Request(url, {
             headers: {
               authorization: `Bearer ${token}`,
-              accept: sie
-                ? "application/octet-stream, text/plain"
-                : "application/json",
+              // Fortnox validates Accept as JSON even for binary SIE downloads.
+              accept: "application/json",
             },
             redirect: "manual",
             signal: AbortSignal.timeout(

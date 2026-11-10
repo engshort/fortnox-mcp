@@ -211,6 +211,9 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
     it("preserves chart balances, dimensions, inactive/custom accounts and separate source hashes", async () => {
       const f = await setup(await fixture());
       const basis = await f.adapter.basis(f.actor, f.query);
+      expect(f.requests.every((r) => r.accept === "application/json")).toBe(
+        true,
+      );
       expect(basis.accounts.find((a) => a.number === 1930)).toMatchObject({
         opening: "1000.00",
         provider_closing: "1150.00",

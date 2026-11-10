@@ -18,13 +18,13 @@
     "apps/admin/src/main.tsx": "79362b1640955955a2a8d6bfac18e88a6034cee71022b0ef3f8ca5f4f25b9c6b",
     "packages/fortnox/src/analytics.ts": "2d395bc03b534fc39f4f114f436ad6b48281aa88d3d26d657c82cb2b47c2a125",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
-    "packages/fortnox/src/document-http.ts": "2c0ce5fd9d34a146bc57ee01b0062e2cb26c9ce98e4c281e25389cb393ff1e0a",
+    "packages/fortnox/src/document-http.ts": "2815b1989da924170360a2d339da8c458d76d1d8d9603bc12653f23ae0131a0a",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "e03607c9919dd126fbd92d16700aa1719d1ed2acda10c804527264a4a17925e7",
     "packages/mcp/src/companies.ts": "cf9d99fc3a7b6a2be03039fb66e982b8ad5288989ac6e9fe9563cb2308b0b79e",
     "apps/node/src/register-test-main.ts": "7128f6e61d47133422e6143d4ddbb631bd9f42e2c99626dc37712a8cc28ba62d",
     "packages/mcp/src/analytics.ts": "6674b6da5e6cb7d484bec0e0ba95044c9c2da66209ebcca636d8917f643768b4",
-    "packages/fortnox/src/payroll-test-employee.ts": "67eb9950c9d175e4e9a38092df6f2f5af4db9950e2c7905d76171b52d27b1532"
+    "packages/fortnox/src/payroll-test-employee.ts": "28078fc4498919976fd9ca81f9f41e3ad72f27d1b8e10da5df80acce51efcc80"
   },
   "operations": [
     {

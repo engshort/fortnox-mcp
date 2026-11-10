@@ -133,7 +133,11 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
         f.actor,
         f.a.id,
         "payroll_employee.create",
-        { EmployeeId: "SYNM7ABC123", EmploymentDate: "2026-01-01" },
+        {
+          EmployeeId: "SYNM7ABC123",
+          EmploymentDate: "2026-01-01",
+          SalaryForm: "MAN",
+        },
       );
       const results = await Promise.allSettled([
         service.writes.execute(f.actor, "payroll_employee.create", {
@@ -158,6 +162,7 @@ export function payrollReadContract(fixture: () => Promise<StateStore>) {
         LastName: "M7Test",
         Email: "synthetic-m7@example.invalid",
         Inactive: false,
+        SalaryForm: "MAN",
       });
       expect(JSON.stringify(row)).not.toMatch(
         /PersonalIdentityNumber|BankAccountNo|MonthlySalary|HourlyPay/,

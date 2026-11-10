@@ -171,3 +171,22 @@ drill-down, using strict resource schemas and read-only annotations. The model
 cannot supply a basis, completeness flag or classification map. Ordinary product
 activation remains disabled. Full reskontra/liquidity and actual G07 evidence
 remain pending.
+
+The first synthetic employee creation at 3440c12 succeeded and exact-ID
+readback matched the intended fields. MCP list/detail and employee/day reads
+then passed for that synthetic reference; the day contained zero salary rows.
+No salary transaction or payout was created by provisioning.
+
+The first actual analysis attempts reached financial-year reads but SIE returned
+Fortnox 1000030, Invalid response type. Fortnox requires Accept: application/json
+also for file retrieval. The transport was corrected while retaining raw-byte
+bounds and explicit encoding; a regression asserts the header for every read.
+No failed read is evidence of a complete financial report.
+
+Primary sources for this correction and test-code candidates:
+[headers](https://www.fortnox.se/developer/guides-and-good-to-know/header-fields),
+[errors](https://www.fortnox.se/developer/guides-and-good-to-know/errors), and
+[official employee salary-code table](https://support.fortnox.se/produkthjalp/lon/lonearter-och-berakningsformler-for-tjanstemannaavtalet).
+The latter documents hourly code 11 and monthly code 12; company-specific
+availability and transaction field semantics still require actual verification.
+The owner authorized both monthly and hourly synthetic examples.
