@@ -179,13 +179,10 @@ function Operations({
               <dt>{labels[name] ?? name}</dt>
               <dd>
                 {enabled
-                  ? t(
-                      "Tillgänglig i testomfånget",
-                      "Available within test scope",
-                    )
+                  ? t("Tillgänglig", "Available")
                   : t(
-                      "Avstängd – verifiering återstår",
-                      "Disabled — verification pending",
+                      "Inte tillgänglig i denna körmiljö",
+                      "Unavailable in this runtime",
                     )}
               </dd>
             </div>

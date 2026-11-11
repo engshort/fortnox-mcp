@@ -1,5 +1,7 @@
 # MCP tool and provider contract
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 Milestone 2 adds implemented experimental `list_companies`, `get_connection_status` and test-only `get_company_profile` with strict schemas, durable authorization and structured errors. Profile execution remains disabled outside explicit two-tenant acceptance mode. See [evidence](../implementation/M02-connections-evidence.md).
 
 Most names below are proposed public contracts to finalize in S03. The opt-in

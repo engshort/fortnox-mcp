@@ -15,10 +15,19 @@ export const featureId = z.enum([
   "customer-registers",
   "supplier-registers",
   "payroll-input",
+  "sales-invoices",
+  "sales-orders",
+  "supplier-invoices",
 ]);
 export type FeatureId = z.infer<typeof featureId>;
 export const baseScopes = ["companyinformation", "profile"] as const;
 export const featureLabels = {
+  "sales-invoices": { sv: "Kundfakturor", en: "Customer invoices" },
+  "sales-orders": { sv: "Offerter och order", en: "Quotes and orders" },
+  "supplier-invoices": {
+    sv: "Leverantörsfakturor (läsning)",
+    en: "Supplier invoice reads",
+  },
   references: {
     sv: "Räkenskapsår, konton och referenser",
     en: "Financial years, accounts and references",
@@ -65,7 +74,7 @@ const programCapabilities = {
     {
       sv: "Kundfakturor",
       en: "Customer invoices",
-      implementation: "not_implemented",
+      implementation: "implemented_unverified",
     },
     {
       sv: "Bokföring av redan genomförda betalningar",
@@ -77,14 +86,14 @@ const programCapabilities = {
     {
       sv: "Offerter och order",
       en: "Quotes and orders",
-      implementation: "not_implemented",
+      implementation: "implemented_unverified",
     },
   ],
   payroll: [
     {
       sv: "Löneunderlag",
       en: "Payroll input",
-      implementation: "not_implemented",
+      implementation: "implemented_unverified",
     },
   ],
 } as const;
@@ -95,7 +104,12 @@ export const programManifest = [
     en: "Bookkeeping",
     scopes: ["bookkeeping"],
     implementation: "implemented_unverified",
-    features: ["references", "receipt-files", "supplier-registers"],
+    features: [
+      "references",
+      "receipt-files",
+      "supplier-registers",
+      "supplier-invoices",
+    ],
   },
   {
     id: "invoicing",
@@ -103,30 +117,45 @@ export const programManifest = [
     en: "Invoicing",
     scopes: ["invoice", "customer", "article"],
     implementation: "implemented_unverified",
-    features: ["customer-registers"],
+    features: ["customer-registers", "sales-invoices"],
   },
   {
     id: "order-offer",
     sv: "Order & offert",
     en: "Orders & quotes",
     scopes: ["offer", "order"],
-    implementation: "not_implemented",
-    features: [],
+    implementation: "implemented_unverified",
+    features: ["sales-orders"],
   },
   {
     id: "payroll",
     sv: "Lön",
     en: "Payroll",
     scopes: ["salary"],
-    implementation: "not_implemented",
+    implementation: "implemented_unverified",
     features: ["payroll-input"],
   },
 ] as const;
 export const featureManifest = {
+  "supplier-invoices": {
+    scopes: ["supplierinvoice"],
+    dependsOn: [],
+    implementation: "implemented_unverified",
+  },
+  "sales-invoices": {
+    scopes: ["invoice"],
+    dependsOn: [],
+    implementation: "implemented_unverified",
+  },
+  "sales-orders": {
+    scopes: ["offer", "order"],
+    dependsOn: [],
+    implementation: "implemented_unverified",
+  },
   "payroll-input": {
     scopes: ["salary"],
     dependsOn: [],
-    implementation: "not_implemented",
+    implementation: "implemented_unverified",
   },
   references: {
     scopes: ["bookkeeping", "settings", "costcenter", "project"],
@@ -222,6 +251,12 @@ export function assertScopeProgram(c: Connection, scope: string) {
     if ((p.scopes as readonly string[]).includes(scope)) assertProgram(c, p.id);
 }
 function featureScopes(id: FeatureId, gates: ProgramGates): string[] {
+  if (
+    id === "sales-invoices" ||
+    id === "sales-orders" ||
+    id === "supplier-invoices"
+  )
+    return [...featureManifest[id].scopes];
   if (id === "payroll-input") return gates.payrollConsent ? ["salary"] : [];
   if (id === "references")
     return gates.references ? [...featureManifest.references.scopes] : [];
@@ -376,10 +411,10 @@ export function programStatus(c: Connection, gates: ProgramGates) {
                 (p.id === "bookkeeping" && c.scopes.includes("supplier")))
             ? ("connected" as const)
             : ("not_connected" as const),
-      availability:
-        p.implementation === "not_implemented"
-          ? ("planned" as const)
-          : ("verification_pending" as const),
+      availability: "available" as
+        | "available"
+        | "planned"
+        | "verification_pending",
       can_connect:
         c.state === "active" &&
         p.features.some((id) => featureScopes(id, gates).length > 0),

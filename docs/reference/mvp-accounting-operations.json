@@ -4,14 +4,14 @@
   "reviewedAt": "2026-11-07",
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
-    "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
+    "packages/core/src/accounting.ts": "765aed0ccc035d94dbb3292be04cee8fe7572279d40acdf6d030272326abe151",
     "packages/core/src/bookkeeping.ts": "e0bb40cbc6078824336a08b6681fe88c75d338c84264878c2782f2dcb769857d",
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/fortnox/src/accounting.ts": "dd59308d4f4bd1772d1ec30ddddea1eef38d9b962ab75fe2384261644765b1af",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20",
-    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
+    "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b"
   },
   "gates": {
     "referenceOperations": "#92",
@@ -30,7 +30,7 @@
       "path": "/3/financialyears",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -80,7 +80,7 @@
       "path": "/3/accounts",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -138,7 +138,7 @@
       "path": "/3/accounts/{Number}",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -200,7 +200,7 @@
       "path": "/3/voucherseries",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -248,7 +248,7 @@
       "path": "/3/settings/lockedperiod",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "settings",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -296,7 +296,7 @@
       "path": "/3/costcenters",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "costcenter",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -344,7 +344,7 @@
       "path": "/3/projects",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "project",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -392,7 +392,7 @@
       "path": "/3/vouchers/{series}/{number}",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -432,7 +432,7 @@
       "path": "/3/vouchers",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "authentication": "owner-bound MCP grant, current company/generation and provider bearer; writes additionally mcp:write, current policy and durable intent",
       "providerScope": "bookkeeping",
       "licenseAndUserRights": "bookkeeping license for vouchers; exact installation licenses/rights unverified",
@@ -467,5 +467,10 @@
       "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     }
   ],
-  "implementationNote": "Milestone 4 binds receipt proposals to immutable file/batch identities and a receipt execution guard. Existing dated live evidence does not verify this new code or enable provider/host gates."
+  "implementationNote": "Milestone 4 binds receipt proposals to immutable file/batch identities and a receipt execution guard. Existing dated live evidence does not verify this new code or enable provider/host gates.",
+  "activation": {
+    "decision": "docs/implementation/product-activation-2026-11-11.md",
+    "date": "2026-11-11",
+    "evidencePromoted": false
+  }
 }

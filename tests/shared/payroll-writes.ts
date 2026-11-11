@@ -144,6 +144,65 @@ async function setup(
 }
 export function payrollWriteContract(fixture: () => Promise<StateStore>) {
   describe("S09 verified-profile payroll writes", () => {
+    it("uses current provider wages without private acceptance profiles and preserves exact amount validation", async () => {
+      const f = await setup(await fixture());
+      const adapter = new FortnoxPayrollWrites(
+        f.connections,
+        f.provider,
+        [],
+        payrollOperationIds,
+        () => true,
+        Date.now,
+        true,
+      );
+      const service = new PayrollInputs(
+        f.connections,
+        adapter,
+        payrollOperationIds,
+      );
+      const references = await adapter.references(
+        f.actor,
+        f.a.id,
+        fields.EmployeeId,
+        fields.Date,
+      );
+      expect(references.license_verified).toBe(false);
+      expect(references.verified_actions).toEqual([]);
+      const p = await service.prepare(f.actor, "create", {
+        company_id: f.a.id,
+        fields,
+      });
+      expect(
+        (
+          await service.writes.execute(
+            f.actor,
+            "salary_transaction.create",
+            ref(p),
+          )
+        ).state,
+      ).toBe("succeeded");
+      await expect(
+        service.prepare(f.actor, "create", {
+          company_id: f.a.id,
+          fields: { ...fields, Amount: "0.02", Total: "0.02" },
+        }),
+      ).rejects.toThrow("VALIDATION_FAILED");
+      const current = await service.get(f.actor, f.a.id, "1");
+      const deletion = await service.prepare(f.actor, "delete", {
+        company_id: f.a.id,
+        id: "1",
+        expected_version: current.record.version,
+      });
+      expect(
+        (
+          await service.writes.execute(
+            f.actor,
+            "salary_transaction.delete",
+            ref(deletion),
+          )
+        ).state,
+      ).toBe("succeeded");
+    });
     for (const bodyKind of ["null", "string", "error"] as const)
       it(`uses the documented DELETE status without inventing an empty-body requirement (error envelope: ${bodyKind})`, async () => {
         const f = await setup(await fixture());

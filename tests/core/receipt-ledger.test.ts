@@ -39,7 +39,7 @@ it("pins the receipt operation evidence without promoting synthetic support", ()
     });
     expect(operation.status).toBe("implemented_unverified");
     expect(operation.supported).toBe(false);
-    expect(operation.enabledByDefault).toBe(false);
+    expect(operation.enabledByDefault).toBe(true);
     expect(operation.liveEvidence).toBeNull();
     expect(operation.missingEvidence.length).toBeGreaterThan(0);
   }

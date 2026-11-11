@@ -1,5 +1,7 @@
 # Validation and accounting invariants
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 The [milestone 3 implementation](../implementation/M03-accounting-evidence.md)
 enforces a narrow new-voucher profile with exact cents, ordinary unsigned rows,
 explicit company/year and fresh complete references. Unverified precision, lock

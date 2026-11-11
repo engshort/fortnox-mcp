@@ -38,7 +38,7 @@ it("accounting operation evidence pins source and keeps partial live evidence un
   for (const operation of ledger.operations) {
     expect(operation.status).toBe("implemented_unverified");
     expect(operation.supported).toBe(false);
-    expect(operation.enabledByDefault).toBe(false);
+    expect(operation.enabledByDefault).toBe(true);
     expect(operation.missingEvidence.length).toBeGreaterThan(0);
     if (operation.liveEvidence) {
       const evidence = operation.liveEvidence;

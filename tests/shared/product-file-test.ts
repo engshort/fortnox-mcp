@@ -21,7 +21,7 @@ const sourceCommit = "1".repeat(40);
 const callback = "https://client.example.invalid/callback";
 
 export function productFileTestContract(fixture: () => Promise<Runtime>) {
-  async function setup(profile = true) {
+  async function setup(profile = true, providerFetch?: typeof fetch) {
     const runtime = await fixture();
     let time = Date.now(),
       calls = 0;
@@ -34,10 +34,10 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
       keys: { a: keyA },
       activeKey: "a",
       redirects: [callback],
-      testMode: true,
+      testMode: profile,
       clientId: "synthetic-client",
       clientSecret: "synthetic-secret",
-      testTenants: ["100001", "100002"],
+      testTenants: profile ? ["100001", "100002"] : [],
     };
     const fileSource = async (input: { file_id: string }) => {
       calls++;
@@ -54,9 +54,12 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
     const app = createProductApplication(
       settings,
       { ...runtime, fileSource },
-      async () => {
-        throw new Error("Provider access is forbidden in the file experiment");
-      },
+      providerFetch ??
+        (async () => {
+          throw new Error(
+            "Provider access is forbidden in the file experiment",
+          );
+        }),
       profile ? testProfile : undefined,
     );
     return {
@@ -218,9 +221,107 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
     download_url: `https://files.example.com/${file_id}`,
   }));
 
-  it("keeps the normal product off and refuses non-test, unbound or excessive experiment configuration", async () => {
+  it("ordinary activation connects a third tenant without test flags, exposes implemented tools and retains company isolation", async () => {
+    const f = await setup(false, async (input, init) => {
+      const request = new Request(input, init);
+      if (new URL(request.url).pathname === "/oauth-v1/token")
+        return Response.json({
+          access_token: "synthetic-new-company-token",
+          token_type: "bearer",
+          expires_in: 3600,
+          scope: "companyinformation profile",
+        });
+      return Response.json({
+        CompanyInformation: {
+          DatabaseNumber: "300003",
+          CompanyName: "Synthetic C",
+        },
+      });
+    });
+    const { client, cookie } = await authorize(
+      f,
+      "mcp:read mcp:write mcp:files offline_access",
+    );
+    try {
+      const names = (await client.listTools()).tools.map((tool) => tool.name);
+      for (const name of [
+        "get_accounting_references",
+        "prepare_manual_vouchers",
+        "create_manual_voucher",
+        "ingest_receipt_files",
+        "prepare_receipt_batch",
+        "prepare_customer_create",
+        "create_customer",
+        "prepare_invoice_create",
+        "create_invoice",
+        "list_financial_accounts",
+        "prepare_salary_transaction_create",
+        "create_salary_transaction",
+        "list_receivables",
+        "list_payables",
+      ])
+        expect(names).toContain(name);
+      expect(f.app.bookkeeping.gates).toMatchObject({
+        writes: true,
+        reviewHost: true,
+      });
+      expect(f.app.receiptAttachments?.gates).toEqual({
+        upload: true,
+        link: true,
+        retrieve: true,
+      });
+      const start = await f.app.fetch(
+        new Request(`${f.runtime.origin}/admin/fortnox/start`, {
+          method: "POST",
+          headers: {
+            cookie,
+            origin: f.runtime.origin,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ mode: "service" }),
+        }),
+      );
+      expect(start.status).toBe(200);
+      const consent = new URL(((await start.json()) as { url: string }).url);
+      const callback = new URL(`${f.runtime.origin}/admin/fortnox/callback`);
+      callback.search = new URLSearchParams({
+        state: consent.searchParams.get("state") ?? "",
+        code: "synthetic-code",
+      }).toString();
+      const connected = await f.app.fetch(
+        new Request(callback, { headers: { cookie } }),
+      );
+      expect(connected.status, await connected.text()).toBe(303);
+      const rows = await f.app.connections.list(
+        (
+          await f.runtime.state.get<{ ownerId: string }>(
+            "installation",
+            "owner",
+          )
+        )?.value.ownerId ?? "",
+      );
+      expect(rows.map((row) => row.tenant)).toContain("300003");
+      expect(rows).toHaveLength(3);
+      // Newly connected companies still require fresh OAuth consent.
+      expect(
+        (await f.app.fetch(new Request(`${f.runtime.origin}/health`))).status,
+      ).toBe(200);
+      expect(
+        (
+          await client.callTool({
+            name: "get_connection_status",
+            arguments: { company_id: rows[2]?.id },
+          })
+        ).isError,
+      ).toBe(true);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("enables ordinary file staging and keeps isolated experiment configuration bounded", async () => {
     const f = await setup(false);
-    expect(f.app.receiptFiles?.enabled).toBe(false);
+    expect(f.app.receiptFiles?.enabled).toBe(true);
     const runtime = { ...f.runtime, fileSource: f.fileSource };
     for (const settings of [
       { ...f.settings, testMode: false },

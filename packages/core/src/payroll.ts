@@ -74,6 +74,8 @@ export interface PayrollReferences {
   complete: boolean;
   license_verified: boolean;
   verified_actions: readonly PayrollAction[];
+  // Runtime availability is separate from dated provider acceptance evidence.
+  available_actions?: readonly PayrollAction[];
   employees: Array<{
     id: string;
     active: boolean;
@@ -154,8 +156,7 @@ export function validatePayrollInput(
   if (refs.company_id !== company) throw new DomainError("COMPANY_FORBIDDEN");
   if (
     !refs.complete ||
-    !refs.license_verified ||
-    !refs.verified_actions.includes(action) ||
+    !(refs.available_actions ?? refs.verified_actions).includes(action) ||
     refs.retrieved_at > now ||
     now - refs.retrieved_at > 60000
   )

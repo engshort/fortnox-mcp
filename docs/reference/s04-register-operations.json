@@ -7,12 +7,12 @@
   "sourceHashes": {
     "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/core/src/registers.ts": "db3bbae5ad5f6f2881b2a66d52af1afdbe697d2142a2a4baf071fffa152f2ab8",
-    "packages/fortnox/src/registers.ts": "1581f4fe562ca3fbca5f5cd1146bd12722b9b76cf9e818a2dd12f47158741845",
+    "packages/fortnox/src/registers.ts": "9e6cbb4dc85afd9bf1781ebc07de62e1e8a98d54919bdabed3c334ee524f4cee",
     "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
-    "apps/shared/product.ts": "d5de75d1802e51afc7862619e21601694bc1297cc9a1a8b428f00f6ca48702cb",
+    "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
     "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
-    "packages/fortnox/src/connections.ts": "463423bec928e176b1acdb82964c3a5de3e5a4f8318b2c242310e03ac977e75d",
-    "packages/core/src/programs.ts": "56056aac100e49ae3c6513d6e539e1b4cb69269f14b176792bcbade7ac1f0dff"
+    "packages/fortnox/src/connections.ts": "633607eeef02404ca38c0456f818524058acfc8b7fc3957ac27829ccd8a3dea7",
+    "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b"
   },
   "operations": [
     {
@@ -28,7 +28,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -61,7 +61,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -94,7 +94,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -127,7 +127,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -160,7 +160,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -193,7 +193,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -226,7 +226,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -259,7 +259,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -292,7 +292,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -325,7 +325,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -358,7 +358,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -391,7 +391,7 @@
       "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -424,7 +424,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -457,7 +457,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -490,7 +490,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -523,7 +523,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -556,7 +556,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -589,7 +589,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -622,7 +622,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -655,7 +655,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -688,7 +688,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -721,7 +721,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -754,7 +754,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -787,7 +787,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -820,7 +820,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -853,7 +853,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -886,7 +886,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -919,7 +919,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -952,7 +952,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -985,7 +985,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -1018,7 +1018,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -1051,7 +1051,7 @@
       "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
       "syntheticTests": [
         "tests/shared/registers.ts",
@@ -1071,5 +1071,10 @@
         "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
       ]
     }
-  ]
+  ],
+  "activation": {
+    "decision": "docs/implementation/product-activation-2026-11-11.md",
+    "date": "2026-11-11",
+    "evidencePromoted": false
+  }
 }

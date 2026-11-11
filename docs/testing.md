@@ -1,5 +1,13 @@
 # Test strategy and evidence
 
+The [2026-11-11 activation change](implementation/product-activation-2026-11-11.md)
+adds shared Node/SQLite and workerd/D1 coverage for ordinary product consent to
+a third company with test flags off, the implemented tool catalog and continued
+company-grant isolation. Profile-free hourly payroll creation/deletion uses
+current synthetic employee wages and rejects inconsistent amounts. Historical
+acceptance flags are tested as evidence rather than runtime activation gates;
+the existing policy, exact-decimal, concurrency and uncertain-outcome tests remain.
+
 Nova deployment input tests cover exact SSH command restrictions, checksum,
 upload bounds and refusing file replacement. `scripts/nova-smoke.ts` checks the
 actual public HTTPS origin, exact revision, OAuth issuer and private-route denial

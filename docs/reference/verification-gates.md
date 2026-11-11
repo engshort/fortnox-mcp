@@ -1,5 +1,7 @@
 # Verification gates and known gaps
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 **2026-11-07:** milestone 4 has a [G08 recovery packet](../implementation/M04-G08-recovery.md)
 with shared Node/workerd restart/failure evidence, actual-product MCP status
 contract checks and explicit pending test-company procedures. Its opt-in utility

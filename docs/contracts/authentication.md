@@ -1,5 +1,7 @@
 # Authentication and company authorization
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 The protected owner application uses same-origin Hono routes and built React/Vite
 assets. `/admin/state` requires an owner session; MCP bearer tokens cannot
 administer the installation. `/admin/fortnox/configuration` accepts strict,

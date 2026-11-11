@@ -27,6 +27,18 @@ Approved baseline: 2026-10-18. Product owner: alex-engvall. Details below consol
 | D21 | Fortnox test environment available through owner | Owner has developer access and can create a test company; no credentials have been supplied or live tests run for this baseline. |
 | D22 | Protected web application: Hono for HTTP routing, React + Vite for owner-facing UI | Reuse the existing portable TypeScript domain/MCP services across Cloudflare Workers and Node.js. Serve built admin assets from the same installation; keep embedded MCP Apps separate and subject to client/CSP/review gates. The public GitHub Pages site remains static. |
 
+## Owner-directed ordinary activation (2026-11-11)
+
+The owner explicitly requested removal of test/activation restrictions and a
+pull request followed by squash merge after green CI. The implemented finite
+capabilities in S02–S09/S11 are available in the ordinary product without test
+tenant lists, separate acceptance builds or operation leases. Historical
+verification gates remain evidence requirements and no longer gate ordinary
+runtime activation. This refines D07/D12/D20; it does not promote acceptance,
+change D10/D11/D13/D15 or approve a stable release. The existing conforming-host
+MCP Apps trust boundary is documented, including its limits. See the
+[scope, migration and acceptance record](implementation/product-activation-2026-11-11.md).
+
 ## CLA and commercial-rights decision (2026-10-20)
 
 The owner approved a **Contributor License Agreement with Easy Today AB as the legal rights recipient**. The public code and documentation remain AGPL-3.0-only; the company's additional license is non-exclusive, contributors retain copyright, and separately licensed commercial products may be built only from material for which the company has the necessary rights. The change does not alter the open-source release scope, licensing of historic third-party material, or the D03 self-hosting-first launch decision.

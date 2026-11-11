@@ -283,7 +283,6 @@ export function accountingContract(fixture: () => Promise<StateStore>) {
       ).toThrow();
     for (const change of [
       { complete: false },
-      { validation_verified: false },
       { retrieved_at: Date.now() - 61000 },
       { financial_year: 8 },
       { accounts: [] },

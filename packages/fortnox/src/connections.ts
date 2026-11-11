@@ -101,7 +101,9 @@ export interface FortnoxConfig {
   origin: string;
   connections: Connections;
   fetch: typeof fetch;
-  testTenants: readonly string[];
+  // Optional restriction for isolated acceptance harnesses. Normal installations
+  // authorize companies through owner consent and verified provider identity.
+  testTenants?: readonly string[];
   now?: () => number;
   scopes?: readonly string[];
   programGates?: ProgramGates | (() => ProgramGates);
@@ -116,6 +118,9 @@ export const companyInformation = z.object({
 
 export class FortnoxConnections {
   readonly now: () => number;
+  allowsTenant(tenant: string) {
+    return !this.config.testTenants || this.config.testTenants.includes(tenant);
+  }
   constructor(readonly config: FortnoxConfig) {
     this.now = config.now ?? Date.now;
     if (
@@ -377,7 +382,7 @@ export class FortnoxConnections {
     const identity = parsed.data.CompanyInformation;
     const actual = String(identity.DatabaseNumber);
     if (
-      !this.config.testTenants.includes(actual) ||
+      !this.allowsTenant(actual) ||
       (tenant !== undefined && tenant !== actual)
     )
       throw new DomainError("COMPANY_FORBIDDEN");

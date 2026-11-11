@@ -183,7 +183,6 @@ export function validateDocumentAccounts(
     throw new DomainError("COMPANY_FORBIDDEN");
   const date = accountingDate.parse(input.date);
   if (
-    !refs.validation_verified ||
     !refs.complete ||
     refs.retrieved_at > now ||
     now - refs.retrieved_at > 60000

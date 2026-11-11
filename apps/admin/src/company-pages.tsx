@@ -262,9 +262,11 @@ export function CompanyLayout({
                   {connectionText(p.connection, t)}
                 </Status>
                 <span className="availability">
-                  {p.availability === "planned"
-                    ? t("Stöd planeras", "Support planned")
-                    : t("Verifiering återstår", "Verification pending")}
+                  {p.availability === "available"
+                    ? t("Tillgängligt", "Available")
+                    : p.availability === "planned"
+                      ? t("Stöd planeras", "Support planned")
+                      : t("Verifiering återstår", "Verification pending")}
                 </span>
                 <div className="row-action">
                   {p.can_connect && p.connection !== "connected" ? (
@@ -349,8 +351,8 @@ export function CompanyLayout({
                   "Connect this program when implemented, verifiable support is available. No access is requested yet.",
                 )
               : t(
-                  "Anslutning godkänner inte finansiella operationer. Läsning kan endast provas inom installationens uttryckliga testomfång.",
-                  "A connection does not approve financial operations. Reads may only be tested within the installation’s explicit test scope.",
+                  "Funktionerna använder företagets Fortnox-behörigheter, skrivskydd och verifikationspolicy. Verifiering i verkliga klienter och Fortnox pågår.",
+                  "Features use the company's Fortnox permissions, read-only setting and voucher policy. Actual client and Fortnox verification is ongoing.",
                 )}
           </p>
           {currentProgram.selected && (
@@ -577,8 +579,8 @@ export function ProgramConnectionDialog({
                 </strong>
                 <small>
                   {t(
-                    "Begär filscopes för det avgränsade provet. Aktiverar inga filskrivningar.",
-                    "Request file scopes for the bounded test. Does not enable file writes.",
+                    "Begär åtkomst för att ladda upp och koppla kvittofiler i Fortnox.",
+                    "Request access to upload and link receipt files in Fortnox.",
                   )}
                 </small>
               </span>
@@ -715,14 +717,6 @@ export function AddCompanyDialog({
               )}
             </p>
           )}
-          {!state.test_mode && (
-            <p className="notice">
-              {t(
-                "Operatören måste först konfigurera auktoriserade testföretag. Produktionskonton ingår inte.",
-                "The operator must first configure authorized test tenants. Production accounts are not included.",
-              )}
-            </p>
-          )}
           <Message>{error}</Message>
         </div>
         <div className="dialog-actions">
@@ -735,7 +729,7 @@ export function AddCompanyDialog({
           </button>
           <button
             type="submit"
-            disabled={busy || !state.integration.configured || !state.test_mode}
+            disabled={busy || !state.integration.configured}
           >
             {t("Fortsätt till Fortnox", "Continue to Fortnox")}
           </button>

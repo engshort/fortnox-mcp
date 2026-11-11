@@ -298,71 +298,64 @@ export function companyServer(context: {
           );
         }),
     );
-  if (context.testMode)
-    server.registerTool(
-      "get_company_profile",
-      {
-        ...common,
-        title: "Read test company profile",
-        description:
-          "Read a verified tenant's Company Information in an explicitly enabled test installation. No financial operation.",
-        inputSchema: companyInput,
-        outputSchema: profileOutput,
-      },
-      (input) =>
-        reply(profileOutput, async () => {
-          const who = identity();
-          const c = await context.connections.authorize(
-            who.ownerId,
-            who.clientId,
-            input.company_id,
-          );
-          if (!context.testMode)
-            throw new DomainError("CAPABILITY_UNAVAILABLE");
-          if (!c.scopes.includes("companyinformation"))
-            throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
-          const active = async () => {
-            await context.connections.authorize(
-              who.ownerId,
-              who.clientId,
-              c.id,
-            );
-          };
-          const http = new FortnoxHttp({
-            fetch: context.provider.config.fetch,
-            state: context.connections.state,
-          });
-          const raw = await http.read(
-            {
-              owner: who.ownerId,
-              company: c.id,
-              generation: c.generation,
-              tenant: c.tenant,
-              clientId: (await context.connections.credentials(who.ownerId, c))
-                .clientId,
-              assertActive: active,
-              token: (force) => context.provider.token(who.ownerId, c, force),
-            },
-            "company_information",
-          );
-          const data = companyInformation.parse(raw).CompanyInformation;
-          if (String(data.DatabaseNumber) !== c.tenant)
-            throw new DomainError("COMPANY_FORBIDDEN");
-          return {
-            status: "ok",
-            company_id: c.id,
-            data: {
-              name: data.CompanyName,
-              organization_number: data.OrganizationNumber ?? "",
-            },
-            evidence: {
-              ...proof(),
-              sources: ["Fortnox GET /3/companyinformation"],
-            },
-            continuation: null,
-          };
-        }),
-    );
+  server.registerTool(
+    "get_company_profile",
+    {
+      ...common,
+      title: "Read company profile",
+      description:
+        "Read Company Information with an authenticated company-bound grant and verified provider identity.",
+      inputSchema: companyInput,
+      outputSchema: profileOutput,
+    },
+    (input) =>
+      reply(profileOutput, async () => {
+        const who = identity();
+        const c = await context.connections.authorize(
+          who.ownerId,
+          who.clientId,
+          input.company_id,
+        );
+        if (!c.scopes.includes("companyinformation"))
+          throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
+        const active = async () => {
+          await context.connections.authorize(who.ownerId, who.clientId, c.id);
+        };
+        const http = new FortnoxHttp({
+          fetch: context.provider.config.fetch,
+          state: context.connections.state,
+        });
+        const raw = await http.read(
+          {
+            owner: who.ownerId,
+            company: c.id,
+            generation: c.generation,
+            tenant: c.tenant,
+            clientId: (await context.connections.credentials(who.ownerId, c))
+              .clientId,
+            assertActive: active,
+            token: (force) => context.provider.token(who.ownerId, c, force),
+          },
+          "company_information",
+        );
+        const data = companyInformation.parse(raw).CompanyInformation;
+        if (String(data.DatabaseNumber) !== c.tenant)
+          throw new DomainError("COMPANY_FORBIDDEN");
+        return {
+          status: "ok",
+          company_id: c.id,
+          data: {
+            name: data.CompanyName,
+            organization_number: data.OrganizationNumber ?? "",
+          },
+          evidence: {
+            ...proof(),
+            sources: ["Fortnox GET /3/companyinformation"],
+          },
+          continuation: null,
+        };
+      }),
+  );
   if (context.bookkeeping?.gates.references)
     registerAccounting(server, context.bookkeeping, context.identity);
   if (context.registers)

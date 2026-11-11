@@ -199,7 +199,7 @@ export function programContract(fixture: () => Promise<StateStore>) {
     expect(
       programStatus(result, gates).programs.find((p) => p.id === "payroll")
         ?.availability,
-    ).toBe("planned");
+    ).toBe("available");
     await expect(
       f.connections.authorize("owner", "old-client", f.a.id),
     ).rejects.toThrow("COMPANY_FORBIDDEN");
@@ -531,7 +531,7 @@ export function programContract(fixture: () => Promise<StateStore>) {
     expect(
       programStatus(c, gates).programs.find((p) => p.id === "bookkeeping")
         ?.availability,
-    ).toBe("verification_pending");
+    ).toBe("available");
     expect(await f.connections.state.get("connections", "owner")).toEqual(
       before,
     );

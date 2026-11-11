@@ -1,5 +1,11 @@
 # Client compatibility and embedded UI
 
+Activation update (2026-11-11): the ordinary product enables the existing
+conforming-host MCP Apps review and implemented file tools. See the
+[activation and host trust boundary](../implementation/product-activation-2026-11-11.md).
+Historical default-off claims below no longer describe activation. Actual host
+acceptance and unsupported native Worker file egress retain their recorded limits.
+
 The [2026-11-08 M05 local Chrome report](../implementation/M05-client-lifecycle-2026-11-08.md)
 records actual-client two-company read results, client disconnect/reconnect and
 saved-answer reload. Read-only metadata on the tested Docker installation

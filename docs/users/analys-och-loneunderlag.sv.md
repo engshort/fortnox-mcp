@@ -1,8 +1,9 @@
 # Finansiell analys och löneunderlag
 
-Arbetet med milstolpe 7 pågår. Funktionerna är ännu inte aktiverade i den vanliga
-installationen. [Leverans och faktisk verifiering](../implementation/M07-analysis-payroll.md)
-redovisas separat från lokala tester.
+De implementerade funktionerna är aktiverade i vanliga produktbygget från
+11 november 2026. [Funktioner och åtkomst](funktioner.sv.md) beskriver åtkomst
+och begränsningarna i det implementerade stödet. Faktisk Fortnox- och
+ChatGPT-verifiering redovisas separat och blir inte godkänd genom aktivering.
 
 En analys för ett visst datum ska bygga på ingående balans plus bokförda rörelser
 fram till datumet. Årets utgående balans ersätter inte den beräkningen. Rapporten
@@ -15,9 +16,10 @@ Om Fortnox kontolista och SIE visar olika saldon blir det berörda rapportfälte
 okänt och rapporten visar källkonflikten. En separat kontodetalj kan fortfarande
 läsas, men den gör inte hela rapporten avstämd.
 
-Det planerade löneflödet gäller ett avgränsat underlag för en verifierad
+Löneflödet gäller ett avgränsat underlag för en verifierad
 anställd, dag och lönekod. Företaget behöver rätt Fortnox-licens, behörigheter
-och ett nytt samtycke för Lön. Ett samtycke aktiverar inte overifierade operationer.
+och ett nytt samtycke för Lön. Anställning, tillämplig timlön och exakta belopp
+kontrolleras vid både förberedelse och skrivning.
 Full löneberäkning, lönebesked och utbetalning ingår inte.
 
 Ett verifierat sandlådeexempel är att förbereda ett uttryckligt timunderlag för

@@ -26,15 +26,15 @@ export interface ProductEnv extends Partial<ProductBindings> {
 }
 export default {
   async scheduled(_event: ScheduledController, env: ProductEnv): Promise<void> {
-    if (env.DB && env.PRODUCT_ENABLED === "true")
+    if (env.DB)
       await Promise.all([
         cleanupProduct(d1State(env.DB)),
         d1ReceiptFiles(env.DB).cleanup(Date.now()),
       ]);
   },
   async fetch(request: Request, env: ProductEnv): Promise<Response> {
-    if (env.PRODUCT_ENABLED !== "true" || !env.DB)
-      return new Response("Product disabled", { status: 503 });
+    if (!env.DB)
+      return new Response("Product database unavailable", { status: 503 });
     try {
       const settings = productSettings({
         ...env,
