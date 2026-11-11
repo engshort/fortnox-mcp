@@ -60,6 +60,8 @@ async function setup(state: StateStore) {
     disconnect: false,
     rowsChanged: false,
     noMeta: false,
+    nullableEmptyCopies: false,
+    failDetailReads: false,
   };
   const credentials = await f.connections.credentials(
     f.actor.ownerId,
@@ -89,6 +91,7 @@ async function setup(state: StateStore) {
         `${req.headers.get("authorization")}:${resource}:${id}`;
       if (req.method === "GET" && !action) {
         if (id) {
+          if (flags.failDetailReads) return Response.json({}, { status: 500 });
           const value = data.get(key(id));
           return value
             ? Response.json({ [spec.single]: value })
@@ -190,6 +193,11 @@ async function setup(state: StateStore) {
         [spec.rows]: rows,
       };
       data.set(key(target), value);
+      if (flags.nullableEmptyCopies && value.EmailInformation) {
+        const info = value.EmailInformation as Record<string, unknown>;
+        for (const key of ["EmailAddressCC", "EmailAddressBCC"])
+          if (info[key] === "") info[key] = null;
+      }
       const changedRow = (
         value[spec.rows] as Array<Record<string, unknown>>
       )[0];
@@ -231,6 +239,183 @@ async function setup(state: StateStore) {
 }
 export function salesTransportContract(fixture: () => Promise<StateStore>) {
   describe("fixed sales document transport", () => {
+    const addressedHeader = {
+      ...header,
+      EmailInformation: {
+        EmailAddressTo: "approved@example.invalid",
+        EmailAddressCC: "",
+        EmailAddressBCC: "",
+        EmailSubject: "Synthetic test",
+        EmailBody: "Synthetic test only",
+      },
+    };
+    it("creates and updates addressed drafts when provider empty copies are null, without sending", async () => {
+      const f = await setup(await fixture());
+      f.flags.nullableEmptyCopies = true;
+      const p = await f.documents.writes.prepare(
+        f.actor,
+        f.a.id,
+        "offer.create",
+        {
+          financial_year: 7,
+          fields: addressedHeader,
+          rows: [row()],
+          removed_row_ids: [],
+        },
+      );
+      const result = await f.documents.writes.execute(
+        f.actor,
+        "offer.create",
+        ref(p),
+      );
+      expect(result.state).toBe("succeeded");
+      if (result.state !== "succeeded" || !result.reference)
+        throw new Error("Synthetic addressed creation failed");
+      const id = result.reference;
+      const before = (await f.documents.get(f.actor, f.a.id, "offer", id))
+        .record;
+      expect(before.editable).toBe(true);
+      expect(before.fields.EmailInformation).toEqual(
+        addressedHeader.EmailInformation,
+      );
+      const update = await f.documents.writes.prepare(
+        f.actor,
+        f.a.id,
+        "offer.update",
+        {
+          id,
+          financial_year: 7,
+          fields: { Comments: "Synthetic comment change" },
+          rows: before.rows.map((r) => ({ RowId: r.RowId })),
+          removed_row_ids: [],
+        },
+      );
+      expect(
+        await f.documents.writes.execute(f.actor, "offer.update", ref(update)),
+      ).toMatchObject({ state: "succeeded", reference: id });
+      const after = (await f.documents.get(f.actor, f.a.id, "offer", id))
+        .record;
+      expect(after.fields.Comments).toBe("Synthetic comment change");
+      expect(after.fields.EmailInformation).toEqual(
+        addressedHeader.EmailInformation,
+      );
+      expect(after.rows.map(({ RowId: _id, ...r }) => r)).toEqual(
+        before.rows.map(({ RowId: _id, ...r }) => r),
+      );
+      expect(f.calls.filter((c) => c.method === "POST")).toHaveLength(1);
+      expect(f.calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+      expect(f.calls.some((c) => c.path.endsWith("/email"))).toBe(false);
+    });
+    it("reconciles a retained known-reference intent with null empty copies without resending, and keeps other changes unknown", async () => {
+      const f = await setup(await fixture());
+      f.flags.nullableEmptyCopies = true;
+      const p = await f.documents.writes.prepare(
+        f.actor,
+        f.a.id,
+        "offer.create",
+        {
+          financial_year: 7,
+          fields: addressedHeader,
+          rows: [row()],
+          removed_row_ids: [],
+        },
+      );
+      f.flags.failDetailReads = true;
+      const uncertain = await f.documents.writes.execute(
+        f.actor,
+        "offer.create",
+        ref(p),
+      );
+      expect(uncertain).toMatchObject({
+        state: "outcome_unknown",
+        reference: expect.any(String),
+      });
+      if (uncertain.state !== "outcome_unknown" || !uncertain.reference)
+        throw new Error("Missing synthetic uncertain reference");
+      f.flags.failDetailReads = false;
+      const raw = [...f.data.values()].find(
+        (d) => d.DocumentNumber === uncertain.reference,
+      );
+      if (!raw) throw new Error("Missing synthetic created record");
+      const info = raw.EmailInformation as Record<string, unknown>;
+      expect(info.EmailAddressCC).toBeNull();
+      expect(info.EmailAddressBCC).toBeNull();
+      const sourceRow = (raw.OfferRows as Array<Record<string, unknown>>)[0];
+      if (!sourceRow) throw new Error("Missing synthetic source row");
+      const changes = [
+        [raw, "CustomerNumber", "C2"],
+        [info, "EmailAddressTo", "other@example.invalid"],
+        [info, "EmailSubject", "Changed synthetic subject"],
+        [sourceRow, "Price", "0.20"],
+      ] as const;
+      for (const [target, key, changed] of changes) {
+        const original = target[key];
+        target[key] = changed;
+        expect(
+          (await f.documents.writes.reconcile(f.actor, "offer.create", ref(p)))
+            .state,
+        ).toBe("outcome_unknown");
+        target[key] = original;
+      }
+      expect(
+        await f.documents.writes.reconcile(f.actor, "offer.create", ref(p)),
+      ).toMatchObject({ state: "succeeded", reference: uncertain.reference });
+      expect(f.calls.filter((c) => c.method === "POST")).toHaveLength(1);
+      expect(f.calls.filter((c) => c.method === "PUT")).toHaveLength(0);
+    }, 30000);
+    it("preserves missing and nonempty recipient fields and binds raw source changes despite empty-copy equivalence", async () => {
+      const f = await setup(await fixture());
+      const raw = f.seed("1", {
+        EmailInformation: {
+          ...addressedHeader.EmailInformation,
+          EmailAddressCC: null,
+          EmailAddressBCC: null,
+        },
+      });
+      const before = await f.adapter.get(f.actor, f.a.id, "offer", "1");
+      expect(before.editable).toBe(true);
+      const p = await f.documents.writes.prepare(
+        f.actor,
+        f.a.id,
+        "offer.update",
+        {
+          id: "1",
+          financial_year: 7,
+          fields: { Comments: "Synthetic comment" },
+          rows: [{ RowId: "11" }, { RowId: "12" }],
+          removed_row_ids: [],
+        },
+      );
+      const info = raw.EmailInformation as Record<string, unknown>;
+      info.EmailAddressCC = "";
+      const changed = await f.adapter.get(f.actor, f.a.id, "offer", "1");
+      expect(changed.fields).toEqual(before.fields);
+      expect(changed.version).not.toBe(before.version);
+      await expect(
+        f.documents.writes.execute(f.actor, "offer.update", ref(p)),
+      ).rejects.toThrow("PROPOSAL_STALE");
+      expect(f.calls.filter((c) => c.method === "PUT")).toHaveLength(0);
+      for (const [key, value] of [
+        ["EmailAddressTo", null],
+        ["EmailAddressCC", "other@example.invalid"],
+        ["EmailAddressBCC", "other@example.invalid"],
+      ] as const) {
+        const original = info[key];
+        info[key] = value;
+        const record = await f.adapter.get(f.actor, f.a.id, "offer", "1");
+        expect(
+          (record.fields.EmailInformation as Record<string, unknown>)[key],
+        ).toBe(value);
+        expect(record.editable).toBe(false);
+        info[key] = original;
+      }
+      delete info.EmailAddressCC;
+      const missing = await f.adapter.get(f.actor, f.a.id, "offer", "1");
+      expect(missing.fields.EmailInformation).not.toHaveProperty(
+        "EmailAddressCC",
+      );
+      expect(missing.editable).toBe(false);
+    });
     it("blocks missing scopes, read-only writes and expired test leases before provider access", async () => {
       const f = await setup(await fixture());
       f.seed();

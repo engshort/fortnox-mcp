@@ -130,7 +130,19 @@ function projectFields(source: Record<string, unknown>) {
         "EmailBody",
       ]
         .filter((key) => Object.hasOwn(info, key))
-        .map((key) => [key, stringValue.parse(info[key])]),
+        .map((key) => {
+          const value = stringValue.parse(info[key]);
+          // Fortnox returns explicit null for empty copy-recipient fields.
+          // Canonicalize only these two known empty representations. Missing
+          // fields, To, nonempty recipients and templates stay unchanged.
+          return [
+            key,
+            (key === "EmailAddressCC" || key === "EmailAddressBCC") &&
+            value === null
+              ? ""
+              : value,
+          ];
+        }),
     );
   }
   return fields;

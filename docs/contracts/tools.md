@@ -214,6 +214,15 @@ ID and return the whole-source version, projected rows, nullable observed states
 exact reported amounts and explicit completeness/editability. A summary is never
 an editable full document or a source of invented defaults.
 
+Sales read projection canonicalizes an explicitly present `null` in
+`EmailInformation.EmailAddressCC` or `EmailAddressBCC` to `""`, the supported
+empty-copy representation. Actual sandbox readback established this transport
+difference. Missing fields, the To recipient, nonempty copy recipients and
+templates are preserved; write/send schemas remain strict. Whole-source versions
+still hash the raw provider record. This lets an existing trusted-reference
+intent reconcile by its unchanged content digest without resending creation.
+Recipient-free To values remain outside the editable profile (#130).
+
 `prepare_<resource>_<action>` stores immutable content and full row diffs.
 `create`/`update`/`email`/`bookkeep`/`credit`/`cancel` and supported `to_order`/
 `to_invoice` executions take only the business reference. Reconciliation updates

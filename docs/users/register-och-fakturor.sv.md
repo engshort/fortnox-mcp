@@ -23,6 +23,13 @@ Avstämning läser en känd Fortnox-identitet och skickar inte ändringen igen.
 Saknad identitet eller oklart innehåll lämnar resultatet osäkert. Ett nytt förslag
 får inte användas för att kringgå detta.
 
+Fortnox kan returnera tomma kopiemottagare (CC/BCC) som `null`. Läsning och
+avstämning behandlar just dessa uttryckliga tomvärden som tomma strängar.
+Mottagare, saknade uppgifter och andra innehållsskillnader fylls inte i. En
+befintlig osäker offert med känd referens ska avstämmas med samma intent, aldrig
+skapas på nytt. Offert utan giltig huvudmottagare har fortfarande den öppna
+redigeringsbegränsningen #130. Det innebär inget godkännande av utskick.
+
 Betalregistrering avser bokföring av en betalning. Bankbetalningsinitiering ingår
 inte. E-faktura, eprint och påminnelsekanaler är otillgängliga i denna leverans.
 Aktuell verifieringsstatus finns i [operationstäckningen](../reference/coverage.md).

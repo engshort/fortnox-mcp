@@ -1,5 +1,13 @@
 # API coverage plan
 
+Sales recovery #131: explicit provider null CC/BCC now use the existing empty
+copy-recipient representation during reads and content reconciliation. Raw
+source versions, strict recipient/write checks and unknown-intent retention are
+preserved. See the [contract](../contracts/tools.md#s05-focused-sales-tools-default-off-service)
+and [bounded evidence](../implementation/S05-documents.md#empty-copy-recipient-recovery--2026-11-11).
+This changes no operation's verification classification; recipient-free drafts
+in #130 and broader lifecycle/provider acceptance remain separate.
+
 Browser-consent recovery: one Fortnox flow per authenticated admin session is
 reserved atomically before provider navigation. Independent sessions retain
 bounded concurrency. This changes connection UX, not provider-operation

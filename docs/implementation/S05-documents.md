@@ -1,5 +1,41 @@
 # S05 — Sales and purchase workflows
 
+Current activation follows the [2026-11-11 owner decision](product-activation-2026-11-11.md);
+historical default-off statements below retain their dated evidence scope.
+
+## Empty copy-recipient recovery — 2026-11-11
+
+Actual independently AI-reviewed sandbox creation exposed #131: a known offer
+reference returned explicit null CC/BCC instead of requested empty strings.
+Other requested header values and the ordinary row matched, but exact nested
+comparison and reconciliation retained `outcome_unknown`. No create was retried;
+new company writes were stopped and the original intent was preserved.
+
+The provider read projection now canonicalizes only explicitly present null
+CC/BCC to the existing empty-string copy profile. It does not invent a To
+recipient, missing fields, amounts or templates, accept nonempty copy recipients,
+change the intent hash or modify stored execution state directly. Source-version
+hashing still uses the entire raw provider record. Ordinary exact-reference
+reconciliation can therefore resolve retained matching intent content without
+a provider write. Missing or changed identity/content remains uncertain.
+
+Shared transport regressions exercise addressed create/read/comment-only update,
+known-reference recovery without another POST, changed customer/recipient/
+subject/row rejection, raw-version changes and missing/nonempty recipient fields.
+Actual recovery of the preserved hosted intent must be recorded against the
+reviewed deployed fix. The recipient-free To limitation in #130 remains open;
+this narrow equivalence does not certify all sales lifecycles or delivery.
+
+Local verification: all 11 targeted shared sales-transport cases passed in
+Node/SQLite, including the three added regressions. Four TypeScript projects,
+the production build and changed-source Biome checks passed. Actual local
+workerd was not rerun after the known Windows native-runtime failures; Linux
+CI must run the same shared contracts in workerd/D1 before deployment. Hosted
+reconciliation of the preserved original intent remains pending at this point.
+The separate built-artifact test attempt passed five of ten cases; five Node
+fixture processes exited before startup on Windows. It is not a passing full
+artifact run and requires the Linux CI result.
+
 Status: in progress; no document operation is enabled or advertised. Depends on
 S04. The portable sales domain and internal fixed-route provider adapter below
 are implemented, with focused MCP schemas and a read-only isolated product
