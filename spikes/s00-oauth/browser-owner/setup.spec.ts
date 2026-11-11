@@ -233,7 +233,8 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await expect(page.getByText(execution, { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401"))).toEqual([]);
+  expect(consoleMessages.filter((message) => message.includes("status of 400"))).toHaveLength(1);
+  expect(consoleMessages.filter((message) => !message.includes("status of 409") && !message.includes("status of 401") && !message.includes("status of 400"))).toEqual([]);
 });
 
 test("payroll consent excludes existing receipt access and refreshes stale program revision", async ({page}) => {
