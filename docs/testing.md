@@ -8,6 +8,10 @@ current synthetic employee wages and rejects inconsistent amounts. Historical
 acceptance flags are tested as evidence rather than runtime activation gates;
 the existing policy, exact-decimal, concurrency and uncertain-outcome tests remain.
 
+S01 CI now also installs the existing pinned OAuth-package Playwright harness and
+runs `playwright.owner.config.ts` against the built product on desktop/mobile.
+The synthetic loopback fixture uses no Fortnox credentials or external writes.
+
 Nova deployment input tests cover exact SSH command restrictions, checksum,
 upload bounds and refusing file replacement. `scripts/nova-smoke.ts` checks the
 actual public HTTPS origin, exact revision, OAuth issuer and private-route denial

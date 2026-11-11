@@ -42,6 +42,14 @@ jobs:
         run: npm run build
       - name: Test built artifacts
         run: npm run test:build
+      - name: Install pinned owner UI test dependencies and browser
+        working-directory: spikes/s00-oauth
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --no-install playwright install --with-deps chromium
+      - name: Test the built owner UI on desktop and mobile
+        working-directory: spikes/s00-oauth
+        run: npx --no-install playwright test --config playwright.owner.config.ts
       - name: Validate Cloudflare test deployment bundle
         env:
           WRANGLER_SEND_METRICS: 'false'
