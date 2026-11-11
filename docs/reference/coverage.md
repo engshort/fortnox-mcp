@@ -1,5 +1,10 @@
 # API coverage plan
 
+Browser-consent recovery: one Fortnox flow per authenticated admin session is
+reserved atomically before provider navigation. Independent sessions retain
+bounded concurrency. This changes connection UX, not provider-operation
+verification; see the [authentication contract](../contracts/authentication.md).
+
 Current activation: the owner removed ordinary product test/verification
 activation restrictions on 2026-11-11. See [the activation decision and runtime
 boundaries](../implementation/product-activation-2026-11-11.md). Dated milestone

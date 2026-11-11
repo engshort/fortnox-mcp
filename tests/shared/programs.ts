@@ -424,11 +424,11 @@ export function programContract(fixture: () => Promise<StateStore>) {
   it("rejects stale simultaneous changes and preserves unresolved write history", async () => {
     const f = await seed();
     const first = await f.begin(),
-      second = await f.begin();
+      second = await f.begin(f.a.id, bookkeeping, "second-session");
     await f.provider.finish("owner", "session", first.callback);
     const calls = f.calls();
     await expect(
-      f.provider.finish("owner", "session", second.callback),
+      f.provider.finish("owner", "second-session", second.callback),
     ).rejects.toThrow("CONNECTION_CONFLICT");
     expect(f.calls()).toBe(calls);
     await f.connections.mutate("owner", f.b.id, (c) => {

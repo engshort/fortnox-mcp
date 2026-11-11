@@ -7,6 +7,56 @@ import { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
+  it("serializes consent per browser session while preserving independent sessions and cancellation recovery", async () => {
+    const state = await fixture();
+    let now = Date.now();
+    let providerCalls = 0;
+    const connections = new Connections(
+      state,
+      new CredentialVault({ a: keyA }, "a"),
+    );
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections,
+      now: () => now,
+      fetch: async () => {
+        providerCalls++;
+        throw new Error("Consent start must not call Fortnox");
+      },
+    });
+    const input = {
+      mode: "service" as const,
+      clientId: "synthetic-client",
+      clientSecret: "synthetic-private-secret",
+    };
+    const results = await Promise.allSettled([
+      provider.start("owner", "browser-A", input),
+      provider.start("owner", "browser-A", input),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const failed = results.find((result) => result.status === "rejected");
+    expect(failed?.status === "rejected" && failed.reason.message).toBe(
+      "CONSENT_IN_PROGRESS",
+    );
+    await provider.start("owner", "browser-B", input);
+    await provider.start("other-owner", "browser-A", input);
+    await provider.cancelPending("owner", "browser-A");
+    await provider.start("owner", "browser-A", input);
+    await expect(provider.start("owner", "browser-B", input)).rejects.toThrow(
+      "CONSENT_IN_PROGRESS",
+    );
+    now += 600001;
+    await provider.start("owner", "browser-A", input);
+    for (const session of ["browser-C", "browser-D", "browser-E"])
+      await provider.start("owner", session, input);
+    await expect(provider.start("owner", "browser-F", input)).rejects.toThrow(
+      "RATE_LIMITED",
+    );
+    expect(providerCalls).toBe(0);
+    expect(await connections.list("owner")).toEqual([]);
+  });
   it("cancels only unclaimed consent flows of the same owner and browser session", async () => {
     const state = await fixture();
     const connections = new Connections(
@@ -70,6 +120,9 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
         await state.get<{ claimed: boolean }[]>("fortnox-flows", "owner")
       )?.value.map((f) => f.claimed),
     ).toEqual([true]);
+    await expect(provider.start("owner", "session-A", input)).rejects.toThrow(
+      "CONSENT_IN_PROGRESS",
+    );
     expect(
       (await state.get<unknown[]>("fortnox-flows", "other-owner"))?.value,
     ).toHaveLength(1);

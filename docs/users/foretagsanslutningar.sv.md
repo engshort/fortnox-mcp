@@ -100,6 +100,13 @@ Starta alltid ett nytt försök från administrationen efter en korrigering. En 
 
 ## Företag och program
 
+Slutför ett Fortnox-godkännande i taget i samma webbläsarsession. Om ett annat
+godkännande väntar stannar den nya anslutningen på MCP-sidan med en förklaring.
+Slutför det första eller välj **Drift → Avbryt väntande samtycken i denna
+session** och starta ett nytt försök. Återspela inte en gammal callback.
+Separata inloggade sessioner kan fortfarande arbeta parallellt. Befintlig
+företagsåtkomst behålls tills ersättningen har verifierats.
+
 Öppna **Företag** för att söka efter eller lägga till ett företag. Den första
 anslutningen begär bara företagsuppgifter och profil. Fortnox-svaret kontrolleras
 innan företaget sparas.
