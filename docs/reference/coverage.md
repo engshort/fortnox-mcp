@@ -13,7 +13,10 @@ records native ChatGPT review, bounded register writes/readback/cleanup,
 selected references, explicit validation failures and partial financial reads.
 The consent-overlap defect #127 and bounded empty-copy recovery defect #131 are
 resolved with actual reviewed cleanup. Stale-generation native reconnect is
-tracked in #129 and remaining sales editability in #130. File-byte, broader provider, financial and
+tracked in #129 and remaining sales editability in #130. Actual two-PNG staging
+and authenticated UI readback passed, while disk output remains incomplete.
+The first reviewed receipt upload is retained as unknown before voucher creation;
+#134 tracks its missing positive reconciliation. Broader provider, financial and
 recovery gates retain their missing evidence. No operation is promoted to fully
 verified support by this bounded audit.
 

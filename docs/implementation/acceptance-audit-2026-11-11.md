@@ -43,10 +43,17 @@ No production company, external customer delivery or real payment was used.
 | Manual native review | One synthetic ordinary manual voucher was prepared, independently reviewed against exact ID/hash, actual selected account references, generation/policy and client binding, then booked with one native MCP Apps button click. UI status and reload preserved the successful reference and disabled commit. A minimal read-only server projection confirmed one succeeded/dispatched durable execution and no remaining proposal. Exact provider readback matched the date and all three account/debit/credit rows. No attachment was involved. |
 | Synthetic reversal | A second, separately reviewed ordinary manual voucher reversed the three test rows. Native UI and exact provider readback succeeded. The six observed rows have zero net test effect per selected account. This is not a formal Fortnox correction link or a statement about the whole ledger balance. |
 | Cross-client proposal reads | A separate authorized MCP client could not read the native proposal; replacing the company also failed with `INTENT_CONFLICT`. The second case changes client and company together and does not isolate the company check by itself. These are read denials, not forged-commit/replay tests. |
-| MCP OAuth lifecycle | Actual access/refresh rotation returned replacement values; an old refresh replay returned `invalid_grant`. An original access token observed after expiry returned 401, with possible refresh/revocation effects not isolated. This is MCP OAuth, not proof of current Fortnox user-token rotation. |
+| MCP OAuth lifecycle | Actual access/refresh rotation returned replacement values; an old refresh replay returned `invalid_grant`. An original access token observed after expiry returned 401, with effects not isolated in that earlier case. A later isolated cleanup test used only the audit HTTP client: fresh access succeeded, advertised refresh-token revocation returned 200, the same still-unexpired access returned 401 with about 300 seconds remaining, and refresh replay returned 400 `invalid_grant`. The separate native client was not targeted. This is MCP OAuth, not Fortnox provider-token rotation. |
 | Supplied photographs | The local product validator rejected nine originals as too large and accepted one JPEG. No original was resized or uploaded. These are local validation observations, not native transport or financial acceptance. |
 | Synthetic receipt inputs | Two fictional receipts were generated as separate test events. PDF/PNG alternatives for each event passed local limits and visual review. They must not be treated as four separate financial events. |
-| Actual file selection | The embedded local chooser timed out, including after the owner confirmed Chrome file access. The ordinary ChatGPT upload control successfully selected/uploaded both exact synthetic PNG originals. The host library then exposed both files; selecting exactly those two produced the app's two-selected status and the two visible HTTPS source origins. The initial library failure text was transient during asynchronous selection. Native staging and authenticated original-byte egress still need their own result. No original photograph was used. |
+| Actual file selection and staging | The embedded local chooser timed out, including after the owner confirmed Chrome file access. Ordinary ChatGPT upload followed by host-library selection supplied the two exact PNG originals. With temporarily reviewed Node direct-source configuration, one explicit staging click succeeded: 64,629 and 64,615 bytes and both SHA-256 values matched the originals. Initial library failure text was transient during asynchronous selection. No original photograph was used. |
+| Authenticated file readback and model handoff | Both sequential native UI reads produced links only after resource URI, MIME, byte length and SHA-256 verification. Saved modelContent exposed the correct ordinary company/workflow/file references, hashes and expiry to ChatGPT; a private manifest projection matched them and the original client/generation/policy. No UI-only approval capabilities or signed source URLs were exported. |
+| Actual file download | The first normal link click produced no captured download in ten seconds and no expected output was found in the default Downloads directory. Supported browser export reported embedded-frame Blob downloads unsupported. No downloaded disk file was available for independent hashing. This is incomplete native disk egress, not an isolated product root cause or full G03 acceptance. |
+| File negative controls | Seven raw HTTP MCP controls on restored `none`/empty-origin configuration failed closed with no resource bytes: other-client access to an existing file (`COMPANY_FORBIDDEN`), combined other-client/company access (`FILE_UNAVAILABLE`), IP-literal/non-HTTPS/unapproved-origin input (`FILE_URL_DENIED`), read-only ingress (`CAPABILITY_UNAVAILABLE`) and three-file SDK rejection. Errors were unstructured MCP error text. URL denials do not independently prove DNS or redirect handling. |
+| Per-item receipt preparation and first execution | Actual ChatGPT prepared one immutable two-item batch with distinct proposals/hashes, original-file bindings, totals and review expiries. Both exact vouchers validated and were independently reviewed. Only the first item's supported button was clicked once after exact metadata review. Upload became `outcome_unknown` without a trusted provider reference; voucher/link remained pending and runtime projection confirmed zero voucher executions. The second item was not executed. #134 tracks the missing upload reconciliation and diagnostic evidence; no upload was resent. |
+| Retained uncertainty and review expiry | Ordinary native batch status and one selected-item resume retained the unknown upload and untouched second item. Existing code returns before dispatch when upload is not successful; no upload recovery exists. The second item's commit control was observed disabled after its review expiry on unchanged policy. No expired financial commit was attempted. |
+| Owner UI language and keyboard subset | Actual owner Operations preserved the unresolved item while switching Swedish to English and back. Enter on Skip to content focused the content region; Tab from Companies focused AI clients. This is a small actual keyboard/language sample, not full accessibility, contrast or real mobile acceptance. |
+| Restored-policy reference controls | The same native client subsequently listed exactly two active read-only companies, both `review_required`. The old batch returned structured `INTENT_CONFLICT`; the old file returned plain `COMPANY_FORBIDDEN` without bytes. Owner Operations still displayed the unresolved receipt step. Denial of old references is not positive upload recovery. |
 
 The manual voucher's test premises explicitly define a fictional bank debit and
 full test VAT deductibility. Neither was inferred from a receipt image. A
@@ -68,7 +75,8 @@ rejected without changing DB/WAL/SHM; sessions/consents/grants/flows were remove
 and reconnect/restore blocking was recorded. The snapshot contained no uncertain
 writes, receipts, proposals or access/refresh tokens: their recovery and actual
 dispatch blocking were not exercised. Test containers/volumes were cleaned;
-the active database and application were not restored or restarted.
+the active database and application were not restored or restarted by this
+isolated restore procedure.
 The first attempt failed on environment-file quoting before a test database was
 created; the corrected run passed. Its earlier helper peak was about 110.6 MiB,
 so 106.2 MiB must not be presented as the maximum of the entire procedure.
@@ -105,12 +113,34 @@ state to succeeded after the expected/observed content digests matched.
 Independent review checked original provider/client responses and private
 runtime projections, not only the operator's summary.
 
-Current unfinished-test state: the synthetic customer, supplier and article
+Current retained state: the synthetic customer, supplier and article
 are inactive, both synthetic unsent/unbooked offers are cancelled and the
-known-reference unknown execution is reconciled. The first company's read-only setting is false
-and manual vouchers remain `review_required`; the other company is read-only.
-Cleanup and restoration must be recorded from actual results before the audit
-is considered finished.
+known-reference sales execution is reconciled. A subsequent receipt upload is
+unknown, with no receipt voucher created; its batch/file bindings and historical
+proposal references are retained while pending encrypted proposals were removed
+(zero remain). All new business writes are stopped. Both companies
+are read-only and manual vouchers remain `review_required`. Restoring the first
+company's read-only setting through ordinary owner UI increased policy version
+8 to 9 and invalidated pending proposals. The uncertain receipt step remains
+visible in owner Operations; its historical policy-8 batch/file bindings were
+not rewritten. Ordinary old references can no longer authorize that workflow.
+This prevents further financial execution without falsely resolving the upload.
+The open outcome and missing supported recovery remain explicit blockers.
+
+The temporary Node direct-source window used the same reviewed `c6a0480` image:
+start `22:26:45` UTC, ready `22:26:52`, restored `22:31:33` on 2026-11-11.
+Separate review checked the exact corrected operator script, fresh pause
+acknowledgements and original runtime evidence. Only two source configuration
+keys changed; identity, grants, generation/policy, credentials, keys, mounts and
+operational history fingerprints were preserved. Probe-based interruption
+estimates were 1.406 and 1.416 seconds, with request-start sampling estimates of
+1.610 and 1.620 seconds. These are not strict outage or complete public
+availability bounds. Full window duration was 287.932 seconds; normal rollback took 7.178
+seconds. Final transport is `none`, origins empty, and public HTTPS health
+identified the same revision. This proves normal coordinated pause/restore,
+not absent-container/fault recovery or automatic expiry. The settings have no
+built-in TTL. The earlier operator script was rejected before mutation for
+rollback/recovery guard defects and was never run.
 
 ## Issue disposition
 
@@ -120,14 +150,15 @@ is considered finished.
 | #129 | Open, reproduced stale-generation reconnect defect; fresh registration is a tested workaround, not a fix. |
 | #130 | Open, reproduced sales draft editability failure, also on the addressed draft after its projected header and rows passed the schemas. The remaining raw-source guard needs isolation. No update was dispatched. |
 | #131 | Closed after the narrow null-CC/BCC fix, exact-head review/CI, deployment, actual same-client preserved-intent reconciliation and independently reviewed supported cleanup. Broader sales lifecycle and G08 remain open. |
+| #134 | Open: the first actual reviewed receipt upload is unknown without a trusted reference; voucher/link never started. Existing resume/link/attachment APIs cannot positively reconcile this upload. No specific HTTP, format, timeout or parse cause is established. |
 | #117, #28 | Actual UI/provider/disable evidence added; complete lifecycle, operation and runtime acceptance remain. |
 | #19, #20, #58–#60, #62, #75 | Actual two-company, isolation, MCP lifecycle and fresh consent evidence added. Current Fortnox user-mode renewal/fault/revocation, complete reconnect and distinct provider rights/license cases remain. |
 | #21, #92 | Register create/update/readback/cleanup and selected accounting references have new actual evidence. Complete scope, reference/price behavior, provider rights/year/period cases and recovery still require their own evidence. |
 | #22 | Sales reads and a bounded offer create/read passed; update hit #130. Full document lifecycles and remaining supplier-invoice/payment implementation are separate. |
 | #23, #24, #37, #38, #76, #93 | Exact validation and a native reviewed ordinary voucher now have actual evidence. Full financial rules, supported-client adversarial cases, corrections and uncertain-write recovery remain open. |
-| #32 | Native rendering, explicit AI-reviewed click, status and successful remount are bounded positive evidence. Forged/replay/concurrent/expiry/lost-response/other-browser and actual runtime criteria remain; do not close from one successful voucher. |
-| #33, #68, #69 | Picker rendering, actual ChatGPT upload and two-item host-library selection are established. Server staging, authenticated original-byte egress, expiry and per-item receipt review still need actual results. |
-| #70, #71, #94 | Provider upload/link/retrieval, partial failure and safe link-only recovery need actual selected files and their own exact reviewed proposals. |
+| #32 | Native rendering, explicit AI-reviewed click, status, successful remount and an expired-review UI control have bounded evidence. Forged/replay/concurrent/backend-expiry/lost-response/other-browser and actual runtime criteria remain; do not close from one successful voucher. |
+| #33, #68, #69 | Actual ChatGPT two-file ingress, exact-byte staging, authenticated UI readback and ordinary model-reference handoff passed bounded review. Disk egress, PDF/expiry/adversarial file cases and full per-item receipt acceptance remain incomplete. |
+| #70, #71, #94 | First reviewed provider upload produced retained uncertainty before financial dispatch; #134 blocks further writes. Complete upload/link/retrieval, partial failure and safe link-only recovery remain unverified. |
 | #25, #26, #40 | Actual bounded reads and honest partial-data results added; complete analysis/source semantics, payroll write prerequisites and lifecycle cases remain. An empty employee list cannot supply a synthetic employee for code-11 writes. |
 | #27 | Bounded diagnostics passed; source rights and full negative/provider semantics remain independent. |
 | #18, #39, #42, #77 | Local/CI checks and public hosting do not establish hosted Worker budgets, complete operational recovery or actual confidential-report delivery. |

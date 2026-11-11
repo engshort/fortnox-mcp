@@ -8,11 +8,36 @@ i chatten **Skapa deploy-workflow för Fortnox MCP**.
 
 Det kända osäkra offertintentet i #131 är avstämt genom ordinarie lager på
 den rättade driften, utan nytt create. Båda testofferterna är annullerade och
-syntetkunden är inaktiv efter separat granskad städning. Filprovet pågår;
-Test 1 tillåter tillfälligt skrivningar med `review_required`.
-Återställt skrivskydd ska bekräftas när testomgången är avslutad.
+syntetkunden är inaktiv efter separat granskad städning. Två syntetiska PNG-filer
+har nått krypterad lagring och hämtats autentiserat i den riktiga ChatGPT-vyn.
+Första kvittots provideruppladdning fick däremot ett nytt osäkert utfall i #134,
+innan någon kvittoverifikation eller bilagelänk skapades. Det andra kvittot
+har inte körts. Skrivskyddet är återställt; `review_required` är oförändrad.
 
-## Lås upp filproven — #33/#68/#69
+## Börja med uppladdningens osäkra utfall — #134
+
+1. Öppna **Drift → Olösta skrivutfall**. Bevara originalets privata referenser
+   och status. **Bokför** eller **Ladda upp** får inte användas som ett nytt försök.
+2. Utvecklingsarbete behövs först: implementera issue #134:s begränsade
+   diagnostik och autentiserade positiva avstämning för en osäker uppladdning.
+   Nuvarande `resume_receipt_batch` bevarar osäkerheten men kan inte lösa den.
+   Detta är ingen återstående mänsklig godkännandeknapp.
+3. Undersök den avsedda sandlådans **Arkivplats → Inbox → Verifikationer**
+   efter exakt originalfil. En eventuell träff måste kontrolleras mot rätt
+   företag, filidentitet, byteantal, SHA-256 och tillräcklig unik evidens.
+   Denna testomgång visade en tom lista; det bevisar inte att uppladdningen
+   aldrig skedde. Vid otillräcklig evidens behöver utfallet förbli osäkert.
+4. Låt en separat granskare bedöma fixen och den faktiska positiva evidensen.
+   Stäm därefter av originalintentet genom det granskade återhämtningsflödet.
+   Ändra inte status, referens eller versionsbindning direkt i databasen.
+5. Återställt skrivskydd ökade policyversionen och ogiltigförklarade väntande
+   förslag. Gamla batch-/filreferenser kan därför inte återanvändas normalt.
+   Fixens återhämtningsflöde måste hantera den bevarade osäkerheten och en ny
+   granskning under aktuell policy, utan att skicka en redan gjord uppladdning igen.
+6. Först därefter kan kvittoflöde, bilagor och fler skrivprov fortsätta.
+   AI-operatör och separat AI-granskare får utföra proven i samma två sandlådor.
+
+## Komplettera filproven — #33/#68/#69
 
 1. Chrome-inställningen har bekräftats av ägaren. Vid en ny installation: öppna
    `chrome://extensions` manuellt i Chrome-profilen som kör acceptanschatten.
@@ -32,9 +57,17 @@ Test 1 tillåter tillfälligt skrivningar med `review_required`.
    avslutad inläsning och statusen **2 filer valda**; ett tillfälligt felmeddelande
    under inläsning är inte slutresultatet. Båda ryms inom 1 MiB och två miljoner bildpixlar.
    PDF-alternativet för A är samma testhändelse som PNG A, inte ett extra kvitto.
-4. Kontrollera att inget lagras före **Lagra tillfälligt**. Lagra båda och jämför
-   originalens byteantal, MIME och SHA-256 med autentiserad återhämtad output.
-5. Prova för stor fil, fel format, utgången referens och främmande företags-/
+4. Tvåfilslagring och autentiserad UI-återläsning är nu verifierade med exakta
+   PNG-byteantal och SHA-256. Den tillfälliga Node-transporten återställdes till
+   `none` och tomma origins. En ny transportomgång behöver samma avgränsade
+   driftförberedelse, två granskade HTTPS-origins och verifierad återställning.
+5. För återstående faktisk diskoutput: välj **Hämta och kontrollera original**
+   och **Ladda ner kontrollerat original** för var och en av filerna i en ny,
+   giltig testomgång. Webbläsarverktyget kunde inte exportera Blob från den
+   inbäddade vyn. Om du laddar ned dem själv i Chrome, meddela var filerna sparas;
+   agenten kan sedan jämföra faktiska diskbytes/SHA-256. Länktext i appen är inte
+   i sig bevis på en nedladdad fil. Äldre utgångna/policybundna referenser räcker inte.
+6. Prova även PDF-output, för stor fil, fel format, utgången referens och främmande företags-/
    klientreferens. Ingen främmande byte får lämnas ut och inget får skickas om
    automatiskt. Dokumentera verklig filöverföring separat från lokal validering.
 
@@ -109,13 +142,16 @@ bokföring. Publicera inte deras innehåll i issues eller PR:er.
    rådatakontroll innan detta fall räknas som klart.
 3. Stäm av analys mot samma verifierade Fortnox-period/konton och fullständiga
    sidor. Luckor i ingående balans/SIE/valuta-/kreditsemantik kan kräva kodarbete.
-4. Använd en syntetisk anställd i testföretaget med giltig anställning,
+4. Efter #134:s avstämning: använd en syntetisk anställd i testföretaget med giltig anställning,
    daterad timlön och implementerad kod 11. Tom anställdlista räcker inte.
    En befintlig separat operatörs-helper kan förbereda ett fast syntetiskt
    anställnings-/0,01-löneunderlag via samma skrivlager. Den saknar exponerat
    MCP-/driftkommando; en privat ingång måste granskas och använda faktiskt
    auktoriserad identitet/grant, tvåföretagsallowlist och tidsbegränsad lease.
-   Skapa inga grants eller direktanrop till providern för att kringgå detta.
+   Fortnox egen meny **Lön** i Test 1 är åtkomlig men visar ännu en startguide.
+   Den kan vara en legitim väg att förbereda fixturen efter stoppets lösning;
+   inga löneinställningar sparades i denna testomgång. Skapa inga grants eller
+   direktanrop till providern för att kringgå saknad autentiserad ingång.
    Prova create/update/delete, datum-/lönegränser och återläsning. Ingen
    löneutbetalning eller full lönekörning ingår.
 5. Leverantörsfaktura-/betalningslivscykler och framtida moduler som ännu inte är
