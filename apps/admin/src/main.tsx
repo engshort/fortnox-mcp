@@ -415,32 +415,37 @@ function App() {
         "Företaget har ett pågående eller okänt skrivutfall. Stäm av utfallet under Drift innan du ändrar programanslutningen.",
         "The company has a pending or unknown write outcome. Reconcile it under Operations before changing program access.",
       )
-    : message === "SIGN_IN_FAILED"
+    : message === "CONSENT_IN_PROGRESS"
       ? t(
-          "Inloggningen misslyckades. Kontrollera e-post och lösenord.",
-          "Sign-in failed. Check your email and password.",
+          "Slutför det väntande Fortnox-godkännandet, eller avbryt det under Drift innan du startar en ny anslutning.",
+          "Complete the pending Fortnox approval, or cancel it under Operations before starting another connection.",
         )
-      : message === "AUTH_UNAVAILABLE"
+      : message === "SIGN_IN_FAILED"
         ? t(
-            "Inloggningstjänsten kunde inte skapa en session. Försök igen om en stund.",
-            "The sign-in service could not create a session. Try again shortly.",
+            "Inloggningen misslyckades. Kontrollera e-post och lösenord.",
+            "Sign-in failed. Check your email and password.",
           )
-        : message === "RATE_LIMITED"
+        : message === "AUTH_UNAVAILABLE"
           ? t(
-              "För många försök. Vänta en minut och försök igen.",
-              "Too many attempts. Wait one minute and try again.",
+              "Inloggningstjänsten kunde inte skapa en session. Försök igen om en stund.",
+              "The sign-in service could not create a session. Try again shortly.",
             )
-          : message === "AUTH_REQUIRED"
+          : message === "RATE_LIMITED"
             ? t(
-                "Din session har gått ut. Logga in igen.",
-                "Your session has expired. Sign in again.",
+                "För många försök. Vänta en minut och försök igen.",
+                "Too many attempts. Wait one minute and try again.",
               )
-            : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+            : message === "AUTH_REQUIRED"
               ? t(
-                  "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
-                  "Could not complete the action. Check the connection and try again.",
+                  "Din session har gått ut. Logga in igen.",
+                  "Your session has expired. Sign in again.",
                 )
-              : message;
+              : /^[A-Z_]+(?:\s*\(.*\))?$/.test(message)
+                ? t(
+                    "Åtgärden kunde inte slutföras. Kontrollera anslutningen och försök igen.",
+                    "Could not complete the action. Check the connection and try again.",
+                  )
+                : message;
   if (!admin)
     return (
       <div className="auth-page">

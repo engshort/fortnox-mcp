@@ -79,6 +79,8 @@ export async function api<T = { ok?: boolean; url?: string }>(
       ? (value as Record<string, unknown>)
       : {};
   if (!response.ok && diagnostic.error === "CONNECTION_REQUEST_FAILED") {
+    if (diagnostic.reason === "CONSENT_IN_PROGRESS")
+      throw new Error("CONSENT_IN_PROGRESS");
     // Only fixed public codes are shown; never echo arbitrary provider text.
     const reason = [
       "RATE_LIMITED",

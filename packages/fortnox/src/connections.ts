@@ -235,6 +235,11 @@ export class FortnoxConnections {
         owner,
       );
       const flows = (row?.value ?? []).filter((f) => f.expiresAt > this.now());
+      // Avoid overlapping provider-login continuations in one browser session.
+      // Reserve one flow per authenticated admin session before redirecting;
+      // independent sessions retain the owner-wide bounded concurrency.
+      if (flows.some((existing) => existing.session === session))
+        throw new DomainError("CONSENT_IN_PROGRESS");
       if (flows.length >= 4) throw new DomainError("RATE_LIMITED");
       if (
         await this.config.connections.state.put(

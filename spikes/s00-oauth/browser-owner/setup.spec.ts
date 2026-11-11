@@ -204,6 +204,13 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   });
   await dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true }).click();
   await expect(dialog.getByRole("status")).toContainText("Anslutningen kunde inte startas");
+  await page.unroute(`**/admin/companies/${b.id}/programs/start`);
+  await page.route(`**/admin/companies/${b.id}/programs/start`, async (route) => {
+    await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "CONNECTION_REQUEST_FAILED", reason: "CONSENT_IN_PROGRESS", stage: "consent_start" }) });
+  });
+  await dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true }).click();
+  await expect(dialog.getByRole("status")).toContainText("avbryt det under Drift");
+  await expect(page).toHaveURL(`${origin}/admin/companies/${b.id}/bookkeeping`);
   await page.keyboard.press("Escape");
   await page.getByLabel("Byt företag").selectOption(a.id);
   await page.getByRole("button", { name: "Inaktivera program lokalt", exact: true }).click();

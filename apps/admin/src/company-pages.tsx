@@ -7,6 +7,17 @@ import { Icon } from "./icons.js";
 import { Link, navigate } from "./navigation.js";
 
 export const companyPath = (c: Company) => `/admin/companies/${c.company_id}`;
+function connectionStartError(error: unknown, t: Translate) {
+  return error instanceof Error && error.message === "CONSENT_IN_PROGRESS"
+    ? t(
+        "Slutför det väntande Fortnox-godkännandet, eller avbryt det under Drift innan du startar en ny anslutning.",
+        "Complete the pending Fortnox approval, or cancel it under Operations before starting another connection.",
+      )
+    : t(
+        "Anslutningen kunde inte startas. Befintlig åtkomst är oförändrad.",
+        "Could not start the connection. Existing local access is unchanged.",
+      );
+}
 export function Status({
   positive = false,
   children,
@@ -509,14 +520,9 @@ export function ProgramConnectionDialog({
               selection,
             );
             redirectToFortnox(result.url);
-          } catch {
+          } catch (error) {
             setBusy(false);
-            setError(
-              t(
-                "Anslutningen kunde inte startas. Befintlig åtkomst är oförändrad.",
-                "Could not start the connection. Existing local access is unchanged.",
-              ),
-            );
+            setError(connectionStartError(error, t));
           }
         }}
       >
@@ -656,14 +662,9 @@ export function AddCompanyDialog({
           })
         ).url,
       );
-    } catch {
+    } catch (error) {
       setBusy(false);
-      setError(
-        t(
-          "Anslutningen kunde inte startas.",
-          "Could not start the connection.",
-        ),
-      );
+      setError(connectionStartError(error, t));
     }
   }
   return (

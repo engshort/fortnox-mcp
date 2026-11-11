@@ -42,6 +42,14 @@ Restrict each MCP grant to the installation owner and authorized capabilities. D
 
 ## MCP server → Fortnox
 
+Only one unexpired Fortnox consent may be pending per authenticated admin
+session. A second start returns `CONSENT_IN_PROGRESS` before provider navigation;
+finish the first flow or explicitly cancel it in Operations, then start fresh.
+Claimed exchanges remain protected from cancellation. Independent sessions
+retain the four-flow owner-wide bound. This prevents overlapping starts from
+the same admin session without weakening callback binding. Actual provider
+continuation and post-deployment recovery remain separately verified.
+
 Each installation registers its own integration and redirect URI in the Fortnox developer portal. Client ID is public; Client Secret is stored as a secret and never delivered to a widget or model. Request scopes for enabled modules and require reauthorization when adding scope.
 
 Preferred long-lived connection: service account, where the authorizing person has the necessary Fortnox system-administrator rights. After service-account consent, Fortnox supports client-credentials token issuance with Client ID/Secret and numeric TenantId. Obtain the tenant through the authenticated activation flow and Company Information; bind `state` to the initiating owner/session and use PKCE where supported/configured. Do not accept an arbitrary webhook or model-supplied tenant as proof of consent.
