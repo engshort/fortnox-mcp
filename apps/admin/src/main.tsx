@@ -152,8 +152,8 @@ function Operations({
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const labels: Record<string, string> = {
     business_reconciliation: t(
-      "Avstämning av registerutfall",
-      "Register outcome reconciliation",
+      "Avstämning av skrivutfall",
+      "Write outcome reconciliation",
     ),
     writes: t("Bokföringsskrivningar", "Bookkeeping writes"),
     provider_files: t("Fortnox-filer", "Fortnox files"),
@@ -179,13 +179,10 @@ function Operations({
               <dt>{labels[name] ?? name}</dt>
               <dd>
                 {enabled
-                  ? t(
-                      "Tillgänglig i testomfånget",
-                      "Available within test scope",
-                    )
+                  ? t("Tillgänglig", "Available")
                   : t(
-                      "Avstängd – verifiering återstår",
-                      "Disabled — verification pending",
+                      "Inte tillgänglig i denna körmiljö",
+                      "Unavailable in this runtime",
                     )}
               </dd>
             </div>

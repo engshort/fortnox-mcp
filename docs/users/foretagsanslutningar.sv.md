@@ -1,5 +1,10 @@
 # Säkra företagsanslutningar
 
+Aktuellt från 11 november 2026: test- och aktiveringsspärrarna är borttagna
+i den vanliga installationen. [Funktioner och åtkomst](funktioner.sv.md)
+beskriver nuvarande beteende och kvarvarande tekniska förutsättningar. Äldre
+testprotokoll nedan beskriver tidigare versioner.
+
 Kvittoprovets `inbox connectfile` kan väljas i programmets sidodialog när
 operatören aktiverat testvalet `FORTNOX_RECEIPT_CONSENT`; se [ENV-guiden](env.sv.md). Det utökar inte gamla
 anslutningar. När det faktiska filprovet ska genomföras behövs nytt ägarinitierat
@@ -10,7 +15,9 @@ Samma tenant behåller handtaget men får en ny anslutningsgeneration vid
 
 Börja med [ENV-konfigurationen](env.sv.md) för privata värden och startkommandon.
 
-Detta är produktimplementation under verifiering. Använd en separat testinstallation och uttryckligen tillåtna testföretag. Fortnox-operationer är avstängda tills deras klient- och providerevidens är godkänd.
+Detta är produktimplementation under verifiering. Implementerade operationer
+är aktiverade i den vanliga installationen. Testkörningar använder separat
+installation och uttryckligen tillåtna testföretag.
 
 ## Ägare och inloggning
 

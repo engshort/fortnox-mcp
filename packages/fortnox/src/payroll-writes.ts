@@ -68,6 +68,7 @@ export class FortnoxPayrollWrites implements PayrollProvider {
     readonly enabled: readonly PayrollOperation[] = [],
     readonly active: () => boolean = () => false,
     readonly now = Date.now,
+    readonly liveReferences = false,
   ) {
     this.profiles = z.array(payrollWriteProfile).max(20).parse(profiles);
     if (
@@ -98,6 +99,7 @@ export class FortnoxPayrollWrites implements PayrollProvider {
     for (const action of ["create", "update", "delete"] as const)
       if (
         enabled.includes(`salary_transaction.${action}`) &&
+        !this.liveReferences &&
         !this.profiles.some((p) => p.evidence[action])
       )
         throw new DomainError("CAPABILITY_UNAVAILABLE");
@@ -127,7 +129,8 @@ export class FortnoxPayrollWrites implements PayrollProvider {
         p.from <= date &&
         p.to >= date,
     );
-    if (!profile) throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (!profile && !this.liveReferences)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     const context = await this.http.context(
       actor,
       company,
@@ -171,18 +174,40 @@ export class FortnoxPayrollWrites implements PayrollProvider {
     }).format(new Date(this.now()));
     const rate =
       dated?.HourlyPay ?? (date === today ? source.HourlyPay : undefined);
-    if (rate === undefined || parseAmount(rate, 2) !== profile.hourly_pay)
+    if (
+      rate === undefined ||
+      (profile && parseAmount(rate, 2) !== profile.hourly_pay)
+    )
       throw new DomainError("PROPOSAL_STALE");
+    const unitAmount = parseAmount(rate, 2);
+    // This is the implemented hourly code-11 calculation, bound to current
+    // employment and provider wages. It is not a universal salary-code table.
+    const currentProfile = profile ?? {
+      company_id: company,
+      employee_id: employee,
+      code: "11",
+      from: date,
+      to: date,
+      hourly_pay: unitAmount,
+      quantity_scale: 6,
+    };
     return {
       company_id: company,
       retrieved_at: this.now(),
       complete: true,
-      license_verified: true,
+      license_verified: !!profile,
       verified_actions: (["create", "update", "delete"] as const).filter(
         (action) =>
-          !!profile.evidence[action] &&
+          !!profile?.evidence[action] &&
           this.enabled.includes(`salary_transaction.${action}`),
       ),
+      ...(this.liveReferences
+        ? {
+            available_actions: (["create", "update", "delete"] as const).filter(
+              (action) => this.enabled.includes(`salary_transaction.${action}`),
+            ),
+          }
+        : {}),
       employees: [
         {
           id: employee,
@@ -194,13 +219,13 @@ export class FortnoxPayrollWrites implements PayrollProvider {
       codes: [
         {
           employee_id: employee,
-          code: profile.code,
-          from: profile.from,
-          to: profile.to,
+          code: currentProfile.code,
+          from: currentProfile.from,
+          to: currentProfile.to,
           profile: "quantity_times_unit_amount",
-          quantity_scale: profile.quantity_scale,
-          unit_amount: profile.hourly_pay,
-          evidence_sha256: await accountingHash(profile),
+          quantity_scale: currentProfile.quantity_scale,
+          unit_amount: currentProfile.hourly_pay,
+          evidence_sha256: await accountingHash(currentProfile),
         },
       ],
     };
@@ -269,14 +294,15 @@ export class FortnoxPayrollWrites implements PayrollProvider {
       fields,
       version: await accountingHash(source),
       editable:
-        !!profile &&
-        !!(
-          (profile.evidence.update &&
-            this.enabled.includes("salary_transaction.update")) ||
-          (profile.evidence.delete &&
-            this.enabled.includes("salary_transaction.delete"))
-        ) &&
-        salaryTransactionFields.safeParse(fields).success,
+        (this.liveReferences
+          ? fields.SalaryCode === "11"
+          : !!profile &&
+            !!(
+              (profile.evidence.update &&
+                this.enabled.includes("salary_transaction.update")) ||
+              (profile.evidence.delete &&
+                this.enabled.includes("salary_transaction.delete"))
+            )) && salaryTransactionFields.safeParse(fields).success,
     };
   }
   async write(
@@ -301,7 +327,10 @@ export class FortnoxPayrollWrites implements PayrollProvider {
         p.employee_id === intended.EmployeeId &&
         p.code === intended.SalaryCode,
     );
-    if (!profile || intended.Amount !== profile.hourly_pay)
+    if (
+      (!profile && !this.liveReferences) ||
+      (profile && intended.Amount !== profile.hourly_pay)
+    )
       throw new DomainError("VALIDATION_FAILED");
     if (action !== "create") {
       if (!id || !baseline) throw new DomainError("VALIDATION_FAILED");
@@ -339,7 +368,9 @@ export class FortnoxPayrollWrites implements PayrollProvider {
     if (action === "delete") {
       if (
         raw?.deletion_acknowledged &&
-        raw.response_status === profile.delete_status &&
+        (profile
+          ? raw.response_status === profile.delete_status
+          : raw.response_status === 200 || raw.response_status === 204) &&
         id
       ) {
         try {

@@ -54,7 +54,7 @@ export class DocumentHttp {
       if (
         !this.active() ||
         c.generation !== original.generation ||
-        !this.provider.config.testTenants.includes(c.tenant)
+        !this.provider.allowsTenant(c.tenant)
       )
         throw new DomainError("COMPANY_FORBIDDEN");
       if (

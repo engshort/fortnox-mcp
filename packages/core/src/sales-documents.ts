@@ -229,7 +229,7 @@ export class SalesDocuments {
     readonly registers: Registers,
     readonly accounting: Pick<AccountingProvider, "references">,
     readonly enabled: readonly string[] = [],
-    readonly approvedRecipients: readonly string[] = [],
+    readonly approvedRecipients: readonly string[] | null = [],
     readonly now = Date.now,
   ) {
     if (enabled.some((op) => !salesOperationIds.includes(op)))
@@ -577,7 +577,8 @@ export class SalesDocuments {
       const information = email.parse(record.fields.EmailInformation);
       if (
         state.sent ||
-        !this.approvedRecipients.includes(information.EmailAddressTo)
+        (this.approvedRecipients !== null &&
+          !this.approvedRecipients.includes(information.EmailAddressTo))
       )
         throw new DomainError("CAPABILITY_UNAVAILABLE");
     }

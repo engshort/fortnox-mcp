@@ -1,10 +1,11 @@
 # Kvitton och återhämtning
 
-Milestone 4 är under implementation. Produktens filverktyg och bokföringsflöde är
-avstängda tills respektive klient- och providerprov är godkänt. Ett tidigare
-syntetiskt granskningsprov aktiverar inte bokföring.
+Produktens implementerade filverktyg och kvittoflöde är aktiverade från
+11 november 2026. Filtransport och godkända HTTPS-källor behöver konfigureras.
+Företagets skrivskydd och verifikationspolicy gäller.
+[Funktioner och åtkomst](funktioner.sv.md) beskriver nuvarande förutsättningar.
 
-I den separata testbuilden kan `open_receipt_file_picker` öppna en filväljare för
+I den vanliga installationen kan `open_receipt_file_picker` öppna en filväljare för
 ett uttryckligen valt företag. Välj uppladdade filer, eller filer från datorn om
 klientens filbibliotek saknas. Urvalet lagrar inget hos installationen. Välj sedan
 **Lagra tillfälligt** först när testoperatören har förberett filtransporten.
@@ -15,7 +16,7 @@ Efter lagring väljer du **Hämta och kontrollera original** och därefter
 länken skapas, men den faktiskt nedladdade filen måste också jämföras i klientprovet.
 Omladdning skickar aldrig om lagringen. Sparade referenser ger ingen behörighet i
 sig, och ett misslyckat eller saknat svar räknas inte som ett godkänt prov.
-Denna nya vy väntar på faktisk klientacceptans; bokföring och Fortnox-filer är avstängda.
+Faktisk klientacceptans återstår att dokumentera; aktivering är inget bevis på genomförd verifiering.
 
 I det avsedda flödet väljer du företag uttryckligen och bifogar upp till två filer
 i klienten. Stödet börjar med PNG, JPEG och vanliga okrypterade PDF-filer utan

@@ -110,7 +110,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
     );
     assertScopeProgram(c, scope);
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
-    if (!this.provider.config.testTenants.includes(c.tenant))
+    if (!this.provider.allowsTenant(c.tenant))
       throw new DomainError("COMPANY_FORBIDDEN");
     if (!c.scopes.includes(scope))
       throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");

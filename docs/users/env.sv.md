@@ -1,10 +1,15 @@
 # Konfiguration för produktens testinstallation
 
+Aktuellt från 11 november 2026: test- och aktiveringsspärrarna är borttagna
+i den vanliga installationen. [Funktioner och åtkomst](funktioner.sv.md)
+beskriver nuvarande beteende och kvarvarande tekniska förutsättningar. Äldre
+testprotokoll nedan beskriver tidigare versioner.
+
 Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd lokal fil har privata filrättigheter och genererade auth-/krypteringshemligheter; `.env.example` är mallen utan hemligheter. Läs inte upp filens innehåll i AI-chatten och ta inte med den i PR eller backup utan motsvarande skydd.
 
 | Variabel | Innehåll |
 | --- | --- |
-| `PRODUCT_ENABLED` | `false` som standard. Sätt till `true` för att starta den separata produkt-testservern. |
+| `PRODUCT_ENABLED` | Äldre inställning som inte längre styr produktens aktivering. |
 | `PUBLIC_ORIGIN` | Exakt origin utan avslutande snedstreck. Lokalt `http://127.0.0.1:8787`; för ChatGPT behövs en nåbar HTTPS-origin i den separata testinstallationen. |
 | `PORT` | Lokal Node-port, normalt `8787`. Node binder endast loopback. |
 | `PRODUCT_DATABASE` | Privat SQLite-sökväg, normalt `.data/product.sqlite`. Cloudflare använder i stället sin separata `DB`-binding. |
@@ -12,24 +17,30 @@ Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd l
 | `CREDENTIAL_ACTIVE_KEY` | ID för nyckeln som krypterar nya credentials, normalt `v1`. |
 | `CREDENTIAL_KEYS` | JSON-objekt med nyckel-ID och privata 32-byte-nycklar i vanlig base64. Behåll gamla nycklar under verifierad rotation. |
 | `MCP_REDIRECT_URIS` | JSON-lista över exakt tillåtna HTTPS-callbacks för AI-klienten. Mallen innehåller probens observerade ChatGPT-callback; kontrollera att den gäller avsett klientkonto. |
-| `FORTNOX_TEST_MODE` | `false` som standard. `true` tillåter en uttrycklig acceptanskörning mot de två konfigurerade testföretagen. Det innebär inte godkänt produktionsstöd. |
+| `FORTNOX_TEST_MODE` | Behövs bara i isolerade acceptansbyggen; påverkar inte vanliga produktbygget. |
 | `FORTNOX_CLIENT_ID` | Client ID från installationens egen opublicerade Fortnox-testintegration. |
 | `FORTNOX_CLIENT_SECRET` | Samma integrations Client Secret. Ange endast privat här eller som Worker-secret. |
-| `FORTNOX_TEST_TENANTS` | Exakt två olika numeriska tenant-/DatabaseNumber-ID:n, separerade med komma. Endast tillåtna sandboxföretag. Namn och organisationsnummer används inte som behörighetsbevis. |
+| `FORTNOX_TEST_TENANTS` | Används bara av isolerade acceptansbyggen. Vanliga anslutningar verifierar företagets identitet efter ägarens Fortnox-medgivande. |
 
 ## Första lokala starten
 
-Använd repots låsta Node/npm-versioner. Kör `npm ci --ignore-scripts`. Fyll i de privata värdena, sätt `PRODUCT_ENABLED=true` och kör `npm run dev:product`. Du kan lämna `FORTNOX_TEST_MODE=false` för att endast prova ägarinloggning; Fortnox-anrop är då avstängda.
+Använd repots låsta Node/npm-versioner. Kör `npm ci --ignore-scripts`. Fyll i de privata värdena och kör `npm run dev:product`. Inga aktiveringsflaggor behövs. Spara API-uppgifterna och anslut företagen i administrationen.
 
 Servern applicerar additiva migrationer och skapar den första ägarens engångskod privat i `.data/bootstrap-code.txt`. Öppna `<PUBLIC_ORIGIN>/setup` inom tio minuter, läs koden lokalt och välj e-post/lösenord. Efter bootstrap används `/sign-in` och `/admin`. Koden återöppnas inte av omstart. Om koden hunnit gå ut, använd operatörskommandot enligt [företagsguiden](foretagsanslutningar.sv.md); radera inte databasen för att återställa en befintlig ägare.
 
 ## Fortnox och hosted test
 
-Registrera exakt `<PUBLIC_ORIGIN>/admin/fortnox/callback` i Fortnox. Aktivera servicekonto och S256 PKCE, och begär endast `companyinformation profile`. När båda testföretagen är tillåtna och credentials är ifyllda kan `FORTNOX_TEST_MODE=true` användas för det avgränsade acceptansprovet. Starta service- eller användarconsent i administrationen. Företaget verifieras via autentiserat providersvar före lagring.
+Registrera exakt `<PUBLIC_ORIGIN>/admin/fortnox/callback` i Fortnox. Aktivera
+servicekonto och S256 PKCE. Första anslutningen begär `companyinformation profile`.
+Starta service- eller användarconsent i administrationen. Företaget verifieras
+via autentiserat providersvar före lagring. Välj sedan program och ge nytt
+medgivande för deras behörigheter. Ingen testlägesflagga behövs.
 
 För Worker/D1 används den separata konfigurationen `apps/worker/wrangler.product.jsonc`, en ny testdatabas och samma migrationer. Den befintliga publika installations-/S00-proben ska inte återanvändas. `.env` laddas inte automatiskt upp till Cloudflare: lägg hemligheterna i Worker-secrets och övriga värden i den privata deploymentkonfigurationen. En lokal Worker kan använda ignorerad `.dev.vars`; kopiera endast nödvändiga variabler privat. Förväxla inte SQLite-sökvägen med D1-bindingen.
 
-Behåll providerfunktioner avstängda vid vanlig distribution tills daterad evidens finns för exakt servercommit, klient, runtime och operation. Den här implementationen publicerar inga bokförings-/filverktyg och ger inget generellt produktionsgodkännande.
+Implementerade providerfunktioner finns i den vanliga distributionen. Aktivering
+utgör inget generellt produktionsgodkännande eller bevis på genomförd faktisk
+klient-/providerverifiering. Företagets åtkomst och policy gäller fortfarande.
 
 
 För en ny D1-installation kan `npm run prepare:product:bootstrap` skapa en privat kod och `.data/product-bootstrap.sql`. Applicera SQL endast på vald testdatabas och kontrollera att exakt en rad ändrades. SQL kan förnya en ännu oanvänd bootstrap, men ersätter aldrig en aktiv eller redan påbörjad ägare. Koden gäller i tio minuter. Samma villkorade SQL kan användas lokalt om en första oanvänd kod har löpt ut.
@@ -49,18 +60,15 @@ Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-tes
 
 ## Förbered filtransport för kvittoprovet
 
-För nytt Fortnox-medgivande till filprovet finns även
-`FORTNOX_RECEIPT_CONSENT=false` i mallen. `true` kräver både testläge med de två
-tillåtna testföretagen och `ACCOUNTING_REFERENCES_ENABLED=true`. Då begär nästa
-ägarinitierade medgivande de fasta tilläggen `inbox connectfile`. Befintliga
-anslutningar eller MCP-medgivanden utökas inte. Valet aktiverar inga filskrivningar,
-bokföringsverktyg eller godkänd granskningsvy. Se
-[providerprovets förutsättningar](../implementation/M04-G06-files.md).
+Välj kvittofiler under företagets program för att begära `inbox connectfile`
+genom ett nytt ägarinitierat Fortnox-medgivande. Inga aktiveringsflaggor behövs.
+Befintliga anslutningar eller MCP-medgivanden utökas inte automatiskt.
 
-De nya fälten i `.env.example` är för en separat tillåten testinstallation.
-`RECEIPT_FILE_TRANSPORT=none` är standard. `node-direct` använder den lokala
+`RECEIPT_FILE_TRANSPORT=none` är runtime-standard; mallen väljer `node-direct`.
+`node-direct` använder den lokala
 Node-serverns DNS-låsta hämtning; Worker kan endast använda ett uttryckligen valt,
-tillfälligt `node-relay`. Inställningarna aktiverar inga fil- eller bokföringsverktyg.
+tillfälligt `node-relay`. Filverktygen är aktiverade; transportinställningarna
+anger hur filernas original kan hämtas säkert.
 
 - `RECEIPT_FILE_ORIGINS`: exakt observerade och granskade HTTPS-källor, kommaseparerade,
   högst fyra. Inga jokertecken, lokala adresser eller gissade källor.

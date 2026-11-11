@@ -180,6 +180,29 @@ export function programContract(fixture: () => Promise<StateStore>) {
       expect(f.calls()).toBe(calls);
     },
   );
+  it("retained provider scopes cannot resurrect unselected document features", async () => {
+    const f = await seed();
+    f.a.programs = {
+      revision: 1,
+      enabled: ["bookkeeping", "invoicing", "order-offer"],
+      features: ["customer-registers", "supplier-registers"],
+    };
+    for (const [scope, feature] of [
+      ["invoice", "sales-invoices"],
+      ["offer", "sales-orders"],
+      ["order", "sales-orders"],
+      ["supplierinvoice", "supplier-invoices"],
+    ] as const) {
+      expect(() => assertScopeProgram(f.a, scope)).toThrow(
+        "CAPABILITY_UNAVAILABLE",
+      );
+      f.a.programs.features.push(feature);
+      expect(() => assertScopeProgram(f.a, scope)).not.toThrow();
+      f.a.programs.features = f.a.programs.features.filter(
+        (id) => id !== feature,
+      );
+    }
+  });
   it("collects salary consent only with its own gate and never treats consent as payroll activation", async () => {
     const f = await seed();
     const change: ProgramChange = {
@@ -199,7 +222,7 @@ export function programContract(fixture: () => Promise<StateStore>) {
     expect(
       programStatus(result, gates).programs.find((p) => p.id === "payroll")
         ?.availability,
-    ).toBe("planned");
+    ).toBe("available");
     await expect(
       f.connections.authorize("owner", "old-client", f.a.id),
     ).rejects.toThrow("COMPANY_FORBIDDEN");
@@ -531,7 +554,7 @@ export function programContract(fixture: () => Promise<StateStore>) {
     expect(
       programStatus(c, gates).programs.find((p) => p.id === "bookkeeping")
         ?.availability,
-    ).toBe("verification_pending");
+    ).toBe("available");
     expect(await f.connections.state.get("connections", "owner")).toEqual(
       before,
     );

@@ -37,8 +37,6 @@ export async function startProduct(
       throw new Error("Separate REGISTER_TEST_DATABASE required");
     env.PRODUCT_DATABASE = isolated;
   }
-  if (env.PRODUCT_ENABLED !== "true")
-    throw new Error("Product disabled; see .env.example");
   const settings = productSettings(env);
   if (fileTest && settings.receiptSource?.transport !== "node-direct")
     throw new Error("Direct Node file transport required");

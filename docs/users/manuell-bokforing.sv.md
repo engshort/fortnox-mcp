@@ -1,11 +1,11 @@
 # Granskad manuell bokföring — testversion
 
-Milestone 3 innehåller validering, skyddade förslag, granskningsvy och säker
-exekveringslogik. **Riktig bokföring är avstängd** i produktservern tills klient-
-och Fortnox-verifiering finns. En ändrad policy aktiverar ingen overifierad
-operation. Använd endast uttryckligen tillåtna testföretag.
+Bokföringsflödet är aktiverat i vanliga produktbygget från 11 november 2026.
+Det innehåller validering, skyddade förslag, granskningsvy och beständiga
+skrivintentioner. Företagets sparade skrivskydd och verifikationspolicy gäller.
+[Funktioner och åtkomst](funktioner.sv.md) beskriver aktivering och verifieringsläge.
 
-## När funktionen är verifierad
+## Använd flödet
 
 1. Lista företagets faktiska år med `list_financial_years` och dess opaka
    `company_id`. Välj ett returnerat års-ID efter datumintervallet; ett

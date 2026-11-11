@@ -1,9 +1,9 @@
 # Register, försäljning och inköp
 
-Registerflöden finns i en separat, tidsbegränsad testbuild. De är ännu inte
-aktiverade i den vanliga installationen. Faktisk Fortnox- och ChatGPT-acceptans
-återstår innan funktionerna kan annonseras som verifierade. Dokumentflödena
-för offerter, order och fakturor är under utveckling i S05 och är avstängda.
+De implementerade funktionerna är aktiverade i vanliga produktbygget från
+11 november 2026. [Funktioner och åtkomst](funktioner.sv.md) beskriver åtkomst
+och begränsningarna i det implementerade stödet. Faktisk Fortnox- och
+ChatGPT-verifiering redovisas separat och blir inte godkänd genom aktivering.
 
 I testbuilden kan du be klienten att söka efter och läsa kunder, leverantörer,
 artiklar och referenser för ett uttryckligen valt företag. Ofullständiga listor

@@ -7,7 +7,7 @@ import type { AuthConfig } from "../../apps/shared/product-auth.js";
 import { keyA } from "./connections.js";
 
 export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
-  it("prepares receipt consent only in the explicit accounting test configuration without enabling file or financial operations", async () => {
+  it("allows receipt consent outside test mode and keeps initial company consent minimal", async () => {
     const config = await fixture();
     for (const settings of [
       {
@@ -21,9 +21,7 @@ export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
         receiptProviderConsent: true,
       },
     ])
-      expect(() => requestedFortnoxScopes(settings)).toThrow(
-        "CAPABILITY_UNAVAILABLE",
-      );
+      expect(requestedFortnoxScopes(settings)).toContain("connectfile");
     expect(requestedFortnoxScopes({ testMode: true })).toEqual([
       "companyinformation",
       "profile",
@@ -84,8 +82,8 @@ export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
     expect(response.status).toBe(200);
     const url = new URL(((await response.json()) as { url: string }).url);
     expect(url.searchParams.get("scope")).toBe("companyinformation profile");
-    expect(app.bookkeeping.gates.writes).toBe(false);
-    expect(app.bookkeeping.gates.reviewHost).toBe(false);
+    expect(app.bookkeeping.gates.writes).toBe(true);
+    expect(app.bookkeeping.gates.reviewHost).toBe(true);
     expect(await app.connections.list(owner.response.user.id)).toEqual([]);
   });
   it("reports bounded consent stages without leaking provider errors or replaying code exchanges", async () => {

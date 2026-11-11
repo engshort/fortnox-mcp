@@ -1,5 +1,10 @@
 # API coverage plan
 
+Current activation: the owner removed ordinary product test/verification
+activation restrictions on 2026-11-11. See [the activation decision and runtime
+boundaries](../implementation/product-activation-2026-11-11.md). Dated milestone
+records below retain their original evidence; activation does not promote it.
+
 Nova merge-to-main deployment adds infrastructure automation only; it changes no
 provider coverage or activation gates. Public deployment acceptance is recorded
 separately from Fortnox and client acceptance in the

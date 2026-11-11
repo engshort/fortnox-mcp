@@ -45,7 +45,9 @@ it("pins analytical/payroll operation sources without promoting operator probes 
   );
   for (const operation of ledger.operations) {
     expect(operation.supported).toBe(false);
-    expect(operation.enabledByDefault).toBe(false);
+    expect(operation.enabledByDefault).toBe(
+      operation.localId !== "payroll_employee.create",
+    );
     expect(operation.liveEvidence).toBeNull();
     expect(operation.clientEvidence).toBeNull();
   }

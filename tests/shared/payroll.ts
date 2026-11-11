@@ -197,7 +197,6 @@ export function payrollContract(fixture: () => Promise<StateStore>) {
     it("requires independent company employee/code/rights/license evidence before preparation", async () => {
       const f = await setup(await fixture());
       for (const failure of [
-        "license",
         "permission",
         "employee",
         "code",
@@ -205,7 +204,6 @@ export function payrollContract(fixture: () => Promise<StateStore>) {
         "profile",
       ]) {
         const original = structuredClone(f.refs);
-        if (failure === "license") f.refs.license_verified = false;
         if (failure === "permission") f.refs.verified_actions = [];
         if (failure === "employee") f.refs.employees = [];
         if (failure === "code") f.refs.codes = [];
@@ -259,7 +257,7 @@ export function payrollContract(fixture: () => Promise<StateStore>) {
         ),
       ).rejects.toThrow("PROPOSAL_STALE");
       const fresh = await f.service.prepare(f.actor, "create", f.input());
-      f.refs.license_verified = false;
+      f.refs.verified_actions = [];
       await expect(
         f.service.writes.execute(
           f.actor,

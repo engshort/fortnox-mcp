@@ -1,5 +1,10 @@
 # Documentation map
 
+Current activation: the owner removed ordinary product test/verification
+activation restrictions on 2026-11-11. See [the activation decision and runtime
+boundaries](implementation/product-activation-2026-11-11.md). Dated milestone
+records below retain their original evidence; activation does not promote it.
+
 Operations: [Nova merge-to-main deployment and recovery](deployment-nova.md).
 
 Milestone 7: [financial analysis/payroll delivery and remaining evidence](implementation/M07-analysis-payroll.md) and [Swedish user guidance](users/analys-och-loneunderlag.sv.md). Implementation in progress; no new operation activated.

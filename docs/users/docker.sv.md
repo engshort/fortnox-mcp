@@ -1,5 +1,10 @@
 # Docker-installation och drift
 
+Aktuellt från 11 november 2026: test- och aktiveringsspärrarna är borttagna
+i den vanliga installationen. [Funktioner och åtkomst](funktioner.sv.md)
+beskriver nuvarande beteende och kvarvarande tekniska förutsättningar. Äldre
+testprotokoll nedan beskriver tidigare versioner.
+
 Nova-installationen kan uppdateras automatiskt efter merge till `main` med publik
 HTTPS och en begränsad SSH-deploynyckel, utan Cloudflare Tunnel. Deploy verifierar
 kodrevision, hälsa och inloggningsskydd och behåller databas och nycklar.
@@ -90,8 +95,8 @@ Dela aldrig koden eller lösenordet med ChatGPT. Logga därefter in via `/sign-i
 Under **Fortnox** sparar du egna Client ID/Secret. Formuläret lämnar aldrig
 ut sparade värden. Operatörsstyrda ENV-uppgifter ändras i serverkonfigurationen.
 Registrera den visade callback-adressen i din egen Fortnox-integration.
-Operatören måste först ange exakt två auktoriserade testföretag; produktionskonton
-ingår inte. Välj servicekonto eller användaranslutning och ge samtycke i Fortnox.
+Välj servicekonto eller användaranslutning och ge samtycke i Fortnox.
+Ingen testföretagslista behövs i den vanliga installationen.
 
 Under **Företag** kan du granska status, välja skrivskydd och granskningspolicy,
 koppla från eller återansluta. En policyändring aktiverar ingen funktion och

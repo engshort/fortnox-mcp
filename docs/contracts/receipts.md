@@ -1,5 +1,7 @@
 # Receipts, files and batch recovery
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 The [milestone 4 product adapter](../implementation/M04-receipts-evidence.md) is in progress. Bounded encrypted staging/readback is implemented behind a default-off gate; this does not establish actual client or Fortnox file support.
 
 Actual client evidence may be collected with the [separate M14 file-test

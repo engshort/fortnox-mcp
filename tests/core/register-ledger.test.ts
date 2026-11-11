@@ -35,7 +35,7 @@ it("pins all S04 operation evidence without promoting synthetic acceptance", () 
   );
   for (const operation of ledger.operations) {
     expect(operation.status).toBe("implemented_unverified");
-    expect(operation.enabledByDefault).toBe(false);
+    expect(operation.enabledByDefault).toBe(true);
     expect(operation.supported).toBe(false);
     expect(operation.liveEvidence).toBeNull();
     expect(operation.clientEvidence).toBeNull();

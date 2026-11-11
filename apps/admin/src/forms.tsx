@@ -441,8 +441,8 @@ export function Companies({
           )}
           <p>
             {t(
-              "Policyändring ogiltigförklarar gamla förslag och aktiverar ingen overifierad operation.",
-              "Policy changes invalidate old proposals and do not enable unverified operations.",
+              "Policyändring ogiltigförklarar gamla förslag. Nya skrivningar följer det sparade valet.",
+              "Policy changes invalidate old proposals. New writes follow the saved setting.",
             )}
           </p>
         </article>

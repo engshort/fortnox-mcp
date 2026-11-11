@@ -50,6 +50,13 @@ test.beforeAll(async () => {
   }
   throw new Error("Browser fixture unavailable");
 });
+test.beforeEach(() => {
+  // Cases retain their synthetic owner/company setup, but failed-login attempts
+  // from another case must not consume this case's installation-wide budget.
+  const db = new DatabaseSync(join(directory, "product.sqlite"));
+  try { db.exec('DELETE FROM "rateLimit"'); } finally { db.close(); }
+});
+
 test.afterAll(async () => {
   if (child?.exitCode === null) {
     const stopped = new Promise((r) => child.once("exit", r));
@@ -192,7 +199,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await page.getByRole("button", { name: "Anslut program", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true })).toBeEnabled();
   await page.route(`**/admin/companies/${b.id}/programs/start`, async (route) => {
-    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references"], expected_revision: 0 });
+    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references", "supplier-registers", "supplier-invoices"], expected_revision: 0 });
     await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "CONNECTION_CONFLICT" }) });
   });
   await dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true }).click();
@@ -206,8 +213,8 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await expect(row).toContainText("Inte anslutet");
   await page.goBack(); await expect(page).toHaveURL(`${origin}/admin/companies/${a.id}/bookkeeping`);
   await page.getByRole("navigation", { name: "Företagsvyer" }).getByRole("link", { name: "Lön", exact: true }).click();
-  await expect(page.getByText("Stöd planeras", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Anslut program", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Verifiering återstår", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Anslut program", exact: true })).toBeEnabled();
   const recoveryDb = new DatabaseSync(join(directory, "product.sqlite"));
   const recoveryConnections = new Connections(sqliteState(recoveryDb), new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
   const execution = crypto.randomUUID();

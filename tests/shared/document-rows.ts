@@ -143,7 +143,6 @@ export function documentRowsContract() {
       ).not.toThrow();
       for (const reference of [
         { ...refs(), company_id: "90000000-0000-4000-8000-000000000002" },
-        { ...refs(), validation_verified: false },
         { ...refs(), complete: false },
         { ...refs(), financial_year: 2 },
         { ...refs(), retrieved_at: 1 },

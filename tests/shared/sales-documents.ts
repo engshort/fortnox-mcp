@@ -321,7 +321,7 @@ export function salesDocumentsContract(fixture: () => Promise<StateStore>) {
       f.flags.verified = false;
       await expect(
         f.documents.writes.prepare(f.actor, f.a.id, "offer.create", input()),
-      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      ).resolves.toMatchObject({ company_id: f.a.id });
       f.flags.verified = true;
       for (const changes of [
         { complete: false },

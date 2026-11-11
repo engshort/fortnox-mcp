@@ -11,6 +11,7 @@ import {
   OpenItems,
   PayrollInputs,
   type PayrollOperation,
+  payrollOperationIds,
   previewProgram,
   programChange,
   programStatus,
@@ -27,6 +28,7 @@ import {
   registerOperationIds,
   registerScope,
   SalesDocuments,
+  salesOperationIds,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -116,11 +118,6 @@ export function requestedFortnoxScopes(
     "testMode" | "accountingReferences" | "receiptProviderConsent"
   >,
 ) {
-  if (
-    settings.receiptProviderConsent &&
-    (!settings.testMode || !settings.accountingReferences)
-  )
-    throw new DomainError("CAPABILITY_UNAVAILABLE");
   return [
     "companyinformation",
     "profile",
@@ -159,18 +156,8 @@ export function productSettings(
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
-  if (
-    testMode &&
-    (new Set(testTenants).size !== 2 ||
-      testTenants.some((t) => !/^\d{1,15}$/.test(t)) ||
-      !!env.FORTNOX_CLIENT_ID !== !!env.FORTNOX_CLIENT_SECRET)
-  )
-    throw new Error(
-      "Two distinct test tenants and private integration configuration required",
-    );
-  const accountingReferences =
-    testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
-  const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
+  const accountingReferences = true;
+  const receiptProviderConsent = true;
   requestedFortnoxScopes({
     testMode,
     accountingReferences,
@@ -232,8 +219,24 @@ export function createProductApplication(
   businessTest?: ProductBusinessTest,
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
-  const financialReads = businessTest?.financialReads ?? [];
-  const openItemReads = businessTest?.openItemReads ?? [];
+  // All finite implemented operations are available in the ordinary product.
+  // Separate acceptance entries retain their explicit operation selections.
+  const profile = businessTest ?? {
+    operations: registerOperationIds,
+    documentReads: salesOperationIds,
+    payrollReads: payrollReadOperationIds,
+    payrollWrites: {
+      operations: payrollOperationIds.filter((id) =>
+        /\.(create|update|delete)$/.test(id),
+      ),
+      profiles: [],
+    },
+    financialReads: financialReadOperations,
+    openItemReads: openItemReadOperations,
+  };
+  const profileActive = () => !businessTest || now() < businessTest.until;
+  const financialReads = profile.financialReads ?? [];
+  const openItemReads = profile.openItemReads ?? [];
   if (
     new Set(openItemReads).size !== openItemReads.length ||
     openItemReads.some((id) => !openItemReadOperations.includes(id))
@@ -244,7 +247,7 @@ export function createProductApplication(
     financialReads.some((id) => !financialReadOperations.includes(id))
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
-  const payrollReads = businessTest?.payrollReads ?? [];
+  const payrollReads = profile.payrollReads ?? [];
   if (
     payrollReads.length > 4 ||
     new Set(payrollReads).size !== payrollReads.length ||
@@ -253,8 +256,8 @@ export function createProductApplication(
     )
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
-  const documentReads = businessTest?.documentReads ?? [];
-  const payrollWriteOperations = businessTest?.payrollWrites?.operations ?? [];
+  const documentReads = profile.documentReads ?? [];
+  const payrollWriteOperations = profile.payrollWrites?.operations ?? [];
   if (
     new Set(payrollWriteOperations).size !== payrollWriteOperations.length ||
     payrollWriteOperations.some(
@@ -288,19 +291,20 @@ export function createProductApplication(
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
-    documentReads.length > 6 ||
-    new Set(documentReads).size !== documentReads.length ||
-    documentReads.some(
-      (id) =>
-        ![
-          "offer.list",
-          "offer.get",
-          "order.list",
-          "order.get",
-          "invoice.list",
-          "invoice.get",
-        ].includes(id),
-    )
+    businessTest &&
+    (documentReads.length > 6 ||
+      new Set(documentReads).size !== documentReads.length ||
+      documentReads.some(
+        (id) =>
+          ![
+            "offer.list",
+            "offer.get",
+            "order.list",
+            "order.get",
+            "invoice.list",
+            "invoice.get",
+          ].includes(id),
+      ))
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
@@ -340,28 +344,26 @@ export function createProductApplication(
   );
   const programGates = () => ({
     payrollConsent:
-      !!businessTest &&
-      now() < businessTest.until &&
-      businessTest.consentScopes?.includes("salary") === true,
-    references: settings.testMode && settings.accountingReferences === true,
-    receiptConsent:
-      settings.testMode && settings.receiptProviderConsent === true,
-    registerScopes:
-      businessTest && now() < businessTest.until
-        ? [
-            ...new Set(
-              businessTest.operations.map((id) =>
-                registerScope(id.split(".")[0] as RegisterResource),
-              ),
+      !businessTest ||
+      (now() < businessTest.until &&
+        businessTest.consentScopes?.includes("salary") === true),
+    references: true,
+    receiptConsent: true,
+    registerScopes: profileActive()
+      ? [
+          ...new Set(
+            profile.operations.map((id) =>
+              registerScope(id.split(".")[0] as RegisterResource),
             ),
-          ]
-        : [],
+          ),
+        ]
+      : [],
   });
   const provider = new FortnoxConnections({
     origin: settings.origin,
     connections,
     fetch: fetcher,
-    testTenants: settings.testTenants,
+    ...(businessTest || fileTest ? { testTenants: settings.testTenants } : {}),
     scopes: baseScopes,
     programGates,
   });
@@ -377,12 +379,12 @@ export function createProductApplication(
     redirects: settings.redirects,
     connections,
   };
-  // G02/#32 and G06/G07 require current, operation-specific evidence. An ENV flag
-  // must not be able to turn an unverified host or provider into an approved one.
+  // Owner-authorized activation is separate from acceptance evidence. Review
+  // still requires the UI-only capability in a conforming MCP Apps host.
   const accountingGates = {
-    references: settings.accountingReferences === true && settings.testMode,
-    writes: false,
-    reviewHost: false,
+    references: true,
+    writes: !fileTest && !businessTest,
+    reviewHost: !fileTest && !businessTest,
   };
   const accountingProvider = new FortnoxAccounting(
     connections,
@@ -394,29 +396,29 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
-  const registers = businessTest
+  const registers = !fileTest
     ? new Registers(
         connections,
         new FortnoxRegisters(
           connections,
           provider,
-          businessTest.operations,
+          profile.operations,
           now,
-          () => now() < businessTest.until,
+          profileActive,
         ),
-        businessTest.operations,
+        profile.operations,
       )
     : undefined;
   const financialProvider =
-    businessTest && financialReads.length
+    !fileTest && financialReads.length
       ? new FortnoxFinancialReads(
           connections,
           provider,
           financialReads,
-          () => now() < businessTest.until,
+          profileActive,
           now,
           (company, year) =>
-            businessTest.financialMappings?.find(
+            businessTest?.financialMappings?.find(
               (m) => m.company_id === company && m.financial_year === year,
             )?.mapping,
         )
@@ -428,14 +430,14 @@ export function createProductApplication(
       }
     : undefined;
   const openItems =
-    businessTest && openItemReads.length
+    !fileTest && openItemReads.length
       ? new OpenItems(
           connections,
           new FortnoxOpenItems(
             connections,
             provider,
             openItemReads,
-            () => now() < businessTest.until,
+            profileActive,
             now,
           ),
           (["receivable", "payable"] as const).filter((kind) =>
@@ -476,23 +478,24 @@ export function createProductApplication(
         )
       : undefined;
   const payroll =
-    businessTest && payrollReads.length
+    !fileTest && payrollReads.length
       ? new PayrollInputs(
           connections,
-          businessTest.payrollWrites
+          profile.payrollWrites
             ? new FortnoxPayrollWrites(
                 connections,
                 provider,
-                businessTest.payrollWrites.profiles,
+                profile.payrollWrites.profiles,
                 payrollOperations,
-                () => now() < businessTest.until,
+                profileActive,
                 now,
+                !businessTest,
               )
             : new FortnoxPayrollReads(
                 connections,
                 provider,
                 payrollReads,
-                () => now() < businessTest.until,
+                profileActive,
                 now,
               ),
           payrollOperations,
@@ -500,20 +503,20 @@ export function createProductApplication(
         )
       : undefined;
   const salesDocuments =
-    businessTest?.documentReads?.length && registers
+    documentReads.length && registers
       ? new SalesDocuments(
           connections,
           new FortnoxSalesDocuments(
             connections,
             provider,
-            businessTest.documentReads,
-            () => now() < businessTest.until,
+            documentReads,
+            profileActive,
             now,
           ),
           registers,
           accountingProvider,
-          businessTest.documentReads,
-          [],
+          documentReads,
+          null,
           now,
         )
       : undefined;
@@ -534,36 +537,39 @@ export function createProductApplication(
           return result;
         },
         fileValidator,
-        // G03/#33 and product file acceptance are not established by an ENV flag.
-        !!fileTest,
+        !businessTest,
       )
     : undefined;
   const receipts = receiptFiles
-    ? new Receipts(bookkeeping, receiptFiles, false)
+    ? new Receipts(bookkeeping, receiptFiles, !fileTest && !businessTest)
     : undefined;
   const receiptAttachments = receipts
     ? new ReceiptAttachments(
         receipts,
         new FortnoxReceiptFiles(connections, provider, accountingProvider, {
-          upload: false,
-          link: false,
-          connectionRead: false,
-          inboxRead: false,
-          formats: [],
+          upload: !fileTest && !businessTest,
+          link: !fileTest && !businessTest,
+          connectionRead: !fileTest && !businessTest,
+          inboxRead: !fileTest && !businessTest,
+          formats: ["application/pdf", "image/png", "image/jpeg"],
           rejectedWithoutEffect: { inbox_upload: [], voucher_file_link: [] },
         }),
-        { upload: false, link: false, retrieve: false },
+        {
+          upload: !fileTest && !businessTest,
+          link: !fileTest && !businessTest,
+          retrieve: !fileTest && !businessTest,
+        },
       )
     : undefined;
   const receiptWorkflow = receiptAttachments
-    ? new ReceiptWorkflow(receiptAttachments, false)
+    ? new ReceiptWorkflow(receiptAttachments, !fileTest && !businessTest)
     : undefined;
   const gateway = createProductGateway(config, (identity) =>
     companyServer({
       identity,
       connections,
       provider,
-      testMode: settings.testMode,
+      testMode: true,
       diagnostics: !fileTest,
       ...(!fileTest ? { bookkeeping } : {}),
       ...(registers ? { registers } : {}),
@@ -591,7 +597,7 @@ export function createProductApplication(
         JSON.stringify({
           ok: true,
           product: "experimental",
-          provider: settings.testMode ? "test_only" : "disabled",
+          provider: businessTest || fileTest ? "test_only" : "enabled",
           ...(businessTest
             ? {
                 register_test: {
@@ -692,12 +698,26 @@ export function createProductApplication(
           z.object({})
             .strict()
             .parse(await boundedJson(request));
-          if (!registers || !businessTest || now() >= businessTest.until)
-            throw new DomainError("CAPABILITY_UNAVAILABLE");
-          const result = await registers.writes.reconcileOwner(
+          if (!profileActive()) throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const companyId = z.string().uuid().parse(businessReconcile[1]);
+          const executionId = z.string().uuid().parse(businessReconcile[2]);
+          const company = (await connections.list(session.user.id)).find(
+            (c) => c.id === companyId,
+          );
+          if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+          const execution = company.business?.executions.find(
+            (e) => e.id === executionId,
+          );
+          const service =
+            execution &&
+            [registers?.writes, salesDocuments?.writes, payroll?.writes].find(
+              (s) => s?.operations[execution.operation],
+            );
+          if (!service) throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const result = await service.reconcileOwner(
             session.user.id,
-            z.string().uuid().parse(businessReconcile[1]),
-            z.string().uuid().parse(businessReconcile[2]),
+            companyId,
+            executionId,
           );
           return safeResponse(JSON.stringify(result));
         } catch (error) {
@@ -776,17 +796,18 @@ export function createProductApplication(
             integration: await integration.status(session.user.id, connections),
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
-            test_mode: settings.testMode,
+            test_mode: !!businessTest || !!fileTest,
             restore:
               (await runtime.state.get("installation", "restore"))?.value ??
               null,
             capabilities: {
-              business_reconciliation:
-                !!registers && !!businessTest && now() < businessTest.until,
-              writes: false,
-              provider_files: false,
-              review_host: false,
-              files: fileTestActive(),
+              business_reconciliation: !!registers && profileActive(),
+              writes: accountingGates.writes,
+              provider_files: receiptAttachments?.gates.upload === true,
+              review_host: accountingGates.reviewHost,
+              files:
+                receiptFiles?.enabled === true &&
+                (!fileTest || fileTestActive()),
             },
             companies: companies.map((c) => ({
               company_id: c.id,
@@ -890,11 +911,11 @@ export function createProductApplication(
         const rows = companies
           .map(
             (c) =>
-              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : `<form data-action="/admin/fortnox/policy"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="policy_version" value="${c.policyVersion}"><label>Manuella verifikationer <select name="review"><option value="review_required" ${c.review === "review_required" ? "selected" : ""}>Mänsklig granskning krävs</option><option value="client_managed" ${c.review === "client_managed" ? "selected" : ""}>Klientens godkännanden</option></select></label><label>Åtkomst <select name="read_only"><option value="true" ${c.readOnly ? "selected" : ""}>Skrivskyddad</option><option value="false" ${!c.readOnly ? "selected" : ""}>Tillåt verifierade skrivoperationer</option></select></label><button>Spara policy och ogiltigförklara gamla förslag</button></form>`}<p>Policyversion ${c.policyVersion}. Ändring aktiverar ingen overifierad operation.</p></li>`,
+              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : `<form data-action="/admin/fortnox/policy"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="policy_version" value="${c.policyVersion}"><label>Manuella verifikationer <select name="review"><option value="review_required" ${c.review === "review_required" ? "selected" : ""}>Mänsklig granskning krävs</option><option value="client_managed" ${c.review === "client_managed" ? "selected" : ""}>Klientens godkännanden</option></select></label><label>Åtkomst <select name="read_only"><option value="true" ${c.readOnly ? "selected" : ""}>Skrivskyddad</option><option value="false" ${!c.readOnly ? "selected" : ""}>Tillåt skrivoperationer</option></select></label><button>Spara policy och ogiltigförklara gamla förslag</button></form>`}<p>Policyversion ${c.policyVersion}. Nya skrivningar följer den sparade policyn.</p></li>`,
           )
           .join("");
         return safeResponse(
-          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>${fileTest ? `M14-filprov till ${escapeHtml(new Date(fileTest.until).toISOString())}. Endast tillfällig filstaging och originalhämtning kan provas. Bokföring, Fortnox-filer och granskningskörning är avstängda.` : "Testinstallation. Bokföring och filer är avstängda."} Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
+          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>${fileTest ? `M14-filprov till ${escapeHtml(new Date(fileTest.until).toISOString())}. Endast tillfällig filstaging och originalhämtning kan provas. Bokföring, Fortnox-filer och granskningskörning är avstängda.` : "Funktioner använder företagets Fortnox-behörigheter och sparade policy."} Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button>Anslut företag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
           200,
           "text/html; charset=utf-8",
         );
@@ -976,7 +997,7 @@ export function createProductApplication(
                     owner: session.user.id,
                     connections,
                     provider,
-                    testMode: settings.testMode,
+                    testMode: true,
                     authorize: async (id) => {
                       const company = (
                         await connections.list(session.user.id)
@@ -991,8 +1012,6 @@ export function createProductApplication(
             );
           }
           if (url.pathname === "/admin/fortnox/start") {
-            if (!settings.testMode)
-              return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
             const input = z
               .object({
                 mode: z.enum(["service", "user"]),
@@ -1025,8 +1044,6 @@ export function createProductApplication(
         request.method === "GET" &&
         url.pathname === "/admin/fortnox/callback"
       ) {
-        if (!settings.testMode)
-          return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
         try {
           const company = await provider.finish(
             session.user.id,

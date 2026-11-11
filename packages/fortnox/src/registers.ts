@@ -266,7 +266,7 @@ export class FortnoxRegisters implements RegisterProvider {
       if (
         !this.active() ||
         current.generation !== c.generation ||
-        !this.provider.config.testTenants.includes(current.tenant)
+        !this.provider.allowsTenant(current.tenant)
       )
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
