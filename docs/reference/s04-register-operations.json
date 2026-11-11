@@ -11,7 +11,7 @@
     "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
     "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
     "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
-    "packages/fortnox/src/connections.ts": "633607eeef02404ca38c0456f818524058acfc8b7fc3957ac27829ccd8a3dea7",
+    "packages/fortnox/src/connections.ts": "7c99d0c71d33e690a411aaca3cfe044b9c22da86dfb6992973ce9bcbed209cee",
     "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b"
   },
   "operations": [

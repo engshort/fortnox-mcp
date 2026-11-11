@@ -152,8 +152,8 @@ function Operations({
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const labels: Record<string, string> = {
     business_reconciliation: t(
-      "Avstämning av registerutfall",
-      "Register outcome reconciliation",
+      "Avstämning av skrivutfall",
+      "Write outcome reconciliation",
     ),
     writes: t("Bokföringsskrivningar", "Bookkeeping writes"),
     provider_files: t("Fortnox-filer", "Fortnox files"),

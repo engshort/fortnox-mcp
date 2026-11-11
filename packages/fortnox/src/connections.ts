@@ -382,6 +382,7 @@ export class FortnoxConnections {
     const identity = parsed.data.CompanyInformation;
     const actual = String(identity.DatabaseNumber);
     if (
+      !/^\d{1,15}$/.test(actual) ||
       !this.allowsTenant(actual) ||
       (tenant !== undefined && tenant !== actual)
     )
