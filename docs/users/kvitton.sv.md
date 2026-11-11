@@ -1,5 +1,11 @@
 # Kvitton och återhämtning
 
+Testacceptans från 11 november 2026: i projektets godkända sandlådor kan en AI
+utföra de interaktiva proven och en separat AI granska originalunderlag och
+faktiska resultat. Se [beslut och teststeg](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Det ändrar inte företagets policy. Varje förslag ska fortfarande granskas via
+rätt klientflöde; samma AI:s självgodkännande räcker inte som oberoende granskning.
+
 Produktens implementerade filverktyg och kvittoflöde är aktiverade från
 11 november 2026. Filtransport och godkända HTTPS-källor behöver konfigureras.
 Företagets skrivskydd och verifikationspolicy gäller.

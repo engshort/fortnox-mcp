@@ -1,5 +1,12 @@
 # Verification gates and known gaps
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 **2026-11-07:** milestone 4 has a [G08 recovery packet](../implementation/M04-G08-recovery.md)

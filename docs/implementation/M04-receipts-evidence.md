@@ -1,5 +1,12 @@
 # Milestone 4 — receipt workflow implementation and evidence
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 In progress, 2026-11-07. Tracks M14–M17 (#68–#71), G08/#38 and the
 file-operation slice of G06/#94. Full G06/#36, G02/#32, G03/#33 and financial
 G07/#37 retain their independent acceptance. No release or production account.
@@ -224,7 +231,9 @@ entries (Vitest/Miniflare/Wrangler transitive dependencies); the newly pinned
 format/address libraries were not listed. No blind dependency upgrade was made.
 Final aggregate checks and CI will be rerun for the complete milestone patch.
 
-## Human client acceptance (pending)
+<a id="human-client-acceptance-pending"></a>
+
+## AI-operable client acceptance (pending)
 
 1. In the separate authorized test installation, enable only the reviewed file
    transport/origins and obtain fresh `mcp:files` consent. Keep financial writes
@@ -264,7 +273,9 @@ was reference input only; its SHA-256 is recorded in the operation ledger, witho
 redistributing the document, derived descriptions or generated code. #35 remains
 independent.
 
-## Human provider acceptance (pending)
+<a id="human-provider-acceptance-pending"></a>
+
+## AI-operable provider acceptance (pending)
 
 1. Use only the two explicitly authorized synthetic test tenants. Obtain fresh
    Fortnox consent for `inbox` and `connectfile` and fresh MCP file/write consent;
@@ -384,7 +395,9 @@ tunnel or deployment is started by configuring the product source settings.
 All product file/provider/workflow gates still remain false; these ENV settings
 cannot assert client, host or provider acceptance or widen grants.
 
-### Operator preparation (requires the later human test session)
+<a id="operator-preparation-requires-the-later-human-test-session"></a>
+
+### Operator preparation (requires the actual independently reviewed test session)
 
 1. Observe/review the actual client file source origins privately; no wildcard or
    guessed host. Put only those exact origins in `RECEIPT_FILE_ORIGINS` in the

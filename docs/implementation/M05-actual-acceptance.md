@@ -1,5 +1,12 @@
 # M05 actual acceptance observations and remaining scenarios
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Owner acceptance was approved on 2026-11-09, together with conditional merge and
 publication authorization. See the [recorded decision and release scope](M05-release-authorization-2026-11-09.md).
 The scenario states below describe actual evidence; unperformed tests remain
@@ -55,7 +62,7 @@ review boundary to be established; changing owner policy is insufficient.
 | ChatGPT OAuth/MCP | Actual login/consent, two selected companies, foreign-company denial, refresh/revocation, reload/remount | Local Chrome reports reads, disconnect/reconnect, saved-answer reload and reads after expiry; server confirms refresh revocation/rotation. Four isolated synthetic old-token rejections passed; original-token replay and remaining client isolation/UI cases are pending. Historical actual Reload tools evidence retains its original scope in #56. |
 | Reference validation | Company/year/accounts/series/locked period evidence; no guessed rules | Pending #92/#93 |
 | Two originals | Same original for client interpretation and server staging/readback, no URL/name/token disclosure | Pending #33 |
-| Two separate reviews | Trusted human action per item, capability isolation/replay/remount/CSP | Pending #32/#76 |
+| Two separate reviews | Explicit interaction per item with independent AI review permitted; capability isolation/replay/remount/CSP | Pending #32/#76 |
 | Provider results | Exact verified voucher and attachment references/readback for each item | Pending #76/#94 |
 | Lost answer/restart | Unknown result retained and reconciled, no second booking or upload | Pending #38 |
 | Link failure | Known voucher/upload retained; repair link only after proof of no effect | Pending #38/#94 |

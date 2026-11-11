@@ -39,6 +39,18 @@ change D10/D11/D13/D15 or approve a stable release. The existing conforming-host
 MCP Apps trust boundary is documented, including its limits. See the
 [scope, migration and acceptance record](implementation/product-activation-2026-11-11.md).
 
+## Owner-directed independent AI acceptance (2026-11-11)
+
+The owner explicitly replaced required human execution/review in project test
+acceptance with AI execution and a separate AI review. This applies to all
+authorized sandbox acceptance, including actual client file selection and
+per-item review. Real client/provider/runtime execution and complete evidence
+remain required; self-review, mocks and a `confirmed` argument do not suffice.
+The decision changes the acceptance operator, not company policy or ordinary
+model access to app-only approval capabilities. Record new results as
+AI-executed and independently AI-reviewed, without claiming human presence.
+See the [procedure and retained boundaries](implementation/ai-reviewed-acceptance-2026-11-11.md).
+
 ## CLA and commercial-rights decision (2026-10-20)
 
 The owner approved a **Contributor License Agreement with Easy Today AB as the legal rights recipient**. The public code and documentation remain AGPL-3.0-only; the company's additional license is non-exclusive, contributors retain copyright, and separately licensed commercial products may be built only from material for which the company has the necessary rights. The change does not alter the open-source release scope, licensing of historic third-party material, or the D03 self-hosting-first launch decision.

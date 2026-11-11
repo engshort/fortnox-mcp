@@ -1,5 +1,10 @@
 # Client compatibility and embedded UI
 
+Test acceptance (2026-11-11) permits an AI operator with a separate AI reviewer
+under the [owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Interactive file selection and review may be AI-operated, but must run in the
+actual required client; a local simulated host does not become ChatGPT evidence.
+
 Activation update (2026-11-11): the ordinary product enables the existing
 conforming-host MCP Apps review and implemented file tools. See the
 [activation and host trust boundary](../implementation/product-activation-2026-11-11.md).
