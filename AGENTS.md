@@ -49,3 +49,13 @@ a capability passed them. Preserve uncertain outcomes, reconcile before another
 write and report actual provider differences honestly. This authorization does
 not change a company's recorded manual-voucher policy, prove a human review,
 activate ordinary product capabilities or authorize unrelated installations.
+
+## Owner-authorized independent AI test review (2026-11-11)
+
+For all project acceptance tests in authorized sandboxes, an AI operator may
+replace the previously required human operator, with a separate AI reviewer
+checking the concrete proposal/evidence and result. Follow
+`docs/implementation/ai-reviewed-acceptance-2026-11-11.md`. Record AI execution
+honestly; do not claim a human action, accept self-review as independent review,
+substitute mocks for actual client/provider/runtime tests, change company policy
+implicitly or expose app-only approval capabilities to ordinary model tools.

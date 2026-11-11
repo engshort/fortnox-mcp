@@ -1,5 +1,12 @@
 # S06 — Accounting invariants and manual review
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Status: milestone 3's bounded creation/review implementation has synthetic
 Node/workerd evidence; actual provider/financial/client acceptance remains open.
 See [M03 evidence and rule matrix](M03-accounting-evidence.md). Broader S06 and

@@ -1,5 +1,11 @@
 # Test strategy and evidence
 
+Operator/reviewer update (2026-11-11): all acceptance tests may use an AI operator
+and a separate AI reviewer under the [owner-approved procedure](implementation/ai-reviewed-acceptance-2026-11-11.md).
+Real client/provider/runtime and evidence requirements remain. Historical human
+observations are preserved; new runs must be labeled as AI-executed and
+independently AI-reviewed.
+
 The [2026-11-11 activation change](implementation/product-activation-2026-11-11.md)
 adds shared Node/SQLite and workerd/D1 coverage for ordinary product consent to
 a third company with test flags off, the implemented tool catalog and continued

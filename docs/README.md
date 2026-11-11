@@ -1,5 +1,9 @@
 # Documentation map
 
+Acceptance operator: the owner permits [AI execution with independent AI review](implementation/ai-reviewed-acceptance-2026-11-11.md)
+for all sandbox tests formerly requiring a human operator. Actual execution and
+evidence requirements remain; historical records are not promoted.
+
 Current activation: the owner removed ordinary product test/verification
 activation restrictions on 2026-11-11. See [the activation decision and runtime
 boundaries](implementation/product-activation-2026-11-11.md). Dated milestone

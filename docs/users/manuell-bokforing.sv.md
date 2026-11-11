@@ -1,5 +1,11 @@
 # Granskad manuell bokföring — testversion
 
+Testacceptans från 11 november 2026: i projektets godkända sandlådor kan en AI
+utföra de interaktiva proven och en separat AI granska originalunderlag och
+faktiska resultat. Se [beslut och teststeg](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Det ändrar inte företagets policy. Varje förslag ska fortfarande granskas via
+rätt klientflöde; samma AI:s självgodkännande räcker inte som oberoende granskning.
+
 Bokföringsflödet är aktiverat i vanliga produktbygget från 11 november 2026.
 Det innehåller validering, skyddade förslag, granskningsvy och beständiga
 skrivintentioner. Företagets sparade skrivskydd och verifikationspolicy gäller.

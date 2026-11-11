@@ -1,5 +1,12 @@
 # Manual-voucher approval policy
 
+Test acceptance (2026-11-11): an AI operator and a separate AI reviewer may
+perform the required interactive review in authorized sandboxes, following the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+This does not change recorded company policy or permit ordinary model tools to
+approve their own proposals. Evidence must identify AI execution, not claim a
+human action.
+
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 The [milestone 3 service/view](../implementation/M03-accounting-evidence.md)
@@ -54,7 +61,8 @@ Expired/stale proposals require renewed preparation/review. Upstream record chan
 M17 permits explicit re-review of an unexecuted immutable receipt while its
 original file/proposal are still live. It rotates the UI-only capability and
 invalidates the old one at the durable claim. Rotation is not approval: a new
-human action is still required. Existing executions cannot be replaced. Receipt
+explicit review interaction is still required, independently AI-reviewed for an
+AI-operated acceptance run. Existing executions cannot be replaced. Receipt
 resume never creates a voucher, even when upload succeeded before an interruption;
 it can only reconcile exact evidence or repair a successful voucher's link.
 
