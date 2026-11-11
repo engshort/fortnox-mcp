@@ -15,7 +15,7 @@
     "packages/mcp/src/companies.ts": "16fab61c833318cbba436a8253ecf3d50d016fe4c7e2e298d256dfa6debe9186",
     "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
     "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
-    "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b"
+    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715"
   },
   "operations": [
     {

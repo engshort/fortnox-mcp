@@ -32,7 +32,7 @@
     "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873",
     "apps/node/src/product-runtime.ts": "96cfc60ba7cec62374da9c544816aafe317f6e35e0f07a4c4ec73aa46ae435b9",
     "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784",
-    "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b"
+    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715"
   },
   "gates": {
     "provider": "#94",

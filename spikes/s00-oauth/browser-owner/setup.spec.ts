@@ -50,6 +50,13 @@ test.beforeAll(async () => {
   }
   throw new Error("Browser fixture unavailable");
 });
+test.beforeEach(() => {
+  // Cases retain their synthetic owner/company setup, but failed-login attempts
+  // from another case must not consume this case's installation-wide budget.
+  const db = new DatabaseSync(join(directory, "product.sqlite"));
+  try { db.exec('DELETE FROM "rateLimit"'); } finally { db.close(); }
+});
+
 test.afterAll(async () => {
   if (child?.exitCode === null) {
     const stopped = new Promise((r) => child.once("exit", r));

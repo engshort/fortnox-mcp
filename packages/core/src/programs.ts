@@ -238,6 +238,7 @@ export function assertScopeProgram(c: Connection, scope: string) {
   if (["supplier", "supplierinvoice", "inbox", "connectfile"].includes(scope)) {
     assertProgram(c, "bookkeeping");
     if (scope === "supplier") assertFeature(c, "supplier-registers");
+    if (scope === "supplierinvoice") assertFeature(c, "supplier-invoices");
     if (
       ["inbox", "connectfile"].includes(scope) &&
       c.programs &&
@@ -247,6 +248,8 @@ export function assertScopeProgram(c: Connection, scope: string) {
   }
   if (["customer", "article"].includes(scope))
     assertFeature(c, "customer-registers");
+  if (scope === "invoice") assertFeature(c, "sales-invoices");
+  if (scope === "offer" || scope === "order") assertFeature(c, "sales-orders");
   for (const p of programManifest)
     if ((p.scopes as readonly string[]).includes(scope)) assertProgram(c, p.id);
 }

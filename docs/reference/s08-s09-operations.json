@@ -8,7 +8,7 @@
     "packages/core/src/analytics.ts": "c9d4b36c7de3a1f7e4055a62460e29daf03f7ceaf8521b904c6b20c1aaefb3d3",
     "packages/core/src/sie.ts": "0d2e8f47a62805232a49bd7268c89586e57bf8213417212030ce2a21aa4f7d4f",
     "packages/core/src/payroll.ts": "a582ed235cd5ebc1ce713c846f22356cbe128c831fab2fbf50b93e75d0140e4e",
-    "packages/core/src/programs.ts": "60263125d4fc35f65c030de989f08f4373e2740baa100890342aacf1f9db827b",
+    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715",
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/fortnox/src/connections.ts": "7c99d0c71d33e690a411aaca3cfe044b9c22da86dfb6992973ce9bcbed209cee",

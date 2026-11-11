@@ -180,6 +180,29 @@ export function programContract(fixture: () => Promise<StateStore>) {
       expect(f.calls()).toBe(calls);
     },
   );
+  it("retained provider scopes cannot resurrect unselected document features", async () => {
+    const f = await seed();
+    f.a.programs = {
+      revision: 1,
+      enabled: ["bookkeeping", "invoicing", "order-offer"],
+      features: ["customer-registers", "supplier-registers"],
+    };
+    for (const [scope, feature] of [
+      ["invoice", "sales-invoices"],
+      ["offer", "sales-orders"],
+      ["order", "sales-orders"],
+      ["supplierinvoice", "supplier-invoices"],
+    ] as const) {
+      expect(() => assertScopeProgram(f.a, scope)).toThrow(
+        "CAPABILITY_UNAVAILABLE",
+      );
+      f.a.programs.features.push(feature);
+      expect(() => assertScopeProgram(f.a, scope)).not.toThrow();
+      f.a.programs.features = f.a.programs.features.filter(
+        (id) => id !== feature,
+      );
+    }
+  });
   it("collects salary consent only with its own gate and never treats consent as payroll activation", async () => {
     const f = await seed();
     const change: ProgramChange = {
