@@ -1,5 +1,9 @@
 # Documentation map
 
+Current actual acceptance: [the 2026-11-11 implemented-function audit](implementation/acceptance-audit-2026-11-11.md)
+records independently AI-reviewed provider/client results and their limits;
+[remaining Swedish test steps](users/acceptansprov.sv.md) identify concrete prerequisites.
+
 Acceptance operator: the owner permits [AI execution with independent AI review](implementation/ai-reviewed-acceptance-2026-11-11.md)
 for all sandbox tests formerly requiring a human operator. Actual execution and
 evidence requirements remain; historical records are not promoted.

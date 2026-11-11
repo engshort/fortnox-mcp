@@ -8,6 +8,15 @@ and [bounded evidence](../implementation/S05-documents.md#empty-copy-recipient-r
 This changes no operation's verification classification; recipient-free drafts
 in #130 and broader lifecycle/provider acceptance remain separate.
 
+Actual acceptance update (2026-11-11): [the implemented-function audit](../implementation/acceptance-audit-2026-11-11.md)
+records native ChatGPT review, bounded register writes/readback/cleanup,
+selected references, explicit validation failures and partial financial reads.
+The consent-overlap defect #127 and bounded empty-copy recovery defect #131 are
+resolved with actual reviewed cleanup. Stale-generation native reconnect is
+tracked in #129 and remaining sales editability in #130. File-byte, broader provider, financial and
+recovery gates retain their missing evidence. No operation is promoted to fully
+verified support by this bounded audit.
+
 Browser-consent recovery: one Fortnox flow per authenticated admin session is
 reserved atomically before provider navigation. Independent sessions retain
 bounded concurrency. This changes connection UX, not provider-operation
