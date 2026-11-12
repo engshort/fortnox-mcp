@@ -26,11 +26,13 @@ reconciliation; the generated filename identifies a staged file, not an attempt.
 An existing trusted provider reference may never be replaced by a different one.
 
 Only positive evidence permits a CAS update of upload unknown to succeeded.
-Voucher/link remain pending, historical versions stay unchanged and no POST,
-financial dispatch or new approval follows. Missing/ambiguous/mismatched evidence
+Voucher/link remain pending, historical versions stay unchanged and no file or
+financial resource write or new approval follows. Missing/ambiguous/mismatched evidence
 retains unknown; failures, empty lists and expired bytes never authorize resend.
 The whole inspection has a 15-second deadline, bounded JSON/binary reads and the
-shared provider limiter. General attachment retrieval still requires its voucher
+shared provider limiter. Ordinary authenticated token acquisition/renewal may
+still occur during a read; this is separate from file/business resource writes.
+General attachment retrieval still requires its voucher
 and verified relationship; there is no archive fallback or arbitrary HTTP proxy.
 
 Future uncertain results retain only fixed failure stage and HTTP status, with
