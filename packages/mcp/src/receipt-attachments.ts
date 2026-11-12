@@ -7,6 +7,7 @@ import {
   type ReceiptAttachments,
   ReceiptFileError,
   receiptItemReference,
+  receiptProviderErrorCode,
 } from "@fortnox-mcp/core";
 import { ProviderError } from "@fortnox-mcp/fortnox";
 import { type McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
@@ -28,6 +29,7 @@ const outcome = z.union([
             "authorization",
           ]),
           http_status: z.number().int().min(100).max(599).optional(),
+          provider_code: receiptProviderErrorCode.optional(),
         })
         .strict()
         .optional(),

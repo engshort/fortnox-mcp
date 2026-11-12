@@ -14,6 +14,13 @@ Första kvittots provideruppladdning fick däremot ett nytt osäkert utfall i #1
 innan någon kvittoverifikation eller bilagelänk skapades. Det andra kvittot
 har inte körts. Skrivskyddet är återställt; `review_required` är oförändrad.
 
+På ägarens senare begäran gjordes ett separat, AI-granskat uppladdningsprov av
+samma syntetiska original i Test 2, med nytt fil-ID och ny batch. Det enda
+anropet gav HTTP 400 och `outcome_unknown`, utan betrodd filreferens. Ingen
+bokföring eller bilagelänk skickades. Test 1:s original är oförändrat; båda
+företagen är åter skrivskyddade. Ingen ytterligare uppladdning följer automatiskt.
+Vi kontaktar inte Fortnox; eventuell nödvändig kontakt sköter ägaren.
+
 ## Börja med uppladdningens osäkra utfall — #134
 
 1. Öppna **Drift → Olösta skrivutfall**. Bevara originalets privata referenser
@@ -36,7 +43,8 @@ har inte körts. Skrivskyddet är återställt; `review_required` är oförändr
    korrelerar originalanropet med betrodd filreferens och faktiskt utfall:
    lämna det via samordningschatten. Ett tomt sökresultat eller antagande om
    avslag räcker inte. Ingen ytterligare BankID-inloggning efterfrågas nu och
-   inget supportmeddelande har skickats.
+   inget supportmeddelande har skickats. Om kontakt behövs tar ägaren den;
+   agenten lämnar ett granskat underlag i samordningschatten.
 4. Fixen och det faktiska kvarstående okända resultatet har separat AI-granskning.
    Låt granskaren även bedöma eventuell ny positiv providerbevisning.
    Stäm därefter av originalintentet genom det granskade återhämtningsflödet.

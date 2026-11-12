@@ -11,6 +11,13 @@ native provider-UI search found no original candidate or correlating event.
 Provider-owned historical evidence is still needed; another login is not the
 current prerequisite.
 
+An owner-directed, separately reviewed upload-only attempt of the same synthetic
+bytes in Test 2 returned HTTP 400 with `outcome_unknown`; no voucher or link was
+dispatched. Both companies are read-only again. The original Test 1 uncertainty
+is unchanged. Future errors may retain only a bounded numeric provider code;
+this cannot recover the discarded body or establish either actual outcome.
+No support request was sent; the owner handles any necessary provider contact.
+
 Sales recovery #131: explicit provider null CC/BCC now use the existing empty
 copy-recipient representation during reads and content reconciliation. Raw
 source versions, strict recipient/write checks and unknown-intent retention are

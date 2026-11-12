@@ -13,6 +13,7 @@ import {
   type ReceiptWriteDiagnostic,
   type ReceiptWriteResult,
   receiptFileLimits,
+  receiptProviderErrorCode,
 } from "@fortnox-mcp/core";
 import { fileValidator } from "@fortnox-mcp/files";
 import { z } from "zod";
@@ -83,6 +84,69 @@ const connection = z.object({
     VoucherYear: integer,
   }),
 });
+const safeProviderError = z.object({
+  ErrorInformation: z.object({
+    code: z
+      .union([
+        receiptProviderErrorCode,
+        z.number().int().safe().nonnegative().max(999999999999),
+      ])
+      .transform(String),
+  }),
+});
+// Read only a bounded numeric code. Never retain provider messages or raw bodies.
+async function providerErrorCode(response: Response, signal: AbortSignal) {
+  const reader = response.body?.getReader();
+  if (!reader) return undefined;
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const cancel = () => {
+    for (const chunk of chunks) chunk.fill(0);
+    void reader.cancel().catch(() => {});
+  };
+  signal.addEventListener("abort", cancel, { once: true });
+  try {
+    if (signal.aborted) {
+      cancel();
+      return undefined;
+    }
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (signal.aborted) {
+        value?.fill(0);
+        return undefined;
+      }
+      if (done) break;
+      size += value.length;
+      if (size > 4096) {
+        value.fill(0);
+        cancel();
+        return undefined;
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    try {
+      const parsed = safeProviderError.safeParse(
+        JSON.parse(new TextDecoder().decode(bytes)),
+      );
+      return parsed.success ? parsed.data.ErrorInformation.code : undefined;
+    } finally {
+      bytes.fill(0);
+    }
+  } catch {
+    return undefined;
+  } finally {
+    signal.removeEventListener("abort", cancel);
+    for (const chunk of chunks) chunk.fill(0);
+    reader.releaseLock();
+  }
+}
 export class FortnoxReceiptFiles implements ReceiptProvider {
   readonly http: FortnoxHttp;
   constructor(
@@ -410,15 +474,21 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
       }
       stage = "http_response";
       if (!response.ok) {
-        await response.body?.cancel();
-        return this.gates.rejectedWithoutEffect[operation].includes(
-          response.status,
-        )
-          ? { state: "failed", code: `HTTP_${response.status}` }
-          : {
-              state: "outcome_unknown",
-              diagnostic: { stage, http_status: response.status },
-            };
+        if (
+          this.gates.rejectedWithoutEffect[operation].includes(response.status)
+        ) {
+          await response.body?.cancel();
+          return { state: "failed", code: `HTTP_${response.status}` };
+        }
+        const code = await providerErrorCode(response, controller.signal);
+        return {
+          state: "outcome_unknown",
+          diagnostic: {
+            stage,
+            http_status: response.status,
+            ...(code === undefined ? {} : { provider_code: code }),
+          },
+        };
       }
       stage = "response_parse";
       const reference = providerFileId.parse(

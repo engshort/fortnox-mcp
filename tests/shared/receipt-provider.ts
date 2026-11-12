@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { expect, it } from "vitest";
 import { registerReceiptAttachments } from "../../packages/mcp/src/receipt-attachments.js";
+import { receiptBatchOutput } from "../../packages/mcp/src/receipts.js";
 import { batchFixture, batchRef } from "./receipt-batches.js";
 import type { ReceiptFixture } from "./receipt-files.js";
 import { pngFixture } from "./receipt-fixtures.js";
@@ -31,6 +32,8 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
     binaries = 0;
   let uploadStatus = 201,
     linkStatus = 201;
+  let uploadResponse: (() => Response) | undefined;
+  let linkResponse: (() => Response) | undefined;
   let loseUpload = false,
     loseLink = false,
     wrongConnection = false,
@@ -91,6 +94,7 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         if (disconnectUpload)
           await f.connections.disconnect(f.actor.ownerId, f.a.id);
         if (loseUpload) throw new Error("synthetic lost upload answer");
+        if (uploadResponse) return uploadResponse();
         return Response.json(
           { File: { Id: id, Size: bytes.length } },
           { status: uploadStatus },
@@ -151,6 +155,7 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         if (linkStatus === 201)
           connections.set(body.VoucherFileConnection.FileId, value);
         if (loseLink) throw new Error("synthetic lost link answer");
+        if (linkResponse) return linkResponse();
         return Response.json(value, { status: linkStatus });
       }
       if (url.pathname.startsWith("/3/voucherfileconnections/")) {
@@ -235,6 +240,8 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
       redirect?: boolean;
       binaryStatuses?: number[];
       disconnectUpload?: boolean;
+      uploadResponse?: () => Response;
+      linkResponse?: () => Response;
     }) => {
       uploadStatus = input.uploadStatus ?? 201;
       linkStatus = input.linkStatus ?? 201;
@@ -244,6 +251,8 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
       redirect = input.redirect ?? false;
       binaryStatuses = [...(input.binaryStatuses ?? [])];
       disconnectUpload = input.disconnectUpload ?? false;
+      uploadResponse = input.uploadResponse;
+      linkResponse = input.linkResponse;
     },
   };
 }
@@ -593,6 +602,226 @@ export function receiptProviderContract(
       expect(f.counts().uploads).toBe(1);
     }
   });
+
+  it("retains a safe link error code without replaying upload, voucher or unknown link", async () => {
+    const f = await attachmentFixture(await fixture());
+    await f.attachments.upload(f.actor, f.ref);
+    await f.book();
+    f.mode({
+      linkStatus: 500,
+      linkResponse: () =>
+        Response.json(
+          {
+            ErrorInformation: {
+              code: "2001392",
+              message: "synthetic-private-link-message",
+            },
+          },
+          { status: 500 },
+        ),
+    });
+    const expected = {
+      state: "outcome_unknown",
+      diagnostic: {
+        stage: "http_response",
+        http_status: 500,
+        provider_code: "2001392",
+      },
+    };
+    expect(await f.attachments.link(f.actor, f.ref)).toEqual(expected);
+    const view = receiptBatchOutput.parse(
+      await f.receipts.view(f.actor, batchRef(f.p)),
+    );
+    expect(view.items[0]?.steps.link).toEqual(expected);
+    expect(view.items[0]?.steps.voucher.state).toBe("succeeded");
+    expect(JSON.stringify(view)).not.toContain(
+      "synthetic-private-link-message",
+    );
+    expect(await f.attachments.link(f.actor, f.ref)).toEqual(expected);
+    expect(f.counts()).toEqual({ uploads: 1, links: 1, binaries: 0 });
+    expect(f.bookings()).toBe(1);
+  });
+
+  for (const code of [2001392, "002001392"]) {
+    it(`delivers only a safe provider code ${code} through MCP and retained intent without replay`, async () => {
+      const f = await attachmentFixture(await fixture());
+      const privateMessage = "synthetic-private-error-message-not-for-output";
+      f.mode({
+        uploadResponse: () =>
+          Response.json(
+            {
+              ErrorInformation: {
+                code,
+                message: privateMessage,
+                detail: privateMessage,
+              },
+            },
+            { status: 400 },
+          ),
+      });
+      const server = new McpServer(
+        { name: "synthetic-error-client", version: "0" },
+        { jsonSchemaValidator: new CfWorkerJsonSchemaValidator() },
+      );
+      registerReceiptAttachments(server, f.attachments, f.actor);
+      const client = new Client({ name: "synthetic-client", version: "0" });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await server.connect(a);
+      await client.connect(b);
+      const expected = {
+        state: "outcome_unknown",
+        diagnostic: {
+          stage: "http_response",
+          http_status: 400,
+          provider_code: String(code),
+        },
+      };
+      try {
+        const result = await client.callTool({
+          name: "upload_receipt_file",
+          arguments: f.ref,
+        });
+        expect(result.isError).not.toBe(true);
+        expect(result.structuredContent).toEqual({
+          status: "ok",
+          data: expected,
+        });
+        expect(JSON.stringify(result)).not.toContain(privateMessage);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+      const { item } = await f.receipts.item(f.actor, f.ref);
+      expect(item.steps.upload).toEqual(expected);
+      expect(item.attempts?.upload).toMatchObject({
+        dispatched: true,
+        diagnostic: expected.diagnostic,
+      });
+      const view = receiptBatchOutput.parse(
+        await f.receipts.view(f.actor, batchRef(f.p)),
+      );
+      expect(view.items[0]?.steps.upload).toEqual(expected);
+      expect(JSON.stringify(view)).not.toContain(privateMessage);
+      expect(await f.raw()).not.toContain(privateMessage);
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual(expected);
+      expect(f.counts().uploads).toBe(1);
+      expect(f.bookings()).toBe(0);
+    });
+  }
+
+  for (const code of [
+    null,
+    true,
+    {},
+    "",
+    "2001392\n",
+    "secret-code",
+    "1234567890123",
+    -1,
+    1.5,
+    1000000000000,
+    9007199254740992,
+  ]) {
+    it(`omits invalid provider error code ${JSON.stringify(code)} without changing uncertainty`, async () => {
+      const f = await attachmentFixture(await fixture());
+      f.mode({
+        uploadResponse: () =>
+          Response.json({ ErrorInformation: { code } }, { status: 400 }),
+      });
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: { stage: "http_response", http_status: 400 },
+      });
+      expect(f.counts().uploads).toBe(1);
+    });
+  }
+
+  for (const length of [4096, 4097]) {
+    it(`bounds the complete provider error body at ${length} bytes`, async () => {
+      const f = await attachmentFixture(await fixture());
+      const empty = JSON.stringify({
+        ErrorInformation: { code: 2001392, message: "" },
+      });
+      const body = JSON.stringify({
+        ErrorInformation: {
+          code: 2001392,
+          message: "x".repeat(length - empty.length),
+        },
+      });
+      expect(new TextEncoder().encode(body)).toHaveLength(length);
+      f.mode({ uploadResponse: () => new Response(body, { status: 400 }) });
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: {
+          stage: "http_response",
+          http_status: 400,
+          ...(length === 4096 ? { provider_code: "2001392" } : {}),
+        },
+      });
+    });
+  }
+  it("does not extract a code from malformed provider JSON", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({
+      uploadResponse: () =>
+        new Response('{"ErrorInformation":{"code":2001392}', { status: 400 }),
+    });
+    expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+      state: "outcome_unknown",
+      diagnostic: { stage: "http_response", http_status: 400 },
+    });
+  });
+  for (const mode of ["read", "cancel"] as const) {
+    it(`bounds uncooperative error-body ${mode} within the remaining write deadline`, async () => {
+      const f = await attachmentFixture(await fixture());
+      let clock = Date.now();
+      let cancelled = false;
+      let requests = 0;
+      const adapter = new FortnoxReceiptFiles(
+        f.connections,
+        f.adapter.provider,
+        f.adapter.accounting,
+        f.gates,
+        () => clock,
+      );
+      adapter.http.permit = async () => {
+        clock += 14900;
+      };
+      f.adapter.provider.config.fetch = async (input) => {
+        expect((input as Request).method).toBe("POST");
+        requests++;
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              if (mode === "cancel") controller.enqueue(new Uint8Array(4097));
+            },
+            cancel() {
+              cancelled = true;
+              return mode === "cancel"
+                ? new Promise<void>(() => {})
+                : undefined;
+            },
+          }),
+          { status: 400 },
+        );
+      };
+      const attachments = new ReceiptAttachments(f.receipts, adapter, {
+        upload: true,
+        link: true,
+        retrieve: true,
+      });
+      expect(await attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: { stage: "http_response", http_status: 400 },
+      });
+      expect(cancelled).toBe(true);
+      expect(requests).toBe(1);
+      expect((await attachments.upload(f.actor, f.ref)).state).toBe(
+        "outcome_unknown",
+      );
+      expect(requests).toBe(1);
+    });
+  }
 
   it("uploads the exact multipart bytes, books once, links the saved references and retrieves only the owning voucher's attachment", async () => {
     const f = await attachmentFixture(await fixture());

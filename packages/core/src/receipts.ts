@@ -21,9 +21,14 @@ import {
 } from "./receipt-files.js";
 
 // Fixed post-dispatch observations only; never raw responses or retry permission.
+// Absolute end assertion also rejects a final newline, unlike JavaScript's `$`.
+export const receiptProviderErrorCode = z
+  .string()
+  .regex(/^[0-9]{1,12}(?![\s\S])/);
 export interface ReceiptWriteDiagnostic {
   stage: "dispatch" | "http_response" | "response_parse" | "authorization";
   http_status?: number;
+  provider_code?: string;
 }
 export type ReceiptStep =
   | { state: "pending" }
