@@ -148,7 +148,8 @@ The sole provider upload returned `outcome_unknown` with
 reference. The old adapter discarded its body, so no actual provider error code
 is known or recoverable from that response. This does not establish a PNG-format
 failure, non-application, or the cause of Test 1's original uncertainty. No further
-POST followed. Upload acceptance remains incomplete and #134 stays open.
+provider file or financial resource write was attempted. Upload acceptance
+remains incomplete and #134 stays open.
 
 Supported owner administration restored Test 2's read-only setting; both companies
 retain `review_required`. Nova's separate original-evidence AFTER review reported
