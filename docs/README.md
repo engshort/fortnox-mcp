@@ -1,5 +1,8 @@
 # Documentation map
 
+Issue #134: [bounded positive upload recovery](implementation/receipt-upload-recovery-2026-11-12.md)
+is under verification; original provider-outcome recovery remains pending.
+
 Current actual acceptance: [the 2026-11-11 implemented-function audit](implementation/acceptance-audit-2026-11-11.md)
 records independently AI-reviewed provider/client results and their limits;
 [remaining Swedish test steps](users/acceptansprov.sv.md) identify concrete prerequisites.

@@ -1,5 +1,12 @@
 # Kvitton och återhämtning
 
+För en osäker uppladdning finns `reconcile_receipt_upload`: ange originalets
+företag, batch-ID/hash och item-ID. Verktyget läser providerbevis och kan bara
+stämma av uppladdningssteget. Det laddar inte upp igen, bokför inte och ändrar
+ingen historisk policy eller granskning. Saknad eller tvetydig fil innebär
+fortsatt osäkert utfall. Gamla utgångna förslag får inte köras efter avstämning;
+fortsatt bokföring kräver ett separat stött flöde och aktuell granskning.
+
 Testacceptans från 11 november 2026: i projektets godkända sandlådor kan en AI
 utföra de interaktiva proven och en separat AI granska originalunderlag och
 faktiska resultat. Se [beslut och teststeg](../implementation/ai-reviewed-acceptance-2026-11-11.md).

@@ -19,6 +19,18 @@ const outcome = z.union([
     .object({
       state: z.literal("outcome_unknown"),
       reference: z.string().optional(),
+      diagnostic: z
+        .object({
+          stage: z.enum([
+            "dispatch",
+            "http_response",
+            "response_parse",
+            "authorization",
+          ]),
+          http_status: z.number().int().min(100).max(599).optional(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
 ]);
@@ -75,6 +87,38 @@ export function registerReceiptAttachments(
   const readSecurity = [
     { type: "oauth2", scopes: ["mcp:read", "mcp:files", "offline_access"] },
   ];
+  if (service.gates.upload && service.provider.inspectUpload)
+    server.registerTool(
+      "reconcile_receipt_upload",
+      {
+        title: "Reconcile an uncertain original receipt upload",
+        description:
+          "Discover exact original upload evidence in the authorized company's inbox and reconcile only its saved upload step. Never uploads, books, links or renews review. Historical policy/expiry does not authorize execution; missing or ambiguous evidence remains unknown.",
+        inputSchema: receiptItemReference,
+        outputSchema: result,
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+        _meta: { securitySchemes: readSecurity },
+      },
+      async (input) => {
+        try {
+          const parsed = result.parse({
+            status: "ok",
+            data: await service.reconcileUpload(actor(), input),
+          });
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify(parsed) }],
+            structuredContent: parsed,
+          };
+        } catch (cause) {
+          return fail(cause);
+        }
+      },
+    );
   for (const kind of ["upload", "link"] as const) {
     if (!service.gates[kind]) continue;
     server.registerTool(
