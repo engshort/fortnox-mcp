@@ -8,6 +8,7 @@ import {
   type ReceiptItemReference,
   type ReceiptStep,
   type Receipts,
+  type ReceiptWriteDiagnostic,
   receiptItemReference,
 } from "./receipts.js";
 export const providerFileId = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
@@ -22,8 +23,17 @@ export type AttachmentReference = z.infer<typeof attachmentReference>;
 export type ReceiptWriteResult =
   | { state: "succeeded"; reference: string }
   | { state: "failed"; code: string }
-  | { state: "outcome_unknown"; reference?: string };
+  | {
+      state: "outcome_unknown";
+      reference?: string;
+      diagnostic?: ReceiptWriteDiagnostic;
+    };
 export interface ReceiptProvider {
+  inspectUpload?(
+    actor: AccountingActor,
+    company: string,
+    expected: { fileId: string; sha256: string },
+  ): Promise<{ reference: string; sha256: string } | null>;
   upload(
     actor: AccountingActor,
     company: string,
@@ -58,6 +68,66 @@ export class ReceiptAttachments {
     readonly gates: AttachmentGates,
     readonly now = Date.now,
   ) {}
+  async reconcileUpload(
+    actor: AccountingActor,
+    input: ReceiptItemReference,
+  ): Promise<ReceiptStep> {
+    const ref = receiptItemReference.parse(input);
+    const { c, batch, item } = await this.receipts.uploadRecoveryItem(
+      actor,
+      ref,
+    );
+    await this.authorize(actor, c.id, false);
+    if (!this.gates.upload || !this.provider.inspectUpload)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (item.steps.upload.state === "succeeded") return item.steps.upload;
+    const original = JSON.stringify(item.steps.upload);
+    const proof = await this.provider.inspectUpload(actor, c.id, {
+      fileId: item.file.file_id,
+      sha256: item.fileHash as string,
+    });
+    await this.receipts.uploadRecoveryItem(actor, ref);
+    if (!proof || proof.sha256 !== item.fileHash) return item.steps.upload;
+    const reference = providerFileId.parse(proof.reference);
+    if (
+      item.steps.upload.state === "outcome_unknown" &&
+      item.steps.upload.reference &&
+      item.steps.upload.reference !== reference
+    )
+      return item.steps.upload;
+    await this.receipts.connections.mutate(actor.ownerId, c.id, (current) => {
+      const saved = current.receiptBatches?.find(
+        (b) => b.id === batch.id && b.hash === batch.hash,
+      );
+      const selected = saved?.items.find((i) => i.id === item.id);
+      if (
+        current.generation !== c.generation ||
+        current.policyVersion !== c.policyVersion ||
+        saved?.client !== actor.clientId ||
+        !selected ||
+        JSON.stringify(selected.steps.upload) !== original ||
+        selected.fileHash !== item.fileHash ||
+        selected.proposal?.proposal_hash !== item.proposal?.proposal_hash ||
+        selected.steps.voucher.state !== "pending" ||
+        selected.steps.link.state !== "pending"
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      if (
+        current.receiptBatches?.some((b) =>
+          b.items.some(
+            (i) =>
+              i.id !== item.id &&
+              (i.file.file_id === item.file.file_id ||
+                i.fileHash === item.fileHash) &&
+              i.steps.upload.state !== "pending",
+          ),
+        )
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      selected.steps.upload = { state: "succeeded", reference };
+    });
+    return { state: "succeeded", reference };
+  }
   private async authorize(
     actor: AccountingActor,
     company: string,
@@ -110,6 +180,12 @@ export class ReceiptAttachments {
       if (!saved || !["pending", "failed"].includes(saved.steps[kind].state))
         throw new DomainError("INTENT_CONFLICT");
       saved.steps[kind] = { state: "submitting", attempt, created: this.now() };
+      saved.attempts ??= {};
+      saved.attempts[kind] = {
+        attempt,
+        created: this.now(),
+        dispatched: false,
+      };
     });
     let dispatched = false;
     let result: ReceiptWriteResult;
@@ -127,6 +203,24 @@ export class ReceiptAttachments {
           throw new DomainError("INTENT_CONFLICT");
         if (kind === "upload") await this.receipts.guard(actor, ref);
         // The claim cannot be reclaimed after a crash, even before dispatch.
+        await this.receipts.connections.mutate(
+          actor.ownerId,
+          c.id,
+          (current) => {
+            const selected = current.receiptBatches
+              ?.find((b) => b.id === batch.id && b.hash === batch.hash)
+              ?.items.find((i) => i.id === item.id);
+            if (
+              current.generation !== batch.generation ||
+              current.policyVersion !== batch.policy ||
+              current.readOnly ||
+              selected?.steps[kind].state !== "submitting" ||
+              selected.attempts?.[kind]?.attempt !== attempt
+            )
+              throw new DomainError("INTENT_CONFLICT");
+            selected.attempts[kind].dispatched = true;
+          },
+        );
         dispatched = true;
       });
       if (!dispatched && result.state !== "failed")
@@ -159,6 +253,12 @@ export class ReceiptAttachments {
         )
           throw new DomainError("INTENT_CONFLICT");
         // A late response records only minimal evidence; no generation/policy/secret is restored.
+        if (
+          result.state === "outcome_unknown" &&
+          result.diagnostic &&
+          saved.attempts?.[kind]
+        )
+          saved.attempts[kind].diagnostic = result.diagnostic;
         saved.steps[kind] = result;
       });
     } catch {

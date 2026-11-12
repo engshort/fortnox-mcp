@@ -64,6 +64,12 @@ link. A missing record is insufficient proof to resend an uncertain write.
 
 ## Per-item state machine
 
+Issue #134 adds a separate [positive upload-reconciliation path](../implementation/receipt-upload-recovery-2026-11-12.md).
+Current authentication and the original connection generation/client remain
+required. Historical policy/byte expiry may differ only for non-dispatching
+upload metadata reconciliation. This does not reauthorize historical execution
+or restore expired proposals. Missing evidence never proves non-application.
+
 ```mermaid
 stateDiagram-v2
   [*] --> prepared
