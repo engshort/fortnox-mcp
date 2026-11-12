@@ -1,5 +1,10 @@
 # API coverage plan
 
+S10/#27: [bounded documentation and diagnosis acceptance](../implementation/S10-acceptance-2026-11-12.md)
+is documented against the original synthetic criteria. Windows actual-CLI tests
+now use a portable ESM loader URL. This changes no provider-operation coverage,
+does not distribute the external specification and does not resolve #35/#36.
+
 Receipt upload recovery #134: a bounded positive metadata reconciliation path
 and fixed post-dispatch diagnostics are implemented in the
 [2026-11-12 scope](../implementation/receipt-upload-recovery-2026-11-12.md).

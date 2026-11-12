@@ -1,5 +1,10 @@
 # Documentation map
 
+S10/#27: [documentation and diagnosis acceptance](implementation/S10-acceptance-2026-11-12.md)
+maps the existing criteria to local Node/workerd, actual CLI and separately
+verified product-diagnosis evidence. External-source redistribution #35 remains
+open; this adds no provider or hosted-client capability.
+
 Issue #134: [bounded positive upload recovery](implementation/receipt-upload-recovery-2026-11-12.md)
 is under verification; original provider-outcome recovery remains pending.
 
