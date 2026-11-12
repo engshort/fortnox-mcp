@@ -39,6 +39,59 @@ customer name or original document is logged. A dispatch marker means the
 durable pre-dispatch boundary was crossed, not that Fortnox accepted a request.
 Legacy original attempts lacking these fields are not retroactively diagnosed.
 
-Verification is in progress. Shared Node/SQLite and local workerd/D1 contracts
-exercise the behavior; actual provider/client execution and original outcome
-reconciliation must be recorded separately before closure.
+## Verification and actual original attempt
+
+[PR #135](https://github.com/engshort/fortnox-mcp/pull/135) was independently
+reviewed on exact head `35519460e9887034a24fa475bbceb548a3adfaf7` and merged as
+`6b0d08a81c180e800a26977a8723ff73da7af40f`. All six PR checks passed, including
+374 Node/SQLite and 307 actual local workerd/D1 tests. All 65 targeted receipt
+tests and application/Worker/test/admin TypeScript checks passed. The independent
+review checked 78 committed source-hash bindings and 151 relative file targets.
+The broader Windows run was stopped after workerd access violations and
+platform/CRLF-sensitive failures; it is not passing runtime evidence.
+
+[Deploy Nova 43236837461](https://github.com/engshort/fortnox-mcp/actions/runs/43236837461)
+passed on attempt 1. External public HTTPS returned 200 with the exact merge
+revision. The separate main S01 run
+[43236837701](https://github.com/engshort/fortnox-mcp/actions/runs/43236837701)
+initially passed all 374 Node tests but four existing Worker payroll cases
+exceeded their five-second limits (303 passed). Attempt 2 passed all checks,
+with unchanged code and test requirements. The deployment's own validation also
+passed; no financial action was taken while the separate run was investigated.
+
+The existing native ChatGPT client initially lacked the new tool in its cached
+catalog and made zero reconciliation calls. Its supported **Reload tools**
+setting refreshed the same app/account without a new registration or grant.
+The visible tool dialog then included `reconcile_receipt_upload`. Fresh private
+runtime/grant observations confirmed the original client/generation, policies,
+unknown step, immutable bindings and history before the first actual call.
+
+That one native call returned the conversation's public result:
+
+```json
+{"status":"ok","data":{"state":"outcome_unknown"}}
+```
+
+No provider reference or positive recovery was returned. The saved client DOM
+and private runtime after-projection were independently reviewed within this
+bounded scope. The original uncertain step, complete batch, A/B file bindings,
+grants, generation/policy, read-only settings, 12 business/2 ordinary voucher
+executions and zero pending proposals/submitting were preserved. Item B's three
+steps remained pending. No upload, voucher, link or retry was requested.
+
+Full credential/state identity is **not** claimed: the target company's encrypted
+credential envelope and connection-set marker changed. Company identity,
+tenants, scopes and program selections stayed identical. This is consistent
+with ordinary token renewal, but the encrypted contents and actual cause were
+not independently decrypted/verified. No raw provider response or original
+upload HTTP diagnostic was recovered.
+
+**Issue #134 remains open for actual positive original recovery.** The unknown
+response proves neither an empty Inbox nor absence of the upload. Further
+synthetic writes are stopped. A further read-only search in the intended
+provider UI requires a fresh owner BankID login. Alternatively the owner must
+obtain provider-owned historical evidence uniquely correlating the original
+attempt to its file/outcome; no support message has been sent. Moved/archived
+files need an independently reviewed typed correlation/read contract before
+they can replace the current positive evidence path. Expired financial reviews
+are never revived by reconciliation.

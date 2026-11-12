@@ -18,22 +18,32 @@ har inte körts. Skrivskyddet är återställt; `review_required` är oförändr
 
 1. Öppna **Drift → Olösta skrivutfall**. Bevara originalets privata referenser
    och status. **Bokför** eller **Ladda upp** får inte användas som ett nytt försök.
-2. Utvecklingsarbete behövs först: implementera issue #134:s begränsade
-   diagnostik och autentiserade positiva avstämning för en osäker uppladdning.
-   Nuvarande `resume_receipt_batch` bevarar osäkerheten men kan inte lösa den.
-   Detta är ingen återstående mänsklig godkännandeknapp.
+2. [PR #135:s diagnostik och positiva avstämning](../implementation/receipt-upload-recovery-2026-11-12.md)
+   är nu implementerade och driftsatta. Ett faktiskt `reconcile_receipt_upload`
+   på originalet returnerade fortfarande `outcome_unknown`, utan betrodd
+   providerreferens. `resume_receipt_batch` är ingen ersättning. Ingen
+   uppladdning har skickats om och utfallet får inte markeras löst.
 3. Undersök den avsedda sandlådans **Arkivplats → Inbox → Verifikationer**
    efter exakt originalfil. En eventuell träff måste kontrolleras mot rätt
    företag, filidentitet, byteantal, SHA-256 och tillräcklig unik evidens.
    Denna testomgång visade en tom lista; det bevisar inte att uppladdningen
    aldrig skedde. Vid otillräcklig evidens behöver utfallet förbli osäkert.
-4. Låt en separat granskare bedöma fixen och den faktiska positiva evidensen.
+   För den fortsatta kontrollen kräver Fortnox nu färsk BankID-inloggning.
+   Öppna den befintliga utvecklarportalen, välj **Testmiljöer → Fortnox MCP -
+   Test 1 → Logga in**, verifiera din identitet och lämna just testföretagets
+   vy öppen. Meddela samordningschatten. Agenten fortsätter endast läsa efter
+   originalfilen. Alternativt behövs ett providerägt audit-/originalsvar som
+   entydigt korrelerar originalanropet med betrodd filreferens och faktiskt utfall.
+4. Fixen och det faktiska kvarstående okända resultatet har separat AI-granskning.
+   Låt granskaren även bedöma eventuell ny positiv providerbevisning.
    Stäm därefter av originalintentet genom det granskade återhämtningsflödet.
    Ändra inte status, referens eller versionsbindning direkt i databasen.
 5. Återställt skrivskydd ökade policyversionen och ogiltigförklarade väntande
    förslag. Gamla batch-/filreferenser kan därför inte återanvändas normalt.
-   Fixens återhämtningsflöde måste hantera den bevarade osäkerheten och en ny
-   granskning under aktuell policy, utan att skicka en redan gjord uppladdning igen.
+   Den nya avstämningen kan hantera bevarad uploadmetadata över denna
+   policyskillnad men återaktiverar inte gamla förslag. Fortsatt bokföring
+   behöver ett separat stött flöde med aktuell granskning, utan ny uppladdning
+   som ersättning för originalets avstämning.
 6. Först därefter kan kvittoflöde, bilagor och fler skrivprov fortsätta.
    AI-operatör och separat AI-granskare får utföra proven i samma två sandlådor.
 

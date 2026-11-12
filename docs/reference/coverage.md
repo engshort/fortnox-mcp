@@ -3,8 +3,10 @@
 Receipt upload recovery #134: a bounded positive metadata reconciliation path
 and fixed post-dispatch diagnostics are implemented in the
 [2026-11-12 scope](../implementation/receipt-upload-recovery-2026-11-12.md).
-Actual original recovery and provider acceptance remain pending; no uncertain
-upload is resent or promoted by missing evidence.
+The actual native original reconciliation returned `outcome_unknown` without a
+reference after same-client tool-catalog refresh. Original recovery and full
+provider acceptance remain pending; no uncertain upload is resent or promoted
+by missing evidence. A further provider-UI search awaits owner BankID login.
 
 Sales recovery #131: explicit provider null CC/BCC now use the existing empty
 copy-recipient representation during reads and content reconciliation. Raw
