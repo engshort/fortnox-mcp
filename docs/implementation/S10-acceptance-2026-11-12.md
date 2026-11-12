@@ -38,7 +38,8 @@ The unchanged shared implementation also passed the preceding exact-head Linux
 5 documentation and 8 operation-description cases in actual local workerd,
 the matching Node cases and 3 Node CLI cases. Its full totals were 393 Node and
 326 workerd cases. Attempt 1's unrelated SQLite restart timeout is preserved in
-the receipt recovery record; it is not relabeled as a pass. The closeout patch
+[PR #138's verification comment](https://github.com/engshort/fortnox-mcp/pull/138#issuecomment-6835505013);
+it is not relabeled as a pass. The closeout patch
 requires its own exact-head independent review and green CI before issue closure.
 
 ## Retained boundaries
