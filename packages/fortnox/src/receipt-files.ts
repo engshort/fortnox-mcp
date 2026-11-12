@@ -269,6 +269,11 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
     const reader = response.body?.getReader();
     if (!reader) return null;
     const bytes = new Uint8Array(candidate.Size);
+    const onAbort = () => {
+      bytes.fill(0);
+      void reader.cancel().catch(() => {});
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
     let size = 0;
     try {
       for (;;) {
@@ -296,6 +301,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
         ? { reference: candidate.Id, sha256: digest }
         : null;
     } finally {
+      signal.removeEventListener("abort", onAbort);
       bytes.fill(0);
       void reader.cancel().catch(() => {});
     }

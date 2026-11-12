@@ -250,6 +250,52 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
 export function receiptProviderContract(
   fixture: () => Promise<ReceiptFixture>,
 ) {
+  for (const mode of ["json_body", "binary_body", "cancel"] as const) {
+    it(`bounds uncooperative ${mode} while preserving the original upload`, async () => {
+      const f = await attachmentFixture(await fixture());
+      f.mode({ loseUpload: true });
+      await f.attachments.upload(f.actor, f.ref);
+      const fetch = f.adapter.provider.config.fetch;
+      f.adapter.provider.config.fetch = async (input) => {
+        const request = input as Request;
+        const url = new URL(request.url);
+        const root = url.pathname === "/3/inbox";
+        if (
+          request.method === "GET" &&
+          ((mode === "json_body" && root) || (mode !== "json_body" && !root))
+        ) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                if (mode === "cancel") controller.enqueue(pngFixture());
+              },
+              cancel() {
+                return new Promise<void>(() => {});
+              },
+            }),
+            {
+              headers: {
+                "content-type": root ? "application/json" : "image/png",
+              },
+            },
+          );
+        }
+        return fetch(input);
+      };
+      await expect(
+        f.attachments.reconcileUpload(f.actor, f.ref),
+      ).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+      const c = await f.connections.authorize(
+        f.actor.ownerId,
+        f.actor.clientId,
+        f.a.id,
+      );
+      expect(c.receiptBatches?.[0]?.items[0]?.steps.upload.state).toBe(
+        "outcome_unknown",
+      );
+      expect(f.counts().uploads).toBe(1);
+    }, 20000);
+  }
   it("does not start a discovery GET after a permit consumes its deadline", async () => {
     const f = await attachmentFixture(await fixture());
     let clock = Date.now();

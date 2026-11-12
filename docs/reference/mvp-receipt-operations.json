@@ -8,7 +8,7 @@
     "packages/core/src/receipt-files.ts": "1884ddbb2d987762d8af272ba847c8de95c40d7c7c293379264e9dcbd8520d4a",
     "packages/core/src/receipts.ts": "bd758a412556961835f19239ec192e6a59abfe8b2a45b4ba88864f72345ecebb",
     "packages/core/src/receipt-provider.ts": "26aeebed5840cedf15779414f593f285fe13b7de9c41c995ba3d45b7a37dc611",
-    "packages/fortnox/src/receipt-files.ts": "3e39a7d1d0d9b3141c6ec6a6193ce8b7823ce4f76daff5788a50483e9679209f",
+    "packages/fortnox/src/receipt-files.ts": "a50206f42bc651762acb80320484d1a1240b93548c0c1ef2c574bc1c6a087bc2",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/receipt-attachments.ts": "6cf6687797783a3439cacbcbc13b4bdbc24721044a10e569e84b6638b2e3bf57",
     "packages/core/src/receipt-workflow.ts": "9881396bd096039e54b7d0d89cddb0378d1c8038d729bf3247f64e7704d831d5",
