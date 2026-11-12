@@ -6,7 +6,10 @@ and fixed post-dispatch diagnostics are implemented in the
 The actual native original reconciliation returned `outcome_unknown` without a
 reference after same-client tool-catalog refresh. Original recovery and full
 provider acceptance remain pending; no uncertain upload is resent or promoted
-by missing evidence. A further provider-UI search awaits owner BankID login.
+by missing evidence. The owner completed BankID login; a separately reviewed
+native provider-UI search found no original candidate or correlating event.
+Provider-owned historical evidence is still needed; another login is not the
+current prerequisite.
 
 Sales recovery #131: explicit provider null CC/BCC now use the existing empty
 copy-recipient representation during reads and content reconciliation. Raw

@@ -88,12 +88,35 @@ with ordinary token renewal, but the encrypted contents and actual cause were
 not independently decrypted/verified. No raw provider response or original
 upload HTTP diagnostic was recovered.
 
-**Issue #134 remains open for actual positive original recovery.** The unknown
-response proves neither an empty Inbox nor absence of the upload. Further
-synthetic writes are stopped. A further read-only search in the intended
-provider UI requires a fresh owner BankID login. Alternatively the owner must
-obtain provider-owned historical evidence uniquely correlating the original
-attempt to its file/outcome; no support message has been sent. Moved/archived
-files need an independently reviewed typed correlation/read contract before
-they can replace the current positive evidence path. Expired financial reviews
-are never revived by reconciliation.
+## Authenticated provider-UI follow-up
+
+The owner completed BankID login and left the intended sandbox open. The AI
+operator verified its company name and tenant-specific archive mailbox in the
+actual native Fortnox UI. The independently reviewed read-only search then
+observed an empty **Archive → Inbox → Vouchers** list: zero files and zero bytes,
+with an empty search field. No original candidate was available to download or
+hash. This is an observation of that UI, not proof of non-application.
+
+A separately reviewed extension inspected the same company's linked-file
+categories and trash without changing them. The linked-file view exposed only
+the bank-file category; this does not prove absence throughout the archive.
+Trash was configured at zero percent and supplied no recoverable-file history.
+No restore, move, delete, configuration change or export was performed.
+
+The visible treatment-history UI was searched for the original date in archive
+and linked-file programs. Both returned no events and explicitly indicated that
+all history had been fetched. A further integration-user/all-program search
+returned 26 events; the supported **Load more** action reached the explicit end
+without adding events. No original generated filename or correlating file event
+was found. Missing history does not establish a rejected upload or guarantee
+that this UI logs every provider file operation.
+
+**Issue #134 remains open for actual positive original recovery.** The login
+prerequisite is now complete, but these reads supplied no trusted file reference
+or original outcome. Further synthetic writes remain stopped. Provider-owned
+historical evidence must uniquely correlate the original attempt to its
+file/outcome; no support message has been sent. Moved/archived files need an
+independently reviewed typed correlation/read contract before they can replace
+the current positive evidence path. Expired financial reviews are never revived
+by reconciliation. No additional reconciliation call or upload resend was made
+during this UI follow-up.

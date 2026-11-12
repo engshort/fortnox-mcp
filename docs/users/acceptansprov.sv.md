@@ -26,14 +26,17 @@ har inte körts. Skrivskyddet är återställt; `review_required` är oförändr
 3. Undersök den avsedda sandlådans **Arkivplats → Inbox → Verifikationer**
    efter exakt originalfil. En eventuell träff måste kontrolleras mot rätt
    företag, filidentitet, byteantal, SHA-256 och tillräcklig unik evidens.
-   Denna testomgång visade en tom lista; det bevisar inte att uppladdningen
-   aldrig skedde. Vid otillräcklig evidens behöver utfallet förbli osäkert.
-   För den fortsatta kontrollen kräver Fortnox nu färsk BankID-inloggning.
-   Öppna den befintliga utvecklarportalen, välj **Testmiljöer → Fortnox MCP -
-   Test 1 → Logga in**, verifiera din identitet och lämna just testföretagets
-   vy öppen. Meddela samordningschatten. Agenten fortsätter endast läsa efter
-   originalfilen. Alternativt behövs ett providerägt audit-/originalsvar som
-   entydigt korrelerar originalanropet med betrodd filreferens och faktiskt utfall.
+   Ägaren har nu slutfört BankID-inloggningen och agenten har verifierat rätt
+   testföretag i Fortnox. Den nya läsningen visade 0 filer i verifikationsinkorgen.
+   Den kontrollerade vyn för kopplade filer gav ingen originalkandidat;
+   papperskorgen var satt till 0 procent. Behandlingshistorik för originaldatumet
+   gav ingen korrelerad filhändelse. Detta bevisar inte att uppladdningen aldrig
+   skedde. Ingen fil kunde laddas ned och jämföras, och inget har skickats om.
+   Nästa förutsättning är ett providerägt audit-/originalsvar som entydigt
+   korrelerar originalanropet med betrodd filreferens och faktiskt utfall:
+   lämna det via samordningschatten. Ett tomt sökresultat eller antagande om
+   avslag räcker inte. Ingen ytterligare BankID-inloggning efterfrågas nu och
+   inget supportmeddelande har skickats.
 4. Fixen och det faktiska kvarstående okända resultatet har separat AI-granskning.
    Låt granskaren även bedöma eventuell ny positiv providerbevisning.
    Stäm därefter av originalintentet genom det granskade återhämtningsflödet.
