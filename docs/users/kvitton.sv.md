@@ -101,6 +101,9 @@ betyder att verifikationen redan finns och endast bilagans länk ska repareras.
 Skicka inte verifikationen igen. `outcome_unknown` betyder att ett anrop kan ha
 lyckats trots att svaret saknas; kontrollera Fortnox och sparad status innan något
 försök görs. Omladdning eller omstart gör inte ett okänt utfall säkert att skicka om.
+Diagnostiken kan visa felsteg, HTTP-status och en numerisk `provider_code`.
+Rå feltext sparas inte. Även ett HTTP-fel med felkod kan lämna utfallet okänt;
+felkoden ensam ger inte rätt att skicka igen.
 Produktens filoperationer är fortsatt avstängda tills de separata proven är klara.
 
 ## Efter ett avbrott

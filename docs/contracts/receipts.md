@@ -62,6 +62,12 @@ uncertain steps are never automatically repeated; a restart leaves an unfinished
 claim uncertain. Exact positive relationship evidence may resolve an uncertain
 link. A missing record is insufficient proof to resend an uncertain write.
 
+Uncertain file writes may expose a fixed diagnostic stage, HTTP status and an
+optional numeric `provider_code` (1–12 ASCII digits). The provider error body is
+read within 4 KiB and the existing total write deadline; messages and raw content
+are never retained. Missing or invalid codes leave status-only uncertainty.
+Neither an HTTP error nor a numeric code authorizes resend by itself.
+
 ## Per-item state machine
 
 Issue #134 adds a separate [positive upload-reconciliation path](../implementation/receipt-upload-recovery-2026-11-12.md).

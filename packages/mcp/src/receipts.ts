@@ -8,6 +8,7 @@ import {
   receiptBatchReference,
   receiptFileReference,
   receiptItemReference,
+  receiptProviderErrorCode,
   receiptResumeInput,
   receiptReviewInput,
   voucherInput,
@@ -41,6 +42,7 @@ const step = z.union([
             "authorization",
           ]),
           http_status: z.number().int().min(100).max(599).optional(),
+          provider_code: receiptProviderErrorCode.optional(),
         })
         .strict()
         .optional(),

@@ -35,8 +35,14 @@ still occur during a read; this is separate from file/business resource writes.
 General attachment retrieval still requires its voucher
 and verified relationship; there is no archive fallback or arbitrary HTTP proxy.
 
-Future uncertain results retain only fixed failure stage and HTTP status, with
-separate bounded attempt/created/dispatch-marker metadata. No body, URL, token,
+Future uncertain results retain fixed failure stage, HTTP status and an optional
+`provider_code`, with separate bounded attempt/created/dispatch-marker metadata.
+Only `ErrorInformation.code` containing 1–12 ASCII digits or a nonnegative safe
+integer within that range is accepted; numeric values become decimal strings.
+The complete error body is limited to 4 KiB within the existing total 15-second
+write budget. Missing, invalid, malformed, oversized or stalled bodies retain
+status-only uncertainty. Messages and other fields are discarded. A code does
+not establish non-application or permit retry. No body, URL, token,
 customer name or original document is logged. A dispatch marker means the
 durable pre-dispatch boundary was crossed, not that Fortnox accepted a request.
 Legacy original attempts lacking these fields are not retroactively diagnosed.
@@ -120,3 +126,49 @@ independently reviewed typed correlation/read contract before they can replace
 the current positive evidence path. Expired financial reviews are never revived
 by reconciliation. No additional reconciliation call or upload resend was made
 during this UI follow-up.
+
+## Owner-directed separate Test 2 attempt
+
+The owner subsequently requested another attempt and stopped agent contact with
+Fortnox support. No support request was submitted; any necessary contact is for
+the owner. The independently reviewed execution allowed exactly one upload-only
+attempt of the same synthetic original bytes in the other authorized sandbox.
+It used a new staged file, generated filename and immutable one-item batch;
+it was not a replay of Test 1's original intent.
+
+Actual ChatGPT selection, encrypted staging and authenticated original-byte
+readback succeeded. A supported Blob-download event timed out, so disk download
+and independent disk hashing remain incomplete. The temporary Node source-fetch
+window was closed and its source settings restored before provider execution.
+The separate reviewer checked the exact proposal and recomputed both hashes.
+No financial approval was given.
+
+The sole provider upload returned `outcome_unknown` with
+`diagnostic: { stage: "http_response", http_status: 400 }`, without a trusted
+reference. The old adapter discarded its body, so no actual provider error code
+is known or recoverable from that response. This does not establish a PNG-format
+failure, non-application, or the cause of Test 1's original uncertainty. No further
+provider file or financial resource write was attempted. Upload acceptance
+remains incomplete and #134 stays open.
+
+Supported owner administration restored Test 2's read-only setting; both companies
+retain `review_required`. Nova's separate original-evidence AFTER review reported
+one new dispatched attempt, two retained unknown uploads, no receipt voucher/link
+dispatch, zero pending proposals and unchanged ordinary history (12 business and
+2 voucher executions). Test 1's original bindings and connection were preserved.
+Private AFTER and independent-review artifact SHA-256 digests are respectively
+`22631b9e1e51ff777757ad480346a3e9fdb35b6102375d0b01b3014011d83569`
+and `b793bba0045e2a956088c7921c7ffe0dfb183f41adb7eec48c85c23c68b84b21`.
+
+The numeric-code diagnostic change addresses future errors only. Shared synthetic
+tests cover exact-code retention through MCP and durable intent, invalid codes,
+private-field exclusion, the 4 KiB boundary, malformed JSON, cancellation and
+remaining-budget timeouts without resend. These tests do not recover either
+actual upload or establish a new live provider pass.
+
+Local follow-up verification: the 83-case Node/SQLite receipt suite passed;
+the subsequently added direct link-error regression passed separately (84 cases
+now defined). Application, Worker, test and admin TypeScript checks and scoped
+source formatting passed. Whole-tree Windows formatting reported pre-existing
+CRLF differences in untouched files; it is not recorded as a pass. Linux CI
+remains the required full Node/actual-workerd and build validation.
