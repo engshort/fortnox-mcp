@@ -1,5 +1,13 @@
 # MCP tool and provider contract
 
+Date-driven analysis adds `get_account_balances` and
+`list_financial_transactions`, plus optional historical `as_of` input on
+`list_receivables`/`list_payables`. These are read-only tools with strict inputs,
+source-bound pagination and explicit incomplete results. Historical output keeps
+current provider balances separate from computed rest amounts. Historical
+liquidity uses the same dated inputs. See the [analytics contract](analytics.md)
+and [activation/evidence boundary](../implementation/S08-dated-reads.md).
+
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 Milestone 2 adds implemented experimental `list_companies`, `get_connection_status` and test-only `get_company_profile` with strict schemas, durable authorization and structured errors. Profile execution remains disabled outside explicit two-tenant acceptance mode. See [evidence](../implementation/M02-connections-evidence.md).

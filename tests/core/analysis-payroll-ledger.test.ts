@@ -40,6 +40,9 @@ it("pins analytical/payroll operation sources without promoting operator probes 
       "financial_liquidity.calculate",
       "sie4.parse",
       "financial_movements.list",
+      "financial_balances.get",
+      "financial_transactions.list",
+      "invoice_history.calculate",
       "payroll_employee.create",
     ].sort(),
   );

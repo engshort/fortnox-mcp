@@ -15,6 +15,7 @@ export const featureId = z.enum([
   "customer-registers",
   "supplier-registers",
   "payroll-input",
+  "financial-analysis",
   "sales-invoices",
   "sales-orders",
   "supplier-invoices",
@@ -22,6 +23,10 @@ export const featureId = z.enum([
 export type FeatureId = z.infer<typeof featureId>;
 export const baseScopes = ["companyinformation", "profile"] as const;
 export const featureLabels = {
+  "financial-analysis": {
+    sv: "Saldon och bokförda transaktioner per datum",
+    en: "Dated balances and ledger transactions",
+  },
   "sales-invoices": { sv: "Kundfakturor", en: "Customer invoices" },
   "sales-orders": { sv: "Offerter och order", en: "Quotes and orders" },
   "supplier-invoices": {
@@ -109,6 +114,7 @@ export const programManifest = [
       "receipt-files",
       "supplier-registers",
       "supplier-invoices",
+      "financial-analysis",
     ],
   },
   {
@@ -137,6 +143,11 @@ export const programManifest = [
   },
 ] as const;
 export const featureManifest = {
+  "financial-analysis": {
+    scopes: ["bookkeeping"],
+    dependsOn: [],
+    implementation: "implemented_unverified",
+  },
   "supplier-invoices": {
     scopes: ["supplierinvoice"],
     dependsOn: [],
@@ -255,6 +266,7 @@ export function assertScopeProgram(c: Connection, scope: string) {
 }
 function featureScopes(id: FeatureId, gates: ProgramGates): string[] {
   if (
+    id === "financial-analysis" ||
     id === "sales-invoices" ||
     id === "sales-orders" ||
     id === "supplier-invoices"
@@ -283,7 +295,7 @@ export const programChange = z
     features: z
       .array(featureId)
       .min(1)
-      .max(4)
+      .max(5)
       .refine((ids) => new Set(ids).size === ids.length),
     expected_revision: z.number().int().nonnegative().safe(),
   })

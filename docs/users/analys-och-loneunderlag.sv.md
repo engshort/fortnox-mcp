@@ -70,16 +70,41 @@ Operatören kan öppna ett tidsbegränsat klientprov för den verifierade
 anställda, dagen och lönekoden. Det aktiverar inte lönekörning, lönebesked eller
 utbetalning. Vanliga installationer får inte automatiskt skrivåtkomst till Lön.
 
-`list_receivables` och `list_payables` visar aktuell kund- respektive
-leverantörsreskontra i begränsade sidor. Okända belopp eller statusfält visas
-som okända. Sidans summeringar hålls per valuta och gäller bara sidan.
-Historiskt obetalt belopp kan inte återskapas från dagens status. Förväntat
-betalningsflöde beräknas först när valuta och kredittecken har verifierats;
-förfallodatum är inget löfte om att betalning sker.
+`get_account_balances` hämtar bokförda kontosaldon till och med ett valt datum.
+Ange företag och `as_of`, exempelvis `2025-12-31`. Rätt räkenskapsår hämtas från
+Fortnox. Utan kontourval ingår även inaktiva konton. Saknade eller motstridiga
+underlag ger okända värden och tydliga begränsningar.
+
+`list_financial_transactions` hämtar bokförda verifikationsrader mellan `from`
+och `to`, inklusive båda datumen. Perioden får sträcka sig över flera räkenskapsår.
+Du kan välja konton eller hämta samtliga. Fortsätt med det returnerade
+fortsättningsvärdet, även om en mellansida är tom. Varje sida visar högst 50 rader;
+sidans summering är inte hela periodens summa. Ändras underlaget behöver urvalet
+hämtas på nytt.
+
+`list_receivables` och `list_payables` visar dagens reskontra utan datumargument.
+Med `as_of` begär du i stället historiskt restbelopp, även för fakturor som är
+slutbetalda i dag. Dagens saldo visas separat. Beräkningen kräver daterade,
+verifierade fakturor och betalningar. Okänd kredit-, valuta-, makulerings- eller
+betalningshistorik visas som okänd. Förfallobedömningen gäller det valda datumet;
+förfallodatum är inget löfte om betalning. Summeringar gäller sidan och hålls
+separata per valuta.
 
 `get_liquidity_basis` kombinerar valda bokförda konton med en begränsad sida
-kund- och leverantörsfakturor. Ange dagens datum, räkenskapsår och ett uttryckligt
+kund- och leverantörsfakturor för samma datum. Ange datum, räkenskapsår och ett uttryckligt
 antagande att betalning sker på förfallodagen, högst 90 dagar framåt. Resultatet
 visar vilka källor och sidor som ingår. Okända belopp eller teckenregler kan ge
 ett ofullständigt underlag utan beräknad prognos. Andra valutor räknas inte om,
 och konton klassificeras inte automatiskt som bankkonton utifrån numret.
+
+Historiska rapporter bygger på den bokföring som finns tillgänglig nu. En senare
+registrerad rättelse med äldre bokföringsdatum kan därför påverka en tidigare
+rapport. För bokslut kan du exempelvis begära saldon den 31 december och sedan
+hämta januari–mars separat för att granska efterföljande händelser.
+
+Datumverktygen finns i den vanliga installationen utan tidsbegränsat testbygge.
+Välj **Saldon och bokförda transaktioner per datum** under Bokföring. Kundreskontra
+använder programvalet för kundfakturor och leverantörsreskontra valet för
+leverantörsfakturor. Nya behörigheter kräver nytt Fortnox-medgivande och förnyat
+företagsgodkännande i AI-klienten. Aktivering innebär inte att samtliga saldon
+och historiska fall har verifierats; okända belopp förblir okända.

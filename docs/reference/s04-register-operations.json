@@ -9,10 +9,10 @@
     "packages/core/src/registers.ts": "db3bbae5ad5f6f2881b2a66d52af1afdbe697d2142a2a4baf071fffa152f2ab8",
     "packages/fortnox/src/registers.ts": "9e6cbb4dc85afd9bf1781ebc07de62e1e8a98d54919bdabed3c334ee524f4cee",
     "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
-    "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
-    "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
+    "apps/shared/product.ts": "9758f45f12d3d8c9a342793bf9e9e98f08689c3ede9498eb30fce461342fba29",
+    "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
     "packages/fortnox/src/connections.ts": "1e9c91b37d3986cf4c8524d93d93236bb647589dc5c0bb9ea541a504055b6120",
-    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715"
+    "packages/core/src/programs.ts": "4b9161a60e1bb6e8a087470241b75e4f3f041b6e23bf7935e5a17be033cea2b5"
   },
   "operations": [
     {

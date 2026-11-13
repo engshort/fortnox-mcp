@@ -34,8 +34,15 @@ void (async () => {
     ...(payrollWrites ? { payrollWrites } : {}),
     ...(financialMappings ? { financialMappings } : {}),
     openItemReads: z
-      .array(z.enum(["open_receivable.list", "open_payable.list"]))
-      .max(2)
+      .array(
+        z.enum([
+          "open_receivable.list",
+          "open_payable.list",
+          "open_receivable.history",
+          "open_payable.history",
+        ]),
+      )
+      .max(4)
       .parse(JSON.parse(process.env.OPEN_ITEM_TEST_OPERATIONS ?? "[]")),
     until: Date.parse(process.env.REGISTER_TEST_UNTIL ?? ""),
     operations: operations as RegisterOperation[],
@@ -45,11 +52,12 @@ void (async () => {
           "financial.accounts",
           "financial.account",
           "financial.year",
+          "financial.years",
           "financial.sie4",
           "financial.voucher",
         ]),
       )
-      .max(5)
+      .max(6)
       .parse(JSON.parse(process.env.FINANCIAL_TEST_OPERATIONS ?? "[]")),
     payrollReads: z
       .array(

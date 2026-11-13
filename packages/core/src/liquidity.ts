@@ -80,7 +80,7 @@ export const liquidityResult = z
     ledger_source_version: hash,
     ledger_mapping_version: z.string().min(1).max(128),
     ledger_calculation_version: z.string().min(1).max(128),
-    sources: z.array(openItemSource).min(1).max(1004),
+    sources: z.array(openItemSource).min(1).max(3204),
     retrieved: financialBasis.shape.retrieved,
     limitations: z.array(z.string().max(128)).max(128),
   })
@@ -127,9 +127,10 @@ export class LiquidityAnalysis {
   async basis(actor: AccountingActor, input: unknown) {
     const query = liquidityQuery.parse(input),
       started = this.now();
-    if (query.as_of !== day(started))
-      throw new DomainError("VALIDATION_FAILED");
+    if (query.as_of > day(started)) throw new DomainError("VALIDATION_FAILED");
     const before = await this.authorize(actor, query.company_id);
+    if (query.as_of < day(started) && !this.openItems.provider.history)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     const ledger = await this.financial.report(actor, {
       company_id: query.company_id,
       financial_year: query.financial_year,
@@ -141,18 +142,24 @@ export class LiquidityAnalysis {
     const receivables = await this.openItems.list(actor, {
       company_id: query.company_id,
       kind: "receivable",
+      ...(query.as_of < day(started) ? { as_of: query.as_of } : {}),
     });
     const payables = await this.openItems.list(actor, {
       company_id: query.company_id,
       kind: "payable",
+      ...(query.as_of < day(started) ? { as_of: query.as_of } : {}),
     });
     const after = await this.authorize(actor, query.company_id);
     if (
       before.generation !== after.generation ||
       before.tenant !== after.tenant ||
-      day(this.now()) !== query.as_of ||
-      receivables.observation_day !== query.as_of ||
-      payables.observation_day !== query.as_of
+      day(this.now()) !== day(started) ||
+      (receivables.observation_point === "computed_as_of"
+        ? receivables.as_of !== query.as_of
+        : receivables.observation_day !== query.as_of) ||
+      (payables.observation_point === "computed_as_of"
+        ? payables.as_of !== query.as_of
+        : payables.observation_day !== query.as_of)
     )
       throw new DomainError("CONNECTION_CONFLICT");
     const mapping = this.cashMapping?.(query.company_id, query.financial_year);

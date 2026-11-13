@@ -1,5 +1,6 @@
 import {
   type AccountingActor,
+  assertFeature,
   assertScopeProgram,
   type Connections,
   DomainError,
@@ -52,8 +53,14 @@ export class DocumentHttp {
       );
       assertScopeProgram(c, scope);
       if (
+        !this.provider.config.testTenants &&
+        operation.startsWith("financial.")
+      )
+        assertFeature(c, "financial-analysis");
+      if (
         !this.active() ||
         c.generation !== original.generation ||
+        c.tenant !== original.tenant ||
         !this.provider.allowsTenant(c.tenant)
       )
         throw new DomainError("COMPANY_FORBIDDEN");

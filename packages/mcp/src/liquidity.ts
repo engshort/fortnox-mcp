@@ -40,7 +40,7 @@ export function registerLiquidity(
     {
       title: "Read booked balances and explicit expected-flow inputs",
       description:
-        "Read at most 20 selected ledger accounts and the first bounded current receivable/payable pages. Requires explicit fiscal year, today's Stockholm date and a maximum 90-day due-date-only assumption. Returns source completeness, unknown balance/sign/currency/classification limits and next invoice pages. Projection covers selected accounts and returned pages only; it is not live bank data, currency conversion, a guaranteed forecast or bank payment initiation.",
+        "Read at most 20 selected booked accounts and the first bounded receivable/payable pages for the same as_of date. Past dates use historical invoice/payment evidence; future as_of dates are rejected. Requires an explicit fiscal year and a maximum 90-day due-date-only assumption. Returns source coverage, unknown balance/sign/currency/classification limits and next invoice pages. Projection covers selected accounts and returned pages only; it is not live bank data or a guaranteed forecast.",
       inputSchema: liquidityQuery,
       outputSchema: output,
       annotations: {
