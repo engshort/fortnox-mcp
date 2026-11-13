@@ -103,7 +103,7 @@ rapport. För bokslut kan du exempelvis begära saldon den 31 december och sedan
 hämta januari–mars separat för att granska efterföljande händelser.
 
 Datumverktygen finns i den vanliga installationen utan tidsbegränsat testbygge.
-Välj **Saldon och bokförda transaktioner per datum** under Bokföring. Kundreskontra
+Anslut **Bokföring** för saldon och bokförda transaktioner per datum. Kundreskontra
 använder programvalet för kundfakturor och leverantörsreskontra valet för
 leverantörsfakturor. Nya behörigheter kräver nytt Fortnox-medgivande och förnyat
 företagsgodkännande i AI-klienten. Aktivering innebär inte att samtliga saldon

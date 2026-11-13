@@ -111,3 +111,15 @@ when rerun separately. Test timeout settings were not changed.
 These local results do not establish actual ChatGPT acceptance or validate
 undocumented Fortnox financial semantics. Regression checks are rerun after
 integration with the latest main; their final results are recorded in the PR.
+
+## Verification after main integration, 2026-11-13
+
+- Typecheck and lint passed; all 408 Node cases passed in 27 files.
+- The rebuilt Node/Worker artifacts passed all 13 artifact/native-runtime cases.
+- All six existing owner UI browser cases passed on desktop and mobile. The
+  consent expectation now includes the added financial-analysis feature.
+- Changed Markdown links and all 89 operation source hashes were checked.
+- Full workerd/D1 and GitHub CI results are recorded in the PR before merge.
+
+These are local synthetic/runtime results. Actual historical provider/client
+acceptance remains separate from ordinary availability.
