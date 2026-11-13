@@ -180,7 +180,7 @@ export function liquidityContract(fixture: () => Promise<StateStore>) {
       expect(f.calls()).toBe(3);
       await expect(
         f.service.basis(f.actor, { ...f.query, as_of: "2025-12-31" }),
-      ).rejects.toThrow("VALIDATION_FAILED");
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
       await expect(
         f.service.basis(f.actor, { ...f.query, expected_to: "2027-01-01" }),
       ).rejects.toThrow();

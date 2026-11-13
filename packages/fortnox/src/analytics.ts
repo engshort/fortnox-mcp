@@ -22,6 +22,7 @@ export const financialReadOperations = [
   "financial.accounts",
   "financial.account",
   "financial.year",
+  "financial.years",
   "financial.sie4",
   "financial.voucher",
 ] as const;
@@ -58,6 +59,14 @@ export interface FinancialMapping {
   sha256: string;
   accounts: Readonly<Record<number, z.infer<typeof accountCategory>>>;
 }
+// Trusted installation evidence only, never accepted from an MCP argument.
+export interface FinancialVerification {
+  sha256: string;
+  version: string;
+  full_export: boolean;
+  effective_rows: boolean;
+  omitted_zero_openings: boolean;
+}
 // Fixed read operations only. Mapping is supplied by trusted installation code,
 // never by a model argument. It classifies explicit accounts, not number ranges.
 export class FortnoxFinancialReads implements FinancialProvider {
@@ -72,6 +81,10 @@ export class FortnoxFinancialReads implements FinancialProvider {
       company: string,
       year: number,
     ) => FinancialMapping | undefined,
+    readonly verification?: (
+      company: string,
+      year: number,
+    ) => FinancialVerification | undefined,
   ) {
     if (
       new Set(enabled).size !== enabled.length ||
@@ -79,6 +92,65 @@ export class FortnoxFinancialReads implements FinancialProvider {
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     this.http = new DocumentHttp(connections, provider, enabled, active, now);
+  }
+  async years(
+    actor: AccountingActor,
+    company: string,
+    until = this.now() + 30000,
+  ) {
+    const context = await this.context(actor, company, "financial.years");
+    const years: { id: number; from: string; to: string }[] = [];
+    const sources: FinancialBasis["sources"] = [];
+    let complete = false;
+    for (let page = 1; page <= 5 && this.now() < until; page++) {
+      const url = new URL("https://api.fortnox.se/3/financialyears");
+      url.search = new URLSearchParams({
+        page: String(page),
+        limit: "100",
+      }).toString();
+      const raw = await this.http.read(context, url, until);
+      const records = z.array(year).max(100).parse(raw.FinancialYears);
+      const metadata = meta.safeParse(raw.MetaInformation);
+      sources.push({
+        operation: "financial.years",
+        record_id: String(page),
+        sha256: await accountingHash(raw),
+      });
+      for (const record of records) {
+        if (
+          record.FromDate > record.ToDate ||
+          years.some((y) => y.id === record.Id)
+        )
+          throw new ProviderError(
+            "UPSTREAM_UNAVAILABLE",
+            "ambiguous_financial_years",
+          );
+        years.push({ id: record.Id, from: record.FromDate, to: record.ToDate });
+      }
+      if (!metadata.success) break;
+      if (
+        metadata.data["@CurrentPage"] !== page &&
+        !(
+          page === 1 &&
+          records.length === 0 &&
+          metadata.data["@TotalPages"] === 0
+        )
+      )
+        throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_pagination");
+      if (page >= metadata.data["@TotalPages"]) {
+        complete = true;
+        break;
+      }
+    }
+    if (!sources.length)
+      throw new ProviderError("UPSTREAM_UNAVAILABLE", "read_budget_exhausted");
+    return {
+      company_id: company,
+      years,
+      complete,
+      sources,
+      source_version: await accountingHash({ years, complete }),
+    };
   }
   private context(
     actor: AccountingActor,
@@ -401,9 +473,10 @@ export class FortnoxFinancialReads implements FinancialProvider {
   async basis(
     actor: AccountingActor,
     query: FinancialQuery,
+    deadline = Infinity,
   ): Promise<FinancialBasis> {
     const start = this.now(),
-      until = start + 45000;
+      until = Math.min(start + 45000, deadline);
     const financialYear = await this.financialYear(
       actor,
       query.company_id,
@@ -467,7 +540,25 @@ export class FortnoxFinancialReads implements FinancialProvider {
           ].includes(v),
       ),
     );
-    limitations.add("export_coverage_unverified");
+    const verification = this.verification?.(
+      query.company_id,
+      query.financial_year,
+    );
+    if (
+      verification &&
+      (!/^[a-f0-9]{64}$/.test(verification.sha256) ||
+        !verification.version ||
+        verification.version.length > 128)
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (!verification?.full_export)
+      limitations.add("export_coverage_unverified");
+    if (verification)
+      sources.push({
+        operation: "financial_verification",
+        record_id: verification.version,
+        sha256: verification.sha256,
+      });
     const mapping = this.mapping?.(query.company_id, query.financial_year);
     if (
       mapping &&
@@ -505,7 +596,9 @@ export class FortnoxFinancialReads implements FinancialProvider {
         active: api?.Active ?? null,
         opening: openingConflict
           ? null
-          : (api?.BalanceBroughtForward ?? balance?.opening ?? null),
+          : (api?.BalanceBroughtForward ??
+            balance?.opening ??
+            (verification?.omitted_zero_openings && sie ? "0.00" : null)),
         provider_closing: closingConflict
           ? null
           : (api?.BalanceCarriedForward ?? balance?.closing ?? null),
@@ -529,6 +622,7 @@ export class FortnoxFinancialReads implements FinancialProvider {
             }
           : null,
       dimensions: m.dimensions,
+      ...(m.description !== undefined ? { description: m.description } : {}),
     }));
     const second = await this.sie(
       actor,
@@ -547,6 +641,7 @@ export class FortnoxFinancialReads implements FinancialProvider {
         years: sie.years,
         accounts: sie.accounts,
         movements: sie.movements,
+        period_balances: sie.period_balances,
         limitations: sie.limitations,
       });
     const changed =
@@ -560,6 +655,9 @@ export class FortnoxFinancialReads implements FinancialProvider {
       financial_year: query.financial_year,
       mapping_version: mapping?.version ?? "unmapped/1",
       mapping_sha256: mapping?.sha256 ?? null,
+      verification: verification ?? null,
+      limitations: [...limitations].sort(),
+      period_balances: first.period_balances,
       currency,
       accounts,
       movements,
@@ -579,10 +677,19 @@ export class FortnoxFinancialReads implements FinancialProvider {
       retrieved: { started_at: start, finished_at: this.now() },
       coverage: {
         accounts: chartComplete,
-        movements: false,
+        movements:
+          verification?.full_export === true &&
+          verification.effective_rows &&
+          !first.limitations.some(
+            (v) =>
+              v !== "export_coverage_unverified" &&
+              v !== "missing_zero_balances_unverified" &&
+              v !== "currency_missing",
+          ) &&
+          !changed,
         opening_balances: accounts.every((a) => a.opening !== null),
       },
-      semantics_verified: false,
+      semantics_verified: verification?.effective_rows === true,
       mapping_version: mapping?.version ?? "unmapped/1",
       consistency: changed ? "changed" : "bounded_recheck",
       limitations: [...limitations].sort(),

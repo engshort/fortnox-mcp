@@ -19,10 +19,10 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         keys: { a: keyA },
         activeKey: "a",
         redirects: [callback],
-        testMode: true,
+        testMode: false,
         clientId: "synthetic-client",
         clientSecret: "synthetic-client-secret",
-        testTenants: ["100001", "100002"],
+        testTenants: [],
       },
       config,
       async (input) => {
@@ -331,9 +331,29 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         }),
       );
       expect(modern.getProtocolEra()).toBe("modern");
-      expect((await modern.listTools()).tools.map((t) => t.name)).toContain(
+      const tools = (await modern.listTools()).tools;
+      for (const name of [
         "list_companies",
-      );
+        "get_account_balances",
+        "list_financial_transactions",
+        "list_receivables",
+        "list_payables",
+        "get_liquidity_basis",
+      ])
+        expect(tools.map((t) => t.name)).toContain(name);
+      const beforeDeniedRead = providerCalls;
+      expect(
+        (
+          await modern.callTool({
+            name: "get_account_balances",
+            arguments: { company_id: companyB.id, as_of: "2025-12-31" },
+          })
+        ).structuredContent,
+      ).toMatchObject({
+        status: "error",
+        error: { code: "CAPABILITY_UNAVAILABLE" },
+      });
+      expect(providerCalls).toBe(beforeDeniedRead);
       const modernResult = await modern.callTool({
         name: "get_connection_status",
         arguments: { company_id: companyB.id },

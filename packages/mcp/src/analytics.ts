@@ -1,7 +1,9 @@
 import {
   type AccountingActor,
+  accountBalanceQuery,
   accountCategory,
   accountingDate,
+  DatedFinancialAnalysis,
   DomainError,
   type FinancialAnalysis,
   financialAccountsQuery,
@@ -9,6 +11,8 @@ import {
   financialComparisonQuery,
   financialMovementQuery,
   financialQuery,
+  financialTransactionQuery,
+  financialTransactionResult,
   financialVoucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -252,6 +256,50 @@ export function registerFinancialReads(
       },
     );
   };
+  if (
+    service.enabled &&
+    (
+      [
+        "financial.accounts",
+        "financial.year",
+        "financial.years",
+        "financial.sie4",
+      ] as const
+    ).every((op) => provider.enabled.includes(op))
+  ) {
+    const dated = new DatedFinancialAnalysis(
+      service.connections,
+      service,
+      provider,
+      provider.now,
+    );
+    register(
+      "get_account_balances",
+      "Read booked balances at a date",
+      "Compute booked account balances through an explicit inclusive date using the company's actual fiscal year. Includes inactive accounts when all accounts are requested. Current records determine historical figures; limitations, source versions and unknown balances remain explicit.",
+      accountBalanceQuery,
+      report
+        .extend({
+          as_of: accountingDate,
+          history_basis: z.literal("current_records_by_effective_date"),
+          accounts_page: report.shape.accounts_page
+            .extend({
+              next: accountBalanceQuery.shape.continuation.unwrap().nullable(),
+            })
+            .strict(),
+        })
+        .strict(),
+      (actor, q) => dated.balances(actor, q),
+    );
+    register(
+      "list_financial_transactions",
+      "Read booked transactions across fiscal years",
+      "Read up to 50 effective ledger rows for inclusive from/to dates, optionally selected accounts. Resolves actual fiscal years including non-calendar years. Continue using the returned cursor; every traversed year is rechecked. Totals cover the returned page only. Missing years, incomplete exports and non-atomic retrieval remain explicit.",
+      financialTransactionQuery,
+      financialTransactionResult,
+      (actor, q) => dated.transactions(actor, q),
+    );
+  }
   if (
     service.enabled &&
     (["financial.accounts", "financial.year", "financial.sie4"] as const).every(

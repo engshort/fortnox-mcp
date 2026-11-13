@@ -149,6 +149,7 @@ export const financialBasis = z
             source_ref: id,
             voucher_ref: financialVoucherReference.nullable().optional(),
             dimensions: z.record(id, id),
+            description: z.string().max(1000).nullable().optional(),
           })
           .strict(),
       )
@@ -393,7 +394,11 @@ export function calculateFinancialReport(
 }
 export type FinancialReport = ReturnType<typeof calculateFinancialReport>;
 export interface FinancialProvider {
-  basis(actor: AccountingActor, query: FinancialQuery): Promise<FinancialBasis>;
+  basis(
+    actor: AccountingActor,
+    query: FinancialQuery,
+    until?: number,
+  ): Promise<FinancialBasis>;
 }
 export class FinancialAnalysis {
   constructor(
@@ -414,9 +419,14 @@ export class FinancialAnalysis {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return current;
   }
-  private async retrieve(actor: AccountingActor, query: FinancialQuery) {
+  async readBasis(
+    actor: AccountingActor,
+    query: FinancialQuery,
+    until?: number,
+  ) {
+    query = financialQuery.parse(query);
     const current = await this.authorize(actor, query.company_id);
-    const basis = await this.provider.basis(actor, query);
+    const basis = await this.provider.basis(actor, query, until);
     const after = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,
@@ -425,14 +435,17 @@ export class FinancialAnalysis {
     assertScopeProgram(after, "bookkeeping");
     if (
       after.generation !== current.generation ||
+      after.tenant !== current.tenant ||
       !after.scopes.includes("bookkeeping")
     )
       throw new DomainError("CONNECTION_CONFLICT");
-    return financialBasis.parse(basis);
+    const checked = financialBasis.parse(basis);
+    calculateFinancialReport(query, checked);
+    return checked;
   }
   async report(actor: AccountingActor, input: unknown) {
     const query = financialQuery.parse(input);
-    return calculateFinancialReport(query, await this.retrieve(actor, query));
+    return calculateFinancialReport(query, await this.readBasis(actor, query));
   }
   async compare(actor: AccountingActor, input: unknown) {
     const value = financialComparisonQuery.parse(input);
@@ -471,7 +484,7 @@ export class FinancialAnalysis {
   }
   async movements(actor: AccountingActor, input: unknown) {
     const query = financialMovementQuery.parse(input),
-      basis = await this.retrieve(actor, {
+      basis = await this.readBasis(actor, {
         company_id: query.company_id,
         financial_year: query.financial_year,
         from: query.from,

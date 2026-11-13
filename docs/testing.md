@@ -1,5 +1,15 @@
 # Test strategy and evidence
 
+The dated S08 contracts (`financial-dates.ts` and `invoice-history.ts` under
+`tests/shared`) run through Node/SQLite and actual local workerd/D1. They cover
+inclusive dates, multiple/non-calendar fiscal years, source-bound continuations,
+historical paid/partial/credit/write-off cases, complete-collection versus page
+totals, control-account signs/differences, strict MCP schemas and ordinary
+ordinary activation, read-only and feature boundaries. The product OAuth test
+also discovers the dated tools without test mode or a lease and rejects missing
+bookkeeping scope before provider access. Synthetic financial profiles remain
+distinct from actual source evidence; see the [dated-read record](implementation/S08-dated-reads.md).
+
 Operator/reviewer update (2026-11-11): all acceptance tests may use an AI operator
 and a separate AI reviewer under the [owner-approved procedure](implementation/ai-reviewed-acceptance-2026-11-11.md).
 Real client/provider/runtime and evidence requirements remain. Historical human
