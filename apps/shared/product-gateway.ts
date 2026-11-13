@@ -2,7 +2,11 @@ import {
   oauthProviderAuthServerMetadata,
   verifyOAuthQueryParams,
 } from "@better-auth/oauth-provider";
-import type { Connections } from "@fortnox-mcp/core";
+import {
+  type Connections,
+  featureLabels,
+  programSelection,
+} from "@fortnox-mcp/core";
 import {
   createMcpHandler,
   isLegacyRequest,
@@ -98,8 +102,10 @@ export function createProductGateway(
     )
       return oauthProviderAuthServerMetadata(auth)(request);
     if (request.method === "GET" && url.pathname === "/consent") {
+      let ownerId: string;
       try {
-        await requireOwner(auth, config.state, request.headers);
+        ownerId = (await requireOwner(auth, config.state, request.headers)).user
+          .id;
         if (
           !(await verifyOAuthQueryParams(
             url.search.slice(1),
@@ -112,19 +118,45 @@ export function createProductGateway(
       } catch {
         return challenge();
       }
+      const escapeHtml = (value: string) =>
+        value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll('"', "&quot;");
+      const companies = (await config.connections.list(ownerId)).filter(
+        (c) => c.state === "active",
+      );
+      const companyChoices = companies
+        .map(
+          (c) =>
+            `<label><input type="checkbox" name="company" checked value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">${escapeHtml(c.name)}<small> — ${escapeHtml(
+              programSelection(c)
+                .features.map((id) => featureLabels[id].sv)
+                .join(", ") || "Företagsuppgifter",
+            )}</small></label>`,
+        )
+        .join("<br>");
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst bokför inte och aktiverar inga overifierade operationer." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring kräver separat aktiverad operation, företagets aktuella policy och granskning där den krävs." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><button id="accept">Godkänn begärda behörigheter till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
+        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><fieldset><legend>Välj företag för detta godkännande</legend>${companyChoices}</fieldset><button id="accept">Godkänn begärda behörigheter till valda företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
         200,
         "text/html; charset=utf-8",
       );
     }
     if (request.method === "GET" && url.pathname === "/consent.js")
       return safeResponse(
-        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1)})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Ny registrering kan krävas.';};`,
+        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),companies:[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value))})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';};`,
         200,
         "text/javascript",
       );
     if (authRoutes.has(`${request.method} ${url.pathname}`)) {
+      if (
+        request.method === "GET" &&
+        url.pathname === "/auth/oauth2/authorize"
+      ) {
+        // Every approval must display the concrete current company selection.
+        url.searchParams.set("prompt", "consent");
+        request = new Request(url, request);
+      }
       let parsed: unknown;
       if (request.method === "POST") {
         const browser = [
@@ -178,7 +210,21 @@ export function createProductGateway(
         }
         if (url.pathname === "/auth/oauth2/consent") {
           const body = z
-            .object({ accept: z.boolean(), oauth_query: z.string().max(12000) })
+            .object({
+              accept: z.boolean(),
+              oauth_query: z.string().max(12000),
+              companies: z
+                .array(
+                  z
+                    .object({
+                      id: z.string().uuid(),
+                      generation: z.number().int().nonnegative(),
+                      access_revision: z.number().int().nonnegative(),
+                    })
+                    .strict(),
+                )
+                .max(50),
+            })
             .safeParse(parsed);
           if (
             !body.success ||
@@ -201,19 +247,92 @@ export function createProductGateway(
               request.headers,
             );
             try {
-              await config.connections.grant(
+              // Let the maintained OAuth implementation validate/consume the
+              // signed consent first. No grant is changed for denied consent.
+              const response = await auth.handler(request);
+              if (!response.ok) return response;
+              const result = (await response.clone().json()) as {
+                url?: string;
+              };
+              const code = result.url
+                ? new URL(result.url).searchParams.get("code")
+                : null;
+              if (!code) return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+              const grant = await config.connections.renewGrant(
                 session.user.id,
                 client,
-                (await config.connections.list(session.user.id))
-                  .filter((c) => c.state === "active")
-                  .map((c) => c.id),
+                body.data.companies,
+              );
+              await auth.api.bindProductCode({
+                body: {
+                  code,
+                  owner: session.user.id,
+                  client,
+                  revision: grant.revision as number,
+                },
+              });
+              return response;
+            } catch {
+              return safeResponse('{"error":"CONSENT_CONFLICT"}', 409);
+            }
+          }
+        }
+        if (url.pathname === "/auth/oauth2/token") {
+          const body = z
+            .object({
+              client_id: z.string().optional(),
+              grant_type: z.enum(["authorization_code", "refresh_token"]),
+              code: z.string().optional(),
+              refresh_token: z.string().optional(),
+            })
+            .safeParse(parsed);
+          if (!body.success)
+            return safeResponse('{"error":"invalid_grant"}', 400);
+          let client = body.data.client_id;
+          if (
+            !client &&
+            /^Basic /i.test(request.headers.get("authorization") ?? "")
+          ) {
+            try {
+              client = decodeURIComponent(
+                atob(
+                  (request.headers.get("authorization") ?? "").slice(6),
+                ).split(":")[0] ?? "",
               );
             } catch {
-              return safeResponse(
-                '{"error":"NEW_CLIENT_REGISTRATION_REQUIRED"}',
-                409,
-              );
+              return safeResponse('{"error":"invalid_client"}', 400);
             }
+          }
+          if (!client) return safeResponse('{"error":"invalid_client"}', 400);
+          try {
+            await auth.api.verifyProductExchange({
+              body: {
+                client,
+                type: body.data.grant_type,
+                token:
+                  (body.data.grant_type === "authorization_code"
+                    ? body.data.code
+                    : body.data.refresh_token) ?? "",
+              },
+            });
+          } catch {
+            return safeResponse('{"error":"invalid_grant"}', 400);
+          }
+          const response = await auth.handler(request);
+          if (!response.ok) return response;
+          try {
+            const tokens = (await response.clone().json()) as {
+              access_token: string;
+            };
+            await auth.api.retainProductTokens({
+              body: { token: tokens.access_token },
+            });
+            await auth.api.verifyProductToken({
+              body: { token: tokens.access_token },
+            });
+            return response;
+          } catch {
+            return safeResponse('{"error":"invalid_grant"}', 400);
           }
         }
       }

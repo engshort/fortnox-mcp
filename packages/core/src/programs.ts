@@ -56,27 +56,41 @@ export const featureLabels = {
 } as const;
 const programCapabilities = {
   bookkeeping: [
-    { ...featureLabels.references, implementation: "implemented_unverified" },
     {
+      ...featureLabels["financial-analysis"],
+      feature: "financial-analysis",
+      implementation: "implemented_unverified",
+    },
+    {
+      feature: "references",
+      ...featureLabels.references,
+      implementation: "implemented_unverified",
+    },
+    {
+      feature: "supplier-registers",
       ...featureLabels["supplier-registers"],
       implementation: "implemented_unverified",
     },
     {
+      feature: "references",
       sv: "Manuella verifikationer",
       en: "Manual vouchers",
       implementation: "implemented_unverified",
     },
     {
+      feature: "receipt-files",
       ...featureLabels["receipt-files"],
       implementation: "implemented_unverified",
     },
   ],
   invoicing: [
     {
+      feature: "customer-registers",
       ...featureLabels["customer-registers"],
       implementation: "implemented_unverified",
     },
     {
+      feature: "sales-invoices",
       sv: "Kundfakturor",
       en: "Customer invoices",
       implementation: "implemented_unverified",
@@ -89,6 +103,7 @@ const programCapabilities = {
   ],
   "order-offer": [
     {
+      feature: "sales-orders",
       sv: "Offerter och order",
       en: "Quotes and orders",
       implementation: "implemented_unverified",
@@ -96,6 +111,7 @@ const programCapabilities = {
   ],
   payroll: [
     {
+      feature: "payroll-input",
       sv: "Löneunderlag",
       en: "Payroll input",
       implementation: "implemented_unverified",
@@ -324,7 +340,52 @@ export function assertNoUncertainWrites(c: Connection) {
 export function assertProgramConsentChange(
   c: Connection,
   input: ProgramChange,
+  replaceConnection = true,
 ) {
+  const selected = programSelection(c);
+  const added = input.features.filter((id) => !selected.features.includes(id));
+  if (
+    input.program === "bookkeeping" &&
+    selected.enabled.includes("bookkeeping") &&
+    added.length > 0 &&
+    added.every((id) =>
+      ["financial-analysis", "supplier-invoices"].includes(id),
+    )
+  ) {
+    const executions = [
+      ...(c.bookkeeping?.executions ?? []),
+      ...(c.business?.executions ?? []),
+    ];
+    if (
+      executions.some((e) => e.state === "submitting") ||
+      (c.receiptBatches ?? []).some((b) =>
+        b.items.some((i) =>
+          Object.values(i.steps).some((s) => s.state === "submitting"),
+        ),
+      )
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
+    // Local read selection does not replace the connection or alter old intents.
+    // Credential replacement additionally requires retained tenant provenance.
+    if (
+      replaceConnection &&
+      ((c.bookkeeping?.executions ?? []).some(
+        (e) => e.state === "outcome_unknown",
+      ) ||
+        (c.business?.executions ?? []).some(
+          (e) => e.state === "outcome_unknown" && e.tenant !== c.tenant,
+        ) ||
+        (c.receiptBatches ?? []).some(
+          (b) =>
+            b.tenant !== c.tenant &&
+            b.items.some((i) =>
+              Object.values(i.steps).some((s) => s.state === "outcome_unknown"),
+            ),
+        ))
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
+    return;
+  }
   if (
     input.program !== "payroll" ||
     input.features.length !== 1 ||
@@ -368,7 +429,6 @@ export function previewProgram(
   const selected = programSelection(c);
   if (c.state !== "active" || selected.revision !== input.expected_revision)
     throw new DomainError("CONNECTION_CONFLICT");
-  assertProgramConsentChange(c, input);
   const manifest = programManifest.find((p) => p.id === input.program);
   if (
     !manifest ||
@@ -377,7 +437,8 @@ export function previewProgram(
         !(manifest.features as readonly string[]).includes(id) ||
         !featureScopes(id, gates).length ||
         featureManifest[id].dependsOn.some(
-          (dep) => !input.features.includes(dep),
+          (dep) =>
+            !input.features.includes(dep) && !selected.features.includes(dep),
         ),
     )
   )
@@ -392,6 +453,18 @@ export function previewProgram(
       ...input.features.flatMap((id) => featureScopes(id, gates)),
     ]),
   ];
+  const addedFeatures = input.features.filter(
+    (id) => !selected.features.includes(id),
+  );
+  const addedScopes = scopes.filter((s) => !c.scopes.includes(s));
+  const action =
+    addedFeatures.length === 0 && selected.enabled.includes(input.program)
+      ? ("none" as const)
+      : addedScopes.length
+        ? ("provider_consent" as const)
+        : ("local_selection" as const);
+  if (action !== "none")
+    assertProgramConsentChange(c, input, action === "provider_consent");
   return {
     company_id: c.id,
     company_name: c.name,
@@ -401,7 +474,9 @@ export function previewProgram(
     enabled: [...new Set([...selected.enabled, input.program])],
     features,
     existing_scopes: c.scopes,
-    added_scopes: scopes.filter((s) => !c.scopes.includes(s)),
+    added_scopes: addedScopes,
+    added_features: addedFeatures,
+    action,
     scopes,
   };
 }

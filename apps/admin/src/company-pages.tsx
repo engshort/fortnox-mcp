@@ -277,7 +277,10 @@ export function CompanyLayout({
                     ? t("Tillgängligt", "Available")
                     : p.availability === "planned"
                       ? t("Stöd planeras", "Support planned")
-                      : t("Verifiering återstår", "Verification pending")}
+                      : t(
+                          "Åtkomst behöver kontrolleras",
+                          "Access needs checking",
+                        )}
                 </span>
                 <div className="row-action">
                   {p.can_connect && p.connection !== "connected" ? (
@@ -339,7 +342,9 @@ export function CompanyLayout({
             </div>
             {currentProgram.can_connect && (
               <button type="button" onClick={() => connect(currentProgram.id)}>
-                {t("Anslut program", "Connect program")}
+                {currentProgram.selected
+                  ? t("Uppdatera åtkomst", "Update access")
+                  : t("Anslut program", "Connect program")}
               </button>
             )}
           </div>
@@ -350,7 +355,13 @@ export function CompanyLayout({
                 <span className="muted">
                   {capability.implementation === "not_implemented"
                     ? t("Stöd planeras", "Support planned")
-                    : t("Verifiering återstår", "Verification pending")}
+                    : currentProgram.connection === "connected" &&
+                        "feature" in capability &&
+                        company.programs.features.includes(capability.feature)
+                      ? capability.en === "Manual vouchers" && company.read_only
+                        ? t("Skrivskyddad", "Read-only")
+                        : t("Åtkomst ansluten", "Access connected")
+                      : t("Åtkomst saknas", "Access not connected")}
                 </span>
               </div>
             ))}
@@ -362,8 +373,8 @@ export function CompanyLayout({
                   "Connect this program when implemented, verifiable support is available. No access is requested yet.",
                 )
               : t(
-                  "Funktionerna använder företagets Fortnox-behörigheter, skrivskydd och verifikationspolicy. Verifiering i verkliga klienter och Fortnox pågår.",
-                  "Features use the company's Fortnox permissions, read-only setting and voucher policy. Actual client and Fortnox verification is ongoing.",
+                  "Funktionerna använder företagets Fortnox-behörigheter, skrivskydd och verifikationspolicy. Licens och åtkomst kontrolleras vid användning.",
+                  "Features use the company's Fortnox permissions, read-only setting and voucher policy. License and access are checked when used.",
                 )}
           </p>
           {currentProgram.selected && (
@@ -411,18 +422,22 @@ export function ProgramConnectionDialog({
   const [latestPrograms, setLatestPrograms] = useState<
     Company["programs"] | null
   >(null);
-  const [files, setFiles] = useState(
-    company.programs.features.includes("receipt-files"),
-  );
   const available =
     latestPrograms?.programs.find((p) => p.id === program)?.connect_features ??
     [];
-  const features: FeatureId[] = [
-    ...available.filter((id) => id !== "receipt-files"),
-    ...(available.includes("receipt-files") && files
-      ? ["receipt-files" as const]
-      : []),
-  ];
+  const selected = (latestPrograms ?? company.programs).features;
+  const missing = available.filter((id) => !selected.includes(id));
+  // Offer the new read feature independently of unrelated register/file additions.
+  const features: FeatureId[] =
+    program === "bookkeeping" &&
+    (latestPrograms ?? company.programs).programs.some(
+      (p) => p.id === program && p.selected,
+    ) &&
+    missing.includes("financial-analysis")
+      ? ["financial-analysis"]
+      : missing.length
+        ? missing
+        : available;
   const featureKey = features.join(",");
   const selection = {
     program,
@@ -519,7 +534,11 @@ export function ProgramConnectionDialog({
               `/admin/companies/${company.company_id}/programs/start`,
               selection,
             );
-            redirectToFortnox(result.url);
+            if (result.url) redirectToFortnox(result.url);
+            else {
+              ref.current?.close();
+              location.reload();
+            }
           } catch (error) {
             setBusy(false);
             setError(connectionStartError(error, t));
@@ -528,13 +547,20 @@ export function ProgramConnectionDialog({
       >
         <div className="dialog-body">
           <h2 id="program-dialog-title">
-            {t("Anslut", "Connect")} {label ? t(label.sv, label.en) : program}
+            {label?.selected
+              ? t("Uppdatera åtkomst för", "Update access for")
+              : t("Anslut", "Connect")}{" "}
+            {label ? t(label.sv, label.en) : program}
           </h2>
           <p className="dialog-company">{company.name}</p>
           <p>
             {t(
-              "Du godkänner utökad åtkomst hos Fortnox.",
-              "You approve extended access in Fortnox.",
+              preview?.action === "local_selection"
+                ? "Fortnox-behörigheterna finns redan. Godkänn att funktionen används för företaget."
+                : "Du godkänner utökad åtkomst hos Fortnox.",
+              preview?.action === "local_selection"
+                ? "Fortnox permissions are already present. Approve using this feature for the company."
+                : "You approve extended access in Fortnox.",
             )}
           </p>
           <dl className="consent-summary">
@@ -546,61 +572,58 @@ export function ProgramConnectionDialog({
                   .filter((p) => p.selected)
                   .map((p) => `, ${t(p.sv, p.en)}`)
                   .join("")}
+                <ul className="access-list">
+                  {label?.connection_features
+                    .filter((f) => selected.includes(f.id))
+                    .map((f) => (
+                      <li key={f.id}>{t(f.sv, f.en)}</li>
+                    ))}
+                </ul>
               </dd>
             </div>
             <div>
               <dt>{t("Läggs till", "Adding")}</dt>
-              <dd>{label ? t(label.sv, label.en) : program}</dd>
+              <dd>
+                {preview
+                  ? preview.added_features.length
+                    ? label?.connection_features
+                        .filter((f) => preview.added_features.includes(f.id))
+                        .map((f) => t(f.sv, f.en))
+                        .join(", ")
+                    : t("Ingen ändring behövs", "No change needed")
+                  : t("Beräknas…", "Calculating…")}
+              </dd>
             </div>
           </dl>
           <h3>{t("Åtkomst som behövs", "Access needed")}</h3>
           <ul className="access-list">
             {label?.connection_features
-              .filter(
-                (f) => features.includes(f.id) && f.id !== "receipt-files",
+              .filter((f) =>
+                (preview?.added_features ?? features).includes(f.id),
               )
               .map((f) => (
                 <li key={f.id}>{t(f.sv, f.en)}</li>
               ))}
           </ul>
-          {available.includes("receipt-files") && (
-            <label className="optional-feature">
-              <input
-                type="checkbox"
-                checked={files}
-                onChange={(e) => setFiles(e.target.checked)}
-                disabled={
-                  busy ||
-                  (latestPrograms ?? company.programs).features.includes(
-                    "receipt-files",
-                  )
-                }
-              />
-              <span>
-                <strong>
-                  {t(
-                    "Kvitton och filkopplingar",
-                    "Receipts and file connections",
-                  )}
-                </strong>
-                <small>
-                  {t(
-                    "Begär åtkomst för att ladda upp och koppla kvittofiler i Fortnox.",
-                    "Request access to upload and link receipt files in Fortnox.",
-                  )}
-                </small>
-              </span>
-            </label>
-          )}
           <details>
             <summary>{t("Visa behörigheter", "Show scopes")}</summary>
             <p>
               {t("Befintliga:", "Existing:")}{" "}
-              {preview?.existing_scopes.join(", ")}
+              {preview
+                ? preview.existing_scopes.join(", ") || t("Inga", "None")
+                : t(
+                    "Kan inte visas före förberedelse",
+                    "Unavailable until prepared",
+                  )}
             </p>
             <p>
               {t("Tillägg:", "Additional:")}{" "}
-              {preview?.added_scopes.join(", ") || "—"}
+              {preview
+                ? preview.added_scopes.join(", ") || t("Inga", "None")
+                : t(
+                    "Kan inte visas före förberedelse",
+                    "Unavailable until prepared",
+                  )}
             </p>
           </details>
           <p className="muted">
@@ -609,6 +632,11 @@ export function ProgramConnectionDialog({
               "After consent we check the company and granted access. Capability support and licensing are reported separately. The AI client needs fresh consent.",
             )}
           </p>
+          {error.includes(t("En tidigare skrivning", "A previous write")) && (
+            <Link href="/admin/operations">
+              {t("Öppna olösta skrivutfall", "Open unresolved write outcomes")}
+            </Link>
+          )}
           <Message>
             {error ||
               (!preview ? t("Förbereder åtkomst…", "Preparing access…") : "")}
@@ -623,10 +651,17 @@ export function ProgramConnectionDialog({
           >
             {t("Avbryt", "Cancel")}
           </button>
-          <button type="submit" disabled={busy || !preview}>
+          <button
+            type="submit"
+            disabled={busy || !preview || preview.action === "none"}
+          >
             {busy
               ? t("Vänta…", "Please wait…")
-              : t("Fortsätt till Fortnox", "Continue to Fortnox")}
+              : preview?.action === "local_selection"
+                ? t("Godkänn åtkomst", "Approve access")
+                : preview?.action === "none"
+                  ? t("Åtkomsten är aktuell", "Access is current")
+                  : t("Fortsätt till Fortnox", "Continue to Fortnox")}
           </button>
         </div>
       </form>

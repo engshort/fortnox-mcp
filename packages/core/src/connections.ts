@@ -7,8 +7,10 @@ import {
   assertNoUncertainWrites,
   assertProgramConsentChange,
   type ProgramChange,
+  type ProgramGates,
   type ProgramId,
   type ProgramSelection,
+  previewProgram,
   programManifest,
   programSelection,
 } from "./programs.js";
@@ -97,6 +99,7 @@ export interface Connection {
   scopes: string[];
   programs?: ProgramSelection;
   generation: number;
+  accessRevision?: number;
   policyVersion: number;
   review: "review_required" | "client_managed";
   readOnly: boolean;
@@ -114,6 +117,9 @@ export interface ConnectionSet {
 export interface CompanyGrant {
   ownerId: string;
   companies: Record<string, number>;
+  accessRevisions?: Record<string, number>;
+  revision?: number;
+  grantId?: string;
   expiresAt?: number;
 }
 export class Connections {
@@ -248,8 +254,24 @@ export class Connections {
     company: string,
     active = true,
   ) {
-    const grant = await this.state.get<CompanyGrant>("company-grants", grantId);
+    const approved = grantId.startsWith("oauth-grant:")
+      ? (
+          await this.state.get<Record<string, CompanyGrant>>(
+            "oauth-approval-grants",
+            owner,
+          )
+        )?.value[grantId]
+      : undefined;
+    const grant = grantId.startsWith("oauth-grant:")
+      ? approved
+        ? { value: approved }
+        : null
+      : await this.state.get<CompanyGrant>("company-grants", grantId);
     const connection = (await this.list(owner)).find((c) => c.id === company);
+    // A request authenticated under a legacy client ID cannot cross the first
+    // renewal into the mutable registration's new permissions.
+    if (!grantId.startsWith("oauth-grant:") && grant?.value.revision)
+      throw new DomainError("COMPANY_FORBIDDEN");
     if (
       grant?.value.ownerId !== owner ||
       (grant.value.expiresAt !== undefined &&
@@ -267,19 +289,29 @@ export class Connections {
       throw new DomainError("CONNECTION_DISCONNECTED");
     if (grantedGeneration !== connection.generation)
       throw new DomainError("COMPANY_FORBIDDEN");
+    if (
+      (grant.value.accessRevisions?.[company] ?? 0) !==
+      (connection.accessRevision ?? 0)
+    )
+      throw new DomainError("COMPANY_FORBIDDEN");
     if (active && connection.state !== "active")
       throw new DomainError("RECONNECT_REQUIRED");
     return connection;
   }
   async grant(owner: string, grantId: string, selected: readonly string[]) {
-    if (grantId.startsWith("owner-recovery:"))
+    if (
+      grantId.startsWith("owner-recovery:") ||
+      grantId.startsWith("oauth-grant:")
+    )
       throw new DomainError("COMPANY_FORBIDDEN");
     const companies: Record<string, number> = {};
+    const accessRevisions: Record<string, number> = {};
     const connections = await this.list(owner);
     for (const id of selected) {
       const c = connections.find((c) => c.id === id && c.state === "active");
       if (!c) throw new DomainError("COMPANY_FORBIDDEN");
       companies[id] = c.generation;
+      accessRevisions[id] = c.accessRevision ?? 0;
     }
     for (let n = 0; n < 8; n++) {
       const prior = await this.state.get<CompanyGrant>(
@@ -288,21 +320,121 @@ export class Connections {
       );
       if (
         prior &&
-        (prior.value.ownerId !== owner ||
-          JSON.stringify(prior.value.companies) !== JSON.stringify(companies))
+        (prior.value.revision ||
+          prior.value.ownerId !== owner ||
+          JSON.stringify(prior.value.companies) !== JSON.stringify(companies) ||
+          Object.entries(accessRevisions).some(
+            ([id, revision]) =>
+              (prior.value.accessRevisions?.[id] ?? 0) !== revision,
+          ))
       )
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         await this.state.put(
           "company-grants",
           grantId,
-          { ownerId: owner, companies },
+          { ownerId: owner, companies, accessRevisions },
           prior?.version ?? null,
         )
       )
         return;
     }
     throw new DomainError("CONNECTION_CONFLICT");
+  }
+  // Explicit owner OAuth consent only. Existing token families keep their revision.
+  async renewGrant(
+    owner: string,
+    client: string,
+    selected: Array<{
+      id: string;
+      generation: number;
+      access_revision: number;
+    }>,
+  ) {
+    if (
+      client.startsWith("owner-recovery:") ||
+      client.startsWith("oauth-grant:") ||
+      new Set(selected.map((c) => c.id)).size !== selected.length
+    )
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const current = await this.list(owner);
+    for (const s of selected) {
+      const c = current.find((c) => c.id === s.id);
+      if (
+        c?.state !== "active" ||
+        c.generation !== s.generation ||
+        (c.accessRevision ?? 0) !== s.access_revision
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+    }
+    const prior = await this.state.get<CompanyGrant>("company-grants", client);
+    if (prior && prior.value.ownerId !== owner)
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const grant: CompanyGrant = {
+      ownerId: owner,
+      companies: Object.fromEntries(selected.map((s) => [s.id, s.generation])),
+      accessRevisions: Object.fromEntries(
+        selected.map((s) => [s.id, s.access_revision]),
+      ),
+      revision: (prior?.value.revision ?? 0) + 1,
+      grantId: `oauth-grant:${crypto.randomUUID()}`,
+    };
+    // Immutable authorization identity for each explicit approval. In-flight
+    // requests cannot acquire the permissions of a later client approval.
+    let saved = false;
+    for (let attempt = 0; attempt < 8 && !saved; attempt++) {
+      const previous = await this.state.get<Record<string, CompanyGrant>>(
+        "oauth-approval-grants",
+        owner,
+      );
+      const live = Object.fromEntries(
+        Object.entries(previous?.value ?? {}).filter(
+          ([, g]) => (g.expiresAt ?? 0) > Date.now(),
+        ),
+      );
+      if (Object.keys(live).length >= 128)
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      live[grant.grantId as string] = {
+        ...grant,
+        expiresAt: Date.now() + 600000,
+      };
+      saved = await this.state.put(
+        "oauth-approval-grants",
+        owner,
+        live,
+        previous?.version ?? null,
+      );
+    }
+    if (!saved) throw new DomainError("CONNECTION_CONFLICT");
+    if (
+      !(await this.state.put(
+        "company-grants",
+        client,
+        grant,
+        prior?.version ?? null,
+      ))
+    )
+      throw new DomainError("CONNECTION_CONFLICT");
+    return grant;
+  }
+
+  async selectProgram(
+    owner: string,
+    company: string,
+    input: ProgramChange,
+    gates: ProgramGates,
+  ) {
+    return this.mutate(owner, company, (c) => {
+      const preview = previewProgram(c, input, gates);
+      if (preview.action !== "local_selection")
+        throw new DomainError("CONNECTION_CONFLICT");
+      c.programs = {
+        enabled: preview.enabled,
+        features: preview.features,
+        revision: input.expected_revision + 1,
+      };
+      c.accessRevision = (c.accessRevision ?? 0) + 1;
+    });
   }
   // Owner administration only. No bearer token is ever issued for this reserved
   // internal client. One bounded row per company is revoked after the read.
@@ -315,6 +447,7 @@ export class Connections {
       clientId: string;
       scopes: readonly string[];
     }) => Promise<T>,
+    fileAccess = false,
   ): Promise<T> {
     const c = (await this.list(owner)).find((value) => value.id === company);
     if (c?.state !== "active") throw new DomainError("COMPANY_FORBIDDEN");
@@ -336,6 +469,7 @@ export class Connections {
         {
           ownerId: owner,
           companies: { [company]: c.generation },
+          accessRevisions: { [company]: c.accessRevision ?? 0 },
           expiresAt: Date.now() + 60000,
         },
         prior?.version ?? null,
@@ -343,7 +477,11 @@ export class Connections {
     )
       throw new DomainError("CONNECTION_CONFLICT");
     try {
-      return await read({ ownerId: owner, clientId, scopes: ["mcp:read"] });
+      return await read({
+        ownerId: owner,
+        clientId,
+        scopes: ["mcp:read", ...(fileAccess ? ["mcp:files"] : [])],
+      });
     } finally {
       const current = await this.state.get<CompanyGrant>(
         "company-grants",

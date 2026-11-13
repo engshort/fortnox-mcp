@@ -127,8 +127,19 @@ export async function diagnoseConnection(
   try {
     const c = await context.authorize(company);
     result.programs = programStatus(c, {
-      references: false,
-      receiptConsent: false,
+      references: true,
+      receiptConsent: true,
+      payrollConsent: true,
+      registerScopes: [
+        "customer",
+        "article",
+        "supplier",
+        "settings",
+        "currency",
+        "price",
+        "costcenter",
+        "project",
+      ],
     }).programs.map(({ id, selected, connection, availability }) => ({
       id,
       selected,

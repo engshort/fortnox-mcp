@@ -1,5 +1,7 @@
 # S11 — Company views and incremental program connections (#117)
 
+Current follow-up: [2026-11-13 access renewal and receipt recovery](access-renewal-2026-11-13.md) supersedes the original new-registration and blanket consent-blocking behavior described below. Dated test evidence remains unchanged.
+
 Scope: the approved C design and company/program structure in #117, including
 S02/S03 consent and authorization. This implementation is based on PR #118 at
 `3530f0395439672ef3b9763cbf89083e08bc0997`, as requested by the owner. It preserves

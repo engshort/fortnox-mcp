@@ -61,7 +61,7 @@ Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; 
 
 Produktens MCP-adress är `/mcp`. Endast fasta protokolluppgifter är offentliga. Företagsanrop kräver ägarens OAuth-godkännande med `mcp:read offline_access`; Fortnox-token kan inte användas som MCP-token.
 
-Godkännandet gäller de företag och anslutningsgenerationer som fanns vid anslutningen. När ett företag läggs till eller återansluts behöver du i denna version skapa en ny MCP-klientregistrering och godkänna den. Äldre registreringar utökas inte automatiskt. ChatGPT-stödet ska verifieras mot den pushade produktversionen, inklusive sparat svar, konversationsomladdning och Reload tools.
+Godkännandet gäller valda företag och deras anslutnings- och åtkomstversioner. När ett företag läggs till, återansluts eller får nya funktioner behöver du godkänna företagsåtkomsten igen. Servern stöder ett nytt OAuth-godkännande på samma klientregistrering. Öppna anslutningens godkännandeflöde igen i AI-klienten och välj företagen. Tidigare token får inte den nya åtkomsten; klienten behöver nya token efter godkännandet. Enbart Reload tools förnyar inte företagsåtkomst. Det faktiska förnyelseflödet i respektive värdklient återstår att verifiera.
 
 ## Begränsningar vid läsning
 
@@ -83,7 +83,7 @@ Frånkoppling stoppar nya anrop och tar bort lagrade credentials. Ett anrop som 
 
 Ett tidigare behörigt anrop kan få `CONNECTION_DISCONNECTED` direkt efter frånkoppling. Okänt eller obehörigt företag ger `COMPANY_FORBIDDEN`, och ett providerfel som kräver nytt godkännande ger `RECONNECT_REQUIRED`. Inget av felresultaten lämnar en företagsprofil. Andra behöriga företag kan fortfarande läsas.
 
-Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Skapa därefter en ny MCP-klientregistrering och godkänn den. Äldre grants och framtida granskningsunderlag återfår inte giltighet genom återanslutningen.
+Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Ge därefter samma klientregistrering ett nytt företagsgodkännande. Äldre grants och framtida granskningsunderlag återfår inte giltighet genom återanslutningen.
 
 
 ## Vad är verifierat?
@@ -116,12 +116,11 @@ Välj företaget och öppna **Översikt**, **Bokföring**, **Fakturering**,
 att blanda deras programval. Adressen kan bokmärkas; bakåtknappen fungerar.
 
 Programlistan skiljer på **Anslutning** och **Tillgängligt**. **Anslutet** betyder
-inte att alla funktioner fungerar eller att en licens har verifierats. Funktioner
-med kvarvarande verifiering visas som sådana. Saknat providerstöd visas som
+inte att alla funktioner fungerar eller att en licens har verifierats. Funktionsrader visar ansluten åtkomst, saknad åtkomst eller skrivskydd. Teknisk verifiering redovisas separat. Saknat providerstöd visas som
 **Stöd planeras**. Ett generellt behörighetsfel bevisar inte att licensen saknas.
 
 När **Anslut** är tillgängligt visar sidodialogen företaget, redan anslutna program
-och det valda tillägget. Fortsätt till Fortnox för ett nytt uttryckligt godkännande.
+och de funktioner som faktiskt läggs till. För anslutna program heter åtgärden **Uppdatera åtkomst**. Kvitton visas i åtkomstsammanställningen utan en låst kryssruta. Om rätt Fortnox-behörigheter redan finns kan du godkänna funktionsvalet lokalt; annars fortsätter flödet till Fortnox. Ett val utan ändringar startar inget nytt samtycke.
 Befintlig lokal åtkomst behålls tills ersättningen har verifierats. Ett avbrutet
 eller misslyckat flöde visas tydligt; kontrollera anslutningen om Fortnox kräver ny
 inloggning. Väntande samtycken kan avbrytas under **Drift**.
@@ -134,7 +133,7 @@ fortfarande gäller, men inte om klienten har en aktiv inloggning.
 **Inaktivera program lokalt** stoppar programmets funktioner på servern.
 Fortnox-scopes återkallas inte; andra programs gemensamma åtkomst bevaras. För att
 återaktivera programmet krävs ett nytt anslutningsflöde. Programändringar blockeras
-vid ett pågående eller okänt skrivutfall tills det har stämts av. Ett separat Lön-samtycke kan dock läggas till vid ett äldre företagsbundet registerutfall. Utfallet behålls och fortsätter blockera nya skrivningar; ägaren kan läsa om det under Drift. Befintlig
+vid ett pågående eller okänt skrivutfall tills det har stämts av. Ett separat tillägg för saldon och transaktioner kan godkännas trots ett äldre okänt utfall när befintliga Fortnox-behörigheter räcker. Anslutning, policy och det gamla utfallet bevaras. Pågående skrivningar blockerar fortfarande ändringen. Krävs nya Fortnox-behörigheter kan äldre utfall utan säker företagsbindning fortsatt blockera ersättningen. Ett separat Lön-samtycke kan dock läggas till vid ett äldre företagsbundet registerutfall. Utfallet behålls och fortsätter blockera nya skrivningar; ägaren kan läsa om det under Drift. Befintlig
 **Koppla från** finns under företagets **Åtkomst**.
 
 **Inställningar** innehåller ägare och Fortnox API-uppgifter. **Drift** innehåller
@@ -143,3 +142,17 @@ bokförings-, betalnings- eller filoperationer aktiveras av denna vy. Fakturerin
 registerprov behåller sin särskilda tidsgräns och testkonfiguration. Betalregistrering
 är inte valbar innan stöd finns och betyder då bokföring av en redan genomförd
 betalning.
+
+## Kontrollera ett okänt kvittoutfall
+
+Under **Drift → Olösta skrivutfall** visas berört steg och **Kontrollera utfallet**
+när kvarvarande underlag medger avstämning. Ägaren kan läsa originaluppladdning
+eller filkoppling även om klientens godkännande har blivit gammalt. För äldre
+poster utan dokumenterad företagsbindning krävs samma anslutningsversion.
+Kontrollen skickar ingen ny uppladdning, verifikation eller filkoppling. Ett
+saknat eller tvetydigt fynd lämnar utfallet okänt och är inte skäl att försöka igen.
+
+En verifikation med bevarad eller ägarregistrerad exakt Fortnox-referens kan också
+stämmas av under **Drift** efter ett nytt klientgodkännande. Kontrollen jämför
+hela ursprungsförslaget och kräver samma anslutningsversion. Saknad referens eller
+avvikande innehåll lämnar utfallet okänt; ingen ny verifikation skickas.

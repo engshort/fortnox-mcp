@@ -68,6 +68,140 @@ export class ReceiptAttachments {
     readonly gates: AttachmentGates,
     readonly now = Date.now,
   ) {}
+  // Same-origin owner route only. Reads provider evidence; never dispatches a
+  // financial/file write, changes an intent identity or restores execution rights.
+  async reconcileOwner(
+    owner: string,
+    company: string,
+    id: string,
+  ): Promise<ReceiptStep> {
+    const { c, batch, item } = await this.receipts.ownerRecoveryItem(
+      owner,
+      company,
+      id,
+    );
+    const kind = ["outcome_unknown", "submitting"].includes(
+      item.steps.link.state,
+    )
+      ? "link"
+      : "upload";
+    const step = item.steps[kind];
+    if (
+      !this.gates[kind] ||
+      !["outcome_unknown", "submitting"].includes(step.state)
+    )
+      return { state: "outcome_unknown" };
+    if (step.state === "submitting" && step.created + 120000 > this.now())
+      return { state: "outcome_unknown" };
+    const original = JSON.stringify(item.steps);
+    const result = await this.receipts.connections.ownerRecoveryRead(
+      owner,
+      company,
+      async (actor) => {
+        if (kind === "upload") {
+          if (
+            !this.provider.inspectUpload ||
+            item.steps.voucher.state !== "pending" ||
+            item.steps.link.state !== "pending"
+          )
+            return null;
+          const proof = await this.provider.inspectUpload(actor, company, {
+            fileId: item.file.file_id,
+            sha256: item.fileHash as string,
+          });
+          if (
+            !proof ||
+            proof.sha256 !== item.fileHash ||
+            (step.state === "outcome_unknown" &&
+              step.reference &&
+              step.reference !== proof.reference)
+          )
+            return null;
+          return providerFileId.parse(proof.reference);
+        }
+        const execution = c.bookkeeping?.executions.find(
+          (e) =>
+            e.id === item.proposal?.proposal_id &&
+            e.hash === item.proposal?.proposal_hash,
+        );
+        if (
+          item.steps.upload.state !== "succeeded" ||
+          execution?.state !== "succeeded" ||
+          !execution.reference
+        )
+          return null;
+        const fileId = item.steps.upload.reference;
+        return (await this.provider.connection(actor, {
+          company_id: company,
+          file_id: fileId,
+          voucher: execution.reference,
+        }))
+          ? fileId
+          : null;
+      },
+      true,
+    );
+    const after = await this.receipts.ownerRecoveryItem(owner, company, id);
+    if (!result)
+      return step.state === "outcome_unknown"
+        ? step
+        : { state: "outcome_unknown" };
+    if (
+      after.c.generation !== c.generation ||
+      after.c.policyVersion !== c.policyVersion ||
+      after.batch.client !== batch.client
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    await this.receipts.connections.mutate(owner, company, (current) => {
+      const saved = current.receiptBatches?.find(
+        (b) => b.id === batch.id && b.hash === batch.hash,
+      );
+      const target = saved?.items.find((i) => i.id === id);
+      if (
+        current.state !== "active" ||
+        current.generation !== c.generation ||
+        current.policyVersion !== c.policyVersion ||
+        current.tenant !== c.tenant ||
+        saved?.client !== batch.client ||
+        !target ||
+        JSON.stringify(target.steps) !== original ||
+        target.fileHash !== item.fileHash ||
+        target.proposal?.proposal_hash !== item.proposal?.proposal_hash ||
+        current.receiptBatches?.some((b) =>
+          b.items.some(
+            (i) =>
+              i.id !== id &&
+              (i.file.file_id === item.file.file_id ||
+                i.fileHash === item.fileHash) &&
+              i.steps.upload.state !== "pending",
+          ),
+        )
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      if (kind === "link") {
+        const originalExecution = c.bookkeeping?.executions.find(
+          (e) =>
+            e.id === item.proposal?.proposal_id &&
+            e.hash === item.proposal?.proposal_hash,
+        );
+        const execution = current.bookkeeping?.executions.find(
+          (e) =>
+            e.id === target.proposal?.proposal_id &&
+            e.hash === target.proposal?.proposal_hash,
+        );
+        if (
+          execution?.state !== "succeeded" ||
+          !execution.reference ||
+          JSON.stringify(execution.reference) !==
+            JSON.stringify(originalExecution?.reference)
+        )
+          throw new DomainError("INTENT_CONFLICT");
+        execution.attachmentComplete = true;
+      }
+      target.steps[kind] = { state: "succeeded", reference: result };
+    });
+    return { state: "succeeded", reference: result };
+  }
   async reconcileUpload(
     actor: AccountingActor,
     input: ReceiptItemReference,

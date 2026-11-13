@@ -259,6 +259,131 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
 export function receiptProviderContract(
   fixture: () => Promise<ReceiptFixture>,
 ) {
+  it("lets the owner reconcile an original upload after client and generation changes without another dispatch", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    expect((await f.attachments.upload(f.actor, f.ref)).state).toBe(
+      "outcome_unknown",
+    );
+    const before = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!before) throw new Error("Fixture missing");
+    const credentials = await f.connections.credentials(
+      f.actor.ownerId,
+      before,
+    );
+    await f.connections.disconnect(f.actor.ownerId, f.a.id);
+    const disconnected = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!disconnected) throw new Error("Fixture missing");
+    await f.connections.reconnect(
+      f.actor.ownerId,
+      f.a.id,
+      disconnected.generation,
+      before,
+      { ...credentials, expiresAt: Date.now() + 3600000 },
+    );
+    await expect(
+      f.attachments.reconcileUpload(f.actor, f.ref),
+    ).rejects.toThrow();
+    expect(
+      await f.attachments.reconcileOwner(
+        f.actor.ownerId,
+        f.a.id,
+        f.ref.item_id,
+      ),
+    ).toEqual({ state: "succeeded", reference: "provider-file-1" });
+    expect(f.counts()).toEqual({ uploads: 1, links: 0, binaries: 1 });
+    const after = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!after) throw new Error("Fixture missing");
+    expect(after.receiptBatches?.[0]?.client).toBe(
+      before.receiptBatches?.[0]?.client,
+    );
+    expect(after.receiptBatches?.[0]?.generation).toBe(
+      before.receiptBatches?.[0]?.generation,
+    );
+    expect(after.receiptBatches?.[0]?.items[0]?.steps.voucher.state).toBe(
+      "pending",
+    );
+    expect(after.readOnly).toBe(true);
+  });
+  it("reconciles only the exact original link across generations without uploading or booking again", async () => {
+    const f = await attachmentFixture(await fixture());
+    await f.attachments.upload(f.actor, f.ref);
+    await f.book();
+    f.mode({ loseLink: true });
+    expect((await f.attachments.link(f.actor, f.ref)).state).toBe(
+      "outcome_unknown",
+    );
+    const before = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!before) throw new Error("Fixture missing");
+    const credentials = await f.connections.credentials(
+      f.actor.ownerId,
+      before,
+    );
+    await f.connections.disconnect(f.actor.ownerId, f.a.id);
+    const disconnected = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!disconnected) throw new Error("Fixture missing");
+    await f.connections.reconnect(
+      f.actor.ownerId,
+      f.a.id,
+      disconnected.generation,
+      before,
+      credentials,
+    );
+    expect(
+      await f.attachments.reconcileOwner(
+        f.actor.ownerId,
+        f.a.id,
+        f.ref.item_id,
+      ),
+    ).toEqual({ state: "succeeded", reference: "provider-file-1" });
+    expect(f.counts()).toEqual({ uploads: 1, links: 1, binaries: 0 });
+    const after = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    expect(
+      after?.bookkeeping?.executions.find(
+        (e) => e.id === f.first.proposal?.proposal_id,
+      )?.attachmentComplete,
+    ).toBe(true);
+  });
+  it("keeps legacy cross-generation uploads and missing provider evidence unresolved", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    await f.attachments.upload(f.actor, f.ref);
+    f.providerFiles.clear();
+    expect(
+      (
+        await f.attachments.reconcileOwner(
+          f.actor.ownerId,
+          f.a.id,
+          f.ref.item_id,
+        )
+      ).state,
+    ).toBe("outcome_unknown");
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      const batch = c.receiptBatches?.[0];
+      if (!batch) throw new Error("Fixture missing");
+      delete batch.tenant;
+      batch.generation--;
+    });
+    await expect(
+      f.attachments.reconcileOwner(f.actor.ownerId, f.a.id, f.ref.item_id),
+    ).rejects.toThrow("INTENT_CONFLICT");
+    await expect(
+      f.attachments.reconcileOwner("foreign-owner", f.a.id, f.ref.item_id),
+    ).rejects.toThrow();
+    expect(f.counts()).toEqual({ uploads: 1, links: 0, binaries: 0 });
+  });
   for (const mode of ["json_body", "binary_body", "cancel"] as const) {
     it(`bounds uncooperative ${mode} while preserving the original upload`, async () => {
       const f = await attachmentFixture(await fixture());

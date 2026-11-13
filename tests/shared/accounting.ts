@@ -198,6 +198,63 @@ export function accountingContract(fixture: () => Promise<StateStore>) {
     expect((await f.service.status(f.actor, ref)).state).toBe("succeeded");
     expect(f.calls()).toBe(0);
   });
+  it("owner reconciles an exact voucher after a read addition makes its original client approval stale", async () => {
+    const f = await accountingFixture(await fixture());
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      c.programs = {
+        revision: 0,
+        enabled: ["bookkeeping"],
+        features: ["references"],
+      };
+    });
+    const p = await f.service.prepare(f.actor, f.voucher);
+    let sent = 0;
+    f.provider.submit = async (_actor, _voucher, before) => {
+      await before();
+      sent++;
+      return {
+        state: "outcome_unknown",
+        reference: { financial_year: 7, series: "A", number: 1 },
+      };
+    };
+    const result = await f.service.commit(f.actor, commitInput(p), "review");
+    expect(result.state).toBe("outcome_unknown");
+    const ref = {
+      company_id: p.company_id,
+      proposal_id: p.proposal_id,
+      proposal_hash: p.proposal_hash,
+    };
+    await f.connections.selectProgram(
+      f.actor.ownerId,
+      f.a.id,
+      {
+        program: "bookkeeping",
+        features: ["financial-analysis"],
+        expected_revision: 0,
+      },
+      { references: true, receiptConsent: true },
+    );
+    await expect(f.service.reconcile(f.actor, ref)).rejects.toThrow(
+      "COMPANY_FORBIDDEN",
+    );
+    f.provider.read = async (actor) => {
+      expect(actor.scopes).toEqual(["mcp:read"]);
+      return p.voucher;
+    };
+    expect(
+      (await f.service.reconcileOwner(f.actor.ownerId, f.a.id, p.proposal_id))
+        .state,
+    ).toBe("succeeded");
+    const current = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    expect(current?.bookkeeping?.executions[0]?.client).toBe(f.actor.clientId);
+    expect(current?.bookkeeping?.executions[0]?.state).toBe("succeeded");
+    expect(sent).toBe(1);
+    await expect(
+      f.service.reconcileOwner("foreign-owner", f.a.id, p.proposal_id),
+    ).rejects.toThrow();
+  });
   it("scheduled retention deletes expired encrypted input but preserves unresolved intents indefinitely", async () => {
     const f = await accountingFixture(await fixture());
     const p = await f.service.prepare(f.actor, f.voucher);

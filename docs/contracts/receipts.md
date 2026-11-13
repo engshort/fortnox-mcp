@@ -72,7 +72,13 @@ Neither an HTTP error nor a numeric code authorizes resend by itself.
 
 Issue #134 adds a separate [positive upload-reconciliation path](../implementation/receipt-upload-recovery-2026-11-12.md).
 Current authentication and the original connection generation/client remain
-required. Historical policy/byte expiry may differ only for non-dispatching
+required for model-callable recovery. The separate same-origin owner metadata
+recovery route may use a retained tenant-bound batch across generations, without
+rewriting its originating client/generation. Legacy batches without tenant
+provenance remain confined to the original generation. Exact original upload/hash
+or voucher/file relationship proof and CAS are required; missing evidence remains
+unknown. See [access and recovery](../implementation/access-renewal-2026-11-13.md).
+Historical policy/byte expiry may differ only for non-dispatching
 upload metadata reconciliation. This does not reauthorize historical execution
 or restore expired proposals. Missing evidence never proves non-application.
 

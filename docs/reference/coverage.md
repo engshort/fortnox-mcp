@@ -1,5 +1,11 @@
 # API coverage plan
 
+Access/recovery follow-up: [the 2026-11-13 implementation](../implementation/access-renewal-2026-11-13.md)
+adds safe local read selection, explicitly renewed company approvals on the same
+OAuth registration and owner-only positive receipt upload/link reconciliation.
+It changes no provider-operation support classification and supplies no actual
+Fortnox/hosted-client acceptance. Unknown outcomes remain unknown without proof.
+
 S10/#27: [bounded documentation and diagnosis acceptance](../implementation/S10-acceptance-2026-11-12.md)
 is documented against the original synthetic criteria. Windows actual-CLI tests
 now use a portable ESM loader URL. This changes no provider-operation coverage,

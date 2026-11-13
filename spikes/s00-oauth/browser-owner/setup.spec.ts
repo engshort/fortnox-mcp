@@ -6,7 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { DatabaseSync } from "node:sqlite";
 import { Connections, CredentialVault } from "../../../packages/core/src/index.js";
 import { sqliteState } from "../../../apps/node/src/product-storage.js";
-import { expect, test } from "@playwright/test";
+import { expect, request as playwrightRequest, test } from "@playwright/test";
 
 const root = resolve(import.meta.dirname, "../../..");
 const origin = "http://127.0.0.1:8795";
@@ -200,7 +200,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await page.getByRole("button", { name: "Anslut program", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true })).toBeEnabled();
   await page.route(`**/admin/companies/${b.id}/programs/start`, async (route) => {
-    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references", "supplier-registers", "supplier-invoices", "financial-analysis"], expected_revision: 0 });
+    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references", "receipt-files", "supplier-registers", "supplier-invoices", "financial-analysis"], expected_revision: 0 });
     await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "CONNECTION_CONFLICT" }) });
   });
   await dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true }).click();
@@ -221,7 +221,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await expect(row).toContainText("Inte anslutet");
   await page.goBack(); await expect(page).toHaveURL(`${origin}/admin/companies/${a.id}/bookkeeping`);
   await page.getByRole("navigation", { name: "Företagsvyer" }).getByRole("link", { name: "Lön", exact: true }).click();
-  await expect(page.getByText("Verifiering återstår", { exact: true })).toBeVisible();
+  await expect(page.getByText("Åtkomst saknas", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Anslut program", exact: true })).toBeEnabled();
   const recoveryDb = new DatabaseSync(join(directory, "product.sqlite"));
   const recoveryConnections = new Connections(sqliteState(recoveryDb), new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
@@ -274,4 +274,101 @@ test("payroll consent excludes existing receipt access and refreshes stale progr
   await expect(dialog.getByRole("status")).toContainText("En tidigare skrivning har okänt resultat");
   await expect(dialog.getByRole("button",{name:"Fortsätt till Fortnox",exact:true})).toBeDisabled();
   expect(previews).toBe(1);
+});
+
+test("dated read activation preserves an unknown upload and shows current access without a receipt checkbox", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const db = new DatabaseSync(join(directory, "product.sqlite"));
+  const state = sqliteState(db);
+  const owner = await state.get<{ ownerId: string }>("installation", "owner");
+  if (!owner) throw new Error("Synthetic owner missing");
+  const connections = new Connections(state, new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
+  const company = (await connections.list(owner.value.ownerId)).find((c) => c.state === "active");
+  if (!company) throw new Error("Synthetic active company missing");
+  const outcome = crypto.randomUUID();
+  await connections.mutate(owner.value.ownerId, company.id, (c) => {
+    c.scopes = ["companyinformation", "profile", "bookkeeping", "settings", "costcenter", "project", "inbox", "connectfile"];
+    c.programs = { revision: 20, enabled: ["bookkeeping"], features: ["references", "receipt-files"] };
+    c.business = { proposals: [], executions: [{ id: outcome, hash: "a".repeat(64), operation: "article.create", client: "synthetic-older-client", generation: c.generation, created: Date.now(), state: "outcome_unknown" }] };
+  });
+  const before = (await connections.list(owner.value.ownerId)).find((c) => c.id === company.id);
+  await page.request.post(`${origin}/auth/sign-in/email`, { headers: { origin }, data: { email: "browser-owner@example.invalid", password: "synthetic-browser-password" } });
+  await page.goto(`${origin}/admin/companies/${company.id}/bookkeeping`);
+  await expect(page.getByText("Verifiering återstår", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Uppdatera åtkomst", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Uppdatera åtkomst för Bokföring", exact: true });
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  await expect(dialog.getByText("Saldon och bokförda transaktioner per datum", { exact: true }).first()).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Godkänn åtkomst", exact: true })).toBeEnabled();
+  await page.screenshot({ path: join(tmpdir(), `access-local-read-${info.project.name}.png`), fullPage: true });
+  await dialog.getByRole("button", { name: "Godkänn åtkomst", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Bokföring", exact: true })).toBeVisible();
+  const after = (await connections.list(owner.value.ownerId)).find((c) => c.id === company.id);
+  expect(after?.generation).toBe(before?.generation);
+  expect(after?.policyVersion).toBe(before?.policyVersion);
+  expect(after?.secret).toEqual(before?.secret);
+  expect(after?.business?.executions[0]?.state).toBe("outcome_unknown");
+  expect(after?.programs?.features).toContain("financial-analysis");
+  await expect(page.locator(".feature-list > div").filter({ hasText: "Saldon och bokförda transaktioner per datum" })).toContainText("Åtkomst ansluten");
+  await page.screenshot({ path: join(tmpdir(), `access-connected-${info.project.name}.png`), fullPage: true });
+  await page.getByRole("link", { name: "Drift", exact: true }).click();
+  await expect(page.getByText(outcome, { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+  db.close();
+});
+
+test("owner renews the same OAuth registration after a local read addition and earlier tokens cannot gain access", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const db = new DatabaseSync(join(directory, "product.sqlite"));
+  const state = sqliteState(db);
+  const owner = await state.get<{ ownerId: string }>("installation", "owner");
+  if (!owner) throw new Error("Synthetic owner missing");
+  const connections = new Connections(state, new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
+  const company = await connections.add(owner.value.ownerId, { tenant: "100003", name: "Syntetiskt datumprov", organizationNumber: "000000-0002", mode: "service", scopes: ["companyinformation", "profile", "bookkeeping", "settings", "costcenter", "project"] }, { clientId: "synthetic-client", clientSecret: "synthetic-client-secret", accessToken: "synthetic-access", expiresAt: Date.now() + 3600000 });
+  await connections.mutate(owner.value.ownerId, company.id, (c) => { c.programs = { revision: 1, enabled: ["bookkeeping"], features: ["references"] }; });
+  db.close();
+  await page.request.post(`${origin}/auth/sign-in/email`, { headers: { origin }, data: { email: "browser-owner@example.invalid", password: "synthetic-browser-password" } });
+  const clientHttp = await playwrightRequest.newContext();
+  const callback = "https://chatgpt.com/connector_platform_oauth_redirect";
+  const registration = await clientHttp.post(`${origin}/auth/oauth2/register`, { headers: { origin }, data: { client_name: "Synthetic renewal browser", redirect_uris: [callback], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], scope: "mcp:read offline_access" } });
+  expect(registration.status()).toBe(201);
+  const { client_id } = await registration.json();
+  const verifier = "synthetic-browser-verifier-abcdefghijklmnopqrstuvwxyz0123456789";
+  const challenge = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))).toString("base64url");
+  // Intercept the client's callback; this is a local OAuth/UI test, not ChatGPT
+  // execution or any external network/provider action.
+  await page.route(`${callback}*`, (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Synthetic callback</title><p>Local callback received.</p>" }));
+  const approve = async (step: string) => {
+    await page.goto(`${origin}/auth/oauth2/authorize?${new URLSearchParams({ client_id, response_type: "code", redirect_uri: callback, scope: "mcp:read offline_access", state: step, resource: `${origin}/mcp`, code_challenge: challenge, code_challenge_method: "S256" })}`);
+    await expect(page.getByRole("heading", { name: "Godkänn klient", exact: true })).toBeVisible();
+    for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.uncheck();
+    await page.getByRole("checkbox", { name: /Syntetiskt datumprov/ }).check();
+    await page.screenshot({ path: join(tmpdir(), `access-consent-${step}-${info.project.name}.png`), fullPage: true });
+    await page.getByRole("button", { name: "Godkänn begärda behörigheter till valda företag", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp("^https://chatgpt.com/connector_platform_oauth_redirect\\?"));
+    const code = new URL(page.url()).searchParams.get("code");
+    expect(code).toBeTruthy();
+    const exchange = await clientHttp.post(`${origin}/auth/oauth2/token`, { headers: { origin }, form: { client_id, grant_type: "authorization_code", code: code ?? "", code_verifier: verifier, redirect_uri: callback, resource: `${origin}/mcp` } });
+    expect(exchange.status()).toBe(200);
+    return exchange.json() as Promise<{ access_token: string; refresh_token: string }>;
+  };
+  const list = async (token: string) => clientHttp.post(`${origin}/mcp`, { headers: { authorization: `Bearer ${token}`, accept: "application/json, text/event-stream", "mcp-protocol-version": "2025-11-25" }, data: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_companies", arguments: {} } } });
+  const first = await approve("before");
+  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toEqual([company.id]);
+  await page.goto(`${origin}/admin/companies/${company.id}/bookkeeping`);
+  await page.getByRole("button", { name: "Uppdatera åtkomst", exact: true }).click();
+  await page.getByRole("button", { name: "Godkänn åtkomst", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies).toEqual([]);
+  const second = await approve("after");
+  expect((await list(first.access_token)).status()).toBe(401);
+  const oldRefresh = await clientHttp.post(`${origin}/auth/oauth2/token`, { headers: { origin }, form: { client_id, grant_type: "refresh_token", refresh_token: first.refresh_token, resource: `${origin}/mcp` } });
+  expect(oldRefresh.status()).toBe(400);
+  expect((await (await list(second.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toEqual([company.id]);
+  expect(errors).toEqual([]);
+  await clientHttp.dispose();
 });
