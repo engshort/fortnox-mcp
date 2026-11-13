@@ -24,7 +24,7 @@
     "apps/node/src/product-main.ts": "0a252a9d4aa20f8dfc2c37490b0e7c7dca996cb95a8d03ffa237c05cd9b67d30",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
+    "apps/shared/product.ts": "9758f45f12d3d8c9a342793bf9e9e98f08689c3ede9498eb30fce461342fba29",
     "packages/fortnox/src/connections.ts": "1e9c91b37d3986cf4c8524d93d93236bb647589dc5c0bb9ea541a504055b6120",
     "apps/worker/src/receipt-test.ts": "18a078cd5741e78e9a8420e32adb5332f27e43fba48f411ead2460ea442f6f91",
     "scripts/build.mjs": "ddc2280e0a8265aa21d67492b12df0c9bb0dc93770249230bd68c41e40473762",
@@ -32,7 +32,7 @@
     "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873",
     "apps/node/src/product-runtime.ts": "96cfc60ba7cec62374da9c544816aafe317f6e35e0f07a4c4ec73aa46ae435b9",
     "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784",
-    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715"
+    "packages/core/src/programs.ts": "4b9161a60e1bb6e8a087470241b75e4f3f041b6e23bf7935e5a17be033cea2b5"
   },
   "gates": {
     "provider": "#94",

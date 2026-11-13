@@ -1,5 +1,9 @@
 # Documentation map
 
+S08 follow-up: [dated balances, cross-year transactions and historical
+reskontra](implementation/S08-dated-reads.md). Available in the ordinary product;
+unverified source semantics still produce unknown values and incomplete results.
+
 S10/#27: [documentation and diagnosis acceptance](implementation/S10-acceptance-2026-11-12.md)
 maps the existing criteria to local Node/workerd, actual CLI and separately
 verified product-diagnosis evidence. External-source redistribution #35 remains

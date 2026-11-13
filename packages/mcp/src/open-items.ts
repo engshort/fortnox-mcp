@@ -4,6 +4,7 @@ import {
   DomainError,
   type OpenItems,
   openItemQuery,
+  openItemReconciliation,
   openItemRecord,
   openItemSource,
 } from "@fortnox-mcp/core";
@@ -78,12 +79,49 @@ export function registerOpenItems(
         limitations: z.array(z.string().max(128)).max(10),
       })
       .strict();
+    const historicalData = data
+      .extend({
+        collection_complete: z.boolean(),
+        reconciliation: openItemReconciliation,
+        as_of: accountingDate,
+        history_basis: z.literal("current_records_by_effective_date"),
+        observation_point: z.literal("computed_as_of"),
+        historical_status_supported: z.literal(true),
+        records: z
+          .array(
+            record
+              .extend({
+                balance_as_of: money.nullable(),
+                current_provider_balance: money.nullable(),
+                history_complete: z.boolean(),
+                history_source_version: z.string().regex(/^[a-f0-9]{64}$/),
+                limitations: z.array(z.string().max(128)).max(32),
+              })
+              .strict(),
+          )
+          .max(50),
+        totals: z
+          .array(
+            z
+              .object({
+                currency: z.string().regex(/^[A-Z]{3}$/),
+                provider_balance_sum: z.null(),
+                balance_as_of_sum: money.nullable(),
+                expected_signed_cash_flow: money.nullable(),
+              })
+              .strict(),
+          )
+          .max(50),
+        sources: z.array(openItemSource).min(1).max(1102),
+        limitations: z.array(z.string().max(128)).max(128),
+      })
+      .strict();
     const output = z.union([
       z
         .object({
           status: z.literal("ok"),
           company_id: z.string().uuid(),
-          data,
+          data: z.union([data, historicalData]),
         })
         .strict(),
       z
@@ -107,7 +145,7 @@ export function registerOpenItems(
             ? "Read current receivables"
             : "Read current payables",
         description:
-          "Read current open invoice observations from at most 100 unfiltered source records. Keeps unknown status/amounts explicit. No historical balance reconstruction; totals cover only this page, never combine currencies, and unverified balance/credit semantics block expected-flow calculations. Due date is not a promise of payment. No bank payment initiation.",
+          "Read current open invoice observations, or pass as_of for historical booked rest amounts based on dated invoice/payment evidence. Historical reads include invoices now fully paid and keep current provider balances separate. Totals cover this page only and never combine currencies. Unknown history, credit/currency rules and due dates remain explicit. Continue even when an intermediate page is empty. No bank payment initiation.",
         inputSchema: input,
         outputSchema: output,
         annotations: {

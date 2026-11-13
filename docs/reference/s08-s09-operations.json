@@ -1,41 +1,44 @@
 {
   "schemaVersion": 1,
-  "scope": "S08/S09 bounded provider reads and local domain; G07/G10 still open",
-  "reviewedAt": "2026-11-10",
+  "scope": "S08/S09 ordinary bounded reads, dated balances, cross-year transactions and historical invoice inputs; operation-specific provider/client acceptance remains pending",
+  "reviewedAt": "2026-11-13",
   "sourceStrategy": "Independent implementation, no vendored/generated external specification",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/analytics.ts": "c9d4b36c7de3a1f7e4055a62460e29daf03f7ceaf8521b904c6b20c1aaefb3d3",
-    "packages/core/src/sie.ts": "0d2e8f47a62805232a49bd7268c89586e57bf8213417212030ce2a21aa4f7d4f",
+    "packages/core/src/analytics.ts": "f28aa6eb4b57d1a5d2245e4451ab07c9eb8b136a05a0b5e2a29f476f28c5a59f",
+    "packages/core/src/sie.ts": "bc0eb0358f91debbf3c89b9f24c2ff0642fb2d4ee405b085e0e3fb90ac225216",
     "packages/core/src/payroll.ts": "a582ed235cd5ebc1ce713c846f22356cbe128c831fab2fbf50b93e75d0140e4e",
-    "packages/core/src/programs.ts": "d469a23f196e1be3bbfce44c30483db3e752b070e5a5eb387395cbced34b5715",
+    "packages/core/src/programs.ts": "4b9161a60e1bb6e8a087470241b75e4f3f041b6e23bf7935e5a17be033cea2b5",
     "packages/core/src/connections.ts": "6358c8f9f13f58f5a2dce93634d5fce46b7777682918bcf813a774329ced30f7",
     "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
     "packages/fortnox/src/connections.ts": "1e9c91b37d3986cf4c8524d93d93236bb647589dc5c0bb9ea541a504055b6120",
-    "apps/shared/product.ts": "fd64a1f20940cf9e734a35bd9b055bbdc53d9ab8d666feb143f2ed2e9f514c0c",
+    "apps/shared/product.ts": "9758f45f12d3d8c9a342793bf9e9e98f08689c3ede9498eb30fce461342fba29",
     "apps/shared/product-gateway.ts": "da7fe12d1314c2f789ddc5e80c05db4e0eac75dd1c7daae3ba9488c8e7d82b48",
     "apps/admin/src/company-pages.tsx": "93a71976b5922a92fa5d397ef84418055f86f730c012d4bfefd42c82e7bc33d2",
     "apps/admin/src/main.tsx": "17184da1855ed06bf00c6c78b0f7cd3bac31a38545b722cc6f76c4693d099085",
-    "packages/fortnox/src/analytics.ts": "c4a841ec079f9b3d6f929950abb500831bcc3ffb18fa4b2ff6b3df258672dcaa",
+    "packages/fortnox/src/analytics.ts": "afe3fffd0b1c9f68a1245840d01dbf811ba08351ba1d34e46738dfca658c4494",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
-    "packages/fortnox/src/document-http.ts": "4f659826ec5adfe567aa1b496576ed013e0f6a8c8f222c92397324ff13da2bdf",
+    "packages/fortnox/src/document-http.ts": "22ca26b86b2994d7249824ba37918df67e12c305ca13d1fc0b11d904bf48812c",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "12dddd2e24b4947133c7ba7e0bf8c999ef1afcb720025c76112d8325f2e57fb3",
     "packages/mcp/src/companies.ts": "16fab61c833318cbba436a8253ecf3d50d016fe4c7e2e298d256dfa6debe9186",
-    "apps/node/src/register-test-main.ts": "4303ab63cecfb665bcfdd715a91d25fc5762676955f70dc8a7c7882f28c7fedd",
-    "packages/mcp/src/analytics.ts": "424143edf0fe5861cae6135489e023ee741a237455a75d3783d291a86e333fcd",
+    "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
+    "packages/mcp/src/analytics.ts": "80669bf2137c2958d21dcc6ed7f34dea328b5b2fa7f24a86263d45089691249d",
     "packages/fortnox/src/payroll-test-employee.ts": "d5fa34fc58e6dca28dc732ea61533616b5c930b693983879bb7930938aad3723",
     "packages/fortnox/src/payroll-probe.ts": "7c3ee07b47613b8e7cffd5e24626dd8d5d84854643ed869b579a7a2fc10d18e0",
     "packages/fortnox/src/payroll-writes.ts": "138051d30d11f2c143d45f36e9468b5829db0471d38e85778e73bf8309f773a0",
     "packages/fortnox/src/payroll-maintenance-probe.ts": "bed5cb9e19ec29e8decca7574e2d9d734266f45ba736d37ef7641e9f1c5fdfbc",
-    "packages/fortnox/src/index.ts": "44288ec54293e167604a549e01f4cd5af0a8ef1d6515b14052395287630f78bb",
+    "packages/fortnox/src/index.ts": "1a081c24b0934b3db78d87850d544586bdc7bc51e5a6ea1f5ea52142fd6067ab",
     "apps/node/src/payroll-test-profile.ts": "53d0926a9ab2f441c45a825e2186735428b41572c78cc103ed2df62e3df6b366",
-    "packages/core/src/open-items.ts": "88e742f592267014a5d34b49808dae32066754a69ebee1be1f08d423998c468a",
-    "packages/fortnox/src/open-items.ts": "9164f355a36b27c3fd79e80261f57f440d548025d60115c01c58884a1a21122e",
-    "packages/mcp/src/open-items.ts": "e8106ce2524e34b58c8cf0963b2b1f4908202ea9c7779ab050a3d8ca2ffb1659",
-    "packages/core/src/liquidity.ts": "4b9b9f8536148961ef43fc12957d4c85ab0fba84522dea8d0d015385bbee8093",
-    "packages/mcp/src/liquidity.ts": "3d3101b62ef31f12906da0bac432b94b99d8f3ec0790d204f16140e95c631317",
-    "apps/node/src/financial-test-profile.ts": "1ce8b4a551385f8f2fe20c7aafafcc335663b51c84432da820871ca6c0e062de"
+    "packages/core/src/open-items.ts": "1302df8bbef4cbf53da61dd538cf4d3ba50ab38a01837825d9dc43c3282c1be3",
+    "packages/fortnox/src/open-items.ts": "86a8eaa147b95e317ad872645c0c11afcd4825539201a5b57caab8aafd18f69c",
+    "packages/mcp/src/open-items.ts": "f9759e834dc7bf20053e261c8dd430847230fb47f80eadc2438a58f390fe7454",
+    "packages/core/src/liquidity.ts": "5f74714f07212cc7054853b0252661a04fb37979745f476afe82c3b0d4ad081c",
+    "packages/mcp/src/liquidity.ts": "a0a34c4fd1d5611fed12f5ae71325bd4342d583806159bbefc4785c659ab2db6",
+    "apps/node/src/financial-test-profile.ts": "1ce8b4a551385f8f2fe20c7aafafcc335663b51c84432da820871ca6c0e062de",
+    "packages/core/src/financial-dates.ts": "71034ffe5651c75ef4fe435b309a2f3d76f6aad7d925075e76be550e7f0e44b2",
+    "packages/core/src/invoice-history.ts": "59784b04d653f3831aade6926c8c56b4b03a6a74153c0ac243def782b415a966",
+    "packages/fortnox/src/financial-evidence.ts": "1b3619e97b703956885d9e4f276e0bf77cf70e9aa0295ffe66c78144a5b92857"
   },
   "operations": [
     {
@@ -504,6 +507,156 @@
       "sources": [
         "https://api.fortnox.se/apidocs",
         "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial.years",
+      "method": "GET",
+      "path": "/3/financialyears",
+      "providerScope": "bookkeeping",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "read",
+      "precision": "Actual fiscal-year IDs/date ranges with bounded pagination and explicit incomplete indexes",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/financial-reads.ts",
+        "tests/shared/financial-dates.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial_balances.get",
+      "method": "LOCAL_FROM_FIXED_READS",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "request_local_calculation",
+      "precision": "Exact opening plus effective movements through inclusive as_of; unknown/conflicting sources stay unknown",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/financial-dates.ts",
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "financial_transactions.list",
+      "method": "LOCAL_FROM_FIXED_READS",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "request_local_calculation",
+      "precision": "At most 50 effective rows from one actual fiscal year per page; cross-year date selection; page-only currency totals; source/generation-bound continuation",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/financial-dates.ts",
+        "tests/shared/financial-reads.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "invoice_history.calculate",
+      "method": "LOCAL",
+      "path": null,
+      "providerScope": "invoice + supplierinvoice",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": false,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "request_local_calculation",
+      "precision": "Verified dated invoice and settlement amounts, credit signs and write-offs; current provider balance remains separate; historical terms/cancellation gaps are explicit",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/financial-dates.ts",
+        "tests/shared/invoice-history.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ]
+    },
+    {
+      "localId": "open_receivable.history",
+      "method": "GET",
+      "path": null,
+      "providerScope": "invoice",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "read",
+      "precision": "Lossless invoice-currency totals and dated payments; verified signs/write-offs; current balance reconciliation; unknown histories never become zero",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/invoice-history.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ],
+      "paths": [
+        "/3/invoices/{Number}",
+        "/3/invoicepayments"
+      ]
+    },
+    {
+      "localId": "open_payable.history",
+      "method": "GET",
+      "path": null,
+      "providerScope": "supplierinvoice",
+      "license": "Applicable Fortnox program licence and operation-specific rights require independent evidence",
+      "status": "implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": true,
+      "effect": "read",
+      "precision": "Lossless supplier invoice-currency totals and dated payments; verified signs/write-offs; unknown histories never become zero",
+      "retry": "Bounded authorized reads only; changed source or connection invalidates continuation; no write or financial replica",
+      "syntheticTests": [
+        "tests/shared/invoice-history.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://sie.se/wp-content/uploads/2020/05/SIE_filformat_ver_4B_080930.pdf"
+      ],
+      "paths": [
+        "/3/supplierinvoices/{Number}",
+        "/3/supplierinvoicepayments"
       ]
     }
   ],

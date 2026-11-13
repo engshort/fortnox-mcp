@@ -44,6 +44,37 @@ that the combined report has reconciled.
 
 ## Large-data behavior
 
+### Date-driven reads
+
+`get_account_balances({ company_id, as_of, account_numbers?, page_size?,
+continuation? })` resolves a complete, unambiguous fiscal-year index. Missing
+years are unavailable, never zero balances. Cursors also bind index version and
+connection generation. Existing year-based interfaces remain compatible.
+
+`list_financial_transactions({ company_id, from, to, account_numbers?, page_size?,
+continuation? })` selects all intersecting actual fiscal years with inclusive
+boundaries. Omitted account selection means all accounts. Each page contains at
+most 50 effective rows from one year, sorted by date/source ID. Missing years,
+unknown rows and export limitations are explicit. Continuations recheck every
+traversed year. Returned-page totals do not imply whole-period totals.
+
+`list_receivables`/`list_payables` accept optional `as_of`. Historical output uses
+`observation_point=computed_as_of`, `balance_as_of` and separate
+`current_provider_balance`; `balance` remains the current provider value.
+Include older and currently paid invoices. Historical calculations require
+verified dated invoice/settlement evidence, including credits/write-offs.
+Current cancellation or due-date fields alone do not prove historical state.
+Undated calls retain the current output. Historical unbooked/future queries are
+rejected. Historical liquidity uses matching observation dates and retains the
+selected-accounts/page-only scope and explicit maximum 90-day assumption.
+
+These results describe current records by effective date, including later
+backdated corrections. Financial verification profiles are trusted installation
+inputs, never model assertions. The ordinary product advertises these reads
+without a test lease; availability does not verify source financial semantics.
+Unknown financial values and completeness limitations remain explicit. See the
+[implementation and acceptance boundary](../implementation/S08-dated-reads.md).
+
 Paginate or stream with explicit limits. Return partial status and continuation rather than dumping an entire ledger into model context. Support focused account/range/date queries and drill-down. Temporary analytical results expire under storage policy; source records remain in Fortnox.
 
 ## Acceptance examples

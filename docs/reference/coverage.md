@@ -340,6 +340,15 @@ handoff](../implementation/S11-company-programs.md).
 
 ## Milestone 7 work in progress
 
+The [date-driven S08 extension](../implementation/S08-dated-reads.md) implements
+fiscal-year discovery, account balances by date, paginated cross-year ledger
+transactions and historical invoice reads using dated payment evidence.
+SIE period balances are validated separately from transactions. These reads are
+enabled in the ordinary product under the owner's activation decision. Provider
+and client evidence remains pending; unverified financial values stay unknown.
+The separate financial-analysis program feature requests bookkeeping access;
+existing sales-invoice/supplier-invoice features cover the relevant reskontra.
+
 The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Full financial breadth and actual G07/ChatGPT evidence remain pending; a narrow hourly create/update/delete lifecycle has passed product MCP/domain and actual provider readback. No full financial correctness or payroll gate is closed.
 
 The M07 known-effect follow-up distinguishes `applied_different` from intended

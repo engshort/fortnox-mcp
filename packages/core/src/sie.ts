@@ -87,6 +87,7 @@ export interface SieMovement {
   amount: string;
   dimensions: Record<string, string>;
   source_line: number;
+  description?: string | null;
 }
 export interface SieExport {
   sha256: string;
@@ -98,6 +99,13 @@ export interface SieExport {
   movements: SieMovement[];
   limitations: string[];
   complete: false;
+  period_balances: Array<{
+    year: number;
+    period: string;
+    account: number;
+    dimensions: Record<string, string>;
+    amount: string;
+  }>;
 }
 // Parsing never asserts export coverage, missing-zero semantics, provider
 // authorization, checksum validity or an atomic snapshot. Those require evidence
@@ -137,6 +145,8 @@ export async function parseSie4(
     }
   >();
   const movements: SieMovement[] = [];
+  const periodBalances: SieExport["period_balances"] = [];
+  const periodKeys = new Set<string>();
   const limitations = new Set<string>([
     "export_coverage_unverified",
     "missing_zero_balances_unverified",
@@ -149,6 +159,7 @@ export async function parseSie4(
   let voucher: SieMovement["voucher"] | null = null,
     inVoucher = false;
   let voucherAmounts: string[] = [];
+  let voucherText: string | null = null;
   let pendingAdded: string[] | null = null;
   const metadata = new Set([
     "#PROGRAM",
@@ -205,6 +216,7 @@ export async function parseSie4(
       if (vouchers.has(key)) return invalid();
       vouchers.add(key);
       voucher = { series, number, date: date(parts[3]) };
+      voucherText = parts[4] || null;
       voucherAmounts = [];
       continue;
     }
@@ -251,6 +263,9 @@ export async function parseSie4(
         date: effectiveDate,
         dimensions,
         source_line: lineIndex + 1,
+        ...(parts[end + 3] || voucherText
+          ? { description: parts[end + 3] || voucherText }
+          : {}),
       });
       voucherAmounts.push(amount);
       continue;
@@ -315,6 +330,55 @@ export async function parseSie4(
       if (balance[field] !== null) return invalid();
       balance[field] = amount;
       balances.set(key, balance);
+    } else if (tag === "#PSALDO") {
+      const end = parts.indexOf("}", 5);
+      if (
+        !/^(?:0|-[1-9]\d?)$/.test(parts[1] ?? "") ||
+        !/^\d{4}(?:0[1-9]|1[0-2])$/.test(parts[2] ?? "") ||
+        parts[4] !== "{" ||
+        end < 5 ||
+        (end - 5) % 2 ||
+        parts.length < end + 2 ||
+        parts.length > end + 3
+      )
+        return invalid();
+      const dimensions: Record<string, string> = {};
+      for (let i = 5; i < end; i += 2) {
+        const dimension = parts[i] as string,
+          object = parts[i + 1] as string;
+        if (
+          !/^\d{1,6}$/.test(dimension) ||
+          !object ||
+          object.length > 128 ||
+          Object.hasOwn(dimensions, dimension)
+        )
+          return invalid();
+        dimensions[dimension] = object;
+      }
+      const record = {
+        year: Number(parts[1]),
+        period: parts[2] as string,
+        account: account(parts[3]),
+        dimensions,
+        amount: money(parts[end + 1]),
+      };
+      const periodKey = JSON.stringify([
+        record.year,
+        record.period,
+        record.account,
+        Object.entries(record.dimensions).sort(([a], [b]) =>
+          a.localeCompare(b),
+        ),
+      ]);
+      if (periodKeys.has(periodKey)) return invalid();
+      periodKeys.add(periodKey);
+      if (
+        parts[end + 2] !== undefined &&
+        (!/^-?\d+(?:\.\d+)?$/.test(parts[end + 2] as string) ||
+          (parts[end + 2]?.length ?? 0) > 68)
+      )
+        return invalid();
+      periodBalances.push(record);
     } else if (tag === "#KSUMMA") limitations.add("checksum_not_verified");
     else if (!metadata.has(tag))
       limitations.add(`unsupported_record:${tag.slice(0, 64)}`);
@@ -341,6 +405,39 @@ export async function parseSie4(
       return invalid();
   for (const b of balances.values())
     if (!names.has(b.number) || !years.has(b.year)) return invalid();
+  const periodMovements = new Map<string, SieMovement[]>();
+  for (const movement of movements) {
+    const key = `${movement.account}:${movement.date.replaceAll("-", "").slice(0, 6)}`;
+    const rows = periodMovements.get(key) ?? [];
+    rows.push(movement);
+    periodMovements.set(key, rows);
+  }
+  for (const p of periodBalances) {
+    const y = years.get(p.year);
+    if (
+      !names.has(p.account) ||
+      !y ||
+      p.period < y.from.replaceAll("-", "").slice(0, 6) ||
+      p.period > y.to.replaceAll("-", "").slice(0, 6)
+    )
+      return invalid();
+    if (p.year === 0) {
+      const actual = sumAmounts(
+        (periodMovements.get(`${p.account}:${p.period}`) ?? [])
+          .filter(
+            (m) =>
+              m.account === p.account &&
+              m.date.replaceAll("-", "").startsWith(p.period) &&
+              Object.entries(p.dimensions).every(
+                ([d, v]) => m.dimensions[d] === v,
+              ),
+          )
+          .map((m) => m.amount),
+        2,
+      );
+      if (actual !== p.amount) limitations.add("period_balance_mismatch");
+    }
+  }
   if (!currency) limitations.add("currency_missing");
   const byAccount = new Map<number, SieAccount["balances"]>();
   for (const balance of balances.values()) {
@@ -373,5 +470,6 @@ export async function parseSie4(
     movements,
     limitations: [...limitations].sort(),
     complete: false,
+    period_balances: periodBalances,
   };
 }

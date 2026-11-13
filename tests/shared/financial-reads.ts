@@ -15,8 +15,16 @@ import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
 import { syntheticSie } from "./analytics.js";
 
-async function setup(state: StateStore) {
+async function setup(state: StateStore, ordinary = false) {
   const f = await accountingFixture(state);
+  if (ordinary)
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      c.programs = {
+        revision: 1,
+        enabled: ["bookkeeping"],
+        features: ["financial-analysis"],
+      };
+    });
   const requests: Array<{
     path: string;
     query: string;
@@ -37,7 +45,7 @@ async function setup(state: StateStore) {
   const provider = new FortnoxConnections({
     origin: "https://product.example.invalid",
     connections: f.connections,
-    testTenants: ["100001", "100002"],
+    ...(ordinary ? {} : { testTenants: ["100001", "100002"] }),
     fetch: async (input) => {
       const req = input as Request,
         url = new URL(req.url);
@@ -56,6 +64,17 @@ async function setup(state: StateStore) {
         );
       if (flags.disconnect)
         await f.connections.disconnect(f.actor.ownerId, f.a.id);
+      if (url.pathname === "/3/financialyears")
+        return Response.json({
+          FinancialYears: [
+            { Id: 7, FromDate: "2025-07-01", ToDate: "2026-06-30" },
+          ],
+          MetaInformation: {
+            "@CurrentPage": 1,
+            "@TotalPages": 1,
+            "@TotalResources": 1,
+          },
+        });
       if (url.pathname === "/3/financialyears/7")
         return Response.json({
           FinancialYear: {
@@ -141,6 +160,124 @@ async function setup(state: StateStore) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("requires trusted export and row evidence for dated balances and retains source conflicts", async () => {
+      const f = await setup(await fixture());
+      const adapter = new FortnoxFinancialReads(
+        f.connections,
+        f.provider,
+        financialReadOperations,
+        () => true,
+        Date.now,
+        undefined,
+        () => ({
+          version: "synthetic-proof/1",
+          sha256: "e".repeat(64),
+          full_export: true,
+          effective_rows: true,
+          omitted_zero_openings: false,
+        }),
+      );
+      const service = new FinancialAnalysis(f.connections, adapter, true);
+      const query = {
+        ...f.query,
+        from: "2025-08-01",
+        to: "2025-08-31",
+        account_numbers: [1930],
+      };
+      expect(
+        (await service.report(f.actor, query)).accounts[0]?.balance_as_of,
+      ).toBe("1250.00");
+      expect(
+        (
+          await new FinancialAnalysis(f.connections, f.adapter, true).report(
+            f.actor,
+            query,
+          )
+        ).accounts[0]?.balance_as_of,
+      ).toBeNull();
+      f.flags.conflictingOpening = true;
+      const conflicted = await service.report(f.actor, query);
+      expect(conflicted.accounts[0]?.balance_as_of).toBeNull();
+      expect(conflicted.limitations).toContain("opening_sources_disagree");
+    });
+    it("serves date-driven reads in ordinary mode and rejects deselected features through MCP", async () => {
+      const f = await setup(await fixture(), true);
+      const server = companyServer({
+        identity: f.actor,
+        connections: f.connections,
+        provider: f.provider,
+        testMode: true,
+        financial: {
+          service: new FinancialAnalysis(f.connections, f.adapter, true),
+          provider: f.adapter,
+        },
+      });
+      const [ct, st] = InMemoryTransport.createLinkedPair();
+      const client = new Client({ name: "synthetic-dates", version: "1" });
+      await server.connect(st);
+      await client.connect(ct);
+      try {
+        expect(
+          (
+            await client.callTool({
+              name: "get_account_balances",
+              arguments: {
+                company_id: f.a.id,
+                as_of: "2025-08-31",
+                account_numbers: [1930],
+              },
+            })
+          ).structuredContent,
+        ).toMatchObject({
+          status: "ok",
+          data: {
+            as_of: "2025-08-31",
+            accounts: [{ number: 1930, balance_as_of: null }],
+            complete: false,
+          },
+        });
+        expect(
+          (
+            await client.callTool({
+              name: "list_financial_transactions",
+              arguments: {
+                company_id: f.a.id,
+                from: "2025-08-01",
+                to: "2025-08-01",
+              },
+            })
+          ).structuredContent,
+        ).toMatchObject({
+          status: "ok",
+          data: {
+            complete: false,
+            rows: [
+              { account: 1930, amount: "250.00" },
+              { account: 4000, amount: "-250.00" },
+            ],
+          },
+        });
+        const before = f.requests.length;
+        await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+          if (c.programs) c.programs.features = [];
+        });
+        expect(
+          (
+            await client.callTool({
+              name: "get_account_balances",
+              arguments: { company_id: f.a.id, as_of: "2025-08-31" },
+            })
+          ).structuredContent,
+        ).toMatchObject({
+          status: "error",
+          error: { code: "CAPABILITY_UNAVAILABLE" },
+        });
+        expect(f.requests.length).toBe(before);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    });
     it("withholds conflicting report balances while preserving ordinary source observations and exact movements", async () => {
       const f = await setup(await fixture());
       const versions = new Set<string>();
@@ -321,16 +458,20 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
       await server.connect(st);
       await client.connect(ct);
       try {
-        const catalog = (await client.listTools()).tools.filter((t) =>
-          /^(get|list|compare)_financial_/.test(t.name),
+        const catalog = (await client.listTools()).tools.filter(
+          (t) =>
+            /^(get|list|compare)_financial_/.test(t.name) ||
+            t.name === "get_account_balances",
         );
         expect(catalog.map((t) => t.name).sort()).toEqual([
           "compare_financial_periods",
+          "get_account_balances",
           "get_financial_account",
           "get_financial_analysis",
           "get_financial_voucher",
           "list_financial_accounts",
           "list_financial_movements",
+          "list_financial_transactions",
         ]);
         expect(
           catalog.every(

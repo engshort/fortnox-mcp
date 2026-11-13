@@ -188,6 +188,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   const dialog = page.getByRole("dialog", { name: "Anslut Bokföring", exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Exempelföretaget B", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("listitem").filter({ hasText: "Saldon och bokförda transaktioner per datum" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true })).toBeEnabled();
   await page.screenshot({ path: join(tmpdir(), `s11-dialog-${info.project.name}.png`), fullPage: false });
   const focusInDialog = () => page.evaluate(() => !!document.querySelector("dialog")?.contains(document.activeElement));
@@ -199,7 +200,7 @@ test("company context, program drawer, deep links, keyboard and local disable", 
   await page.getByRole("button", { name: "Anslut program", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true })).toBeEnabled();
   await page.route(`**/admin/companies/${b.id}/programs/start`, async (route) => {
-    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references", "supplier-registers", "supplier-invoices"], expected_revision: 0 });
+    expect(route.request().postDataJSON()).toMatchObject({ program: "bookkeeping", features: ["references", "supplier-registers", "supplier-invoices", "financial-analysis"], expected_revision: 0 });
     await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "CONNECTION_CONFLICT" }) });
   });
   await dialog.getByRole("button", { name: "Fortsätt till Fortnox", exact: true }).click();

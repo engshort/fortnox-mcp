@@ -25,10 +25,13 @@ import {
   type RegisterOperation,
   type RegisterResource,
   Registers,
+  reconcileOpenItemLedger,
   registerOperationIds,
   registerScope,
   SalesDocuments,
   salesOperationIds,
+  sumAmounts,
+  unavailableOpenItemReconciliation,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -40,6 +43,7 @@ import {
   diagnoseConnection,
   diagnosisInput,
   type FinancialMapping,
+  type FinancialReadEvidence,
   type FinancialReadOperation,
   FortnoxAccounting,
   FortnoxConnections,
@@ -217,6 +221,7 @@ export function createProductApplication(
   fetcher: typeof fetch = (input, init) => fetch(input, init),
   fileTest?: ProductFileTest,
   businessTest?: ProductBusinessTest,
+  readEvidence: FinancialReadEvidence = {},
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
   // All finite implemented operations are available in the ordinary product.
@@ -237,6 +242,8 @@ export function createProductApplication(
   const profileActive = () => !businessTest || now() < businessTest.until;
   const financialReads = profile.financialReads ?? [];
   const openItemReads = profile.openItemReads ?? [];
+  const financialMappings =
+    businessTest?.financialMappings ?? readEvidence.financialMappings;
   if (
     new Set(openItemReads).size !== openItemReads.length ||
     openItemReads.some((id) => !openItemReadOperations.includes(id))
@@ -418,9 +425,10 @@ export function createProductApplication(
           profileActive,
           now,
           (company, year) =>
-            businessTest?.financialMappings?.find(
+            financialMappings?.find(
               (m) => m.company_id === company && m.financial_year === year,
             )?.mapping,
+          readEvidence.financialVerification,
         )
       : undefined;
   const financial = financialProvider
@@ -439,6 +447,7 @@ export function createProductApplication(
             openItemReads,
             profileActive,
             now,
+            readEvidence.invoiceVerification,
           ),
           (["receivable", "payable"] as const).filter((kind) =>
             openItemReads.includes(
@@ -448,6 +457,64 @@ export function createProductApplication(
             ),
           ),
           now,
+          financial
+            ? async (actor, company, kind, asOf, totals) => {
+                const mapping = readEvidence.controlAccountMapping?.(
+                  company,
+                  kind,
+                  asOf,
+                );
+                if (
+                  !mapping ||
+                  !/^[a-f0-9]{64}$/.test(mapping.sha256) ||
+                  !mapping.version ||
+                  mapping.version.length > 128 ||
+                  !/^[A-Z]{3}$/.test(mapping.currency) ||
+                  !mapping.account_numbers.length ||
+                  mapping.account_numbers.length > 50 ||
+                  new Set(mapping.account_numbers).size !==
+                    mapping.account_numbers.length ||
+                  totals.length !== 1 ||
+                  totals[0]?.currency !== mapping.currency ||
+                  totals[0].amount === null
+                )
+                  return unavailableOpenItemReconciliation();
+                const report = await financial.service.report(actor, {
+                  company_id: company,
+                  financial_year: mapping.financial_year,
+                  from: asOf,
+                  to: asOf,
+                  account_numbers: [...mapping.account_numbers],
+                  page_size: 50,
+                });
+                if (
+                  !report.data_complete ||
+                  report.currency !== mapping.currency ||
+                  report.accounts.length !== mapping.account_numbers.length ||
+                  report.accounts.some((a) => a.balance_as_of === null)
+                )
+                  return unavailableOpenItemReconciliation();
+                const ledger = sumAmounts(
+                  report.accounts.map((a) => a.balance_as_of as string),
+                  2,
+                );
+                return reconcileOpenItemLedger(
+                  kind,
+                  mapping.currency,
+                  ledger,
+                  totals[0].amount,
+                  [...mapping.account_numbers],
+                  [
+                    ...report.sources,
+                    {
+                      operation: "control_account_mapping",
+                      record_id: mapping.version,
+                      sha256: mapping.sha256,
+                    },
+                  ],
+                );
+              }
+            : undefined,
         )
       : undefined;
   const liquidity =
@@ -464,7 +531,7 @@ export function createProductApplication(
           true,
           now,
           (company, year) => {
-            const profile = businessTest?.financialMappings?.find(
+            const profile = financialMappings?.find(
               (m) => m.company_id === company && m.financial_year === year,
             );
             return profile
