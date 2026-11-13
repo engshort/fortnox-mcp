@@ -81,6 +81,21 @@ S02 production implementation.
 
 ## Company program consent (S11 / #117)
 
+The [2026-11-13 access renewal](../implementation/access-renewal-2026-11-13.md)
+classifies program changes as no-op, local selection or provider consent. Local
+selection with existing scopes advances a separate access revision, leaving
+provider credentials/generation and voucher policy intact. Safe additive reads
+can coexist with unknown writes; in-flight writes still block them. Prior client
+approvals do not silently gain new features.
+
+Explicit owner OAuth consent can renew the same client registration. The owner
+selects concrete company/connection/access revisions. Each approval has an
+immutable authorization identity; token families bind to its revision. Legacy
+identities are denied after first renewal. Old tokens/refresh families and codes
+cannot gain newly approved access. Successful refresh preserves the same rights
+through the actual library token lifetime. Model bearer tokens cannot renew
+company grants. Actual hosted-client reapproval remains separately unverified.
+
 Initial product consent requests `companyinformation profile` only. Additional
 access uses the existing company connection, not a separate service account for
 each program. The shared program/function manifest derives the per-company union

@@ -71,6 +71,14 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       .getSetCookie()
       .map((c) => c.split(";")[0])
       .join("; ");
+    const selection = async () =>
+      (await app.connections.list(seeded.response.user.id))
+        .filter((c) => c.state === "active")
+        .map((c) => ({
+          id: c.id,
+          generation: c.generation,
+          access_revision: c.accessRevision ?? 0,
+        }));
     const req = (
       path: string,
       body?: unknown,
@@ -137,7 +145,11 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     const consent = new URL(location, config.origin);
     const accepted = await req(
       "/auth/oauth2/consent",
-      { accept: true, oauth_query: consent.search.slice(1) },
+      {
+        accept: true,
+        oauth_query: consent.search.slice(1),
+        companies: await selection(),
+      },
       { cookie, origin: config.origin },
     );
     expect(accepted.status).toBe(200);
@@ -172,7 +184,11 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       ? null
       : await req(
           "/auth/oauth2/consent",
-          { accept: true, oauth_query: nextUrl.search.slice(1) },
+          {
+            accept: true,
+            oauth_query: nextUrl.search.slice(1),
+            companies: await selection(),
+          },
           { cookie, origin: config.origin },
         );
     if (second) expect(second.status).toBe(200);
@@ -194,7 +210,27 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       body: { token: tokens.access_token },
     });
     expect(claims.ownerId).toBe(seeded.response.user.id);
-    expect(claims.clientId).toBe(client);
+    expect(claims.oauthClientId).toBe(client);
+    expect(claims.clientId).toMatch(/^oauth-grant:/);
+    // Simulate retention nearing expiry. A successful library refresh must
+    // extend the same immutable rights to the replacement tokens' actual expiry.
+    for (const space of ["oauth-grant-families", "oauth-approval-grants"]) {
+      const row = await config.state.get<Record<string, { expiresAt: number }>>(
+        space,
+        seeded.response.user.id,
+      );
+      if (!row) throw new Error("Fixture missing");
+      for (const record of Object.values(row.value))
+        record.expiresAt = Date.now() + 30000;
+      expect(
+        await config.state.put(
+          space,
+          seeded.response.user.id,
+          row.value,
+          row.version,
+        ),
+      ).toBe(true);
+    }
     expect(claims.scopes).not.toContain("mcp:write");
     for (const path of [
       "/admin/fortnox/configuration",
@@ -399,6 +435,15 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     );
     expect(refreshed.status).toBe(200);
     const replacement = (await refreshed.json()) as typeof tokens;
+    for (const space of ["oauth-grant-families", "oauth-approval-grants"]) {
+      const row = await config.state.get<Record<string, { expiresAt: number }>>(
+        space,
+        seeded.response.user.id,
+      );
+      expect(
+        Math.max(...Object.values(row?.value ?? {}).map((r) => r.expiresAt)),
+      ).toBeGreaterThan(Date.now() + 23 * 3600000);
+    }
     expect(replacement.refresh_token).not.toBe(tokens.refresh_token);
     expect(
       (
@@ -453,6 +498,132 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     ).toBe(401);
     expect(
       (await req("/.well-known/oauth-protected-resource/mcp")).status,
+    ).toBe(200);
+    // A later explicit approval renews this registration. Old access, refresh
+    // and unspent authorization codes cannot acquire the new company grant.
+    const approve = async () => {
+      const start = await authorize();
+      const target = new URL(
+        start.headers.get("location") ??
+          ((await start.json()) as { url: string }).url,
+        config.origin,
+      );
+      const approved = await req(
+        "/auth/oauth2/consent",
+        {
+          accept: true,
+          oauth_query: target.search.slice(1),
+          companies: await selection(),
+        },
+        { cookie, origin: config.origin },
+      );
+      expect(approved.status).toBe(200);
+      return (
+        new URL(
+          ((await approved.json()) as { url: string }).url,
+        ).searchParams.get("code") ?? ""
+      );
+    };
+    const obsoleteCode = await approve();
+    const freshCode = await approve();
+    await expect(
+      app.auth.api.verifyProductToken({ body: { token: tokens.access_token } }),
+    ).rejects.toThrow();
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({ ...exchange, code: obsoleteCode }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({
+            grant_type: "refresh_token",
+            client_id: client,
+            resource: `${config.origin}/mcp`,
+            refresh_token: replacement.refresh_token,
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    const freshResponse = await req(
+      "/auth/oauth2/token",
+      new URLSearchParams({ ...exchange, code: freshCode }),
+    );
+    expect(freshResponse.status).toBe(200);
+    const fresh = (await freshResponse.json()) as typeof tokens;
+    const freshIdentity = await app.auth.api.verifyProductToken({
+      body: { token: fresh.access_token },
+    });
+    expect(freshIdentity.oauthClientId).toBe(client);
+    expect(freshIdentity.clientId).not.toBe(claims.clientId);
+    expect(
+      (
+        await app.connections.authorize(
+          freshIdentity.ownerId,
+          freshIdentity.clientId,
+          companyB.id,
+        )
+      ).id,
+    ).toBe(companyB.id);
+    // The former authorization identity stays immutable even in a request which
+    // started immediately before renewal.
+    await app.connections.mutate(seeded.response.user.id, companyB.id, (c) => {
+      c.accessRevision = 1;
+    });
+    await expect(
+      app.connections.authorize(claims.ownerId, claims.clientId, companyB.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    // Preserve the library's confidential-client Basic authentication path;
+    // those token requests need not repeat client_id in the form body.
+    const basicRegistration = await req("/auth/oauth2/register", {
+      client_name: "Synthetic confidential client",
+      redirect_uris: [callback],
+      token_endpoint_auth_method: "client_secret_basic",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      scope: "mcp:read offline_access",
+    });
+    expect(basicRegistration.status).toBe(201);
+    const basicClient = (await basicRegistration.json()) as {
+      client_id: string;
+      client_secret: string;
+    };
+    const basicStart = await authorize({ client_id: basicClient.client_id });
+    const basicConsentUrl = new URL(
+      basicStart.headers.get("location") ??
+        ((await basicStart.json()) as { url: string }).url,
+      config.origin,
+    );
+    const basicConsent = await req(
+      "/auth/oauth2/consent",
+      {
+        accept: true,
+        oauth_query: basicConsentUrl.search.slice(1),
+        companies: await selection(),
+      },
+      { cookie, origin: config.origin },
+    );
+    expect(basicConsent.status).toBe(200);
+    const basicCode =
+      new URL(
+        ((await basicConsent.json()) as { url: string }).url,
+      ).searchParams.get("code") ?? "";
+    const { client_id: _publicClient, ...basicExchange } = exchange;
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({ ...basicExchange, code: basicCode }),
+          {
+            authorization: `Basic ${btoa(`${basicClient.client_id}:${basicClient.client_secret}`)}`,
+          },
+        )
+      ).status,
     ).toBe(200);
   }, 20000);
 }

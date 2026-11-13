@@ -68,6 +68,7 @@ export interface ReceiptBatch {
   id: string;
   client: string;
   generation: number;
+  tenant?: string;
   policy: number;
   created: number;
   expires: number;
@@ -177,6 +178,7 @@ export class Receipts {
       id: crypto.randomUUID(),
       client: actor.clientId,
       generation: c.generation,
+      tenant: c.tenant,
       policy: c.policyVersion,
       created: this.now(),
       expires: this.now() + 86400000,
@@ -389,6 +391,33 @@ export class Receipts {
             i.steps.upload.state !== "pending",
         ),
       )
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    return { c, batch, item };
+  }
+  // Owner-only metadata recovery. Legacy batches can only use their original
+  // generation; never manufacture historical tenant provenance.
+  async ownerRecoveryItem(owner: string, company: string, id: string) {
+    z.string().uuid().parse(company);
+    z.string().uuid().parse(id);
+    const c = (await this.connections.list(owner)).find(
+      (c) => c.id === company,
+    );
+    const batch = c?.receiptBatches?.find((b) =>
+      b.items.some((i) => i.id === id),
+    );
+    const item = batch?.items.find((i) => i.id === id);
+    if (
+      c?.state !== "active" ||
+      !batch ||
+      !item ||
+      (batch.tenant
+        ? batch.tenant !== c.tenant
+        : batch.generation !== c.generation) ||
+      item.file.company_id !== c.id ||
+      !item.fileHash ||
+      !item.proposal ||
+      (await manifestHash(batch.items)) !== batch.hash
     )
       throw new DomainError("INTENT_CONFLICT");
     return { c, batch, item };

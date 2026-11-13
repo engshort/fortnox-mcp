@@ -139,6 +139,155 @@ export function programContract(fixture: () => Promise<StateStore>) {
       },
     };
   }
+  it("activates an already-consented read feature without replacing credentials or clearing unknown writes", async () => {
+    const f = await seed();
+    const unknown: BusinessExecution = {
+      id: crypto.randomUUID(),
+      hash: "a".repeat(64),
+      operation: "article.create",
+      client: "old-client",
+      generation: f.a.generation,
+      created: Date.now(),
+      state: "outcome_unknown",
+    };
+    await f.connections.mutate("owner", f.a.id, (c) => {
+      c.scopes.push("bookkeeping");
+      c.programs = {
+        revision: 1,
+        enabled: ["bookkeeping"],
+        features: ["references"],
+      };
+      c.business = { proposals: [], executions: [unknown] };
+    });
+    const change: ProgramChange = {
+      program: "bookkeeping",
+      features: ["financial-analysis"],
+      expected_revision: 1,
+    };
+    const before = (await f.connections.list("owner")).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!before) throw new Error("Fixture missing");
+    expect(previewProgram(before, change, gates)).toMatchObject({
+      action: "local_selection",
+      added_scopes: [],
+      added_features: ["financial-analysis"],
+    });
+    await f.connections.selectProgram("owner", f.a.id, change, gates);
+    const current = (await f.connections.list("owner")).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!current) throw new Error("Fixture missing");
+    expect(current.generation).toBe(before.generation);
+    expect(current.policyVersion).toBe(before.policyVersion);
+    expect(current.secret).toEqual(before.secret);
+    expect(current.business?.executions).toEqual([unknown]);
+    expect(current.readOnly).toBe(before.readOnly);
+    expect(
+      previewProgram(current, { ...change, expected_revision: 2 }, gates)
+        .action,
+    ).toBe("none");
+    await expect(
+      f.connections.authorize("owner", "old-client", f.a.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await f.connections.grant("owner", "new-client", [f.a.id]);
+    expect(
+      (await f.connections.authorize("owner", "new-client", f.a.id)).programs
+        ?.features,
+    ).toContain("financial-analysis");
+    expect(() =>
+      previewProgram(
+        current,
+        {
+          ...change,
+          features: ["receipt-files", "references"],
+          expected_revision: 2,
+        },
+        gates,
+      ),
+    ).toThrow("OUTCOME_UNKNOWN");
+    expect(f.calls()).toBe(0);
+  });
+  it("accepts an already-selected receipt dependency and denies legacy in-flight identities after first renewal", async () => {
+    const f = await seed();
+    await f.connections.mutate("owner", f.a.id, (c) => {
+      c.scopes.push("bookkeeping", "settings", "costcenter", "project");
+      c.programs = {
+        revision: 1,
+        enabled: ["bookkeeping"],
+        features: ["references", "financial-analysis"],
+      };
+    });
+    const c = (await f.connections.list("owner")).find((c) => c.id === f.a.id);
+    if (!c) throw new Error("Fixture missing");
+    expect(
+      previewProgram(
+        c,
+        {
+          program: "bookkeeping",
+          features: ["receipt-files"],
+          expected_revision: 1,
+        },
+        gates,
+      ),
+    ).toMatchObject({
+      action: "provider_consent",
+      added_features: ["receipt-files"],
+      added_scopes: ["inbox", "connectfile"],
+    });
+    await f.connections.renewGrant("owner", "old-client", [
+      { id: f.a.id, generation: c.generation, access_revision: 0 },
+      { id: f.b.id, generation: f.b.generation, access_revision: 0 },
+    ]);
+    await expect(
+      f.connections.authorize("owner", "old-client", f.b.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    await expect(
+      f.connections.grant("owner", "old-client", [f.a.id, f.b.id]),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+  });
+  it("refuses a local read change when a write is in flight and rejects stale selections", async () => {
+    const f = await seed();
+    await f.connections.mutate("owner", f.a.id, (c) => {
+      c.scopes.push("bookkeeping");
+      c.programs = {
+        revision: 0,
+        enabled: ["bookkeeping"],
+        features: ["references"],
+      };
+      c.business = {
+        proposals: [],
+        executions: [
+          {
+            id: crypto.randomUUID(),
+            hash: "b".repeat(64),
+            operation: "article.create",
+            client: "old-client",
+            generation: c.generation,
+            created: Date.now(),
+            state: "submitting",
+          },
+        ],
+      };
+    });
+    const change: ProgramChange = {
+      program: "bookkeeping",
+      features: ["financial-analysis"],
+      expected_revision: 0,
+    };
+    await expect(
+      f.connections.selectProgram("owner", f.a.id, change, gates),
+    ).rejects.toThrow("OUTCOME_UNKNOWN");
+    await expect(
+      f.connections.selectProgram(
+        "owner",
+        f.a.id,
+        { ...change, expected_revision: 9 },
+        gates,
+      ),
+    ).rejects.toThrow("CONNECTION_CONFLICT");
+    expect(f.calls()).toBe(0);
+  });
   it.each(["service", "user"] as const)(
     "extends the existing %s connection atomically and never widens an old client grant",
     async (mode) => {

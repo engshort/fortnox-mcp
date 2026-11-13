@@ -46,7 +46,10 @@ export function Diagnosis({ company, t }: { company: string; t: Translate }) {
     ),
     missing_permission: t("Nödvändig scope saknas", "Required scope missing"),
     upstream_error: t("Fortnox kunde inte nås", "Provider unavailable"),
-    verification_blocked: t("Verifiering återstår", "Verification pending"),
+    verification_blocked: t(
+      "Åtkomst behöver kontrolleras",
+      "Access needs checking",
+    ),
     not_implemented: t("Inte implementerad", "Not implemented"),
     unknown: t(
       "Behörighets- eller licensorsak okänd",

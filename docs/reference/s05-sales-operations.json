@@ -12,10 +12,10 @@
     "packages/fortnox/src/sales-documents.ts": "8f93313e2384410c42893ee50e5b47dd3a753cd99e23fdc03f44265104905f32",
     "packages/fortnox/src/index.ts": "1a081c24b0934b3db78d87850d544586bdc7bc51e5a6ea1f5ea52142fd6067ab",
     "packages/mcp/src/sales-documents.ts": "e43a51429854cb27544e63cf53208bf0f79a83a05a1dc16c27c30032d238de76",
-    "packages/mcp/src/companies.ts": "16fab61c833318cbba436a8253ecf3d50d016fe4c7e2e298d256dfa6debe9186",
-    "apps/shared/product.ts": "9758f45f12d3d8c9a342793bf9e9e98f08689c3ede9498eb30fce461342fba29",
+    "packages/mcp/src/companies.ts": "2081d8f3ef1f12f62281bbb2dc86af9f7ed082cbddfab007244b751b60703dd0",
+    "apps/shared/product.ts": "960a4099b3401b44afa8fb9af995149bf38018a2f30373c5faa6f918e1c1455b",
     "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
-    "packages/core/src/programs.ts": "4b9161a60e1bb6e8a087470241b75e4f3f041b6e23bf7935e5a17be033cea2b5"
+    "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3"
   },
   "operations": [
     {

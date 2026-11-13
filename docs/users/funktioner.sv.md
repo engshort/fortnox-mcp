@@ -32,3 +32,14 @@ stämmas av innan ett nytt försök görs.
 
 Aktivering är inte samma sak som verifiering i verkliga Fortnox-/ChatGPT-flöden.
 [Tekniskt ändringsprotokoll och kvarvarande verifiering](../implementation/product-activation-2026-11-11.md).
+
+**Uppdatera åtkomst** visar vilka funktioner som läggs till. Kvittoåtkomst ingår
+i sammanställningen när den begärs; tidigare bortval ändras inte automatiskt.
+När nödvändiga Fortnox-behörigheter redan finns godkänner ägaren funktionsvalet
+lokalt. Datumläsning kan läggas till separat från andra funktioner även om en
+äldre skrivning har okänt resultat. Utfallet och dess skrivspärr bevaras.
+
+Efter en åtkomständring kan samma AI-klientregistrering få ett nytt uttryckligt
+företagsgodkännande. Gamla token får inte utökade rättigheter. Gränssnittet visar
+faktisk åtkomststatus; kvarvarande verifiering redovisas i tekniskt underlag.
+Ägaren kan kontrollera kvittofilers okända utfall under **Drift**, utan omsändning.

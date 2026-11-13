@@ -743,6 +743,8 @@ export function createProductApplication(
                       (c) =>
                         c.id === id &&
                         c.generation === generation &&
+                        (r.value.accessRevisions?.[id] ?? 0) ===
+                          (c.accessRevision ?? 0) &&
                         c.state === "active",
                     ),
                   }),
@@ -791,6 +793,60 @@ export function createProductApplication(
           return connectionFailure(error, "owner_reconciliation");
         }
       }
+      const receiptReconcile =
+        /^\/admin\/companies\/([^/]+)\/receipts\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (receiptReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          if (!receiptAttachments)
+            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          return safeResponse(
+            JSON.stringify(
+              await receiptAttachments.reconcileOwner(
+                session.user.id,
+                z.string().uuid().parse(receiptReconcile[1]),
+                z.string().uuid().parse(receiptReconcile[2]),
+              ),
+            ),
+          );
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
+      }
+      const voucherReconcile =
+        /^\/admin\/companies\/([^/]+)\/vouchers\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (voucherReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          return safeResponse(
+            JSON.stringify(
+              await bookkeeping.reconcileOwner(
+                session.user.id,
+                z.string().uuid().parse(voucherReconcile[1]),
+                z.string().uuid().parse(voucherReconcile[2]),
+              ),
+            ),
+          );
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
+      }
       const programRoute =
         /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
           url.pathname,
@@ -831,6 +887,16 @@ export function createProductApplication(
           const preview = previewProgram(company, input, gates);
           if (programRoute[2] === "preview")
             return safeResponse(JSON.stringify(preview));
+          if (preview.action === "none") return safeResponse('{"ok":true}');
+          if (preview.action === "local_selection") {
+            await connections.selectProgram(
+              session.user.id,
+              companyId,
+              input,
+              gates,
+            );
+            return safeResponse('{"ok":true}');
+          }
           const credentials = await connections.credentials(
             session.user.id,
             company,
@@ -869,6 +935,8 @@ export function createProductApplication(
               null,
             capabilities: {
               business_reconciliation: !!registers && profileActive(),
+              receipt_reconciliation: !!receiptAttachments?.gates.upload,
+              voucher_reconciliation: accountingGates.references,
               writes: accountingGates.writes,
               provider_files: receiptAttachments?.gates.upload === true,
               review_host: accountingGates.reviewHost,
@@ -899,6 +967,8 @@ export function createProductApplication(
                   company_id: c.id,
                   company_name: c.name,
                   kind: "bookkeeping",
+                  recovery_available:
+                    e.generation === c.generation && !!e.reference,
                   id: e.id,
                 })),
               ...(c.business?.executions ?? [])
@@ -922,6 +992,16 @@ export function createProductApplication(
                     company_id: c.id,
                     company_name: c.name,
                     kind: "receipt",
+                    stage: Object.entries(item.steps).find(([, step]) =>
+                      ["submitting", "outcome_unknown"].includes(step.state),
+                    )?.[0],
+                    recovery_available:
+                      (b.tenant
+                        ? b.tenant === c.tenant
+                        : b.generation === c.generation) &&
+                      [item.steps.upload, item.steps.link].some((step) =>
+                        ["submitting", "outcome_unknown"].includes(step.state),
+                      ),
                     id: item.id,
                   })),
               ),

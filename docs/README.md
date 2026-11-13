@@ -1,5 +1,9 @@
 # Documentation map
 
+Company access: [same-registration approval renewal, safe local read additions
+and owner receipt recovery](implementation/access-renewal-2026-11-13.md).
+Unknown writes remain retained; activation and actual acceptance stay separate.
+
 S08 follow-up: [dated balances, cross-year transactions and historical
 reskontra](implementation/S08-dated-reads.md). Available in the ordinary product;
 unverified source semantics still produce unknown values and incomplete results.

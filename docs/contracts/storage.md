@@ -1,5 +1,12 @@
 # Operational storage and retention
 
+Client approval renewal keeps two owner-partitioned maps of at most 128 live
+authorization snapshots/code-family bindings each. Unused entries expire in ten
+minutes; successful OAuth exchange/refresh retains the same rights through the
+actual library token expiry. Existing scheduled cleanup removes expired entries.
+These maps contain company revisions and library code hashes, never raw tokens
+or financial records. See [access renewal](../implementation/access-renewal-2026-11-13.md).
+
 Milestone 4 adds separate encrypted temporary file manifests/chunks through migration `0006_receipt_files.sql`. Owner capacity is atomically bounded; references expire in 55 minutes and Node/Worker cleanup physically deletes bytes. Old encryption key versions must remain until file cleanup completes. See [receipt evidence](../implementation/M04-receipts-evidence.md).
 
 M16 keeps only upload/link attempt state and opaque provider references in the

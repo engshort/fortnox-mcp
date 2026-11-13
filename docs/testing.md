@@ -244,3 +244,10 @@ bytes, then saves the image with runtime/OS notices and a package inventory.
 Verify every generated regular file with the packet's `SHA256SUMS`; inspect the
 source archive for prohibited private/external material. This is draft artifact
 verification, not actual client/provider acceptance or distribution authorization.
+
+The [access-renewal follow-up](implementation/access-renewal-2026-11-13.md)
+adds shared authorization/retention/recovery regressions for T01/T02/T09/T10/T20.
+The owner browser suite also covers local read activation with retained unknown
+writes and a same-registration OAuth/MCP round trip with an intercepted synthetic
+client callback. These local provider/library/browser fixtures do not establish
+actual Fortnox or hosted ChatGPT acceptance.

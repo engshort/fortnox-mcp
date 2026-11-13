@@ -100,6 +100,12 @@ function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
             "A stored grant shows company access, not whether the client has an active session. New companies or extended access require fresh client consent.",
           )}
         </p>
+        <p>
+          {t(
+            "Förnya åtkomst genom att öppna anslutningens OAuth-godkännande igen i AI-klienten. Samma klientregistrering kan användas. Efter ett nytt godkännande gäller nya token; tidigare token kan inte få den utökade åtkomsten.",
+            "Renew access by reopening this connection's OAuth approval in the AI client. The same client registration can be used. New tokens use the new approval; earlier tokens cannot acquire the expanded access.",
+          )}
+        </p>
         {!clients && !error && (
           <p>{t("Hämtar godkännanden…", "Loading grants…")}</p>
         )}
@@ -151,6 +157,14 @@ function Operations({
 }) {
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const labels: Record<string, string> = {
+    receipt_reconciliation: t(
+      "Avstämning av kvittofiler",
+      "Receipt file reconciliation",
+    ),
+    voucher_reconciliation: t(
+      "Avstämning av verifikationer",
+      "Voucher reconciliation",
+    ),
     business_reconciliation: t(
       "Avstämning av skrivutfall",
       "Write outcome reconciliation",
@@ -229,38 +243,54 @@ function Operations({
                   : t("Kvitto eller filkoppling", "Receipt or file connection")}
             </p>
             <code>{outcome.id}</code>
-            {outcome.kind === "business" &&
-              state.capabilities.business_reconciliation && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void perform(async () => {
-                      const result = await api<{ state: string }>(
-                        `/admin/companies/${outcome.company_id}/business/${outcome.id}/reconcile`,
-                        {},
-                      );
-                      setRecoveryMessage(
-                        result.state === "succeeded"
+            {outcome.stage && (
+              <p>
+                {t("Berört steg", "Affected step")}:{" "}
+                {outcome.stage === "upload"
+                  ? t("Uppladdning", "Upload")
+                  : outcome.stage === "link"
+                    ? t("Filkoppling", "File connection")
+                    : t("Verifikation", "Voucher")}
+              </p>
+            )}
+            {((outcome.kind === "bookkeeping" &&
+              outcome.recovery_available &&
+              state.capabilities.voucher_reconciliation) ||
+              (outcome.kind === "business" &&
+                state.capabilities.business_reconciliation) ||
+              (outcome.kind === "receipt" &&
+                outcome.recovery_available &&
+                state.capabilities.receipt_reconciliation)) && (
+              <button
+                type="button"
+                onClick={() =>
+                  void perform(async () => {
+                    const result = await api<{ state: string }>(
+                      `/admin/companies/${outcome.company_id}/${outcome.kind === "receipt" ? "receipts" : outcome.kind === "bookkeeping" ? "vouchers" : "business"}/${outcome.id}/reconcile`,
+                      {},
+                    );
+                    setRecoveryMessage(
+                      result.state === "succeeded"
+                        ? t(
+                            "Utfallet har stämts av mot Fortnox.",
+                            "The outcome was reconciled against Fortnox.",
+                          )
+                        : result.state === "applied_different"
                           ? t(
-                              "Utfallet har stämts av mot Fortnox.",
-                              "The outcome was reconciled against Fortnox.",
+                              "Skrivningen har identifierats i Fortnox med avvikande innehåll. Granska avvikelsen nedan.",
+                              "The write was identified in Fortnox with different content. Review the difference below.",
                             )
-                          : result.state === "applied_different"
-                            ? t(
-                                "Skrivningen har identifierats i Fortnox med avvikande innehåll. Granska avvikelsen nedan.",
-                                "The write was identified in Fortnox with different content. Review the difference below.",
-                              )
-                            : t(
-                                "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
-                                "The outcome remains unknown. No new write was sent.",
-                              ),
-                      );
-                    })
-                  }
-                >
-                  {t("Läs om utfallet", "Read outcome again")}
-                </button>
-              )}
+                          : t(
+                              "Utfallet är fortfarande okänt. Ingen ny skrivning har skickats.",
+                              "The outcome remains unknown. No new write was sent.",
+                            ),
+                    );
+                  })
+                }
+              >
+                {t("Kontrollera utfallet", "Check outcome")}
+              </button>
+            )}
             <p>
               {t(
                 "Kontrollera status och stäm av utfallet i det befintliga arbetsflödet. Skicka inte ett nytt försök medan utfallet är okänt.",

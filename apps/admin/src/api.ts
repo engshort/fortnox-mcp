@@ -39,6 +39,8 @@ export interface InstallationState {
     company_id: string;
     company_name: string;
     kind: "bookkeeping" | "business" | "receipt";
+    stage?: string;
+    recovery_available?: boolean;
     id: string;
   }>;
   observed_differences?: Array<{

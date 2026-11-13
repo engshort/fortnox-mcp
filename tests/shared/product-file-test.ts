@@ -176,7 +176,17 @@ export function productFileTestContract(fixture: () => Promise<Runtime>) {
     );
     const consent = await req(
       "/auth/oauth2/consent",
-      { accept: true, oauth_query: location.search.slice(1) },
+      {
+        accept: true,
+        oauth_query: location.search.slice(1),
+        companies: (await f.app.connections.list(owner.response.user.id))
+          .filter((c) => c.state === "active")
+          .map((c) => ({
+            id: c.id,
+            generation: c.generation,
+            access_revision: c.accessRevision ?? 0,
+          })),
+      },
       { cookie, origin: f.runtime.origin },
     );
     expect(consent.status).toBe(200);

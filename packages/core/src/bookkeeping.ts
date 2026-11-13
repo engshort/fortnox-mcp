@@ -566,6 +566,31 @@ export class Bookkeeping {
     );
     if (!e || e.generation !== c.generation || e.client !== actor.clientId)
       throw new DomainError("INTENT_CONFLICT");
+    return this.reconcileKnownExecution(actor, c, e);
+  }
+  // Owner metadata recovery survives client approval renewal. Accounting
+  // executions without tenant provenance remain in their original generation.
+  async reconcileOwner(owner: string, company: string, id: string) {
+    z.string().uuid().parse(company);
+    z.string().uuid().parse(id);
+    const c = (await this.connections.list(owner)).find(
+      (c) => c.id === company,
+    );
+    const e = c?.bookkeeping?.executions.find((e) => e.id === id);
+    if (c?.state !== "active" || !e || e.generation !== c.generation)
+      throw new DomainError("INTENT_CONFLICT");
+    if (e.state === "submitting" && e.created + 120000 > this.now())
+      return { state: "outcome_unknown" as const, reference: null };
+    return this.connections.ownerRecoveryRead(owner, company, (actor) =>
+      this.reconcileKnownExecution(actor, c, e),
+    );
+  }
+  private async reconcileKnownExecution(
+    actor: AccountingActor,
+    c: Connection,
+    e: VoucherExecution,
+  ) {
+    await this.authorize(actor, c.id);
     if (e.state === "failed")
       return { state: "failed" as const, reference: null };
     // No date/amount search, caller-supplied reference or inferred absence authorizes retry.
@@ -574,6 +599,7 @@ export class Bookkeeping {
     const actual = voucherInput.parse(
       await this.provider.read(actor, c.id, e.reference),
     );
+    await this.authorize(actor, c.id);
     const matches = (await voucherProposalHash(actual, e.receipt)) === e.hash;
     if (
       matches &&
@@ -585,12 +611,16 @@ export class Bookkeeping {
         );
         if (
           !saved ||
+          current.state !== "active" ||
           current.generation !== e.generation ||
+          current.policyVersion !== c.policyVersion ||
+          saved.client !== e.client ||
           saved.hash !== e.hash ||
           JSON.stringify(saved.reference) !== JSON.stringify(e.reference)
         )
           throw new DomainError("INTENT_CONFLICT");
-        saved.state = "succeeded";
+        if (["submitting", "outcome_unknown"].includes(saved.state))
+          saved.state = "succeeded";
         if (current.bookkeeping)
           current.bookkeeping.proposals = current.bookkeeping.proposals.filter(
             (v) => v.id !== e.id,

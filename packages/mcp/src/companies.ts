@@ -138,7 +138,7 @@ export function companyServer(context: {
     retrieved_at: new Date().toISOString(),
     complete: true as const,
     sources: [] as string[],
-    warnings: ["Product live acceptance pending; test installation only."],
+    warnings: [],
   });
   const describe = (c: Awaited<ReturnType<Connections["list"]>>[number]) => ({
     company_id: c.id,
@@ -205,7 +205,7 @@ export function companyServer(context: {
       ...common,
       title: "List authorized test companies",
       description:
-        "List only companies in this client's durable grant. Product live acceptance is pending.",
+        "List only companies in this client's current authorized company grant. A fresh approval is required after access changes.",
       inputSchema: z.object({}).strict(),
       outputSchema: listOutput,
     },
@@ -235,7 +235,14 @@ export function companyServer(context: {
         return {
           status: "ok",
           data: { companies, count: companies.length },
-          evidence: proof(),
+          evidence: {
+            ...proof(),
+            warnings: companies.length
+              ? []
+              : [
+                  "No companies are currently authorized for this client. Reopen the connection's OAuth approval to select current company access.",
+                ],
+          },
           continuation: null,
         };
       }),
