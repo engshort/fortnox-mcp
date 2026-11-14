@@ -173,7 +173,22 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
     it("serves reports with signature-only correction differences and incomplete historical metadata", async () => {
       const f = await setup(await fixture());
-      const service = new FinancialAnalysis(f.connections, f.adapter, true);
+      const adapter = new FortnoxFinancialReads(
+        f.connections,
+        f.provider,
+        financialReadOperations,
+        () => true,
+        Date.now,
+        undefined,
+        () => ({
+          version: "synthetic-proof/1",
+          sha256: "e".repeat(64),
+          full_export: true,
+          effective_rows: true,
+          omitted_zero_openings: true,
+        }),
+      );
+      const service = new FinancialAnalysis(f.connections, adapter, true);
       const before = await service.report(f.actor, f.query);
       f.flags.sieCompatibility = true;
       const sie = await f.adapter.sie(f.actor, f.a.id, 7);
@@ -196,6 +211,8 @@ export function financialReadContract(fixture: () => Promise<StateStore>) {
       expect(report.source_version).not.toBe(before.source_version);
       expect(report.complete).toBe(false);
       expect(report.data_complete).toBe(false);
+      expect(report.coverage.movements).toBe(false);
+      expect(report.coverage.opening_balances).toBe(true);
       expect(report.consistency).toBe("bounded_recheck");
     });
     it("requires trusted export and row evidence for dated balances and retains source conflicts", async () => {
