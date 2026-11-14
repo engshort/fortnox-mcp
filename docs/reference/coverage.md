@@ -346,6 +346,15 @@ handoff](../implementation/S11-company-programs.md).
 
 ## Milestone 7 work in progress
 
+The SIE compatibility follow-up accepts adjacent correction pairs differing only
+in optional author signature, counts their posting once, and retains undeclared
+comparison-year account references with null names and exact balances. These
+cases expose explicit limitations and do not close financial coverage gates.
+Current-year account declarations, matching posting fields and known fiscal
+years remain mandatory. Shared parser/provider regressions run in both Node
+and workerd; actual report-read observations are recorded separately in
+[the delivery evidence](../implementation/S08-sie-compatibility.md).
+
 The [date-driven S08 extension](../implementation/S08-dated-reads.md) implements
 fiscal-year discovery, account balances by date, paginated cross-year ledger
 transactions and historical invoice reads using dated payment evidence.

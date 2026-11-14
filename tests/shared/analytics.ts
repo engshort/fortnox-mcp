@@ -323,6 +323,107 @@ export function analyticsCalculationContract() {
     });
   });
   describe("bounded SIE4 ingestion", () => {
+    it("counts a signed correction pair once when only the optional author differs", async () => {
+      const original =
+        '#RTRANS 1930 {1 "SYNTHETIC"} -100\n#TRANS 1930 {1 "SYNTHETIC"} -100';
+      const posting =
+        '1930 {1 "SYNTHETIC"} -100 20260101 "Synthetic correction" 2';
+      for (const signature of ["", ' ""', ' "Other synthetic author"']) {
+        const content = syntheticSie.replace(
+          original,
+          `#RTRANS ${posting} "Synthetic author"\n#TRANS ${posting}${signature}`,
+        );
+        const parsed = await parseSie4(bytes(content), "cp437");
+        expect(parsed.movements.map((m) => m.amount)).toEqual([
+          "250.00",
+          "-250.00",
+          "-100.00",
+          "100.00",
+        ]);
+        expect(parsed.limitations).toContain("correction_signature_differs");
+        expect(parsed.limitations).not.toContain("unbalanced_voucher");
+      }
+    });
+    it("still rejects altered posting fields or an absent correction counterpart", async () => {
+      const original =
+        '#RTRANS 1930 {1 "SYNTHETIC"} -100\n#TRANS 1930 {1 "SYNTHETIC"} -100';
+      const posting =
+        '1930 {1 "SYNTHETIC"} -100 20260101 "Synthetic correction" 2';
+      for (const counterpart of [
+        posting.replace("1930", "4000"),
+        posting.replace("SYNTHETIC", "OTHER"),
+        posting.replace("-100", "-99"),
+        posting.replace("20260101", "20260102"),
+        posting.replace("Synthetic correction", "Different text"),
+        posting.replace(/2$/, "3"),
+      ]) {
+        await expect(
+          parseSie4(
+            bytes(
+              syntheticSie.replace(
+                original,
+                `#RTRANS ${posting} "Synthetic author"\n#TRANS ${counterpart}`,
+              ),
+            ),
+            "cp437",
+          ),
+        ).rejects.toThrow();
+      }
+      await expect(
+        parseSie4(
+          bytes(
+            syntheticSie.replace(
+              original,
+              `#RTRANS ${posting} "Synthetic author"`,
+            ),
+          ),
+          "cp437",
+        ),
+      ).rejects.toThrow();
+    });
+    it("preserves undeclared comparison accounts with unknown names and exact historical balances", async () => {
+      const parsed = await parseSie4(
+        bytes(
+          `${syntheticSie}#IB -1 8888 12.34\n#UB -1 8888 -56.78\n#PSALDO -1 202501 8889 {} 9.01\n`,
+        ),
+        "cp437",
+      );
+      expect(parsed.accounts.filter((a) => a.name === null)).toEqual([
+        {
+          number: 8888,
+          name: null,
+          balances: [{ year: -1, opening: "12.34", closing: "-56.78" }],
+        },
+        { number: 8889, name: null, balances: [] },
+      ]);
+      expect(parsed.period_balances).toContainEqual({
+        year: -1,
+        period: "202501",
+        account: 8889,
+        dimensions: {},
+        amount: "9.01",
+      });
+      expect(parsed.limitations).toContain(
+        "historical_account_metadata_missing",
+      );
+      expect(parsed.complete).toBe(false);
+      for (const record of [
+        "#IB 0 8888 12.34",
+        "#UB -2 8888 12.34",
+        "#PSALDO 0 202601 8888 {} 12.34",
+        "#PSALDO -2 202501 8888 {} 12.34",
+      ])
+        await expect(
+          parseSie4(bytes(`${syntheticSie}${record}\n`), "cp437"),
+        ).rejects.toThrow();
+      // A historical declaration must not make an undeclared current account valid.
+      await expect(
+        parseSie4(
+          bytes(`${syntheticSie}#UB -1 8888 1\n#IB 0 8888 1\n`),
+          "cp437",
+        ),
+      ).rejects.toThrow();
+    });
     it("preserves year boundaries, exact balances, dimensions and effective correction rows", async () => {
       const result = await parseSie4(bytes(syntheticSie), "cp437");
       expect(result.complete).toBe(false);
@@ -369,7 +470,9 @@ export function analyticsCalculationContract() {
       content[at + 1] = 0x99;
       content[at + 2] = 0x8f;
       expect(
-        (await parseSie4(content, "cp437")).accounts[0]?.name.startsWith("ÄÖÅ"),
+        (await parseSie4(content, "cp437")).accounts[0]?.name?.startsWith(
+          "ÄÖÅ",
+        ),
       ).toBe(true);
       await expect(parseSie4(content, "utf8")).rejects.toThrow();
     });

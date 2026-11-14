@@ -6,7 +6,7 @@
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
     "packages/core/src/analytics.ts": "f28aa6eb4b57d1a5d2245e4451ab07c9eb8b136a05a0b5e2a29f476f28c5a59f",
-    "packages/core/src/sie.ts": "bc0eb0358f91debbf3c89b9f24c2ff0642fb2d4ee405b085e0e3fb90ac225216",
+    "packages/core/src/sie.ts": "ff09955e144838789d72e9f600c103669999f2e53dcffce618f04fb4e1c60c38",
     "packages/core/src/payroll.ts": "a582ed235cd5ebc1ce713c846f22356cbe128c831fab2fbf50b93e75d0140e4e",
     "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3",
     "packages/core/src/connections.ts": "58cf3da4107ca95ddd53e47f9e13fe487dbf27ce4daf23fd7a273bb328afef35",
@@ -16,7 +16,7 @@
     "apps/shared/product-gateway.ts": "363ec33947b8a6e10d482c5d15232ead9fd2e5bce62c7fa541d9983cccd332d9",
     "apps/admin/src/company-pages.tsx": "6e156f90d622d7202eb3ce834570083570da7c3144b9906f4c0e6de8db7e9225",
     "apps/admin/src/main.tsx": "7ea3024822faf41a38cb38442a70aede34b4fff1e17aa73c75f6c6e35761a345",
-    "packages/fortnox/src/analytics.ts": "afe3fffd0b1c9f68a1245840d01dbf811ba08351ba1d34e46738dfca658c4494",
+    "packages/fortnox/src/analytics.ts": "05874b5745d6d1273409f59b1b69afa54f21b3985ea277aad3903fdb01ac6bd0",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
     "packages/fortnox/src/document-http.ts": "22ca26b86b2994d7249824ba37918df67e12c305ca13d1fc0b11d904bf48812c",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",

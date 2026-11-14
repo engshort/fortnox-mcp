@@ -16,6 +16,14 @@ Om Fortnox kontolista och SIE visar olika saldon blir det berörda rapportfälte
 okänt och rapporten visar källkonflikten. En separat kontodetalj kan fortfarande
 läsas, men den gör inte hela rapporten avstämd.
 
+En SIE-export kan innehålla korrigeringsrader där signaturen bara finns på den
+ena raden. Rapporten kan nu läsa sådana par utan att räkna rörelsen dubbelt;
+skillnaden visas som `correction_signature_differs`. Bokföringsfälten måste
+fortfarande stämma överens. Om jämförelseårets saldon saknar kontodefinitioner
+bevaras uppgifterna i det lästa underlaget och rapporten visar
+`historical_account_metadata_missing`. De används inte som årets saldon.
+Rapporten kan därmed hämtas, men är fortsatt ofullständig när underlag saknas.
+
 Löneflödet gäller ett avgränsat underlag för en verifierad
 anställd, dag och lönekod. Företaget behöver rätt Fortnox-licens, behörigheter
 och ett nytt samtycke för Lön. Anställning, tillämplig timlön och exakta belopp

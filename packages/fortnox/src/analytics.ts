@@ -497,7 +497,11 @@ export class FortnoxFinancialReads implements FinancialProvider {
       sourceYear.to !== financialYear.to
     )
       throw new ProviderError("UPSTREAM_UNAVAILABLE", "sie_year_mismatch");
-    const sourceAccounts = new Map(first.accounts.map((a) => [a.number, a]));
+    // An undeclared comparison-year account is retained by the parser, but is
+    // not evidence that this account exists or has a zero opening in this year.
+    const sourceAccounts = new Map(
+      first.accounts.filter((a) => a.name !== null).map((a) => [a.number, a]),
+    );
     const chart = new Map<number, z.infer<typeof providerAccount>>();
     const sources = [
       financialYear.source,
