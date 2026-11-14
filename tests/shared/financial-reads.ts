@@ -40,6 +40,7 @@ async function setup(state: StateStore, ordinary = false) {
     wrongYear: false,
     conflictingOpening: false,
     conflictingClosing: false,
+    sieCompatibility: false,
   };
   let exports = 0;
   const provider = new FortnoxConnections({
@@ -85,10 +86,20 @@ async function setup(state: StateStore, ordinary = false) {
         });
       if (url.pathname === "/3/sie/4") {
         exports++;
-        const text =
+        let text =
           flags.changed && exports > 1
             ? syntheticSie.replace("#UB 0 1930 1150", "#UB 0 1930 1151")
             : syntheticSie;
+        if (flags.sieCompatibility)
+          text = `${text
+            .replace(
+              '#RTRANS 1930 {1 "SYNTHETIC"} -100',
+              '#RTRANS 1930 {1 "SYNTHETIC"} -100 "" "" "" "Synthetic author"',
+            )
+            .replace(
+              '#TRANS 1930 {1 "SYNTHETIC"} -100',
+              '#TRANS 1930 {1 "SYNTHETIC"} -100 "" "" ""',
+            )}#UB -1 8888 12.34\n`;
         return new Response(new TextEncoder().encode(text), {
           headers: { "content-type": "application/octet-stream" },
         });
@@ -160,6 +171,50 @@ async function setup(state: StateStore, ordinary = false) {
 }
 export function financialReadContract(fixture: () => Promise<StateStore>) {
   describe("S08 finite account and SIE transport", () => {
+    it("serves reports with signature-only correction differences and incomplete historical metadata", async () => {
+      const f = await setup(await fixture());
+      const adapter = new FortnoxFinancialReads(
+        f.connections,
+        f.provider,
+        financialReadOperations,
+        () => true,
+        Date.now,
+        undefined,
+        () => ({
+          version: "synthetic-proof/1",
+          sha256: "e".repeat(64),
+          full_export: true,
+          effective_rows: true,
+          omitted_zero_openings: true,
+        }),
+      );
+      const service = new FinancialAnalysis(f.connections, adapter, true);
+      const before = await service.report(f.actor, f.query);
+      f.flags.sieCompatibility = true;
+      const sie = await f.adapter.sie(f.actor, f.a.id, 7);
+      expect(sie.accounts.find((a) => a.number === 8888)).toEqual({
+        number: 8888,
+        name: null,
+        balances: [{ year: -1, opening: null, closing: "12.34" }],
+      });
+      const report = await service.report(f.actor, f.query);
+      expect(report.accounts.map((a) => [a.number, a.period_movement])).toEqual(
+        before.accounts.map((a) => [a.number, a.period_movement]),
+      );
+      expect(report.accounts.some((a) => a.number === 8888)).toBe(false);
+      expect(report.limitations).toEqual(
+        expect.arrayContaining([
+          "correction_signature_differs",
+          "historical_account_metadata_missing",
+        ]),
+      );
+      expect(report.source_version).not.toBe(before.source_version);
+      expect(report.complete).toBe(false);
+      expect(report.data_complete).toBe(false);
+      expect(report.coverage.movements).toBe(false);
+      expect(report.coverage.opening_balances).toBe(true);
+      expect(report.consistency).toBe("bounded_recheck");
+    });
     it("requires trusted export and row evidence for dated balances and retains source conflicts", async () => {
       const f = await setup(await fixture());
       const adapter = new FortnoxFinancialReads(

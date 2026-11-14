@@ -72,7 +72,8 @@ export interface SieYear {
 }
 export interface SieAccount {
   number: number;
-  name: string;
+  // Historical balances can outlive their #KONTO declaration.
+  name: string | null;
   balances: Array<{
     year: number;
     opening: string | null;
@@ -134,7 +135,8 @@ export async function parseSie4(
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   if (lines.length > 25000) return invalid();
   const years = new Map<number, SieYear>();
-  const names = new Map<number, string>();
+  const names = new Map<number, string | null>();
+  const historicalAccounts = new Set<number>();
   const balances = new Map<
     string,
     {
@@ -160,7 +162,8 @@ export async function parseSie4(
     inVoucher = false;
   let voucherAmounts: string[] = [];
   let voucherText: string | null = null;
-  let pendingAdded: string[] | null = null;
+  let pendingAdded: { posting: string; signature: string | undefined } | null =
+    null;
   const metadata = new Set([
     "#PROGRAM",
     "#GEN",
@@ -186,12 +189,7 @@ export async function parseSie4(
     const parts = tokens(line.trim());
     if (!parts.length) continue;
     const tag = parts[0];
-    if (
-      pendingAdded &&
-      (tag !== "#TRANS" ||
-        JSON.stringify(parts.slice(1)) !== JSON.stringify(pendingAdded))
-    )
-      return invalid();
+    if (pendingAdded && tag !== "#TRANS") return invalid();
     if (tag === "{") {
       if (!voucher || inVoucher || parts.length !== 1) return invalid();
       inVoucher = true;
@@ -249,10 +247,21 @@ export async function parseSie4(
         ? date(parts[end + 2])
         : voucher.date;
       if (tag === "#RTRANS") {
-        pendingAdded = parts.slice(1);
+        pendingAdded = {
+          posting: JSON.stringify(parts.slice(1, end + 5)),
+          signature: parts[end + 5],
+        };
         continue;
       }
       if (tag === "#BTRANS") continue;
+      if (pendingAdded) {
+        // Fortnox can retain the correction author's optional signature only
+        // on #RTRANS. Every posting field, including quantity, must still match.
+        if (JSON.stringify(parts.slice(1, end + 5)) !== pendingAdded.posting)
+          return invalid();
+        if (parts[end + 5] !== pendingAdded.signature)
+          limitations.add("correction_signature_differs");
+      }
       pendingAdded = null;
       if (movements.length >= 10000) return invalid();
       movements.push({
@@ -403,8 +412,11 @@ export async function parseSie4(
       m.voucher.date > current.to
     )
       return invalid();
-  for (const b of balances.values())
-    if (!names.has(b.number) || !years.has(b.year)) return invalid();
+  for (const b of balances.values()) {
+    if (!years.has(b.year) || (!names.has(b.number) && b.year === 0))
+      return invalid();
+    if (!names.has(b.number)) historicalAccounts.add(b.number);
+  }
   const periodMovements = new Map<string, SieMovement[]>();
   for (const movement of movements) {
     const key = `${movement.account}:${movement.date.replaceAll("-", "").slice(0, 6)}`;
@@ -415,12 +427,13 @@ export async function parseSie4(
   for (const p of periodBalances) {
     const y = years.get(p.year);
     if (
-      !names.has(p.account) ||
+      (!names.has(p.account) && p.year === 0) ||
       !y ||
       p.period < y.from.replaceAll("-", "").slice(0, 6) ||
       p.period > y.to.replaceAll("-", "").slice(0, 6)
     )
       return invalid();
+    if (!names.has(p.account)) historicalAccounts.add(p.account);
     if (p.year === 0) {
       const actual = sumAmounts(
         (periodMovements.get(`${p.account}:${p.period}`) ?? [])
@@ -438,6 +451,10 @@ export async function parseSie4(
       if (actual !== p.amount) limitations.add("period_balance_mismatch");
     }
   }
+  if (names.size + historicalAccounts.size > 10000) return invalid();
+  for (const number of historicalAccounts) names.set(number, null);
+  if (historicalAccounts.size)
+    limitations.add("historical_account_metadata_missing");
   if (!currency) limitations.add("currency_missing");
   const byAccount = new Map<number, SieAccount["balances"]>();
   for (const balance of balances.values()) {

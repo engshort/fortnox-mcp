@@ -44,6 +44,23 @@ that the combined report has reconciled.
 
 ## Large-data behavior
 
+### SIE compatibility and incomplete comparison metadata
+
+An adjacent `#RTRANS`/`#TRANS` pair must match through the quantity field.
+The optional final author signature may differ or be omitted; the parser counts
+only `#TRANS` and exposes `correction_signature_differs` for that variation.
+Changed posting fields, a missing counterpart and malformed structure still fail.
+This compatibility rule does not establish general correction-row acceptance.
+
+Balances and period balances for a declared comparison year may reference an
+account without `#KONTO`. Preserve its number and exact source balances with
+`name=null` in the parsed export and report
+`historical_account_metadata_missing`. Such a reference is not a current-year
+chart account or evidence for an omitted zero opening. Current-year postings,
+current-year balances and unknown years still require their declarations.
+The authenticated report can return available current-year data with explicit
+limitations; it must not promote completeness or invent historical metadata.
+
 ### Date-driven reads
 
 `get_account_balances({ company_id, as_of, account_numbers?, page_size?,
