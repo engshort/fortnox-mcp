@@ -103,13 +103,22 @@ provider support statuses and historical live evidence are not promoted.
 The actual M2X Laravel backend completed both browser journeys on `iss` in
 isolated private `/tmp` state, against the synthetic Fortnox provider:
 
-- M2X: `190954320a6f6a0c0e951244fd4d3f83cb884243`.
+- Final M2X runtime: `4dbe5e28e1386cf32813133a34328bdd9c0139ab`.
+- Consumer delivery: [M2X PR #13](https://github.com/m2x-se/mcp/pull/13),
+  `5508131a1371c62064bba487607d656aaba2423e`; only documentation is above
+  the tested runtime revision. Its [pinned integration evidence](https://github.com/m2x-se/mcp/blob/5508131a1371c62064bba487607d656aaba2423e/docs/integrations.md)
+  records the consumer environment and verification separately.
 - Fortnox MCP: `c566f525da2ae6cd96f01ce58e73feaf3389a43a`.
 - Installation `127.0.0.1:8801`, consumer `localhost:8810`, synthetic provider
   `127.0.0.2:8803`; no real provider calls, shared owner cookies or VPN changes.
 - At execution the provider checkout had no tracked changes; the consumer had
   documentation changes only. Credentials were generated and retained privately
   on the test host; none are in the reports or repository.
+
+Both journeys were rerun after the final consumer change handling attempts whose
+initiator access/session version has been invalidated. Earlier results against
+M2X `190954320a6f6a0c0e951244fd4d3f83cb884243` remain historical evidence;
+the final reports below bind acceptance to the delivered consumer runtime.
 
 With checksum-valid synthetic organization numbers, A and B each returned from
 explicit provider/client consent, completed actual code/PKCE exchange, fetched
@@ -137,15 +146,18 @@ with a **synthetic provider**, not actual Fortnox acceptance.
 
 | Original cross-repository artifact | SHA-256 |
 | --- | --- |
-| Automatic A+B acceptance report | `98c2a195413974c52ce9c3265b50150c53137c2b4295dfad698d07c0e7e059f9` |
-| Explicit identity-review A+B report | `c98aa205b9d3d2dbf430514f815384e92034b260a4e9682be4239c0ea229106c` |
-| Actual M2X A customer card | `00105c1e20874cc8059043e43c92c5aaa84f6cce2ac2fa280a21f9f724515983` |
-| Actual M2X B customer card | `137098cd514129ab7b05c21f4931de3ca6eb11fadb4c58657a98140510b7081e` |
-| Actual M2X mobile customer card | `0d70a1d5d78848270a630d07ad95986c2359d65e83bfa58ea2543f38ee98ad6f` |
+| Final automatic A+B report (`4dbe5e2`) | `e3a3a7730c16df790046bbe41f765e808a899b24de7fb8d3e24060791ca0ced3` |
+| Final identity-review A+B report (`4dbe5e2`) | `55c16af54144c4a229554c69570ef352881793d7c3eaf5390376deee65ca7f14` |
+| Initial automatic A+B report (`1909543`) | `98c2a195413974c52ce9c3265b50150c53137c2b4295dfad698d07c0e7e059f9` |
+| Initial identity-review A+B report (`1909543`) | `c98aa205b9d3d2dbf430514f815384e92034b260a4e9682be4239c0ea229106c` |
+| Initial actual M2X A customer card | `00105c1e20874cc8059043e43c92c5aaa84f6cce2ac2fa280a21f9f724515983` |
+| Initial actual M2X B customer card | `137098cd514129ab7b05c21f4931de3ca6eb11fadb4c58657a98140510b7081e` |
+| Initial actual M2X mobile customer card | `0d70a1d5d78848270a630d07ad95986c2359d65e83bfa58ea2543f38ee98ad6f` |
 
 Independent cross-repository report review: passed by the separate
-`independent_acceptance_review` AI against both original reports and their exact
-digests. This is **AI-executed, independently report-reviewed** acceptance. The
+`independent_acceptance_review` AI against the initial and final original reports
+and their exact digests. The final assessment covers M2X `4dbe5e2` against Fortnox
+`c566f52`. This is **AI-executed, independently report-reviewed** acceptance. The
 reviewer did not independently execute the M2X browser flow or inspect separate
 token/PKCE network traces. The report's `reviewed` field identifies the customer
 identity-matching branch, not independent AI review. Actual provider acceptance
