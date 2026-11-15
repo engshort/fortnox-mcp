@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "scope": "S08/S09 ordinary bounded reads, dated balances, cross-year transactions and historical invoice inputs; operation-specific provider/client acceptance remains pending",
-  "reviewedAt": "2026-11-14",
+  "reviewedAt": "2026-11-15",
   "sourceStrategy": "Independent implementation, no vendored/generated external specification",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
@@ -13,9 +13,9 @@
     "packages/core/src/business-writes.ts": "399041b8d2a5a1d9470cb82924b7b81484798934c3dc416097b96c6b898b9039",
     "packages/fortnox/src/connections.ts": "9dc4f89fdcb246bf79c6df090d84dd13c127840b6a4ec01a8d3c007154f52885",
     "apps/shared/product.ts": "4d0dfe10479460a049d09a4205160df58a6ec504686beaeeced745aaafb40687",
-    "apps/shared/product-gateway.ts": "69ce53214b92d15cc8cfce3a6e437c3f6c2bab0fd370ce499660b20c772d5e5b",
+    "apps/shared/product-gateway.ts": "1da71f20082f4cc492f1a2035936e59a4bad84f7be2aaf33e68221d6b9a1ddc0",
     "apps/admin/src/company-pages.tsx": "dad452a6fc00963fcdb3507abe4dd7739560e18635575ae9513770ce13e8d521",
-    "apps/admin/src/main.tsx": "b7436e04632e76b66a184cccf658479ac000a64dba9c2f14edd81f62fe9e69e1",
+    "apps/admin/src/main.tsx": "8aa92cdcfc764e7196d8476fffdcc5a368226b3cd4a426fd71a81010e1e5ceea",
     "packages/fortnox/src/analytics.ts": "7c553308d30c8b3a00e27c72f6eea2948bee8929a1bf5a50eb7e482ee24d698a",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
     "packages/fortnox/src/document-http.ts": "70c913aff7082834cd127b253574a3888ec7336b054eee1b071d9358e599d025",

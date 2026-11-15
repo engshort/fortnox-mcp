@@ -72,6 +72,12 @@ relative links in changed documentation resolved. The rebase preserved upstream
 login/email behavior and both documentation additions; the UI code and tests
 were unchanged by it. Final evidence-only documentation edits follow this run.
 
+The first PR CI run passed the other five workflows and 461 Node/domain tests,
+but its S08/S09 source-ledger test found two stale hashes for the changed gateway
+and administration entry. Refreshing those exact source pins resolves the
+metadata mismatch; it changes no operation, support classification or acceptance
+claim. The complete source-ledger regression is checked before the CI rerun.
+
 The existing workerd source-map/form-body warnings and browser runner color-env
 warning remain. Intentional lost-response/404/410 browser cases are distinguished
 from unexpected page or console errors; the ordinary success flow has none.
