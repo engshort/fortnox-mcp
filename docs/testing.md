@@ -251,3 +251,7 @@ The owner browser suite also covers local read activation with retained unknown
 writes and a same-registration OAuth/MCP round trip with an intercepted synthetic
 client callback. These local provider/library/browser fixtures do not establish
 actual Fortnox or hosted ChatGPT acceptance.
+
+## External application onboarding regressions
+
+Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). These checks do not establish live Fortnox or M2X acceptance.

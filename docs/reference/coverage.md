@@ -415,3 +415,7 @@ combined report, with their source-disagreement limitation preserved. Independen
 detail reads retain their provider label and do not promote report coverage.
 Nine financial transport cases passed in each of Node/SQLite and actual local
 workerd/D1; ordinary activation remains off.
+
+## External application onboarding — issue #146
+
+The optional [v1 contract](../contracts/company-onboarding-v1.md) reuses existing company consent/profile/status operations. Initial shared OAuth/MCP tests passed Node and actual local workerd/D1; [implementation evidence](../implementation/external-company-onboarding.md) tracks expanded, browser and cross-repository acceptance separately. No new provider or financial operation is claimed.

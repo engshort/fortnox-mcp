@@ -13,6 +13,9 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
   for (let attempt = 0; attempt < 8; attempt++) {
     const row = await state.get<ConnectionSet>("connections", owner);
     if (!row) break;
+    row.value.onboarding = (row.value.onboarding ?? []).filter(
+      (a) => a.retainUntil > now,
+    );
     for (const c of row.value.connections) {
       if (c.business) {
         c.business.proposals = c.business.proposals.filter(

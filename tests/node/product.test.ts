@@ -22,6 +22,7 @@ import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
+import { onboardingContract } from "../shared/onboarding.js";
 import { openItemsContract } from "../shared/open-items.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
 import { payrollContract } from "../shared/payroll.js";
@@ -135,3 +136,5 @@ invoiceHistoryContract(async () => (await fixture()).state);
 openItemsContract(async () => (await fixture()).state);
 
 liquidityContract(async () => (await fixture()).state);
+
+onboardingContract(fixture);

@@ -1,9 +1,12 @@
 import {
   type Ciphertext,
   type Connection,
+  type ConnectionSet,
   type Connections,
   type Credentials,
   DomainError,
+  type OnboardingAttempt,
+  type OnboardingBinding,
   type ProgramChange,
   type ProgramGates,
   type ProgramSelection,
@@ -81,6 +84,7 @@ interface Flow {
   claimed: boolean;
   reconnectId?: string;
   reconnectGeneration?: number;
+  onboarding?: OnboardingBinding;
   extension?: {
     generation: number;
     revision: number;
@@ -171,6 +175,7 @@ export class FortnoxConnections {
     input: z.infer<typeof consentInput>,
     reconnectId?: string,
     extension?: ProgramChange,
+    onboarding?: OnboardingBinding,
   ) {
     consentInput.parse(input);
     const target = reconnectId
@@ -191,7 +196,7 @@ export class FortnoxConnections {
       (target
         ? target.scopes
         : (this.config.scopes ?? ["companyinformation", "profile"]));
-    const id = crypto.randomUUID();
+    const id = onboarding?.flowId ?? crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
     const secret = await this.config.connections.vault.sealData(
@@ -211,6 +216,7 @@ export class FortnoxConnections {
       expiresAt: this.now() + 600000,
       secret,
       claimed: false,
+      ...(onboarding ? { onboarding } : {}),
       ...(target
         ? { reconnectId: target.id, reconnectGeneration: target.generation }
         : {}),
@@ -399,6 +405,59 @@ export class FortnoxConnections {
       scopes: [...scopes],
     };
   }
+  async cancelOnboardingPending(
+    owner: string,
+    session: string,
+    id: string,
+    revision: number,
+  ) {
+    for (let n = 0; n < 8; n++) {
+      const row = await this.config.connections.state.get<Flow[]>(
+        "fortnox-flows",
+        owner,
+      );
+      const flow = row?.value.find(
+        (f) =>
+          f.onboarding?.id === id &&
+          f.onboarding.revision === revision &&
+          f.session === session,
+      );
+      if (flow?.claimed) throw new DomainError("OUTCOME_UNKNOWN");
+      if (
+        row &&
+        flow &&
+        !(await this.config.connections.state.put(
+          "fortnox-flows",
+          owner,
+          row.value.filter((f) => f.id !== flow.id),
+          row.version,
+        ))
+      )
+        continue;
+      await this.config.connections.updateSet(owner, (set) => {
+        const a = set.onboarding?.find(
+          (a) =>
+            a.id === id && a.revision === revision && a.session === session,
+        );
+        if (a?.phase !== "provider_pending")
+          throw new DomainError("CONNECTION_CONFLICT");
+        // An absent flow can mean a dispatch already happened. Do not infer safety.
+        a.phase = flow ? "failed" : "provider_outcome_unknown";
+      });
+      return;
+    }
+    throw new DomainError("CONNECTION_CONFLICT");
+  }
+  async onboardingCallback(owner: string, session: string, callback: URL) {
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    return row?.value.find(
+      (f) =>
+        f.session === session && f.state === callback.searchParams.get("state"),
+    )?.onboarding;
+  }
   async finish(owner: string, session: string, callback: URL) {
     if (
       callback.origin + callback.pathname !== this.redirect() ||
@@ -453,6 +512,21 @@ export class FortnoxConnections {
         )
           throw new DomainError("CONNECTION_CONFLICT");
         previewProgram(target, flow.extension.change, this.gates());
+      }
+      if (flow.onboarding) {
+        const b = flow.onboarding;
+        const a = (
+          await this.config.connections.snapshot(owner)
+        )?.value.onboarding?.find((a) => a.id === b.id);
+        if (
+          !a ||
+          a.revision !== b.revision ||
+          a.session !== session ||
+          a.flowId !== flow.id ||
+          a.phase !== "provider_pending" ||
+          a.expiresAt <= this.now()
+        )
+          throw new DomainError("AUTH_REQUIRED");
       }
       const input = flowSecret.parse(
         await this.config.connections.vault.openData(
@@ -566,14 +640,34 @@ export class FortnoxConnections {
           previous.generation,
           { ...identity, mode: flow.mode },
           credentials,
+          flow.onboarding,
         );
       }
       return await this.config.connections.add(
         owner,
         { ...identity, mode: flow.mode },
         credentials,
+        flow.onboarding,
       );
     } catch (error) {
+      if (flow.onboarding) {
+        const b = flow.onboarding;
+        await this.config.connections.updateSet(owner, (set: ConnectionSet) => {
+          const a: OnboardingAttempt | undefined = set.onboarding?.find(
+            (a) => a.id === b.id,
+          );
+          if (
+            a?.revision === b.revision &&
+            a.flowId === flow.id &&
+            a.phase === "provider_pending"
+          )
+            a.phase = ["flow_decryption", "authorization_response"].includes(
+              stage,
+            )
+              ? "failed"
+              : "provider_outcome_unknown";
+        });
+      }
       throw new FortnoxConsentError(stage, error);
     } finally {
       for (let n = 0; n < 8; n++) {
