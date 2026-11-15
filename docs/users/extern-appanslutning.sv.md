@@ -54,5 +54,5 @@ onboardingfortsättningar. Företagen finns kvar: starta ett nytt försök och v
 befintliga anslutningen. Skicka aldrig ägarlösenord, providerhemligheter eller råa
 callbackadresser med koder i chatt eller supportloggar.
 
-Lokala syntetiska tester och faktisk gemensam M2X-/Fortnox-acceptans redovisas
-separat i [implementationsevidensen](../implementation/external-company-onboarding.md).
+Lokala syntetiska tester, prov med verklig M2X-backend och kvarvarande Fortnox-prov
+redovisas separat i [implementationsevidensen](../implementation/external-company-onboarding.md).

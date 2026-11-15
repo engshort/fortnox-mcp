@@ -254,4 +254,4 @@ actual Fortnox or hosted ChatGPT acceptance.
 
 ## External application onboarding regressions
 
-Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). These checks do not establish live Fortnox or M2X acceptance.
+Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). The separate actual M2X-backend browser run against the synthetic provider is recorded in that evidence document; actual Fortnox acceptance remains unverified.

@@ -418,4 +418,4 @@ workerd/D1; ordinary activation remains off.
 
 ## External application onboarding — issue #146
 
-The optional [v1 contract](../contracts/company-onboarding-v1.md) reuses existing company consent/profile/status operations. Initial shared OAuth/MCP tests passed Node and actual local workerd/D1; [implementation evidence](../implementation/external-company-onboarding.md) tracks expanded, browser and cross-repository acceptance separately. No new provider or financial operation is claimed.
+The optional [v1 contract](../contracts/company-onboarding-v1.md) reuses existing company consent/profile/status operations. Shared OAuth/MCP and full regression tests passed Node and actual local workerd/D1, with restart, owner-session recovery and desktop/mobile browser coverage independently reviewed; [implementation evidence](../implementation/external-company-onboarding.md) records exact limits and actual M2X-backend acceptance with a synthetic provider and pending actual Fortnox acceptance. No new provider or financial operation is claimed.
