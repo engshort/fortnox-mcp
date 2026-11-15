@@ -5,6 +5,11 @@ owner welcome, password-reset codes and password-change notifications. It is
 disabled by default; local synthetic Node/workerd evidence is separate from real
 provider delivery. No Fortnox capability or general mail tool is added.
 
+The [external application connection guide](../implementation/external-company-onboarding.md#connection-guide-design-follow-up)
+shares the administration design across company selection, new connection,
+client consent and recovery. This is a presentation and browser-feedback change;
+provider operation coverage, company authorization and policy are unchanged.
+
 Company authorization: [installation-wide access](../implementation/installation-company-access.md) supports current/future owner connections and explicit owner-side upgrades without replacing client tokens. Local synthetic OAuth/runtime/browser verification is separate from actual Fortnox/hosted-client acceptance. The consent page reuses the administration design and groups requested capabilities without changing grants. Provider operation classifications are unchanged.
 
 Access/recovery follow-up: [the 2026-11-13 implementation](../implementation/access-renewal-2026-11-13.md)

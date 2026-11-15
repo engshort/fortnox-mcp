@@ -10,12 +10,12 @@ import {
 import type { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { boundedJson, safeResponse } from "./admin.js";
+import { connectionPage } from "./connection-page.js";
 import type { IntegrationSettings } from "./integration-settings.js";
+import { onboardingPage, onboardingRecoveryPage } from "./onboarding-page.js";
 import { type Owner, type ProductAuth, requireOwner } from "./product-auth.js";
 
 const base = "/api/company-onboarding/v1/attempts";
-const esc = (v: string) =>
-  v.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 const json = (value: unknown, status = 200) =>
   safeResponse(JSON.stringify(value), status);
 const redirect = (url: string) =>
@@ -27,7 +27,7 @@ const redirect = (url: string) =>
       "referrer-policy": "no-referrer",
     },
   });
-export function onboardingFailure(error: unknown) {
+export function onboardingFailure(error: unknown, request?: Request) {
   const e =
     error instanceof OnboardingError
       ? error
@@ -42,6 +42,53 @@ export function onboardingFailure(error: unknown) {
               "owner_review",
             )
           : new OnboardingError("TEMPORARILY_UNAVAILABLE", 503, "resume");
+  if (
+    request?.method === "GET" &&
+    request.headers.get("accept")?.includes("text/html")
+  ) {
+    const messages: Record<string, [string, string]> = {
+      ATTEMPT_EXPIRED: [
+        "Anslutningsförsöket har gått ut",
+        "Återgå till applikationen och återuppta anslutningen där. Anslut inte företaget på nytt på chans.",
+      ],
+      ATTEMPT_NOT_FOUND: [
+        "Anslutningsförsöket hittades inte",
+        "Länken är inte längre tillgänglig. Återgå till applikationen och starta eller återuppta anslutningen där.",
+      ],
+      INVALID_REQUEST: [
+        "Anslutningslänken är ogiltig",
+        "Öppna anslutningen på nytt från applikationen.",
+      ],
+      AUTH_REQUIRED: [
+        "Granskningen är inte tillgänglig",
+        "Det här försöket kan inte granskas med den aktuella sessionen. Återgå till applikationen eller låt installationsägaren kontrollera försöket.",
+      ],
+      ATTEMPT_CONFLICT: [
+        "Anslutningsförsöket har ändrats",
+        "Återgå till applikationen och öppna den senaste anslutningslänken.",
+      ],
+      OUTCOME_UNKNOWN: [
+        "Utfallet behöver kontrolleras",
+        "Installationsägaren behöver kontrollera det sparade utfallet. Ingen Fortnox-kod skickas igen.",
+      ],
+      CONSENT_IN_PROGRESS: [
+        "Fortnox-godkännande pågår",
+        "Vänta tills det pågående medgivandet är klart. Skicka inte koden igen.",
+      ],
+    };
+    const [title, message] = messages[e.code] ?? [
+      "Anslutningen kunde inte visas",
+      "Återgå till applikationen och kontrollera anslutningsförsöket där. Ingen åtgärd skickas automatiskt igen.",
+    ];
+    return safeResponse(
+      connectionPage({
+        title,
+        content: `<div class="consent-heading"><h1>${title}</h1></div><div class="notice"><p>${message}</p></div>`,
+      }),
+      e.status,
+      "text/html; charset=utf-8",
+    );
+  }
   return json(
     { version: onboardingVersion, error: e.code, recovery_action: e.recovery },
     e.status,
@@ -100,7 +147,38 @@ export function onboardingRoutes(config: {
     const url = new URL(request.url);
     if (url.pathname === "/connect/company.js" && request.method === "GET")
       return safeResponse(
-        `for(const form of document.querySelectorAll('form[data-action]'))form.addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{const input=Object.fromEntries(new FormData(form));input.revision=Number(input.revision);const r=await fetch(form.dataset.action,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else{document.querySelector('#status').textContent='Åtgärden kunde inte slutföras. '+(d.error||'Försök igen från applikationen.');button.disabled=false;}}catch{document.querySelector('#status').textContent='Svaret saknas. Ladda om för att kontrollera utfallet innan du försöker igen.';}});`,
+        `let busy=false;
+const forms=[...document.querySelectorAll('form[data-action]')];
+const status=document.querySelector('#status');
+for(const form of forms)form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(busy)return;
+  const input=Object.fromEntries(new FormData(form));
+  input.revision=Number(input.revision);
+  busy=true;
+  const buttons=forms.flatMap(f=>[...f.querySelectorAll('button:not(:disabled)')]);
+  buttons.forEach(b=>b.disabled=true);
+  form.setAttribute('aria-busy','true');
+  status.textContent='Åtgärden pågår…';
+  try{
+    const r=await fetch(form.dataset.action,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});
+    const d=await r.json();
+    if(r.ok&&d.url){location.assign(d.url);return;}
+    const messages={CONSENT_IN_PROGRESS:'Ett Fortnox-godkännande pågår. Slutför det innan du fortsätter.',OUTCOME_UNKNOWN:'Utfallet behöver kontrolleras. Ladda om för att se det sparade läget. Ingen kod skickas igen.',ATTEMPT_CONFLICT:'Försöket har ändrats. Öppna den senaste anslutningslänken från applikationen.',ATTEMPT_EXPIRED:'Försöket har gått ut. Återuppta anslutningen från applikationen.',AUTH_REQUIRED:'Sessionen kan inte användas för denna åtgärd. Logga in igen via anslutningslänken.'};
+    status.textContent=messages[d.error]||'Åtgärden kunde inte slutföras. Kontrollera anslutningsförsöket från applikationen.';
+    buttons.forEach(b=>b.disabled=false);
+    busy=false;
+  }catch{
+    status.textContent='Svaret saknas. Ladda om för att kontrollera utfallet innan du försöker igen. ';
+    const reload=document.createElement('a');
+    reload.href=location.href;
+    reload.textContent='Kontrollera sparat läge';
+    status.append(reload);
+  }finally{
+    form.removeAttribute('aria-busy');
+    status.focus();
+  }
+});`,
         200,
         "text/javascript",
       );
@@ -233,7 +311,10 @@ export function onboardingRoutes(config: {
           .positive()
           .safeParse(url.searchParams.get("revision"));
         if (!revision.success)
-          return onboardingFailure(new OnboardingError("INVALID_REQUEST", 400));
+          return onboardingFailure(
+            new OnboardingError("INVALID_REQUEST", 400),
+            request,
+          );
         return redirect(
           `/sign-in?${new URLSearchParams({ company_onboarding: id, revision: String(revision.data) })}`,
         );
@@ -269,7 +350,7 @@ export function onboardingRoutes(config: {
         await validateClient(record, session.user.id);
         if (request.method === "GET" && !browser[2])
           return safeResponse(
-            `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Återuppta ägargranskning</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Återuppta ägargranskning</h1><p>Ägarsessionen har gått ut. Kontrollera det sparade utfallet. Ingen Fortnox-kod skickas igen.</p><form data-action="/connect/company/${id}/recover-session"><input type="hidden" name="revision" value="${record.revision}"><button>Fortsätt granska med denna ägarsession</button></form><p id="status" role="status"></p><script src="/connect/company.js"></script></main></html>`,
+            onboardingRecoveryPage(record),
             200,
             "text/html; charset=utf-8",
           );
@@ -321,7 +402,9 @@ export function onboardingRoutes(config: {
           revision,
           session.session.id,
         );
-        await validateClient(a, session.user.id);
+        const protocol = await validateClient(a, session.user.id);
+        if (a.phase === "company_verified" && a.company)
+          return redirect(oauth(a, protocol));
         const companies = (
           await service.connections.list(session.user.id)
         ).filter(
@@ -330,33 +413,8 @@ export function onboardingRoutes(config: {
             (!a.expected || c.id === a.expected.id) &&
             (!a.company || c.id === a.company.id),
         );
-        const path = `/connect/company/${id}`;
-        const hidden = `<input type="hidden" name="revision" value="${revision}">`;
-        const choices = companies
-          .map(
-            (c) =>
-              `<form data-action="${path}/choose">${hidden}<input type="hidden" name="company_id" value="${c.id}"><button>Välj ${esc(c.name)} — ${esc(c.organizationNumber)}</button></form>`,
-          )
-          .join("");
-        const start =
-          !a.company && ["pending_owner", "failed"].includes(a.phase)
-            ? `<form data-action="${path}/provider">${hidden}<label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button>Fortsätt till Fortnox</button></form>`
-            : "";
-        const approve =
-          a.company &&
-          ["company_verified", "approval_pending"].includes(a.phase)
-            ? `<form data-action="${path}/approve">${hidden}<button>Fortsätt till appgodkännande</button></form>`
-            : "";
-        const pending =
-          a.phase === "provider_pending"
-            ? `<p>Ett Fortnox-medgivande pågår. Skicka inte koden igen.</p><form data-action="${path}/cancel-provider">${hidden}<button>Avbryt oanvänt medgivande</button></form>`
-            : "";
-        const unknown =
-          a.phase === "provider_outcome_unknown"
-            ? "<p>Utfallet av Fortnox-utbytet är okänt. Ingen kod skickas igen. Om företaget redan finns kan du uttryckligen välja och verifiera den befintliga anslutningen nedan. Annars behöver installationsägaren utreda utfallet.</p>"
-            : "";
         return safeResponse(
-          `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anslut företag</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Anslut företag</h1><p>Applikation: <strong>${esc(a.clientName)}</strong></p><p>Välj eller anslut företaget och godkänn sedan appens åtkomst. Ingen företagspolicy ändras.</p>${pending}${unknown}${["pending_owner", "company_verified", "failed", "provider_outcome_unknown"].includes(a.phase) ? choices : ""}${start}${approve}${!["provider_pending", "provider_outcome_unknown", "authorized"].includes(a.phase) ? `<form data-action="${path}/cancel">${hidden}<button>Avbryt och återgå till applikationen</button></form>` : ""}<p id="status" role="status"></p><script src="/connect/company.js"></script></main></html>`,
+          onboardingPage(a, companies),
           200,
           "text/html; charset=utf-8",
         );
@@ -467,7 +525,7 @@ export function onboardingRoutes(config: {
         url: `${service.origin}/connect/company/${id}?revision=${a.revision}`,
       });
     } catch (e) {
-      return onboardingFailure(e);
+      return onboardingFailure(e, request);
     }
   }
   return { fetch };

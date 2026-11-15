@@ -3,6 +3,40 @@ import type { Translate } from "./forms.js";
 import { Icon } from "./icons.js";
 import { Link } from "./navigation.js";
 
+export function Brand({
+  t,
+  navigation = false,
+}: {
+  t: Translate;
+  navigation?: boolean;
+}) {
+  const Component = navigation ? Link : "a";
+  return (
+    <Component
+      className="brand"
+      href="/admin/companies"
+      aria-label={t(
+        "Fortnox MCP, administration",
+        "Fortnox MCP, administration",
+      )}
+    >
+      <svg
+        viewBox="0 0 36 40"
+        width="34"
+        height="40"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M7 4h28l-3 9H5Zm-3 13h25l-3 9H12l-4 12H0Z" />
+      </svg>
+      <span>
+        <strong>Fortnox MCP</strong>
+        <small>{t("Administration", "Administration")}</small>
+      </span>
+    </Component>
+  );
+}
+
 export function AppShell({
   path,
   t,
@@ -30,21 +64,7 @@ export function AppShell({
         {t("Till innehållet", "Skip to content")}
       </a>
       <aside className="sidebar">
-        <Link className="brand" href="/admin/companies">
-          <svg
-            viewBox="0 0 36 40"
-            width="34"
-            height="40"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M7 4h28l-3 9H5Zm-3 13h25l-3 9H12l-4 12H0Z" />
-          </svg>
-          <span>
-            <strong>Fortnox MCP</strong>
-            <small>{t("Administration", "Administration")}</small>
-          </span>
-        </Link>
+        <Brand t={t} navigation />
         <nav
           className="primary-nav"
           aria-label={t("Huvudnavigation", "Main navigation")}

@@ -23,6 +23,15 @@ Appens administratör blir inte automatiskt installationsägare.
 
 ## Företagsval och återanslutning
 
+Guiden använder samma logotyp, färger och formspråk som administrationen, med ett
+fokuserat sidhuvud. **Anslut ett nytt företag** visas först: välj anslutningstyp
+och tryck på **Fortsätt till Fortnox**. Befintliga företag visas under som ett
+alternativ, med namn, organisationsnummer och knappen **Välj**. Kontrollera det
+valda företaget i appgodkännandet. Efter en lyckad nyanslutning är just det nya
+företaget automatiskt valt och guiden går direkt till appgodkännandet. Samma sak
+gäller när du väljer ett befintligt företag. Granska åtkomsten och godkänn den
+uttryckligen innan du återvänder till appen.
+
 Återanvänd en befintlig verifierad anslutning när rätt företag redan finns.
 När du lägger till företag B visar godkännandet även tidigare avsedd, aktuell
 åtkomst till A. Kontrollera hela urvalet. Ett nytt godkännande ersätter appens
@@ -40,6 +49,11 @@ Försöket gäller i 30 minuter. Appen kan återuppta det inom 24 timmar från s
 Har företaget redan verifierats används samma företag vid ett nytt uttryckligt
 appgodkännande. Anslut inte Fortnox på nytt på chans. En förlorad kod eller ett
 osäkert tokenutbyte får inte skickas igen blint.
+
+Medan en åtgärd skickas spärras sidans övriga knappar. Om svaret saknas väljer du
+**Kontrollera sparat läge** för att läsa det sparade utfallet. Det skickar inte
+åtgärden igen. Utgångna och saknade anslutningslänkar visas med instruktioner om
+att gå tillbaka till appen och återuppta eller starta anslutningen där.
 
 Vid okänt providerutfall krävs ägarens kontroll. Ett oanvänt, inte påbörjat
 kodutbyte kan avbrytas i det guidade flödet. En pågående utväxling kan inte

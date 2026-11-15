@@ -9,6 +9,15 @@ delivery. Run the existing `test:node` / `test:worker` commands with
 `tests/node/product.test.ts` / `tests/worker/product.test.ts` and
 `-t 'product owner boundary'` for the focused contract.
 
+The external-app owner browser suite exercises new connection as the primary
+action, existing-company rows, retained login continuation, keyboard selection,
+long escaped names, competing submissions, cancellation, lost-response readback,
+pending consent, session recovery and expired/missing HTML error pages on desktop
+and Pixel 7 Chromium. Retained unknown state is seeded explicitly for UI coverage;
+actual synthetic exchange uncertainty and session fencing are exercised separately
+in the Node/SQLite and workerd/D1 contracts. API/POST errors retain JSON even when
+HTML is requested. See the [connection guide design evidence](implementation/external-company-onboarding.md#connection-guide-design-follow-up).
+
 The shared company-access regressions in `product-oauth`, `connections` and
 `onboarding` exercise installation-wide consent before connecting a company,
 existing-token owner upgrades, refresh, current membership, foreign owners,

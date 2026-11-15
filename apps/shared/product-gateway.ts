@@ -22,6 +22,7 @@ import {
   privateHeaders,
   safeResponse,
 } from "./admin.js";
+import { connectionPage, escapeHtml } from "./connection-page.js";
 import { onboardingFailure } from "./onboarding-http.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 export interface McpIdentity {
@@ -122,11 +123,6 @@ export function createProductGateway(
       } catch {
         return challenge();
       }
-      const escapeHtml = (value: string) =>
-        value
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll('"', "&quot;");
       let onboarding: OnboardingAttempt | undefined;
       if (url.searchParams.has("onboarding_attempt")) {
         try {
@@ -161,7 +157,7 @@ export function createProductGateway(
             url.search.slice(1),
           );
         } catch (e) {
-          return onboardingFailure(e);
+          return onboardingFailure(e, request);
         }
       }
       const companies = (await config.connections.list(ownerId)).filter(
@@ -198,20 +194,11 @@ export function createProductGateway(
           : "",
       ].join("");
       return safeResponse(
-        `<!doctype html>
-<html lang="sv">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient · Fortnox MCP</title><link rel="stylesheet" href="/admin-assets/admin.css"></head>
-<body class="consent-page">
-  <a class="skip-link" href="#content">Till innehållet</a>
-  <header class="consent-header">
-    <a class="brand" href="/admin/companies" aria-label="Fortnox MCP, administration">
-      <svg viewBox="0 0 36 40" width="34" height="40" fill="currentColor" aria-hidden="true"><path d="M7 4h28l-3 9H5Zm-3 13h25l-3 9H12l-4 12H0Z" /></svg>
-      <span><strong>Fortnox MCP</strong><small>Administration</small></span>
-    </a>
-    <a class="consent-back" href="/admin/ai-clients">Till administrationen</a>
-  </header>
-  <main class="consent-main" id="content" tabindex="-1">
-    <div class="consent-heading"><h1>Godkänn klient</h1><p class="intro muted">Granska åtkomsten innan du ansluter din AI-klient.</p></div>
+        connectionPage({
+          title: "Godkänn klient",
+          back: "/admin/ai-clients",
+          script: "/consent.js",
+          content: `    <div class="consent-heading"><h1>Godkänn klient</h1><p class="intro muted">Granska åtkomsten innan du ansluter din AI-klient.</p></div>
     <div class="consent-layout">
       <div class="consent-details">
         <section class="consent-access" aria-labelledby="access-heading">
@@ -235,18 +222,40 @@ export function createProductGateway(
     <footer class="consent-actions">
       <button id="accept" ${onboarding ? "" : 'data-company-access="owner_connections"'}>${onboarding ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
       ${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}
-      <p id="status" class="status" role="status"></p>
+      <p id="status" class="status" role="status" tabindex="-1"></p>
     </footer>
-  </main>
-  <script src="/consent.js"></script>
-</body></html>`,
+`,
+        }),
         200,
         "text/html; charset=utf-8",
       );
     }
     if (request.method === "GET" && url.pathname === "/consent.js")
       return safeResponse(
-        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(document.querySelector('#accept').dataset.companyAccess?{company_access:document.querySelector('#accept').dataset.companyAccess}:{}),companies:[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value))})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';};`,
+        `const accept=document.querySelector('#accept');
+const status=document.querySelector('#status');
+accept.onclick=async()=>{
+  if(accept.disabled)return;
+  const companies=[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value));
+  const choices=[...document.querySelectorAll('input[name=company]:not(:disabled)')];
+  accept.disabled=true;
+  choices.forEach(c=>c.disabled=true);
+  accept.setAttribute('aria-busy','true');
+  status.textContent='Godkännandet skickas…';
+  try{
+    const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(accept.dataset.companyAccess?{company_access:accept.dataset.companyAccess}:{}),companies})});
+    const d=await r.json();
+    if(r.ok&&d.url){location.assign(d.url);return;}
+    status.textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';
+    accept.disabled=false;
+    choices.forEach(c=>c.disabled=false);
+  }catch{
+    status.textContent='Svaret saknas. Öppna anslutningen från applikationen eller klienten för att kontrollera utfallet innan du försöker igen.';
+  }finally{
+    accept.removeAttribute('aria-busy');
+    status.focus();
+  }
+};`,
         200,
         "text/javascript",
       );
@@ -269,7 +278,7 @@ export function createProductGateway(
               url.searchParams,
             );
           } catch (e) {
-            return onboardingFailure(e);
+            return onboardingFailure(e, request);
           }
         }
         // Every approval must display its company access and current companies.
