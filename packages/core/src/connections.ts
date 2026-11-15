@@ -100,6 +100,7 @@ export interface Connection {
   programs?: ProgramSelection;
   generation: number;
   accessRevision?: number;
+  financialRevision?: number;
   policyVersion: number;
   review: "review_required" | "client_managed";
   readOnly: boolean;

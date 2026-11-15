@@ -415,3 +415,14 @@ combined report, with their source-disagreement limitation preserved. Independen
 detail reads retain their provider label and do not promote report coverage.
 Nine financial transport cases passed in each of Node/SQLite and actual local
 workerd/D1; ordinary activation remains off.
+
+## #143 — optional analysis contexts and larger SIE inputs
+
+A default-off preparation tool and encrypted SQLite/D1 analysis store reuse a
+pinned, source-versioned fiscal-year basis across follow-up questions. Existing
+ledger tools accept an optional context ID; ordinary live reads remain available.
+A separately opt-in parser/transport profile supports larger bounded exports.
+Read-only aggregation, paging, exact source references and financial completeness
+limits remain enforced. See [implementation and evidence](../implementation/S08-performance.md).
+No actual hosted Worker/provider/ChatGPT acceptance or complete G07/G09 gate is
+established by the synthetic fixtures or local runtime tests.

@@ -14,6 +14,8 @@ Verify T15/T16 against synthetic reconciliation fixtures and a Fortnox test-comp
 
 A report based on partial pagination/export must not say complete. Outputs include retrieval window, source references, definitions, currency, mapping version and limitations. Large work remains bounded and resumable.
 
+See also [#143 bounded analysis contexts and performance](S08-performance.md).
+
 ## Handoff
 
 Document calculation definitions and drill-down examples in English/Swedish. No LLM dependency, permanent ledger replica or automatic statutory consolidation is introduced.

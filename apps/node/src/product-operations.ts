@@ -65,6 +65,14 @@ async function privateWrite(path: string, bytes: Uint8Array | string) {
     await file.close();
   }
 }
+function clearAnalysisCache(db: DatabaseSync) {
+  if (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE name='analysis_contexts'")
+      .get()
+  )
+    db.exec("DELETE FROM analysis_parts; DELETE FROM analysis_contexts;");
+}
 export async function backupDatabase(
   db: DatabaseSync,
   backupKey: string,
@@ -79,6 +87,13 @@ export async function backupDatabase(
   try {
     await privateWrite(temporary, "");
     await backup(db, temporary);
+    const snapshot = new DatabaseSync(temporary);
+    try {
+      clearAnalysisCache(snapshot);
+      snapshot.exec("VACUUM");
+    } finally {
+      snapshot.close();
+    }
     if ((await stat(temporary)).size > maxBytes)
       throw new Error("Backup exceeds bounded state limit");
     const input = Buffer.from(
@@ -199,6 +214,7 @@ export async function restoreDatabase(options: {
         db.prepare(
           "DELETE FROM product_state WHERE space='installation' AND id='owner'",
         ).run();
+      clearAnalysisCache(db);
       // Library-validated owner identity/password remain; all old access paths are revoked.
       db.exec(`DELETE FROM oauthAccessToken; DELETE FROM oauthRefreshToken; DELETE FROM oauthConsent;
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
@@ -256,6 +272,7 @@ export async function rotateCredentials(
   const connections = new Connections(state, vault);
   db.exec("BEGIN IMMEDIATE");
   try {
+    clearAnalysisCache(db);
     await connections.rotateKey(owner);
     await new IntegrationSettings(state, vault, {
       clientId: "",

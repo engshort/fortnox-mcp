@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
   "scope": "S08/S09 ordinary bounded reads, dated balances, cross-year transactions and historical invoice inputs; operation-specific provider/client acceptance remains pending",
-  "reviewedAt": "2026-11-13",
+  "reviewedAt": "2026-11-14",
   "sourceStrategy": "Independent implementation, no vendored/generated external specification",
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
-    "packages/core/src/analytics.ts": "f28aa6eb4b57d1a5d2245e4451ab07c9eb8b136a05a0b5e2a29f476f28c5a59f",
-    "packages/core/src/sie.ts": "ff09955e144838789d72e9f600c103669999f2e53dcffce618f04fb4e1c60c38",
+    "packages/core/src/analytics.ts": "6048a797772cd032e5fc106b5c5153f3d2663be2fba2d321478d8d573c35fa0e",
+    "packages/core/src/sie.ts": "6cf38b73698abe720d3a86082cf5950cb271681be72099a75f13c8f51106ed47",
     "packages/core/src/payroll.ts": "a582ed235cd5ebc1ce713c846f22356cbe128c831fab2fbf50b93e75d0140e4e",
     "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3",
-    "packages/core/src/connections.ts": "58cf3da4107ca95ddd53e47f9e13fe487dbf27ce4daf23fd7a273bb328afef35",
-    "packages/core/src/business-writes.ts": "3d3133a6ed69cbbe665f6aa7717a55ad6c65e146908ae038c9e3c0d9d42d324c",
+    "packages/core/src/connections.ts": "fdad4ded94aa1ae4d7fecd72676fac2b6af9af4e0ea465d45e9fe2744a2cd320",
+    "packages/core/src/business-writes.ts": "399041b8d2a5a1d9470cb82924b7b81484798934c3dc416097b96c6b898b9039",
     "packages/fortnox/src/connections.ts": "1e9c91b37d3986cf4c8524d93d93236bb647589dc5c0bb9ea541a504055b6120",
-    "apps/shared/product.ts": "960a4099b3401b44afa8fb9af995149bf38018a2f30373c5faa6f918e1c1455b",
+    "apps/shared/product.ts": "2e105340bde8b0d8b319416853f8be88242b692564a11da30a40ef8051dd2be6",
     "apps/shared/product-gateway.ts": "363ec33947b8a6e10d482c5d15232ead9fd2e5bce62c7fa541d9983cccd332d9",
     "apps/admin/src/company-pages.tsx": "6e156f90d622d7202eb3ce834570083570da7c3144b9906f4c0e6de8db7e9225",
     "apps/admin/src/main.tsx": "7ea3024822faf41a38cb38442a70aede34b4fff1e17aa73c75f6c6e35761a345",
-    "packages/fortnox/src/analytics.ts": "05874b5745d6d1273409f59b1b69afa54f21b3985ea277aad3903fdb01ac6bd0",
+    "packages/fortnox/src/analytics.ts": "7c553308d30c8b3a00e27c72f6eea2948bee8929a1bf5a50eb7e482ee24d698a",
     "packages/fortnox/src/payroll.ts": "c5a4c38fa19f9a8c909698eaa86bdeb528d0c2ef4023e3fcac85889a1ad35966",
-    "packages/fortnox/src/document-http.ts": "22ca26b86b2994d7249824ba37918df67e12c305ca13d1fc0b11d904bf48812c",
+    "packages/fortnox/src/document-http.ts": "70c913aff7082834cd127b253574a3888ec7336b054eee1b071d9358e599d025",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/payroll.ts": "12dddd2e24b4947133c7ba7e0bf8c999ef1afcb720025c76112d8325f2e57fb3",
     "packages/mcp/src/companies.ts": "2081d8f3ef1f12f62281bbb2dc86af9f7ed082cbddfab007244b751b60703dd0",
     "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
-    "packages/mcp/src/analytics.ts": "80669bf2137c2958d21dcc6ed7f34dea328b5b2fa7f24a86263d45089691249d",
+    "packages/mcp/src/analytics.ts": "8a6c0f4f7c921c6aa13ad9b1e4ece0b6a03adf34cd319c1f2a4778ad4f83cd04",
     "packages/fortnox/src/payroll-test-employee.ts": "d5fa34fc58e6dca28dc732ea61533616b5c930b693983879bb7930938aad3723",
     "packages/fortnox/src/payroll-probe.ts": "7c3ee07b47613b8e7cffd5e24626dd8d5d84854643ed869b579a7a2fc10d18e0",
     "packages/fortnox/src/payroll-writes.ts": "138051d30d11f2c143d45f36e9468b5829db0471d38e85778e73bf8309f773a0",
@@ -36,9 +36,13 @@
     "packages/core/src/liquidity.ts": "5f74714f07212cc7054853b0252661a04fb37979745f476afe82c3b0d4ad081c",
     "packages/mcp/src/liquidity.ts": "a0a34c4fd1d5611fed12f5ae71325bd4342d583806159bbefc4785c659ab2db6",
     "apps/node/src/financial-test-profile.ts": "1ce8b4a551385f8f2fe20c7aafafcc335663b51c84432da820871ca6c0e062de",
-    "packages/core/src/financial-dates.ts": "71034ffe5651c75ef4fe435b309a2f3d76f6aad7d925075e76be550e7f0e44b2",
+    "packages/core/src/financial-dates.ts": "f6d5e1719b7cc3bdaf18e8160004e9df0d1b30417ffebaa166bc6c0d232f0515",
     "packages/core/src/invoice-history.ts": "59784b04d653f3831aade6926c8c56b4b03a6a74153c0ac243def782b415a966",
-    "packages/fortnox/src/financial-evidence.ts": "1b3619e97b703956885d9e4f276e0bf77cf70e9aa0295ffe66c78144a5b92857"
+    "packages/fortnox/src/financial-evidence.ts": "1b3619e97b703956885d9e4f276e0bf77cf70e9aa0295ffe66c78144a5b92857",
+    "packages/core/src/financial-contexts.ts": "cb0544a9bd3c1dc2f0ad416035bd00071513e2a51316f311971cdefff55dd83c",
+    "packages/core/src/analysis-storage.ts": "bbba2544b8f86b3e6065cd767d816c489be1ae5f25b7b6283ca84dbc21abeff3",
+    "apps/shared/analysis-sql.ts": "f0a6210b8ba6d2d91c10bd1737d5fd956be7e123e70c8ab2daee54c7d1a54562",
+    "packages/core/src/money.ts": "54a36791bda6c312b803a7bb24e5641e169cde1c9b4c105e4b59aff11c95f165"
   },
   "operations": [
     {
@@ -657,6 +661,30 @@
       "paths": [
         "/3/supplierinvoices/{Number}",
         "/3/supplierinvoicepayments"
+      ]
+    },
+    {
+      "localId": "financial_analysis.prepare",
+      "method": "LOCAL",
+      "path": null,
+      "providerScope": "bookkeeping",
+      "license": "Current authorized company bookkeeping read access",
+      "status": "optional_encrypted_context_implemented_unverified",
+      "providerImplemented": true,
+      "supported": false,
+      "enabledByDefault": false,
+      "effect": "read",
+      "precision": "Exact source-bound aggregates and at most 50 source movements per response; original retrieval window retained",
+      "retry": "Atomic bounded preparation checkpoints; no financial write or source freshness inferred from TTL",
+      "syntheticTests": [
+        "tests/shared/analysis-contexts.ts",
+        "tests/shared/large-sie.ts",
+        "tests/node/analysis-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "sources": [
+        "docs/implementation/S08-performance.md"
       ]
     }
   ],

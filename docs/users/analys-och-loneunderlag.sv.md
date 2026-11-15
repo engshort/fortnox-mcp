@@ -116,3 +116,30 @@ använder programvalet för kundfakturor och leverantörsreskontra valet för
 leverantörsfakturor. Nya behörigheter kräver nytt Fortnox-medgivande och förnyat
 företagsgodkännande i AI-klienten. Aktivering innebär inte att samtliga saldon
 och historiska fall har verifierats; okända belopp förblir okända.
+
+## Flera frågor om samma bokföringsunderlag
+
+Administratören kan aktivera kortlivade analysunderlag med
+`FINANCIAL_ANALYSIS_CONTEXTS_ENABLED=true`. Be då klienten att förbereda
+företagets bokföring för det önskade datumintervallet. Verktyget
+`prepare_financial_analysis` visar om förberedelsen pågår; klienten fortsätter
+med samma analys-ID tills underlaget är klart. Därefter kan saldon, perioder och
+kontorörelser analyseras med samma ID utan en ny SIE-hämtning för varje fråga.
+
+Exempel: ”Förbered årets bokföringsunderlag. Visa sedan periodförändringen,
+vilka kontorörelser som förklarar den och de berörda verifikationerna.”
+
+Underlaget gäller i fem minuter från färdigställande. Hämtningstiden visar vilka
+uppgifter frågorna använder; nya bokningar i Fortnox ingår först efter en ny
+förberedelse. En enskild verifikation öppnas genom en separat aktuell läsning.
+Ändrad åtkomst eller lokal bokföring kan göra analys-ID:t ogiltigt tidigare.
+Ett utgånget ID ersätts inte automatiskt med andra siffror.
+
+Större SIE-underlag kräver separat aktivering med
+`FINANCIAL_LARGE_READS_ENABLED=true`. Parserns övre gräns är då 16 MiB och
+100 000 rörelser; mellanlagring och driftmiljön har egna budgetar. Vid ett
+begränsningsfel ska klienten förklara orsaken och nästa steg. Ett mindre
+antal räkenskapsår eller en direkt läsning kan behövas. Ofullständiga underlag
+redovisas fortsatt som ofullständiga. Funktionerna är avstängda som standard;
+[utvecklardokumentationen](../implementation/S08-performance.md) skiljer lokala
+prov från verifiering i Fortnox, hostad Worker och faktisk AI-klient.

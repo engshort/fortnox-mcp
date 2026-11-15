@@ -1,6 +1,6 @@
 import { accountingDate } from "./accounting.js";
 import { DomainError } from "./errors.js";
-import { parseAmount, sumAmounts } from "./money.js";
+import { parseAmount, sumFinancialAmounts as sumAmounts } from "./money.js";
 
 // Independently implemented from SIE 4B (2008-09-30), sections 5, #RAR,
 // #IB/#UB/#RES and #TRANS/#RTRANS/#BTRANS. Not a general SIE importer.
@@ -111,29 +111,57 @@ export interface SieExport {
 // Parsing never asserts export coverage, missing-zero semantics, provider
 // authorization, checksum validity or an atomic snapshot. Those require evidence
 // at the authenticated adapter boundary and independent chart reconciliation.
+export const sieLimits = {
+  bytes: 2 * 1024 * 1024,
+  lines: 25000,
+  movements: 10000,
+};
+export const largeSieLimits = {
+  bytes: 16 * 1024 * 1024,
+  lines: 300000,
+  movements: 100000,
+};
+export class SieLimitError extends DomainError {
+  constructor(
+    readonly limit: "bytes" | "lines" | "movements",
+    readonly maximum: number,
+  ) {
+    super("CAPABILITY_UNAVAILABLE");
+  }
+}
+// Decode only bounded chunks and one line at a time, including split UTF-8 and CRLF.
+async function* sieLines(bytes: Uint8Array, encoding: "cp437" | "utf8") {
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let pending = "";
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    const chunk = bytes.subarray(offset, offset + 32768);
+    const text =
+      encoding === "utf8"
+        ? decoder.decode(chunk, { stream: true })
+        : Array.from(chunk, (b) =>
+            b < 128 ? String.fromCharCode(b) : cp437[b - 128],
+          ).join("");
+    pending += text;
+    let end = pending.indexOf("\n");
+    while (end >= 0) {
+      yield pending.slice(0, end).replace(/\r$/, "");
+      pending = pending.slice(end + 1);
+      end = pending.indexOf("\n");
+    }
+    if (pending.length > 8193) return invalid();
+  }
+  if (encoding === "utf8") pending += decoder.decode();
+  yield pending;
+}
 export async function parseSie4(
   bytes: Uint8Array,
   encoding: "cp437" | "utf8",
+  limits = sieLimits,
 ): Promise<SieExport> {
-  if (
-    bytes.length === 0 ||
-    bytes.length > 2 * 1024 * 1024 ||
-    !["cp437", "utf8"].includes(encoding)
-  )
+  if (bytes.length === 0 || !["cp437", "utf8"].includes(encoding))
     return invalid();
-  let text: string;
-  if (encoding === "cp437")
-    text = Array.from(bytes, (b) =>
-      b < 128 ? String.fromCharCode(b) : cp437[b - 128],
-    ).join("");
-  else text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  for (const char of text) {
-    const code = char.charCodeAt(0);
-    if ((code < 32 && ![9, 10, 13].includes(code)) || code === 127)
-      return invalid();
-  }
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  if (lines.length > 25000) return invalid();
+  if (bytes.length > limits.bytes)
+    throw new SieLimitError("bytes", limits.bytes);
   const years = new Map<number, SieYear>();
   const names = new Map<number, string | null>();
   const historicalAccounts = new Set<number>();
@@ -184,7 +212,15 @@ export async function parseSie4(
     "#TAXAR",
     "#PROSA",
   ]);
-  for (const [lineIndex, line] of lines.entries()) {
+  let lineIndex = -1;
+  for await (const line of sieLines(bytes, encoding)) {
+    lineIndex++;
+    if (lineIndex >= limits.lines)
+      throw new SieLimitError("lines", limits.lines);
+    for (const char of line) {
+      const code = char.charCodeAt(0);
+      if ((code < 32 && code !== 9) || code === 127) return invalid();
+    }
     if (line.length > 8192) return invalid();
     const parts = tokens(line.trim());
     if (!parts.length) continue;
@@ -263,7 +299,8 @@ export async function parseSie4(
           limitations.add("correction_signature_differs");
       }
       pendingAdded = null;
-      if (movements.length >= 10000) return invalid();
+      if (movements.length >= limits.movements)
+        throw new SieLimitError("movements", limits.movements);
       movements.push({
         id: `sie:${lineIndex + 1}`,
         voucher: { ...voucher },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { accountingDate, accountingHash } from "./accounting.js";
 import {
+  analysisObservation,
   calculateFinancialReport,
   type FinancialAnalysis,
   financialBasis,
@@ -27,6 +28,7 @@ export const financialYearIndex = z
     sources: financialBasis.shape.sources,
   })
   .strict();
+export type FinancialYearIndex = z.infer<typeof financialYearIndex>;
 export interface FinancialYearProvider {
   years(
     actor: AccountingActor,
@@ -40,6 +42,7 @@ const identity = {
 };
 export const accountBalanceQuery = z
   .object({
+    analysis_context_id: z.string().uuid().optional(),
     company_id: z.string().uuid(),
     as_of: accountingDate,
     account_numbers: accounts.optional(),
@@ -72,6 +75,7 @@ export const transactionContinuation = z
   .strict();
 export const financialTransactionQuery = z
   .object({
+    analysis_context_id: z.string().uuid().optional(),
     company_id: z.string().uuid(),
     from: accountingDate,
     to: accountingDate,
@@ -86,6 +90,7 @@ const interval = z
   .strict();
 export const financialTransactionResult = z
   .object({
+    analysis_context: analysisObservation.optional(),
     company_id: z.string().uuid(),
     interval,
     financial_year: financialBasis.shape.year.nullable(),
@@ -194,9 +199,16 @@ export class DatedFinancialAnalysis {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;
   }
-  private async index(actor: AccountingActor, company: string, until: number) {
+  private async index(
+    actor: AccountingActor,
+    company: string,
+    until: number,
+    context?: string,
+  ) {
     const index = financialYearIndex.parse(
-      await this.provider.years(actor, company, until),
+      context
+        ? await this.financial.contexts?.years(actor, company, context)
+        : await this.provider.years(actor, company, until),
     );
     if (index.company_id !== company)
       throw new DomainError("COMPANY_FORBIDDEN");
@@ -216,7 +228,12 @@ export class DatedFinancialAnalysis {
       before = await this.authorize(actor, q.company_id);
     if (q.as_of > today(this.now())) throw new DomainError("VALIDATION_FAILED");
     const until = this.now() + 45000;
-    const index = await this.index(actor, q.company_id, until);
+    const index = await this.index(
+      actor,
+      q.company_id,
+      until,
+      q.analysis_context_id,
+    );
     const year = index.years.find((y) => y.from <= q.as_of && y.to >= q.as_of);
     if (!year || !index.complete)
       throw new DomainError("CAPABILITY_UNAVAILABLE");
@@ -228,6 +245,7 @@ export class DatedFinancialAnalysis {
     )
       throw new DomainError("CONNECTION_CONFLICT");
     const reportQuery = {
+      analysis_context_id: q.analysis_context_id,
       company_id: q.company_id,
       financial_year: year.id,
       from: year.from,
@@ -275,7 +293,12 @@ export class DatedFinancialAnalysis {
       started = this.now(),
       until = started + 45000;
     const before = await this.authorize(actor, q.company_id),
-      index = await this.index(actor, q.company_id, until);
+      index = await this.index(
+        actor,
+        q.company_id,
+        until,
+        q.analysis_context_id,
+      );
     const years = index.years.filter((y) => y.from <= q.to && y.to >= q.from);
     const missing = gaps(years, q.from, q.to);
     const key = await accountingHash([
@@ -283,6 +306,7 @@ export class DatedFinancialAnalysis {
       q.from,
       q.to,
       q.account_numbers ?? null,
+      ...(q.analysis_context_id ? [q.analysis_context_id] : []),
     ]);
     const c = q.continuation;
     if (
@@ -308,12 +332,21 @@ export class DatedFinancialAnalysis {
       const b = await this.financial.readBasis(
         actor,
         {
+          analysis_context_id: q.analysis_context_id,
+          account_numbers: q.account_numbers,
           company_id: q.company_id,
           financial_year: y.id,
           from: q.from > y.from ? q.from : y.from,
           to: q.to < y.to ? q.to : y.to,
         },
         until,
+        {
+          effective_only: true,
+          page_size: q.page_size ?? 50,
+          ...(i === position && c?.after_movement
+            ? { after_movement: c.after_movement }
+            : {}),
+        },
       );
       if (c?.versions[i] && c.versions[i]?.source_version !== b.source_version)
         throw new DomainError("CONNECTION_CONFLICT");
@@ -381,7 +414,13 @@ export class DatedFinancialAnalysis {
       year_complete: yearComplete,
       complete: dataComplete && !c && next === null,
       sources: [...index.sources, ...(basis?.sources ?? [])],
-      retrieved: { started_at: started, finished_at: this.now() },
+      retrieved: basis?.retrieved ?? {
+        started_at: started,
+        finished_at: this.now(),
+      },
+      ...(basis?.analysis_context
+        ? { analysis_context: basis.analysis_context }
+        : {}),
       year_versions: versions,
       rows,
       totals_scope: "returned_page_only",

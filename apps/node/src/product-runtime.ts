@@ -15,7 +15,7 @@ import { hashToken, type Owner } from "../../shared/product-auth.js";
 import { installationLock } from "./installation-lock.js";
 import { openProductDatabase } from "./product-database.js";
 import { sqliteState } from "./product-storage.js";
-import { sqliteReceiptFiles } from "./receipt-storage.js";
+import { sqliteAnalysisStore, sqliteReceiptFiles } from "./receipt-storage.js";
 import {
   nodeEnvironment,
   nodeRuntimeSettings,
@@ -46,12 +46,15 @@ export async function startProduct(
   const db = await openProductDatabase(path, runtime.migrations);
   const state = sqliteState(db);
   const receiptFiles = sqliteReceiptFiles(db);
+  const analysisStore = sqliteAnalysisStore(db);
+  await analysisStore.cleanup(Date.now());
   await receiptFiles.cleanup(Date.now());
   await cleanupProduct(state);
   const cleanup = setInterval(() => {
     void Promise.all([
       cleanupProduct(state),
       receiptFiles.cleanup(Date.now()),
+      analysisStore.cleanup(Date.now()),
     ]).catch(() => console.error("product_cleanup_failed"));
   }, 300000);
   cleanup.unref();
@@ -81,6 +84,7 @@ export async function startProduct(
       database: db,
       state,
       receiptFiles,
+      analysisStore,
       assets: async (name) => {
         try {
           return safeResponse(

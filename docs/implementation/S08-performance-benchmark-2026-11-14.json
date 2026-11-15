@@ -1,0 +1,130 @@
+{
+  "environment": "synthetic-node-sqlite-only",
+  "runtime": "v24.19.0",
+  "results": [
+    {
+      "workload": "small",
+      "movements": 100,
+      "bytes": 5194,
+      "samples": 30,
+      "p50_ms": 6.80844500000012,
+      "p95_ms": 154.26853800000026,
+      "cpu_microseconds": {
+        "user": 2282946,
+        "system": 244758
+      },
+      "observed_rss_bytes": 134365184,
+      "all_movements_preserved": true
+    },
+    {
+      "workload": "large",
+      "movements": 20000,
+      "bytes": 2931114,
+      "samples": 30,
+      "p50_ms": 605.1391449999974,
+      "p95_ms": 1871.9107809999987,
+      "cpu_microseconds": {
+        "user": 45737633,
+        "system": 5383280
+      },
+      "observed_rss_bytes": 428699648,
+      "all_movements_preserved": true
+    },
+    {
+      "workload": "boundary",
+      "movements": 100000,
+      "bytes": 4954795,
+      "samples": 30,
+      "p50_ms": 1574.528495000006,
+      "p95_ms": 1734.3701589999982,
+      "cpu_microseconds": {
+        "user": 58569262,
+        "system": 5989156
+      },
+      "observed_rss_bytes": 446681088,
+      "all_movements_preserved": true
+    },
+    {
+      "workload": "ten_followups_small",
+      "movements": 100,
+      "baseline": {
+        "cpu_microseconds": {
+          "user": 789130,
+          "system": 104434
+        },
+        "observed_rss_bytes": 157052928,
+        "calls": 40,
+        "transferred_bytes": 107980,
+        "exports": 20,
+        "samples": 10,
+        "p50_ms": 847.4696329999997,
+        "p95_ms": 908.2456550000002
+      },
+      "prepared": {
+        "cpu_microseconds": {
+          "user": 308615,
+          "system": 33032
+        },
+        "observed_rss_bytes": 161632256,
+        "preparation_ms": 1073.6512409999996,
+        "calls": 15,
+        "transferred_bytes": 11646,
+        "exports": 2,
+        "parses": 1,
+        "samples": 10,
+        "p50_ms": 211.8498989999989,
+        "p95_ms": 216.7164869999997
+      },
+      "cpu_microseconds": {
+        "user": 1099266,
+        "system": 137482
+      },
+      "observed_rss_bytes": 161632256
+    },
+    {
+      "workload": "ten_followups_large",
+      "movements": 20000,
+      "baseline": {
+        "cpu_microseconds": {
+          "user": 19407359,
+          "system": 1834939
+        },
+        "observed_rss_bytes": 425881600,
+        "calls": 40,
+        "transferred_bytes": 58626420,
+        "exports": 20,
+        "samples": 10,
+        "p50_ms": 1601.4053609999992,
+        "p95_ms": 1960.3154679999989
+      },
+      "prepared": {
+        "cpu_microseconds": {
+          "user": 5749858,
+          "system": 967351
+        },
+        "observed_rss_bytes": 415182848,
+        "preparation_ms": 6083.320110000001,
+        "calls": 15,
+        "transferred_bytes": 5863490,
+        "exports": 2,
+        "parses": 1,
+        "samples": 10,
+        "p50_ms": 212.235133999995,
+        "p95_ms": 214.76126800000202
+      },
+      "cpu_microseconds": {
+        "user": 25157461,
+        "system": 2802315
+      },
+      "observed_rss_bytes": 415182848
+    }
+  ],
+  "measurement_notes": "Parser workloads: 30 samples from the full Node 24 run. Follow-up workloads: 10 queries each, repeated after immutable-source checkpoint optimization. Shared development host; no provider/network/model latency claim. Process CPU includes forced GC between parser samples; per-sample parser latency excludes that GC.",
+  "sourceHashes": {
+    "packages/core/src/sie.ts": "6cf38b73698abe720d3a86082cf5950cb271681be72099a75f13c8f51106ed47",
+    "packages/core/src/financial-contexts.ts": "cb0544a9bd3c1dc2f0ad416035bd00071513e2a51316f311971cdefff55dd83c",
+    "packages/fortnox/src/analytics.ts": "7c553308d30c8b3a00e27c72f6eea2948bee8929a1bf5a50eb7e482ee24d698a",
+    "apps/shared/analysis-sql.ts": "f0a6210b8ba6d2d91c10bd1737d5fd956be7e123e70c8ab2daee54c7d1a54562",
+    "scripts/analysis-benchmark.ts": "03feb7ded105236417fa16c388e4e3f4bf9dea7cce69311b978f5ad52f48e28f"
+  }
+}

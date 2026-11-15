@@ -1,4 +1,5 @@
 export * from "./accounting.js";
+export * from "./analysis-storage.js";
 export * from "./analytics.js";
 export * from "./bookkeeping.js";
 export * from "./business-writes.js";
@@ -6,6 +7,7 @@ export * from "./connections.js";
 export * from "./context.js";
 export * from "./document-rows.js";
 export * from "./errors.js";
+export * from "./financial-contexts.js";
 export * from "./financial-dates.js";
 export * from "./intents.js";
 export * from "./invoice-history.js";

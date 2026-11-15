@@ -35,6 +35,7 @@ it("pins analytical/payroll operation sources without promoting operator probes 
       ...payrollOperationIds,
       ...financialReadOperations,
       ...openItemReadOperations,
+      "financial_analysis.prepare",
       "financial_report.calculate",
       "financial_report.compare",
       "financial_liquidity.calculate",
@@ -49,7 +50,9 @@ it("pins analytical/payroll operation sources without promoting operator probes 
   for (const operation of ledger.operations) {
     expect(operation.supported).toBe(false);
     expect(operation.enabledByDefault).toBe(
-      operation.localId !== "payroll_employee.create",
+      !["payroll_employee.create", "financial_analysis.prepare"].includes(
+        operation.localId,
+      ),
     );
     expect(operation.liveEvidence).toBeNull();
     expect(operation.clientEvidence).toBeNull();

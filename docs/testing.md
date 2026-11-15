@@ -251,3 +251,13 @@ The owner browser suite also covers local read activation with retained unknown
 writes and a same-registration OAuth/MCP round trip with an intercepted synthetic
 client callback. These local provider/library/browser fixtures do not establish
 actual Fortnox or hosted ChatGPT acceptance.
+
+## S08 analysis context regressions
+
+Shared `analysis-contexts` and `large-sie` contracts run in Node/SQLite and
+actual local workerd/D1. They distinguish optional pinned observations from
+live reads, verify selective drill-down and exact large-input arithmetic, and
+exercise retention, source/access changes, concurrency and failure cleanup.
+`analysis-restart` additionally reopens an actual SQLite file.
+`npm run benchmark:analysis -- 30` uses synthetic inputs only; see
+[S08 measurements and remaining actual acceptance](implementation/S08-performance.md).

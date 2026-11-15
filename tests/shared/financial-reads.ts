@@ -15,7 +15,7 @@ import { companyServer } from "../../packages/mcp/src/companies.js";
 import { accountingFixture } from "./accounting.js";
 import { syntheticSie } from "./analytics.js";
 
-async function setup(state: StateStore, ordinary = false) {
+export async function setup(state: StateStore, ordinary = false) {
   const f = await accountingFixture(state);
   if (ordinary)
     await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {

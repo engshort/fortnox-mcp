@@ -315,3 +315,14 @@ reads. Source windows, classifications, page continuations and excluded foreign
 currencies remain visible. Unknown monetary/sign/reference data prevents a
 complete projection. Scope is selected accounts and returned invoice pages,
 not all future cash movements, a live bank balance or a payment instruction.
+
+### Optional financial analysis preparation
+
+`prepare_financial_analysis` is a fixed read-only provider workflow with temporary
+local operational state. It is advertised only when the operator enables the
+analysis-context module and supplies its SQLite/D1 adapter. Its structured result
+contains building/ready progress, an opaque `analysis_context_id`, expiry and the
+next action; building results contain no financial totals. Ready IDs are optional
+inputs to the existing ledger analysis/balance/movement/transaction tools and to
+each period-comparison side. Pinned responses explicitly disclose their original
+source observation. Context IDs are references, never authorization or approval.
