@@ -52,8 +52,11 @@ osäkert tokenutbyte får inte skickas igen blint.
 
 Medan en åtgärd skickas spärras sidans övriga knappar. Om svaret saknas väljer du
 **Kontrollera sparat läge** för att läsa det sparade utfallet. Det skickar inte
-åtgärden igen. Utgångna och saknade anslutningslänkar visas med instruktioner om
-att gå tillbaka till appen och återuppta eller starta anslutningen där.
+åtgärden igen. Om inloggningen gått ut loggar du in och återkommer till samma
+försök. För en utgången länk som finns kvar väljer du **Fortsätt i [appens namn]**.
+Appen får då begära en ny länk med nya säkerhetsbindningar. Granska och godkänn
+åtkomsten igen; ett redan verifierat företag finns kvar. En gallrad länk visar
+lokal vägledning: öppna anslutningen från appen och välj det befintliga företaget.
 
 Vid okänt providerutfall krävs ägarens kontroll. Ett oanvänt, inte påbörjat
 kodutbyte kan avbrytas i det guidade flödet. En pågående utväxling kan inte
@@ -70,3 +73,23 @@ callbackadresser med koder i chatt eller supportloggar.
 
 Lokala syntetiska tester, prov med verklig M2X-backend och kvarvarande Fortnox-prov
 redovisas separat i [implementationsevidensen](../implementation/external-company-onboarding.md).
+
+
+## Beständig åtkomst för appens backend
+
+Installationsoperatören kan ange appens förregistrerade konfidentiella klient-ID
+i `MCP_OFFLINE_CLIENT_IDS`. Standardvärdet är `[]`, alltså avstängt. Med ditt
+uttryckliga godkännande av fortsatt åtkomst gäller appens förnyelsetoken då i
+30 dagar från senaste lyckade förnyelse. Appen kan förnya åtkomsten även när du
+är utloggad eller anslutningsförsöket har gallrats. Korta åtkomsttoken, ditt
+företagsurval och företagets policy gäller fortfarande. Vanliga klienter behåller
+sin befintliga giltighet.
+
+Appen behöver spara ersättningsparet säkert och förnya innan giltigheten går ut.
+Bevara databas, krypteringsnycklar och klientregistrering vid omstart. Ett osäkert
+utbyte ska inte skickas igen; appadministratören får då godkänna åtkomsten på nytt
+till samma företag. Installationsägaren kan återkalla åtkomsten. Appen ansvarar
+fortsatt för medarbetarnas aktuella kundbehörigheter.
+
+Ändringen är lokalt syntetiskt testad. Verklig M2X/Fortnox-åtkomst över en helg och
+aktivering i drift verifieras separat; ingen driftinställning ändras av koden.

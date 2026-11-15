@@ -16,6 +16,14 @@ and `EXTERNAL_APP_ONBOARDING_CLIENT_IDS='["<registered-client-id>"]'` on the
 installation. The feature defaults off and the client list defaults empty.
 This setup is per installation/client, never per company.
 
+Optional server offline policy: add the pre-registered confidential backend ID to
+`MCP_OFFLINE_CLIENT_IDS` (JSON list, default `[]`). With explicit `offline_access`
+consent, newly issued/rotated pairs have a 30-day rolling refresh inactivity
+limit, independent of the owner web session and onboarding retention. Other
+clients retain 24-hour refresh tokens. This operator setting adds no scope or
+company permission and cannot revive expired/revoked tokens. See
+[policy, migration and evidence](../implementation/onboarding-continuity.md).
+
 The backend-only restriction applies exclusively to this new API. Existing public
 MCP clients, ordinary OAuth/PKCE, ChatGPT and standalone company onboarding retain
 their existing contract. The consumer administrator is not the installation
@@ -78,8 +86,9 @@ explicitly submits client consent. Returning from that review shows the selected
 company without requiring another company choice.
 Browser GET errors requested with `Accept: text/html` use a bounded branded page
 and retain the error HTTP status. API errors, browser POSTs and non-HTML error
-requests keep the existing JSON envelope. Browser errors reveal no attempt,
-client or company details and never supply an unvalidated return URL.
+requests keep the existing JSON envelope. Generic browser errors reveal no attempt, client or company details. An
+authenticated retained continuation can display the registered app's name and
+offer a local **Continue in <app name>** action, without a browser-supplied URL.
 
 Connecting a company never enables a financial module or changes voucher policy.
 An existing tenant is not added as another technical company. Reconnect is bound
@@ -172,6 +181,22 @@ outcome. Session recovery never exchanges a provider code or creates client
 authorization. The owner must verify an existing company or investigate before
 continuing. An expired unused flow may be cancelled before a fresh provider flow.
 
+For an expired retained browser continuation (including expiry during login),
+the guide's local `POST /connect/company/{id}/return` accepts only the current
+`revision`. It requires an owner session and exact installation Origin, and
+revalidates the stored callback against both current redirect allowlists and the
+current allowed confidential registration. The response's `url` is that callback
+with `error=interaction_required`, current saved `state` and exact `/auth` `iss`.
+This does not resume, exchange a code or authorize the consumer. The consumer must
+validate its administrator/session, issuer and state, persist new bindings, then
+call resume. An active other owner session cannot take over. Purged attempts have
+local guidance only; provider-pending/unknown states keep wait/review instead of
+this return action. Pending provider status is not masked by browser expiry.
+OAuth/consent and provider return after login loss use only the local attempt ID
+and revision; raw callback codes are never login targets or automatically resent.
+Browser HTML errors also cover disabled onboarding and malformed guide routes;
+API/POST responses remain JSON.
+
 Refresh uses the existing token endpoint with Basic,
 `grant_type=refresh_token`, `refresh_token` and `resource=<installation>/mcp`.
 Persist a renewal claim before dispatch and atomically save the replacement pair.
@@ -189,7 +214,14 @@ revisions fail with conflict and require a new review; other clients are untouch
 
 Interactive attempts last 30 minutes. Results/recovery last 24 hours from start;
 resume never extends that retention deadline. Existing OAuth codes last 10 minutes,
-access tokens 5 minutes, refresh tokens 24 hours with rotation. Times are ISO 8601
+access tokens 5 minutes, refresh tokens 24 hours with rotation by default.
+Explicitly configured confidential backends with offline consent use 30 days
+from each successful issuance/rotation. Both the library token row and matching
+immutable approval/family retain that deadline. An uncertain response must still
+not be replayed; use fresh explicit consent to the same verified company (or a
+new attempt choosing the existing company after purge). Policy removal fences
+already detached families; revocation and company authorization remain immediate.
+Times are ISO 8601
 UTC strings; revision fields are integers. At most 16 retained attempts per owner,
 8 per client and 8 idempotent operations per attempt are retained. Capacity and the
 installation request budget fail explicitly rather than evicting live attempts.

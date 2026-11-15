@@ -1,5 +1,16 @@
 # Test strategy and evidence
 
+[Onboarding continuity](implementation/onboarding-continuity.md) adds shared
+`onboarding-continuity.ts` cases through the actual maintained OAuth library on
+Node/SQLite and local workerd/D1: 73-hour simulated idle, logout/purge, repeated
+rotation, actual row/family/approval expiry, scope/company isolation, revocation,
+policy removal and explicit consent after a lost response. `offline-restart`
+closes/reopens SQLite and actually restarts workerd/D1 before renewing the stored
+pair. The existing owner browser harness covers expiry before/during login,
+validated `interaction_required`, revision renewal and the same company, on
+desktop/mobile. These synthetic checks do not replace actual M2X scheduler,
+provider, hosted-runtime or 72-wall-clock-hour acceptance.
+
 Optional [account-email tests](implementation/account-email.md) run through the
 shared owner contract on Node/SQLite and actual local workerd/D1. They use
 synthetic accounts and intercepted email transport, checking default-off setup,

@@ -13,7 +13,7 @@ import { keyA } from "./connections.js";
 
 const callback = "https://consumer.example.invalid/fortnox/callback";
 const version = "company-onboarding-v1";
-export async function onboardingFixture(config: AuthConfig) {
+export async function onboardingFixture(config: AuthConfig, offline = false) {
   const clients: string[] = [];
   let calls = 0;
   let failProvider = false;
@@ -30,6 +30,7 @@ export async function onboardingFixture(config: AuthConfig) {
     testTenants: [],
     externalAppOnboarding: true,
     onboardingClients: clients,
+    offlineClientIds: offline ? clients : [],
   };
   const app = createProductApplication(
     settings,
@@ -776,7 +777,19 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
     ).toBeNull();
     const tampered = new URL(consent);
     tampered.searchParams.set("state", crypto.randomUUID());
-    expect((await f.browser(tampered.href)).status).toBe(401);
+    const callsBeforeTampered = f.calls();
+    const rejected = await f.browser(tampered.href);
+    expect(rejected.status).toBe(303);
+    expect(rejected.headers.get("location")).toBe(
+      `/connect/company/${a.attempt_id}?revision=1`,
+    );
+    expect(
+      (await f.request(tampered.href, undefined, { cookie: f.cookie })).status,
+    ).toBe(401);
+    expect(
+      await f.config.state.get("company-grants", f.client.client_id),
+    ).toBeNull();
+    expect(f.calls()).toBe(callsBeforeTampered);
     await f.app.connections.mutate(
       f.owner,
       record?.company?.id as string,
@@ -897,6 +910,29 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
         error: "CONSENT_IN_PROGRESS",
         recovery_action: "wait",
       });
+      await f.app.connections.updateSet(f.owner, (set) => {
+        const attempt = set.onboarding?.find(
+          (attempt) => attempt.id === a.attempt_id,
+        );
+        if (attempt) attempt.expiresAt = Date.now() - 1;
+      });
+      const status = await f.request(
+        `/api/company-onboarding/v1/attempts/${a.attempt_id}`,
+        undefined,
+        { authorization: f.client.authorization },
+      );
+      expect(await status.json()).toMatchObject({
+        status: "provider_pending",
+        recovery_action: "wait",
+      });
+      const page = await f.request(a.authorization_url, undefined, {
+        cookie,
+        accept: "text/html",
+      });
+      const html = await page.text();
+      expect(html).toContain("Fortnox-godkännande pågår");
+      expect(html).not.toContain("recover-session");
+      expect(html).not.toContain("Fortsätt i Synthetic consumer");
       expect(f.calls()).toBe(1);
       expect(
         (await f.app.onboarding?.get(f.owner, f.client.client_id, a.attempt_id))

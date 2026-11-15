@@ -459,3 +459,68 @@ test("expired and missing browser attempts use bounded error pages", async ({
     consoleErrors.filter((message) => !/status of (404|410)/.test(message)),
   ).toEqual([]);
 });
+
+for (const verified of [false, true]) {
+  test(`expired ${verified ? "verified attempt during" : "link before"} login returns through the consumer with fresh bindings`, async ({page, context}, info) => {
+    const errors: string[]=[];
+    const warnings: string[]=[];
+    let providerCallbacks=0;
+    page.on("pageerror",e=>errors.push(e.message));
+    page.on("console",m=>{if(["error","warning"].includes(m.type()))warnings.push(m.text());});
+    page.on("request",r=>{if(new URL(r.url()).pathname==="/admin/fortnox/callback")providerCallbacks++;});
+    await begin(page);
+    await expect(page).toHaveURL(/\/sign-in\?/);
+    let attemptId=new URL(page.url()).searchParams.get("company_onboarding")!;
+    let companyId: string | undefined;
+    if (verified) {
+      await signIn(page);
+      await page.getByLabel("Anslutningstyp").selectOption("user");
+      await page.getByRole("button",{name:"Fortsätt till Fortnox",exact:true}).click();
+      await page.getByRole("button",{name:"Godkänn Synthetic A",exact:true}).click();
+      await expect(page.getByRole("heading",{name:"Godkänn klient",exact:true})).toBeVisible();
+      attemptId=new URL(page.url()).searchParams.get("onboarding_attempt")!;
+      await changeFixture(async(connections,owner)=>{companyId=(await connections.list(owner))[0]!.id;});
+      const logout=await context.request.post("http://127.0.0.1:8801/auth/sign-out",{headers:{origin:"http://127.0.0.1:8801"},data:{}});
+      expect(logout.ok()).toBe(true);
+      // The consent URL returns through the local guide, retaining only id/revision.
+      await page.reload();
+      await expect(page).toHaveURL(new RegExp(`/sign-in\\?company_onboarding=${attemptId}&revision=1`));
+    }
+    await changeFixture(async(connections,owner)=>{
+      await connections.updateSet(owner,set=>{set.onboarding!.find(a=>a.id===attemptId)!.expiresAt=Date.now()-1;});
+    });
+    if(!verified) {
+      await page.goto(`http://127.0.0.1:8801/connect/company/${attemptId}?revision=1`);
+      await expect(page).toHaveURL(/\/sign-in\?/);
+    }
+    await signIn(page);
+    await expect(page).toHaveTitle("Anslutningsförsöket har gått ut · Fortnox MCP");
+    await expect(page.getByRole("heading",{name:"Anslutningsförsöket har gått ut",exact:true})).toBeVisible();
+    await checkLayout(page);
+    await page.screenshot({path:join(tmpdir(),`continuity-expired-${verified}-${info.project.name}.png`),fullPage:true});
+    const returned=page.waitForRequest(r=>new URL(r.url()).origin==="http://localhost:8802"&&new URL(r.url()).pathname==="/callback");
+    await page.getByRole("button",{name:"Fortsätt i Synthetic consumer",exact:true}).click();
+    const callback=new URL((await returned).url());
+    expect(callback.searchParams.get("error")).toBe("interaction_required");
+    expect(callback.searchParams.get("iss")).toBe("http://127.0.0.1:8801/auth");
+    expect(callback.searchParams.has("code")).toBe(false);
+    if (!verified) {
+      await expect(page).toHaveURL(new RegExp(`/connect/company/${attemptId}\\?revision=2`));
+      await page.getByLabel("Anslutningstyp").selectOption("user");
+      await page.getByRole("button",{name:"Fortsätt till Fortnox",exact:true}).click();
+      await page.getByRole("button",{name:"Godkänn Synthetic A",exact:true}).click();
+    }
+    await expect(page.getByRole("heading",{name:"Godkänn klient",exact:true})).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("onboarding_revision")).toBe("2");
+    await expect(page.locator(".consent-access")).toContainText("Företaget i detta försök: Synthetic A");
+    await checkLayout(page);
+    await page.screenshot({path:join(tmpdir(),`continuity-resumed-${verified}-${info.project.name}.png`),fullPage:true});
+    await page.getByRole("button",{name:"Godkänn begärda behörigheter till valda företag",exact:true}).click();
+    await expect(page).toHaveURL(/http:\/\/localhost:8802\/companies\/[a-f0-9-]+/);
+    if(companyId)expect(new URL(page.url()).pathname).toBe(`/companies/${companyId}`);
+    await expect(page.getByRole("heading",{name:"Verifierat kundkort",exact:true})).toBeVisible();
+    expect(providerCallbacks).toBe(1);
+    expect(errors).toEqual([]);
+    expect(warnings.filter(m=>!/status of (410)/.test(m))).toEqual([]);
+  });
+}

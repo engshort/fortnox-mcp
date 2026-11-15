@@ -129,3 +129,13 @@ förberedelse är inte ett godkänt liveprov eller stöd för direkt Worker-häm
 ## Extern appinitierad anslutning
 
 `EXTERNAL_APP_ONBOARDING_ENABLED=true` aktiverar det nya flödet. `EXTERNAL_APP_ONBOARDING_CLIENT_IDS` är en JSON-lista med uttryckligen tillåtna registrerade klient-ID:n, normalt `[]`. Dessa inställningar begränsar endast det nya flödet; befintliga MCP-klienter påverkas inte. Se [användarguiden](extern-appanslutning.sv.md).
+
+
+`MCP_OFFLINE_CLIENT_IDS` är en separat JSON-lista, normalt `[]`. Lägg endast till
+en redan registrerad konfidentiell backend med `client_secret_basic`. Med
+uttryckligt `offline_access`-godkännande får nya tokenpar 30 dagars rullande
+förnyelsegiltighet och är oberoende av ägarens webbinloggning. Gamla giltiga par
+kan få policyn vid nästa lyckade rotation; utgångna eller osäkra par kräver nytt
+appgodkännande. Borttagning ur listan spärrar redan frikopplade tokenfamiljer.
+Detta utökar inga scopes eller kundbehörigheter. Se
+[återinloggning och beständig åtkomst](extern-appanslutning.sv.md#beständig-åtkomst-för-appens-backend).

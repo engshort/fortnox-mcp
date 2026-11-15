@@ -6,6 +6,11 @@ based on `3f5e8bb21146b0582c981339ee31a7557af6c331`. The separately committed
 [wire contract](../contracts/company-onboarding-v1.md) was agreed with the M2X #11
 implementation chat ([M2X #11](https://github.com/m2x-se/mcp/issues/11)). This delivery changes only the Fortnox repository.
 
+Current follow-up: [natural login return and optional server offline access](onboarding-continuity.md)
+adds retained `interaction_required` recovery and a separately configured 30-day
+confidential-backend policy. Its local evidence and remaining joint 72-hour
+acceptance are separate from the historical runs below.
+
 ## Connection guide design follow-up
 
 The owner requested the administration's existing visual language throughout the

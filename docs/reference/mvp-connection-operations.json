@@ -13,7 +13,7 @@
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "9dc4f89fdcb246bf79c6df090d84dd13c127840b6a4ec01a8d3c007154f52885",
+      "sha256": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
       "kind": "independently_written_project_source"
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "4d0dfe10479460a049d09a4205160df58a6ec504686beaeeced745aaafb40687",
+      "sha256": "d372106f3dd5b8102f3b1fc717e95481f0493b56872c11ff19f4001c0ad25e93",
       "kind": "independently_written_project_source"
     },
     {
