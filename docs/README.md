@@ -139,3 +139,5 @@ restrictive-CSP and remount/replay checks remain open. It is off by default and
 enables no financial operation.
 
 The [first S11 slice](implementation/S11-cloudflare-first-installation.md) adds an active Cloudflare test-installation button and public Worker/D1 status page. It adds no provider coverage or remote MCP access. [Evidence](implementation/S11-cloudflare-evidence.md) separates local verification from one successful hosted installation in an existing account and the remaining fresh-account/lifecycle checks. [Deployment troubleshooting](deployment.md#github-connection-fails-before-the-build) covers the observed Cloudflare identity/role and incomplete GitHub connection failure.
+
+Issue #146: [external application company onboarding](implementation/external-company-onboarding.md) and [versioned integration contract](contracts/company-onboarding-v1.md). Opt-in, under verification; existing standalone/public-client flows remain supported.

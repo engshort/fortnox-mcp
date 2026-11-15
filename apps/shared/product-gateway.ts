@@ -3,8 +3,10 @@ import {
   verifyOAuthQueryParams,
 } from "@better-auth/oauth-provider";
 import {
+  type CompanyOnboarding,
   type Connections,
   featureLabels,
+  type OnboardingAttempt,
   programSelection,
 } from "@fortnox-mcp/core";
 import {
@@ -20,6 +22,7 @@ import {
   privateHeaders,
   safeResponse,
 } from "./admin.js";
+import { onboardingFailure } from "./onboarding-http.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 export interface McpIdentity {
   ownerId: string;
@@ -51,6 +54,7 @@ export function createProductGateway(
   config: AuthConfig & {
     redirects: readonly string[];
     connections: Connections;
+    onboarding?: CompanyOnboarding;
   },
   server: (identity: McpIdentity | null) => McpServer,
 ) {
@@ -123,8 +127,48 @@ export function createProductGateway(
           .replaceAll("&", "&amp;")
           .replaceAll("<", "&lt;")
           .replaceAll('"', "&quot;");
+      let onboarding: OnboardingAttempt | undefined;
+      if (url.searchParams.has("onboarding_attempt")) {
+        try {
+          if (!config.onboarding) throw new Error();
+          const session = await requireOwner(
+            auth,
+            config.state,
+            request.headers,
+          );
+          const a = await config.onboarding.validateQuery(
+            ownerId,
+            session.session.id,
+            url.searchParams,
+          );
+          const client = await auth.api.getOnboardingClient({
+            body: { client: a.client },
+          });
+          if (
+            !client.redirects.includes(
+              url.searchParams.get("redirect_uri") ?? "",
+            ) ||
+            !config.redirects.includes(
+              url.searchParams.get("redirect_uri") ?? "",
+            )
+          )
+            throw new Error();
+          onboarding = await config.onboarding.prepareApproval(
+            ownerId,
+            a.id,
+            a.revision,
+            session.session.id,
+            url.search.slice(1),
+          );
+        } catch (e) {
+          return onboardingFailure(e);
+        }
+      }
       const companies = (await config.connections.list(ownerId)).filter(
-        (c) => c.state === "active",
+        (c) =>
+          c.state === "active" &&
+          (!onboarding ||
+            onboarding.approval?.selection.some((s) => s.id === c.id)),
       );
       const companyChoices = companies
         .map(
@@ -137,7 +181,7 @@ export function createProductGateway(
         )
         .join("<br>");
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><fieldset><legend>Välj företag för detta godkännande</legend>${companyChoices}</fieldset><button id="accept">Godkänn begärda behörigheter till valda företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
+        `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Godkänn klient</h1>${onboarding ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>` : ""}<p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><fieldset><legend>Välj företag för detta godkännande</legend>${companyChoices}</fieldset><button id="accept">Godkänn begärda behörigheter till valda företag</button>${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}<p id="status" role="status"></p><script src="/consent.js"></script></main></html>`,
         200,
         "text/html; charset=utf-8",
       );
@@ -153,6 +197,23 @@ export function createProductGateway(
         request.method === "GET" &&
         url.pathname === "/auth/oauth2/authorize"
       ) {
+        if (url.searchParams.has("onboarding_attempt")) {
+          try {
+            if (!config.onboarding) throw new Error();
+            const session = await requireOwner(
+              auth,
+              config.state,
+              request.headers,
+            );
+            await config.onboarding.validateQuery(
+              session.user.id,
+              session.session.id,
+              url.searchParams,
+            );
+          } catch (e) {
+            return onboardingFailure(e);
+          }
+        }
         // Every approval must display the concrete current company selection.
         url.searchParams.set("prompt", "consent");
         request = new Request(url, request);
@@ -247,6 +308,32 @@ export function createProductGateway(
               request.headers,
             );
             try {
+              let onboarding: OnboardingAttempt | undefined;
+              const query = new URLSearchParams(body.data.oauth_query);
+              if (query.has("onboarding_attempt")) {
+                if (!config.onboarding) throw new Error();
+                const a = await config.onboarding.validateQuery(
+                  session.user.id,
+                  session.session.id,
+                  query,
+                );
+                onboarding = await config.onboarding.approval(
+                  session.user.id,
+                  a.id,
+                  a.revision,
+                  session.session.id,
+                  body.data.oauth_query,
+                );
+                const canonical = (s: typeof body.data.companies) =>
+                  JSON.stringify(
+                    [...s].sort((a, b) => a.id.localeCompare(b.id)),
+                  );
+                if (
+                  canonical(body.data.companies) !==
+                  canonical(onboarding.approval?.selection ?? [])
+                )
+                  throw new Error();
+              }
               // Let the maintained OAuth implementation validate/consume the
               // signed consent first. No grant is changed for denied consent.
               const response = await auth.handler(request);
@@ -262,6 +349,17 @@ export function createProductGateway(
                 session.user.id,
                 client,
                 body.data.companies,
+                onboarding
+                  ? {
+                      expectedRevision: onboarding.approval?.grantRevision ?? 0,
+                      onboarding: {
+                        id: onboarding.id,
+                        revision: onboarding.revision,
+                        companyId: onboarding.company?.id as string,
+                        completedAt: Date.now(),
+                      },
+                    }
+                  : undefined,
               );
               await auth.api.bindProductCode({
                 body: {
@@ -269,8 +367,22 @@ export function createProductGateway(
                   owner: session.user.id,
                   client,
                   revision: grant.revision as number,
+                  ...(onboarding
+                    ? {
+                        onboarding: {
+                          id: onboarding.id,
+                          revision: onboarding.revision,
+                        },
+                      }
+                    : {}),
                 },
               });
+              if (onboarding)
+                await config.onboarding?.authorized(
+                  session.user.id,
+                  onboarding,
+                  grant,
+                );
               return response;
             } catch {
               return safeResponse('{"error":"CONSENT_CONFLICT"}', 409);

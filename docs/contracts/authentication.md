@@ -115,3 +115,7 @@ Local disable retains provider scopes but blocks current domain/provider calls;
 shared scopes remain usable by other enabled programs. Reactivation requires a new
 explicit consent flow. Uncertain writes block changes to affected programs and all local disable operations. A narrowly additive payroll consent may proceed with an older tenant-bound register/document outcome, preserving that outcome and its write block. In-flight, unbound, bookkeeping, receipt and payroll uncertainty still block it. Owner-only same-origin reconciliation uses a temporary read-only internal identity; old MCP grants and intent identities remain immutable.
 See [implementation and acceptance boundaries](../implementation/S11-company-programs.md).
+
+## External application company onboarding (#146)
+
+The opt-in [company-onboarding-v1 contract](company-onboarding-v1.md) composes confidential-client initiation, protected owner connection actions and explicit OAuth company consent. The backend-only requirement applies only to this new API. Existing public MCP clients and standalone onboarding retain their existing boundaries.

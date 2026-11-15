@@ -11,6 +11,7 @@ import {
 import { dirname, join } from "node:path";
 import { backup, DatabaseSync } from "node:sqlite";
 import {
+  type ConnectionSet,
   Connections,
   type CredentialVault,
   receiptFileBinding,
@@ -203,6 +204,22 @@ export async function restoreDatabase(options: {
       db.exec(`DELETE FROM oauthAccessToken; DELETE FROM oauthRefreshToken; DELETE FROM oauthConsent;
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
         DELETE FROM product_state WHERE space IN ('company-grants','fortnox-flows','continuations');`);
+      const restoredOwner = installation?.value.ownerId;
+      const restored = restoredOwner
+        ? await state.get<ConnectionSet>("connections", restoredOwner)
+        : null;
+      if (restored && restoredOwner) {
+        restored.value.onboarding = [];
+        if (
+          !(await state.put(
+            "connections",
+            restoredOwner,
+            restored.value,
+            restored.version,
+          ))
+        )
+          throw new Error("Restore conflict");
+      }
       const previous = await state.get("installation", "restore");
       if (
         !(await state.put(
@@ -277,6 +294,19 @@ export async function rotateCredentials(
           "UPDATE receipt_chunks SET key=?,iv=?,data=? WHERE file_id=? AND idx=?",
         ).run(next.key, next.iv, next.data, file.record.id, chunk.index);
       }
+    }
+    const attempts = await state.get<ConnectionSet>("connections", owner);
+    if (attempts) {
+      attempts.value.onboarding = [];
+      if (
+        !(await state.put(
+          "connections",
+          owner,
+          attempts.value,
+          attempts.version,
+        ))
+      )
+        throw new Error("Rotation conflict");
     }
     db.prepare("DELETE FROM product_state WHERE space='fortnox-flows'").run();
     db.exec("COMMIT");

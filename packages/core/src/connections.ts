@@ -2,6 +2,12 @@ import { z } from "zod";
 import type { BookkeepingState } from "./bookkeeping.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
+import {
+  completeOnboardingCompany,
+  type OnboardingApproval,
+  type OnboardingAttempt,
+  type OnboardingBinding,
+} from "./onboarding.js";
 import type { StateStore } from "./ports.js";
 import {
   assertNoUncertainWrites,
@@ -113,8 +119,10 @@ export interface Connection {
 export interface ConnectionSet {
   connections: Connection[];
   keyCheck?: Ciphertext;
+  onboarding?: OnboardingAttempt[];
 }
 export interface CompanyGrant {
+  onboarding?: OnboardingApproval;
   ownerId: string;
   companies: Record<string, number>;
   accessRevisions?: Record<string, number>;
@@ -197,6 +205,18 @@ export class Connections {
     }
     throw new DomainError("CONNECTION_CONFLICT");
   }
+  async updateSet<T>(
+    owner: string,
+    change: (set: ConnectionSet) => T | Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const row = await this.snapshot(owner);
+      const set = row?.value ?? { connections: [] };
+      const result = await change(set);
+      if (await this.save(owner, set, row?.version ?? null)) return result;
+    }
+    throw new DomainError("CONNECTION_CONFLICT");
+  }
   async list(owner: string) {
     return (await this.snapshot(owner))?.value.connections ?? [];
   }
@@ -215,6 +235,7 @@ export class Connections {
       "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
     >,
     credentials: Credentials,
+    onboarding?: OnboardingBinding,
   ) {
     for (let attempt = 0; attempt < 8; attempt++) {
       const row = await this.snapshot(owner);
@@ -237,14 +258,9 @@ export class Connections {
         credentials,
         this.binding(owner, connection),
       );
-      if (
-        await this.save(
-          owner,
-          { connections: [...connections, connection] },
-          row?.version ?? null,
-        )
-      )
-        return connection;
+      const next = { ...row?.value, connections: [...connections, connection] };
+      if (onboarding) completeOnboardingCompany(next, onboarding, connection);
+      if (await this.save(owner, next, row?.version ?? null)) return connection;
     }
     throw new DomainError("CONNECTION_CONFLICT");
   }
@@ -350,6 +366,7 @@ export class Connections {
       generation: number;
       access_revision: number;
     }>,
+    context?: { expectedRevision: number; onboarding: OnboardingApproval },
   ) {
     if (
       client.startsWith("owner-recovery:") ||
@@ -370,7 +387,10 @@ export class Connections {
     const prior = await this.state.get<CompanyGrant>("company-grants", client);
     if (prior && prior.value.ownerId !== owner)
       throw new DomainError("COMPANY_FORBIDDEN");
+    if (context && (prior?.value.revision ?? 0) !== context.expectedRevision)
+      throw new DomainError("CONNECTION_CONFLICT");
     const grant: CompanyGrant = {
+      ...(context ? { onboarding: context.onboarding } : {}),
       ownerId: owner,
       companies: Object.fromEntries(selected.map((s) => [s.id, s.generation])),
       accessRevisions: Object.fromEntries(
@@ -643,8 +663,11 @@ export class Connections {
       "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
     >,
     credentials: Credentials,
+    onboarding?: OnboardingBinding,
   ) {
-    return this.mutate(owner, id, async (c) => {
+    return this.updateSet(owner, async (set) => {
+      const c = set.connections.find((c) => c.id === id);
+      if (!c) throw new DomainError("COMPANY_FORBIDDEN");
       if (
         c.generation !== generation ||
         c.state === "active" ||
@@ -658,10 +681,14 @@ export class Connections {
       c.organizationNumber = input.organizationNumber;
       c.scopes = input.scopes;
       c.state = "active";
-      c.readOnly = true;
-      c.review = "review_required";
+      if (!onboarding) {
+        c.readOnly = true;
+        c.review = "review_required";
+      }
       delete c.renewal;
       c.secret = await this.vault.seal(credentials, this.binding(owner, c));
+      if (onboarding) completeOnboardingCompany(set, onboarding, c);
+      return c;
     });
   }
 

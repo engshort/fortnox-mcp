@@ -156,3 +156,7 @@ En verifikation med bevarad eller ägarregistrerad exakt Fortnox-referens kan oc
 stämmas av under **Drift** efter ett nytt klientgodkännande. Kontrollen jämför
 hela ursprungsförslaget och kräver samma anslutningsversion. Saknad referens eller
 avvikande innehåll lämnar utfallet okänt; ingen ny verifikation skickas.
+
+## Anslut från en annan app
+
+Registrerade appar med egen backend kan använda ett separat, uttryckligen aktiverat [guidat anslutningsflöde](extern-appanslutning.sv.md). Det påverkar inte vanliga MCP-klienter eller den fristående företagsanslutningen.

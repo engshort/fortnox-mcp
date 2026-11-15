@@ -3,7 +3,7 @@ import {
   type OAuthOptions,
   oauthProvider,
 } from "@better-auth/oauth-provider";
-import type { CompanyGrant } from "@fortnox-mcp/core";
+import type { CompanyGrant, ConnectionSet } from "@fortnox-mcp/core";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { z } from "zod";
@@ -27,6 +27,7 @@ export interface GrantFamily {
   clientId: string;
   revision: number;
   expiresAt: number;
+  onboarding?: { id: string; revision: number };
 }
 async function assertGrantFamily(
   state: StateStore,
@@ -112,6 +113,49 @@ export function createProductAuth(config: AuthConfig) {
       {
         id: "product-token-validation",
         endpoints: {
+          authenticateOnboardingClient: createAuthEndpoint.serverOnly(
+            {
+              method: "POST",
+              requireRequest: true,
+              body: z.object({ scopes: z.array(z.string()).max(2) }),
+            },
+            async (ctx) => {
+              const result = await getOAuthProviderApi(
+                ctx,
+                oauthOptions,
+              ).authenticateClient({
+                requireCredentials: true,
+                scopes: ctx.body.scopes,
+              });
+              if (result.method !== "client_secret_basic")
+                throw new Error("AUTH_REQUIRED");
+              return ctx.json({
+                clientId: result.clientId,
+                name: result.client.name ?? result.clientId,
+                redirects: result.client.redirectUris ?? [],
+              });
+            },
+          ),
+          getOnboardingClient: createAuthEndpoint.serverOnly(
+            { method: "POST", body: z.object({ client: z.string() }) },
+            async (ctx) => {
+              const client = await getOAuthProviderApi(
+                ctx,
+                oauthOptions,
+              ).getClient(ctx.body.client);
+              if (
+                !client ||
+                client.disabled ||
+                client.tokenEndpointAuthMethod !== "client_secret_basic"
+              )
+                throw new Error("AUTH_REQUIRED");
+              return ctx.json({
+                clientId: client.clientId,
+                name: client.name ?? client.clientId,
+                redirects: client.redirectUris ?? [],
+              });
+            },
+          ),
           bindProductCode: createAuthEndpoint.serverOnly(
             {
               method: "POST",
@@ -120,6 +164,12 @@ export function createProductAuth(config: AuthConfig) {
                 owner: z.string(),
                 client: z.string(),
                 revision: z.number().int(),
+                onboarding: z
+                  .object({
+                    id: z.string().uuid(),
+                    revision: z.number().int().positive(),
+                  })
+                  .optional(),
               }),
             },
             async (ctx) => {
@@ -139,6 +189,9 @@ export function createProductAuth(config: AuthConfig) {
                 if (Object.keys(live).length >= 128)
                   throw new Error("CAPACITY_EXCEEDED");
                 live[code] = {
+                  ...(ctx.body.onboarding
+                    ? { onboarding: ctx.body.onboarding }
+                    : {}),
                   ownerId: ctx.body.owner,
                   clientId: ctx.body.client,
                   revision: ctx.body.revision,
@@ -285,6 +338,31 @@ export function createProductAuth(config: AuthConfig) {
                 ctx.body.client,
                 code,
               );
+              if (ctx.body.type === "authorization_code") {
+                const family = (
+                  await config.state.get<Record<string, GrantFamily>>(
+                    "oauth-grant-families",
+                    owner.value.ownerId,
+                  )
+                )?.value[code];
+                if (family?.onboarding) {
+                  const a = (
+                    await config.state.get<ConnectionSet>(
+                      "connections",
+                      owner.value.ownerId,
+                    )
+                  )?.value.onboarding?.find(
+                    (a) => a.id === family.onboarding?.id,
+                  );
+                  if (
+                    !a ||
+                    a.client !== ctx.body.client ||
+                    a.revision !== family.onboarding.revision ||
+                    !["authorized", "approval_pending"].includes(a.phase)
+                  )
+                    throw new Error("AUTH_REQUIRED");
+                }
+              }
               return ctx.json({ ok: true });
             },
           ),

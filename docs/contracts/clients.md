@@ -104,3 +104,7 @@ Read-only tools can remain available when UI/files are unsupported. Disable only
 ## Evidence to record
 
 For each tested release: server commit, SDK/protocol, client name/version or hosted test date, plan/workspace prerequisites, auth method, supported UI/files, test company, synthetic scenarios, results and unresolved limitations. Do not infer conformance from successful tool discovery alone.
+
+## External backend applications
+
+[Company onboarding v1](company-onboarding-v1.md) adds a separately enabled confidential-backend journey with an exact authenticated company result. It does not restrict existing public MCP clients or standalone onboarding. Local synthetic/browser and cross-repository evidence are tracked [separately](../implementation/external-company-onboarding.md); M2X support is not inferred from tool discovery.
