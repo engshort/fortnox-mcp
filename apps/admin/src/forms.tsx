@@ -339,8 +339,8 @@ export function Integration({
         <code>{state.callback}</code>
         <p>
           {t(
-            "Nytt företag eller nya behörigheter kräver ett nytt klientgodkännande.",
-            "New companies or scopes require fresh client consent.",
+            "Klienter med åtkomst till alla anslutna företag får tillgång till nya företag utan omanslutning.",
+            "Clients with access to all connected companies can use new companies without reconnecting.",
           )}
         </p>
       </aside>

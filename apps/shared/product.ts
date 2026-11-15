@@ -770,6 +770,7 @@ export function createProductApplication(
       url.pathname === "/admin" ||
       url.pathname === "/admin/state" ||
       url.pathname === "/admin/clients" ||
+      url.pathname === "/admin/clients/company-access" ||
       url.pathname.startsWith("/admin/companies/") ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
@@ -789,35 +790,86 @@ export function createProductApplication(
           101,
         );
         const companies = await connections.list(session.user.id);
-        return safeResponse(
-          JSON.stringify({
-            clients: rows
-              .slice(0, 100)
-              .filter(
-                (r) =>
-                  r.value.ownerId === session.user.id &&
-                  !r.id.startsWith("owner-recovery:"),
-              )
-              .map((r) => ({
+        const clients = await Promise.all(
+          rows
+            .slice(0, 100)
+            .filter(
+              (r) =>
+                r.value.ownerId === session.user.id &&
+                !r.id.startsWith("owner-recovery:"),
+            )
+            .map(async (r) => {
+              const grant = await connections.clientGrant(
+                session.user.id,
+                r.id,
+              );
+              const all = grant.companyAccess === "owner_connections";
+              return {
                 client_id: r.id,
-                companies: Object.entries(r.value.companies).map(
-                  ([id, generation]) => ({
-                    company_id: id,
-                    name: companies.find((c) => c.id === id)?.name ?? id,
-                    current: companies.some(
-                      (c) =>
-                        c.id === id &&
-                        c.generation === generation &&
-                        (r.value.accessRevisions?.[id] ?? 0) ===
-                          (c.accessRevision ?? 0) &&
-                        c.state === "active",
-                    ),
-                  }),
-                ),
-              })),
-            partial: rows.length > 100,
-          }),
+                grant_id: grant.grantId ?? null,
+                revision: grant.revision ?? 0,
+                company_access: all
+                  ? "owner_connections"
+                  : "selected_companies",
+                can_allow_owner_connections: !grant.onboarding && !all,
+                companies: (all
+                  ? companies
+                      .filter((c) => c.state !== "disconnected")
+                      .map((c) => [c.id, c.generation] as const)
+                  : Object.entries(grant.companies)
+                ).map(([id, generation]) => ({
+                  company_id: id,
+                  name: companies.find((c) => c.id === id)?.name ?? id,
+                  current: companies.some(
+                    (c) =>
+                      c.id === id &&
+                      c.state === "active" &&
+                      (all ||
+                        (c.generation === generation &&
+                          (grant.accessRevisions?.[id] ?? 0) ===
+                            (c.accessRevision ?? 0))),
+                  ),
+                })),
+              };
+            }),
         );
+        return safeResponse(
+          JSON.stringify({ clients, partial: rows.length > 100 }),
+        );
+      }
+      if (
+        url.pathname === "/admin/clients/company-access" &&
+        request.method === "POST"
+      ) {
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          const body = z
+            .object({
+              client_id: z.string().min(1).max(256),
+              grant_id: z.string().nullable(),
+              revision: z.number().int().nonnegative(),
+            })
+            .strict()
+            .parse(await boundedJson(request));
+          await connections.allowOwnerConnections(
+            session.user.id,
+            body.client_id,
+            body.grant_id,
+            body.revision,
+          );
+          return safeResponse('{"ok":true}');
+        } catch (error) {
+          return safeResponse(
+            JSON.stringify({
+              error:
+                error instanceof DomainError ? error.code : "VALIDATION_FAILED",
+            }),
+            error instanceof DomainError && error.code === "CONNECTION_CONFLICT"
+              ? 409
+              : 400,
+          );
+        }
       }
       const businessReconcile =
         /^\/admin\/companies\/([^/]+)\/business\/([^/]+)\/reconcile$/.exec(

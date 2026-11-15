@@ -25,6 +25,10 @@ import "./style.css";
 type Clients = {
   clients: {
     client_id: string;
+    grant_id: string | null;
+    revision: number;
+    company_access: "owner_connections" | "selected_companies";
+    can_allow_owner_connections: boolean;
     companies: { company_id: string; name: string; current: boolean }[];
   }[];
   partial: boolean;
@@ -33,6 +37,7 @@ function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
   const [clients, setClients] = useState<Clients | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [updating, setUpdating] = useState(false);
   useEffect(() => {
     let active = true;
     void api<Clients>("/admin/clients")
@@ -96,14 +101,14 @@ function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
         <h2>{t("Företagsgodkännanden", "Company grants")}</h2>
         <p>
           {t(
-            "Ett sparat godkännande visar beviljad företagsåtkomst. Det visar inte om klienten har en aktiv inloggning. Nya företag eller utökad åtkomst kräver ett nytt klientgodkännande.",
-            "A stored grant shows company access, not whether the client has an active session. New companies or extended access require fresh client consent.",
+            "När du godkänner alla anslutna företag får klienten också tillgång till företag som du lägger till senare. Skrivskydd, granskningskrav och klientens beviljade läs-, skriv- och filbehörigheter gäller fortfarande.",
+            "Approving all connected companies also grants access to companies you add later. Read-only settings, review requirements and the client's granted read, write and file scopes still apply.",
           )}
         </p>
         <p>
           {t(
-            "Förnya åtkomst genom att öppna anslutningens OAuth-godkännande igen i AI-klienten. Samma klientregistrering kan användas. Efter ett nytt godkännande gäller nya token; tidigare token kan inte få den utökade åtkomsten.",
-            "Renew access by reopening this connection's OAuth approval in the AI client. The same client registration can be used. New tokens use the new approval; earlier tokens cannot acquire the expanded access.",
+            "Äldre företagsval kan uppgraderas här utan omanslutning. Externa appars avgränsade godkännanden förnyas i appens anslutningsflöde. Listan visar sparade godkännanden, inte om klienten har en aktiv inloggning.",
+            "Upgrade older company selections here without reconnecting. Renew external applications' selected-company grants through their onboarding flow. This list shows stored grants, not active client sessions.",
           )}
         </p>
         {!clients && !error && (
@@ -121,6 +126,46 @@ function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
           <article className="grant-row" key={client.client_id}>
             <h3>{t("Klient", "Client")}</h3>
             <code>{client.client_id}</code>
+            <p>
+              {client.company_access === "owner_connections"
+                ? t(
+                    "Alla nuvarande och framtida anslutna företag",
+                    "All current and future connected companies",
+                  )
+                : t("Utvalda företag", "Selected companies")}
+            </p>
+            {client.can_allow_owner_connections && (
+              <button
+                type="button"
+                disabled={updating}
+                onClick={async () => {
+                  setUpdating(true);
+                  setError("");
+                  try {
+                    await api("/admin/clients/company-access", {
+                      client_id: client.client_id,
+                      grant_id: client.grant_id,
+                      revision: client.revision,
+                    });
+                    setClients(await api<Clients>("/admin/clients"));
+                  } catch {
+                    setError(
+                      t(
+                        "Åtkomsten kunde inte ändras. Hämta sidan igen och försök på nytt.",
+                        "Could not change access. Reload the page and try again.",
+                      ),
+                    );
+                  } finally {
+                    setUpdating(false);
+                  }
+                }}
+              >
+                {t(
+                  "Tillåt alla nuvarande och framtida företag",
+                  "Allow all current and future companies",
+                )}
+              </button>
+            )}
             {client.companies.map((c) => (
               <div className="grant-company" key={c.company_id}>
                 <Link href={`/admin/companies/${c.company_id}`}>{c.name}</Link>

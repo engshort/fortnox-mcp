@@ -325,6 +325,19 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
     expect(completed.status).toBe(200);
     const result = (await completed.json()) as { company_id: string };
     expect(result.company_id).toBe(connections[0]?.id);
+    const grant = await f.app.connections.clientGrant(
+      f.owner,
+      f.client.client_id,
+    );
+    expect(grant.companyAccess).toBeUndefined();
+    await expect(
+      f.app.connections.allowOwnerConnections(
+        f.owner,
+        f.client.client_id,
+        grant.grantId ?? null,
+        grant.revision ?? 0,
+      ),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
     expect(
       (
         await f.mcp(
@@ -668,6 +681,19 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
       a.attempt_id,
     );
     const selection = record?.approval?.selection;
+    expect(
+      (
+        await f.browser("/auth/oauth2/consent", {
+          accept: true,
+          oauth_query: consent.search.slice(1),
+          companies: selection,
+          company_access: "owner_connections",
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      await f.config.state.get("company-grants", f.client.client_id),
+    ).toBeNull();
     const tampered = new URL(consent);
     tampered.searchParams.set("state", crypto.randomUUID());
     expect((await f.browser(tampered.href)).status).toBe(401);

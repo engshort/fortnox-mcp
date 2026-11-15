@@ -85,16 +85,44 @@ The [2026-11-13 access renewal](../implementation/access-renewal-2026-11-13.md)
 classifies program changes as no-op, local selection or provider consent. Local
 selection with existing scopes advances a separate access revision, leaving
 provider credentials/generation and voucher policy intact. Safe additive reads
-can coexist with unknown writes; in-flight writes still block them. Prior client
-approvals do not silently gain new features.
+can coexist with unknown writes; in-flight writes still block them. Selected-company
+approvals become stale; installation-wide approvals follow the owner-managed
+connections and their current program selections.
 
-Explicit owner OAuth consent can renew the same client registration. The owner
-selects concrete company/connection/access revisions. Each approval has an
-immutable authorization identity; token families bind to its revision. Legacy
-identities are denied after first renewal. Old tokens/refresh families and codes
-cannot gain newly approved access. Successful refresh preserves the same rights
-through the actual library token lifetime. Model bearer tokens cannot renew
-company grants. Actual hosted-client reapproval remains separately unverified.
+Ordinary OAuth consent explicitly authorizes all current and future connections
+of the installation owner (`companyAccess: owner_connections`). The consent page
+names the current companies and explains future access. Its focused responsive
+layout reuses the administration's brand, CSS tokens and controls; requested
+read/write/file/refresh capabilities are listed separately. File-retention and
+policy disclosures remain visible. The server resolves
+company membership on each request; neither a supplied company ID nor the mere
+existence of an OAuth registration grants access. An empty installation may be
+approved before the first company is connected. Owner-authorized program changes
+and verified reconnects are available through the existing client authorization.
+Disconnection immediately blocks that company. OAuth read/write/file scopes,
+provider scopes, program availability, read-only and voucher policy still apply.
+This does not revalidate proposals, approvals, files or intents bound to older
+company/generation/access/policy versions.
+
+Older approvals retain their selected companies and exact connection/access
+versions until the owner explicitly chooses **Allow all current and future
+companies** in AI clients. The owner-session-only, exact-Origin endpoint
+`POST /admin/clients/company-access` binds the observed registration, approval
+identity and revision. It changes company membership for that authorization
+without replacing tokens, extending expiry or adding OAuth capability scopes.
+The model's bearer token cannot perform this upgrade. Legacy unversioned grants
+use CAS on their existing row; versioned grants update their bounded, expiring
+approval record. Expired approvals cannot be revived. External application
+onboarding approvals remain selected-company grants and cannot be upgraded by
+this endpoint or by adding the installation-wide flag to onboarding consent.
+
+A new explicit OAuth approval can still renew the same registration and replaces
+the authorization identity/revision. Tokens, refresh families and unspent codes
+from older approvals cannot acquire the replacement's rights. Installation-wide
+domain authorization checks the current registration as well, fencing in-flight
+requests after replacement. Successful refresh retains company access mode for
+the actual library token lifetime. Hosted-client acceptance remains separate;
+see [implementation and evidence](../implementation/installation-company-access.md).
 
 Initial product consent requests `companyinformation profile` only. Additional
 access uses the existing company connection, not a separate service account for
@@ -108,12 +136,12 @@ programs.
 An extension binds owner/session/company/generation/policy/program revision and
 requested scopes. The authenticated provider tenant must match before replacement;
 partial scope responses fail closed. Replacement advances generation and invalidates
-old proposals/grants while retaining the stable company ID and current policy.
+old proposals and selected-company grants while retaining the stable company ID and current policy.
 Cancellation/failure does not delete the working local credential. Actual upstream
 invalidation remains subject to provider acceptance and normal reconnect handling.
 Local disable retains provider scopes but blocks current domain/provider calls;
 shared scopes remain usable by other enabled programs. Reactivation requires a new
-explicit consent flow. Uncertain writes block changes to affected programs and all local disable operations. A narrowly additive payroll consent may proceed with an older tenant-bound register/document outcome, preserving that outcome and its write block. In-flight, unbound, bookkeeping, receipt and payroll uncertainty still block it. Owner-only same-origin reconciliation uses a temporary read-only internal identity; old MCP grants and intent identities remain immutable.
+explicit consent flow. Uncertain writes block changes to affected programs and all local disable operations. A narrowly additive payroll consent may proceed with an older tenant-bound register/document outcome, preserving that outcome and its write block. In-flight, unbound, bookkeeping, receipt and payroll uncertainty still block it. Owner-only same-origin reconciliation uses a temporary read-only internal identity; recovery does not widen MCP grants or change intent identities.
 See [implementation and acceptance boundaries](../implementation/S11-company-programs.md).
 
 ## External application company onboarding (#146)

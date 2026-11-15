@@ -51,6 +51,20 @@ model access to app-only approval capabilities. Record new results as
 AI-executed and independently AI-reviewed, without claiming human presence.
 See the [procedure and retained boundaries](implementation/ai-reviewed-acceptance-2026-11-11.md).
 
+## Owner-directed installation company access (2026-11-15)
+
+The owner requested that connecting a company to Fortnox MCP also makes it
+available to the authorized AI client without reconnecting that client for each
+company. This refines D06/D10 from the next build containing this change. Ordinary
+client consent explicitly covers the owner's current and future connections.
+Existing selected-company approvals require one explicit owner-side upgrade in
+AI clients, using the current token family without client reconnection. External
+application onboarding retains its bounded selected-company contract. No database
+schema migration is required. Capability scopes, company disconnection, program
+checks, read-only, review policy and immutable financial intent bindings remain
+mandatory. See [the authentication contract](contracts/authentication.md) and
+[implementation/evidence](implementation/installation-company-access.md).
+
 ## CLA and commercial-rights decision (2026-10-20)
 
 The owner approved a **Contributor License Agreement with Easy Today AB as the legal rights recipient**. The public code and documentation remain AGPL-3.0-only; the company's additional license is non-exclusive, contributors retain copyright, and separately licensed commercial products may be built only from material for which the company has the necessary rights. The change does not alter the open-source release scope, licensing of historic third-party material, or the D03 self-hosting-first launch decision.

@@ -203,9 +203,9 @@ export function companyServer(context: {
     "list_companies",
     {
       ...common,
-      title: "List authorized test companies",
+      title: "List authorized companies",
       description:
-        "List only companies in this client's current authorized company grant. A fresh approval is required after access changes.",
+        "List companies authorized for this client. Installation-wide approval includes newly connected companies automatically; selected-company grants remain limited to their approved versions.",
       inputSchema: z.object({}).strict(),
       outputSchema: listOutput,
     },
@@ -240,7 +240,7 @@ export function companyServer(context: {
             warnings: companies.length
               ? []
               : [
-                  "No companies are currently authorized for this client. Reopen the connection's OAuth approval to select current company access.",
+                  "No companies are currently authorized for this client. The installation owner can connect a company or check this client's access under AI clients.",
                 ],
           },
           continuation: null,

@@ -22,6 +22,118 @@ export const keyA = btoa(String.fromCharCode(...new Uint8Array(32).fill(11)));
 export const keyB = btoa(String.fromCharCode(...new Uint8Array(32).fill(22)));
 export function connectionContract(fixture: () => Promise<StateStore>) {
   describe("encrypted owner/company connections", () => {
+    it("a competing OAuth renewal fences an owner upgrade of the earlier authorization", async () => {
+      const state = await fixture();
+      const vault = new CredentialVault({ a: keyA }, "a");
+      const service = new Connections(state, vault);
+      const a = await service.add(
+        "owner",
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      const old = await service.renewGrant("owner", "client", []);
+      let reached: () => void = () => {};
+      let release: () => void = () => {};
+      const intercepted = new Promise<void>((resolve) => {
+        reached = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let pause = true;
+      const competing = new Connections(
+        {
+          get: state.get.bind(state),
+          list: state.list.bind(state),
+          put: async (space, id, value, expected) => {
+            if (space === "oauth-approval-grants" && pause) {
+              pause = false;
+              reached();
+              await gate;
+            }
+            return state.put(space, id, value, expected);
+          },
+        },
+        vault,
+      );
+      const upgrade = competing.allowOwnerConnections(
+        "owner",
+        "client",
+        old.grantId ?? null,
+        old.revision ?? 0,
+      );
+      const rejected = expect(upgrade).rejects.toThrow("CONNECTION_CONFLICT");
+      await intercepted;
+      const renewed = await service.renewGrant("owner", "client", [
+        {
+          id: a.id,
+          generation: a.generation,
+          access_revision: a.accessRevision ?? 0,
+        },
+      ]);
+      release();
+      await rejected;
+      expect(
+        (await service.clientGrant("owner", "client")).companyAccess,
+      ).toBeUndefined();
+      await expect(
+        service.authorize("owner", old.grantId as string, a.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      expect(
+        (await service.authorize("owner", renewed.grantId as string, a.id)).id,
+      ).toBe(a.id);
+    });
+    it("upgrades legacy access only for its owner and cannot revive expired or superseded OAuth approvals", async () => {
+      const state = await fixture();
+      const service = new Connections(
+        state,
+        new CredentialVault({ a: keyA }, "a"),
+      );
+      const a = await service.add(
+        "owner",
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      await service.grant("owner", "legacy-client", []);
+      await expect(
+        service.allowOwnerConnections("other-owner", "legacy-client", null, 0),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await service.allowOwnerConnections("owner", "legacy-client", null, 0);
+      expect((await service.authorize("owner", "legacy-client", a.id)).id).toBe(
+        a.id,
+      );
+      await expect(service.grant("owner", "legacy-client", [])).rejects.toThrow(
+        "COMPANY_FORBIDDEN",
+      );
+      const approved = await service.renewGrant("owner", "legacy-client", []);
+      await expect(
+        service.authorize("owner", "legacy-client", a.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await expect(
+        service.allowOwnerConnections("owner", "legacy-client", null, 0),
+      ).rejects.toThrow("CONNECTION_CONFLICT");
+      const row = await state.get<Record<string, { expiresAt?: number }>>(
+        "oauth-approval-grants",
+        "owner",
+      );
+      if (!row || !approved.grantId)
+        throw new Error("Missing approval fixture");
+      const record = row.value[approved.grantId];
+      if (!record) throw new Error("Missing approval fixture");
+      record.expiresAt = Date.now() - 1;
+      await state.put("oauth-approval-grants", "owner", row.value, row.version);
+      await expect(
+        service.allowOwnerConnections(
+          "owner",
+          "legacy-client",
+          approved.grantId,
+          approved.revision as number,
+        ),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await expect(
+        service.authorize("owner", approved.grantId, a.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+    });
     it("authorizes durable grants and isolates credentials, tenant uniqueness and policy", async () => {
       const state = await fixture();
       const service = new Connections(

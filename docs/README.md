@@ -1,5 +1,7 @@
 # Documentation map
 
+Company access: [installation-wide client approval and owner-side migration](implementation/installation-company-access.md) includes future connected companies without reconnecting the AI client. External application onboarding remains company-specific; actual hosted-client acceptance stays separate.
+
 S08/#143: [optional pinned analysis contexts, larger SIE inputs and performance evidence](implementation/S08-performance.md). Both extensions default off; provider/hosted-client acceptance remains separate.
 
 Company access: [same-registration approval renewal, safe local read additions

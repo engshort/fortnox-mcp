@@ -320,7 +320,7 @@ test("dated read activation preserves an unknown upload and shows current access
   db.close();
 });
 
-test("owner renews the same OAuth registration after a local read addition and earlier tokens cannot gain access", async ({ page }, info) => {
+test("owner approval includes future companies and local read additions without reconnecting", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const db = new DatabaseSync(join(directory, "product.sqlite"));
@@ -334,7 +334,7 @@ test("owner renews the same OAuth registration after a local read addition and e
   await page.request.post(`${origin}/auth/sign-in/email`, { headers: { origin }, data: { email: "browser-owner@example.invalid", password: "synthetic-browser-password" } });
   const clientHttp = await playwrightRequest.newContext();
   const callback = "https://chatgpt.com/connector_platform_oauth_redirect";
-  const registration = await clientHttp.post(`${origin}/auth/oauth2/register`, { headers: { origin }, data: { client_name: "Synthetic renewal browser", redirect_uris: [callback], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], scope: "mcp:read offline_access" } });
+  const registration = await clientHttp.post(`${origin}/auth/oauth2/register`, { headers: { origin }, data: { client_name: "Synthetic renewal browser", redirect_uris: [callback], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], scope: "mcp:read mcp:write mcp:files offline_access" } });
   expect(registration.status()).toBe(201);
   const { client_id } = await registration.json();
   const verifier = "synthetic-browser-verifier-abcdefghijklmnopqrstuvwxyz0123456789";
@@ -345,10 +345,16 @@ test("owner renews the same OAuth registration after a local read addition and e
   const approve = async (step: string) => {
     await page.goto(`${origin}/auth/oauth2/authorize?${new URLSearchParams({ client_id, response_type: "code", redirect_uri: callback, scope: "mcp:read offline_access", state: step, resource: `${origin}/mcp`, code_challenge: challenge, code_challenge_method: "S256" })}`);
     await expect(page.getByRole("heading", { name: "Godkänn klient", exact: true })).toBeVisible();
-    for (const checkbox of await page.getByRole("checkbox").all()) await checkbox.uncheck();
-    await page.getByRole("checkbox", { name: /Syntetiskt datumprov/ }).check();
+    await expect(page.getByText(/Godkännandet omfattar alla företag/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Fortnox MCP, administration", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Begärda behörigheter", exact: true })).toBeVisible();
+    await expect(page.getByText("Läsa företagsuppgifter", { exact: true })).toBeVisible();
+    await expect(page.getByText("Hantera valda filer", { exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    await expect(page.getByRole("checkbox", { name: /Syntetiskt datumprov/ })).toBeDisabled();
     await page.screenshot({ path: join(tmpdir(), `access-consent-${step}-${info.project.name}.png`), fullPage: true });
-    await page.getByRole("button", { name: "Godkänn begärda behörigheter till valda företag", exact: true }).click();
+    await page.getByRole("button", { name: "Godkänn åtkomst till nuvarande och framtida företag", exact: true }).click();
     await expect(page).toHaveURL(new RegExp("^https://chatgpt.com/connector_platform_oauth_redirect\\?"));
     const code = new URL(page.url()).searchParams.get("code");
     expect(code).toBeTruthy();
@@ -358,17 +364,41 @@ test("owner renews the same OAuth registration after a local read addition and e
   };
   const list = async (token: string) => clientHttp.post(`${origin}/mcp`, { headers: { authorization: `Bearer ${token}`, accept: "application/json, text/event-stream", "mcp-protocol-version": "2025-11-25" }, data: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_companies", arguments: {} } } });
   const first = await approve("before");
-  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toEqual([company.id]);
+  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toContain(company.id);
   await page.goto(`${origin}/admin/companies/${company.id}/bookkeeping`);
   await page.getByRole("button", { name: "Uppdatera åtkomst", exact: true }).click();
   await page.getByRole("button", { name: "Godkänn åtkomst", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies).toEqual([]);
-  const second = await approve("after");
-  expect((await list(first.access_token)).status()).toBe(401);
-  const oldRefresh = await clientHttp.post(`${origin}/auth/oauth2/token`, { headers: { origin }, form: { client_id, grant_type: "refresh_token", refresh_token: first.refresh_token, resource: `${origin}/mcp` } });
-  expect(oldRefresh.status()).toBe(400);
-  expect((await (await list(second.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toEqual([company.id]);
+  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toContain(company.id);
+  const addedDb = new DatabaseSync(join(directory, "product.sqlite"));
+  const addedConnections = new Connections(sqliteState(addedDb), new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
+  const added = await addedConnections.add(owner.value.ownerId, { tenant: "100004", name: "Syntetiskt nytt företag", organizationNumber: "000000-0003", mode: "service", scopes: ["companyinformation", "profile"] }, { clientId: "synthetic-client", clientSecret: "synthetic-client-secret", accessToken: "synthetic-access", expiresAt: Date.now() + 3600000 });
+  addedDb.close();
+  expect((await (await list(first.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toContain(added.id);
+  await page.goto(`${origin}/admin/ai-clients`);
+  await expect(page.getByText("Alla nuvarande och framtida anslutna företag", { exact: true })).toBeVisible();
+  const upgradeDb = new DatabaseSync(join(directory, "product.sqlite"));
+  const upgradeConnections = new Connections(sqliteState(upgradeDb), new CredentialVault({ a: Buffer.alloc(32, 7).toString("base64") }, "a"));
+  await upgradeConnections.renewGrant(owner.value.ownerId, "synthetic-older-browser-client", []);
+  upgradeDb.close();
+  await page.reload();
+  await page.getByRole("button", { name: "Tillåt alla nuvarande och framtida företag", exact: true }).click();
+  await expect(page.getByText("Alla nuvarande och framtida anslutna företag", { exact: true })).toHaveCount(2);
+
+  await expect(page.getByRole("link", { name: "Syntetiskt nytt företag", exact: true })).toHaveCount(2);
+  await page.screenshot({ path: join(tmpdir(), `company-access-${info.project.name}.png`), fullPage: true });
+  const refreshed = await clientHttp.post(`${origin}/auth/oauth2/token`, { headers: { origin }, form: { client_id, grant_type: "refresh_token", refresh_token: first.refresh_token, resource: `${origin}/mcp` } });
+  expect(refreshed.status()).toBe(200);
+  const replacement = await refreshed.json();
+  expect((await (await list(replacement.access_token)).json()).result.structuredContent.data.companies.map((c: { company_id: string }) => c.company_id)).toContain(added.id);
   expect(errors).toEqual([]);
+  await page.goto(`${origin}/auth/oauth2/authorize?${new URLSearchParams({ client_id, response_type: "code", redirect_uri: callback, scope: "mcp:read mcp:write mcp:files offline_access", state: "all-scopes-preview", resource: `${origin}/mcp`, code_challenge: challenge, code_challenge_method: "S256" })}`);
+  await expect(page.getByRole("heading", { name: "Godkänn klient", exact: true })).toBeVisible();
+  await expect(page.getByText("Skriva i Fortnox", { exact: true })).toBeVisible();
+  await expect(page.getByText("Hantera valda filer", { exact: true })).toBeVisible();
+  await expect(page.getByText(/återläsas inom 55 minuter/)).toBeVisible();
+  await expect(page.getByText(/driftavbrott kan fördröja fysisk radering/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: join(tmpdir(), `consent-all-scopes-${info.project.name}.png`), fullPage: true });
   await clientHttp.dispose();
 });

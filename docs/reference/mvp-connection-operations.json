@@ -18,17 +18,17 @@
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "2081d8f3ef1f12f62281bbb2dc86af9f7ed082cbddfab007244b751b60703dd0",
+      "sha256": "aa988881ed3c35e64723fee485d4c1daa954481a80105f71fea423fe344cdcf7",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "94e4a1d8053f81fbc05ad240d5e8ed8fd3e0e61fef270838f42026012099011a",
+      "sha256": "02697f5c6b8e06e1489e0f8c07e4de7a004da6614b38896771d7b0814936a46d",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "24e17f2e73d6a85b7eebb166221fbaecc228eefb557194837c5167db3c1b5dbc",
+      "sha256": "cb3707931b6db2e1907c58504e9156de1e032f180972c27dde6e04feefe824c6",
       "kind": "independently_written_project_source"
     },
     {
