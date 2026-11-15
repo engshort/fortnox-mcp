@@ -2,6 +2,21 @@
 
 Project-authored code and documentation use AGPL-3.0-only. This does not grant rights to Fortnox's API specification, documentation, trademarks, customer data or other third-party material.
 
+## Optional Resend account email (2026-11-15)
+
+The root lockfile pins Resend 6.38.1 (MIT), postal-mime 2.7.6 (MIT-0),
+standardwebhooks 1.1.1 (MIT), @stablelib/base64 1.0.1 (MIT), and fast-sha256
+1.3.0 (Unlicense). Runtime bundles retain their original notices.
+
+The standardwebhooks npm archive omits its parent `libraries/LICENSE`.
+[The original MIT notice at the published gitHead](https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/LICENSE)
+is retained verbatim in [the supplemental notice](third-party/standardwebhooks-1.1.1-LICENSE.txt),
+under its original terms. The build accepts this fallback only for that exact
+package/version/license and SHA-256
+`5ec8c7b26b64d881a6706617bed25c049f97f2f35de034c756de8546fd6dbe27`.
+Other missing runtime notices still fail the build. No later license is applied
+retroactively.
+
 ## S00 optional file-probe dependencies (2026-11-05)
 
 These exact versions are used by the experimental OAuth/file package. Milestone 4 also reuses `pdf-lib`, `pngjs`, `jpeg-js`, `ipaddr.js` and development-only `@types/pngjs` in the bounded product file adapter; `http-parser-js` remains probe-only:

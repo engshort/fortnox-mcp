@@ -7,6 +7,7 @@ import type { CompanyGrant, ConnectionSet } from "@fortnox-mcp/core";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { z } from "zod";
+import type { AccountEmails } from "./product-email.js";
 import type { StateStore } from "./state.js";
 
 export interface Owner {
@@ -21,6 +22,7 @@ export interface AuthConfig {
   database: BetterAuthOptions["database"];
   state: StateStore;
   onReset?: (token: string) => Promise<void>;
+  emails?: AccountEmails;
 }
 export interface GrantFamily {
   ownerId: string;
@@ -101,8 +103,33 @@ export function createProductAuth(config: AuthConfig) {
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 600,
-      sendResetPassword: async ({ token }) => {
+      sendResetPassword: async ({ user, token }) => {
         if (config.onReset) await config.onReset(token);
+        if (config.emails) {
+          const owner = await config.state.get<Owner>("installation", "owner");
+          if (
+            owner?.value.phase === "active" &&
+            owner.value.ownerId === user.id
+          )
+            await config.emails.passwordReset(user.email, token);
+        }
+      },
+      onPasswordReset: async ({ user }) => {
+        if (!config.emails) return;
+        try {
+          const owner = await config.state.get<Owner>("installation", "owner");
+          if (
+            owner?.value.phase === "active" &&
+            owner.value.ownerId === user.id
+          )
+            await config.emails.passwordChanged(
+              user.email,
+              crypto.randomUUID(),
+            );
+        } catch {
+          // The password is already changed; notification failure cannot
+          // turn this completed authentication action into a failed reset.
+        }
       },
     },
     session: { expiresIn: 86400, cookieCache: { enabled: false } },

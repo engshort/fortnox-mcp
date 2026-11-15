@@ -12,6 +12,9 @@ export interface ProductEnv extends Partial<ProductBindings> {
   FINANCIAL_ANALYSIS_CONTEXTS_ENABLED?: string;
   FINANCIAL_LARGE_READS_ENABLED?: string;
   AUTH_SECRET?: string;
+  RESEND_ENABLED?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM?: string;
   CREDENTIAL_KEYS?: string;
   CREDENTIAL_ACTIVE_KEY?: string;
   MCP_REDIRECT_URIS?: string;

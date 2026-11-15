@@ -21,6 +21,42 @@ Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd l
 | `FORTNOX_CLIENT_ID` | Client ID från installationens egen opublicerade Fortnox-testintegration. |
 | `FORTNOX_CLIENT_SECRET` | Samma integrations Client Secret. Ange endast privat här eller som Worker-secret. |
 | `FORTNOX_TEST_TENANTS` | Används bara av isolerade acceptansbyggen. Vanliga anslutningar verifierar företagets identitet efter ägarens Fortnox-medgivande. |
+| `RESEND_ENABLED` | `false` som standard. Sätt exakt `true` för att aktivera appens kontomejl. |
+| `RESEND_API_KEY` | Privat Resend API-nyckel. På Node kan `RESEND_API_KEY_FILE` användas i stället; ange inte båda. På Worker används en secret. |
+| `RESEND_FROM` | Verifierad avsändaradress hos Resend, exempelvis `konto@example.com`. Ange enbart adressen, utan visningsnamn. |
+
+## Appens e-post
+
+Lägg in följande i din privata konfiguration:
+
+```dotenv
+RESEND_ENABLED=false
+RESEND_API_KEY=
+RESEND_FROM=
+```
+
+Skapa nyckeln i [Resend](https://resend.com/api-keys), verifiera avsändardomänen
+och fyll i avsändaradressen. En nyckel med sändningsbehörighet för den valda
+domänen räcker. Sätt `RESEND_ENABLED=true` och starta om appen när du vill
+aktivera utskicken. Aktivering med saknade eller felaktiga värden stoppas som
+ett konfigurationsfel. Enbart ifylld API-nyckel aktiverar inga utskick.
+
+Appen skickar ett välkomstmejl när en ny installationsägare skapas, en engångskod
+vid begärd lösenordsåterställning och en bekräftelse efter att lösenordet har
+återställts. Befintliga ägare får inget välkomstmejl vid aktivering. Projektet
+har fortfarande en ägare per installation.
+
+Öppna `/reset-password` och välj **Begär kod via e-post**. Ange ägarens e-post,
+kopiera koden från mejlet till återställningsformuläret och välj ett nytt lösenord.
+Koden gäller i tio minuter och fungerar en gång. Högst tre kodförsök per timme
+tillåts för hela installationen. Svaret avslöjar inte om adressen finns eller om
+mejlet har levererats. Om mejlet uteblir kan installationsoperatören utfärda en
+privat kod enligt befintliga återställningsanvisningar.
+
+Worker behöver samma variabler i sin egen konfiguration; `.env` laddas inte upp
+automatiskt. API-nyckeln ska vara en Worker-secret. E-post skickas utan automatiska
+omförsök efter ett osäkert svar. Uteblivet välkomst- eller bekräftelsemejl ändrar
+inte ett redan skapat konto eller ett redan återställt lösenord.
 
 ## Första lokala starten
 

@@ -149,6 +149,16 @@ export function createAdmin(config: AuthConfig) {
             ))
           )
             throw new Error("BOOTSTRAP_DENIED");
+          if (config.emails) {
+            try {
+              await config.emails.welcome(
+                signed.response.user.email,
+                signed.response.user.id,
+              );
+            } catch {
+              // Account creation has committed. Never retry it for email.
+            }
+          }
           const response = safeResponse('{"ok":true}');
           for (const cookie of signed.headers.getSetCookie())
             response.headers.append("set-cookie", cookie);
@@ -162,24 +172,37 @@ export function createAdmin(config: AuthConfig) {
           "/auth/sign-in/email",
           "/auth/sign-out",
           "/auth/reset-password",
+          ...(config.emails ? ["/auth/request-password-reset"] : []),
         ].includes(url.pathname)
       ) {
+        const emailReset = url.pathname === "/auth/request-password-reset";
+        if (
+          emailReset &&
+          !z
+            .object({ email: z.email().max(254) })
+            .strict()
+            .safeParse(body).success
+        )
+          return safeResponse('{"error":"VALIDATION_FAILED"}', 400);
         if (url.pathname !== "/auth/sign-out") {
           let limited = true;
           for (let attempt = 0; attempt < 5; attempt++) {
             const prior = await config.state.get<{
               until: number;
               count: number;
-            }>("admin-rate", "login");
+            }>("admin-rate", emailReset ? "reset-email" : "login");
             const value =
               prior && prior.value.until > Date.now()
                 ? { ...prior.value, count: prior.value.count + 1 }
-                : { until: Date.now() + 60000, count: 1 };
-            if (value.count > 10) break;
+                : {
+                    until: Date.now() + (emailReset ? 3600000 : 60000),
+                    count: 1,
+                  };
+            if (value.count > (emailReset ? 3 : 10)) break;
             if (
               await config.state.put(
                 "admin-rate",
-                "login",
+                emailReset ? "reset-email" : "login",
                 value,
                 prior?.version ?? null,
               )
@@ -189,6 +212,22 @@ export function createAdmin(config: AuthConfig) {
             }
           }
           if (limited) return safeResponse('{"error":"RATE_LIMITED"}', 429);
+        }
+        if (emailReset) {
+          // Fixed response for unknown addresses and uncertain delivery. Never
+          // disclose whether an owner exists or echo a provider error/token.
+          try {
+            await auth.handler(
+              new Request(request.url, {
+                method: "POST",
+                headers: request.headers,
+                body: JSON.stringify(body),
+              }),
+            );
+          } catch {
+            // The delivery adapter does not retry an uncertain send.
+          }
+          return safeResponse('{"ok":true}');
         }
         if (url.pathname === "/auth/sign-out") {
           try {

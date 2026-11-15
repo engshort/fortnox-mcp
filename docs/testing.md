@@ -1,5 +1,14 @@
 # Test strategy and evidence
 
+Optional [account-email tests](implementation/account-email.md) run through the
+shared owner contract on Node/SQLite and actual local workerd/D1. They use
+synthetic accounts and intercepted email transport, checking default-off setup,
+active-owner delivery, issuance limits, single-use reset/session revocation,
+welcome replay and uncertain notification failures. They prove no real inbox
+delivery. Run the existing `test:node` / `test:worker` commands with
+`tests/node/product.test.ts` / `tests/worker/product.test.ts` and
+`-t 'product owner boundary'` for the focused contract.
+
 The shared company-access regressions in `product-oauth`, `connections` and
 `onboarding` exercise installation-wide consent before connecting a company,
 existing-token owner upgrades, refresh, current membership, foreign owners,

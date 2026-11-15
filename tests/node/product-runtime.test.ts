@@ -40,6 +40,15 @@ it("loads file-mounted secrets without ambiguous fallback or secret-bearing erro
     expect(
       (await nodeEnvironment({ AUTH_SECRET_FILE: path })).AUTH_SECRET,
     ).toBe("synthetic-private-value");
+    expect(
+      (await nodeEnvironment({ RESEND_API_KEY_FILE: path })).RESEND_API_KEY,
+    ).toBe("synthetic-private-value");
+    await expect(
+      nodeEnvironment({
+        RESEND_API_KEY: "re_synthetic",
+        RESEND_API_KEY_FILE: path,
+      }),
+    ).rejects.toThrow("Conflicting RESEND_API_KEY");
     await expect(
       nodeEnvironment({ AUTH_SECRET: "synthetic", AUTH_SECRET_FILE: path }),
     ).rejects.toThrow("Conflicting AUTH_SECRET");

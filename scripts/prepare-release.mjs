@@ -8,7 +8,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
@@ -16,6 +16,8 @@ const run = promisify(execFile);
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const licenses = new Set([
   "MIT",
+  "MIT-0",
+  "Unlicense",
   "Apache-2.0",
   "BSD-2-Clause",
   "BSD-3-Clause",
@@ -62,16 +64,32 @@ export async function prepareRuntimeNotices(directory) {
   for (const [path, pkg] of [...packages.entries()].sort(([a], [b]) =>
     a.localeCompare(b),
   )) {
-    const notices = (await readdir(path)).filter((f) =>
-      /^(licen[sc]e|copying|notice)([._-].*)?$/i.test(f),
-    );
+    let notices = (await readdir(path))
+      .filter((f) => /^(licen[sc]e|copying|notice)([._-].*)?$/i.test(f))
+      .map((f) => join(path, f));
+    // The exact npm archive omits its parent-directory MIT license. Retain
+    // the original from its published gitHead; never borrow a later notice.
+    if (
+      !notices.length &&
+      pkg.name === "standardwebhooks" &&
+      pkg.version === "1.1.1" &&
+      pkg.license === "MIT"
+    ) {
+      const notice = resolve("third-party/standardwebhooks-1.1.1-LICENSE.txt");
+      if (
+        hash(await readFile(notice)) !==
+        "5ec8c7b26b64d881a6706617bed25c049f97f2f35de034c756de8546fd6dbe27"
+      )
+        throw new Error("Pinned standardwebhooks license mismatch");
+      notices = [notice];
+    }
     if (!notices.length) throw new Error(`Missing license text: ${pkg.name}`);
     const name = `${pkg.name.replaceAll("/", "_").replaceAll("@", "")}-${pkg.version}`;
     for (const notice of notices)
-      if ((await stat(join(path, notice))).isFile())
+      if ((await stat(notice)).isFile())
         await copyFile(
-          join(path, notice),
-          join(noticeDirectory, `${name}-${notice}`),
+          notice,
+          join(noticeDirectory, `${name}-${basename(notice)}`),
         );
     components.push({
       type: "library",
