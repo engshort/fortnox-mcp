@@ -127,6 +127,12 @@ export function onboardingRoutes(config: {
             });
           if (!service.clients.includes(identity.oauthClientId))
             throw new OnboardingError("AUTH_REQUIRED", 401);
+          const attempt = await service.get(
+            identity.ownerId,
+            identity.oauthClientId,
+            match?.[1] ?? "",
+          );
+          await validateClient(attempt, identity.ownerId);
           return json(
             await service.result(
               identity.ownerId,
@@ -211,7 +217,7 @@ export function onboardingRoutes(config: {
       }
     }
     const browser =
-      /^\/connect\/company\/([a-f0-9-]{36})(?:\/(choose|provider|approve|cancel|cancel-provider))?$/.exec(
+      /^\/connect\/company\/([a-f0-9-]{36})(?:\/(choose|provider|approve|cancel|cancel-provider|recover-session))?$/.exec(
         url.pathname,
       );
     if (!browser) return null;
@@ -235,6 +241,74 @@ export function onboardingRoutes(config: {
       return onboardingFailure(new OnboardingError("AUTH_REQUIRED", 401));
     }
     try {
+      const record = (
+        await service.connections.snapshot(session.user.id)
+      )?.value.onboarding?.find(
+        (a) => a.id === id && a.retainUntil > service.now(),
+      );
+      const needsReview =
+        record?.session &&
+        ["provider_pending", "provider_outcome_unknown", "failed"].includes(
+          record.phase,
+        ) &&
+        (record.session !== session.session.id ||
+          record.expiresAt <= service.now());
+      if (needsReview && record?.session) {
+        const old = await (await auth.$context).adapter.findOne<{
+          expiresAt: Date;
+        }>({
+          model: "session",
+          where: [{ field: "id", value: record.session }],
+        });
+        if (
+          record.session !== session.session.id &&
+          old &&
+          new Date(old.expiresAt).getTime() > service.now()
+        )
+          throw new OnboardingError("AUTH_REQUIRED", 401);
+        await validateClient(record, session.user.id);
+        if (request.method === "GET" && !browser[2])
+          return safeResponse(
+            `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Återuppta ägargranskning</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Återuppta ägargranskning</h1><p>Ägarsessionen har gått ut. Kontrollera det sparade utfallet. Ingen Fortnox-kod skickas igen.</p><form data-action="/connect/company/${id}/recover-session"><input type="hidden" name="revision" value="${record.revision}"><button>Fortsätt granska med denna ägarsession</button></form><p id="status" role="status"></p><script src="/connect/company.js"></script></main></html>`,
+            200,
+            "text/html; charset=utf-8",
+          );
+        if (request.method === "POST" && browser[2] === "recover-session") {
+          if (request.headers.get("origin") !== service.origin)
+            throw new OnboardingError("AUTH_REQUIRED", 401);
+          const input = z
+            .object({ revision: z.number().int().positive() })
+            .strict()
+            .parse(await boundedJson(request));
+          if (input.revision !== record.revision)
+            throw new OnboardingError("ATTEMPT_CONFLICT");
+          const flow = await provider.onboardingFlow(
+            session.user.id,
+            id,
+            record.revision,
+          );
+          if (flow?.claimed && flow.expiresAt > service.now())
+            throw new OnboardingError("CONSENT_IN_PROGRESS", 409, "wait");
+          if (flow && !flow.claimed)
+            await provider.cancelOnboardingPending(
+              session.user.id,
+              record.session,
+              id,
+              record.revision,
+            );
+          await service.rebindForReview(
+            session.user.id,
+            id,
+            record.revision,
+            record.session,
+            session.session.id,
+          );
+          return json({
+            url: `${service.origin}/connect/company/${id}?revision=${record.revision}`,
+          });
+        }
+        throw new OnboardingError("AUTH_REQUIRED", 401);
+      }
       if (request.method === "GET" && !browser[2]) {
         const revision = z.coerce
           .number()

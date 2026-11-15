@@ -27,7 +27,6 @@ test("separate consumer and owner cookies complete A then B through actual HTTP 
   await page.goto("http://localhost:8802/");
   await expect(page).toHaveTitle("Syntetisk konsument");
   await page.getByRole("button",{name:"Anslut företag",exact:true}).click();
-  await page.screenshot({path:"/tmp/onboarding-login-debug.png",fullPage:true});
   await expect(page.getByRole("heading",{name:"Logga in",exact:true})).toBeVisible().catch(async()=>{throw new Error("Login did not render: "+JSON.stringify({errors,path:new URL(page.url()).pathname,text:await page.locator("body").innerText()}));});
   await page.getByLabel("E-post").fill("owner@example.invalid");
   await page.getByLabel("Lösenord",{exact:true}).fill("Synthetic-password-123456");
@@ -43,6 +42,7 @@ test("separate consumer and owner cookies complete A then B through actual HTTP 
     await page.getByRole("button",{name:"Fortsätt till appgodkännande",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Godkänn klient",exact:true})).toBeVisible();
     await expect(page.getByText("Synthetic consumer",{exact:true})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await page.screenshot({path:join(tmpdir(),`onboarding-${company}-consent-${info.project.name}.png`),fullPage:true});
     await page.getByRole("button",{name:"Godkänn begärda behörigheter till valda företag",exact:true}).click();
     await expect(page).toHaveURL(/http:\/\/localhost:8802\/companies\/[a-f0-9-]+/);

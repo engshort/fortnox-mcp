@@ -17,6 +17,7 @@ export async function onboardingFixture(config: AuthConfig) {
   const clients: string[] = [];
   let calls = 0;
   let failProvider = false;
+  let providerGate: Promise<void> | undefined;
   const settings: ProductSettings = {
     origin: config.origin,
     secret: config.secret,
@@ -35,6 +36,7 @@ export async function onboardingFixture(config: AuthConfig) {
     config,
     async (input, init) => {
       calls++;
+      if (providerGate) await providerGate;
       if (failProvider) throw new Error("Synthetic lost response");
       const request = new Request(input, init);
       if (new URL(request.url).pathname === "/oauth-v1/token") {
@@ -273,6 +275,16 @@ export async function onboardingFixture(config: AuthConfig) {
     verifier,
     challenge,
     calls: () => calls,
+    pauseProvider: () => {
+      let release!: () => void;
+      providerGate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return () => {
+        providerGate = undefined;
+        release();
+      };
+    },
     fail: () => {
       failProvider = true;
     },
@@ -734,5 +746,167 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
     expect(next?.tenant).toBe(c?.tenant);
     expect(next?.generation).toBe(c?.generation);
     expect(next?.state).toBe("reconnect_required");
+  });
+  it("refuses session recovery while an earlier session or provider exchange remains active", async () => {
+    const f = await onboardingFixture(await fixture());
+    const a = await f.start();
+    const start = await f.browser(`/connect/company/${a.attempt_id}/provider`, {
+      revision: 1,
+      mode: "user",
+    });
+    const target = new URL(((await start.json()) as { url: string }).url);
+    const login = await f.app.auth.api.signInEmail({
+      body: {
+        email: "onboarding@example.invalid",
+        password: "Synthetic-password-123456",
+      },
+      returnHeaders: true,
+    });
+    const cookie = login.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0])
+      .join("; ");
+    const recover = (origin = f.config.origin) =>
+      f.request(
+        `/connect/company/${a.attempt_id}/recover-session`,
+        { revision: 1 },
+        { cookie, origin },
+      );
+    expect((await recover()).status).toBe(401);
+    const release = f.pauseProvider();
+    const callback = f.browser(
+      `/admin/fortnox/callback?${new URLSearchParams({ state: target.searchParams.get("state") ?? "", code: "A" })}`,
+    );
+    try {
+      await expect.poll(() => f.calls()).toBe(1);
+      await f.app.auth.api.signOut({
+        headers: new Headers({ cookie: f.cookie }),
+      });
+      expect((await recover("https://foreign.example.invalid")).status).toBe(
+        403,
+      );
+      const response = await recover();
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: "CONSENT_IN_PROGRESS",
+        recovery_action: "wait",
+      });
+      expect(f.calls()).toBe(1);
+      expect(
+        (await f.app.onboarding?.get(f.owner, f.client.client_id, a.attempt_id))
+          ?.phase,
+      ).toBe("provider_pending");
+    } finally {
+      release();
+      await callback;
+    }
+    expect(await f.app.connections.list(f.owner)).toHaveLength(1);
+  });
+  it("rebinds expired owner sessions for pending/unknown provider review without code replay", async () => {
+    const f = await onboardingFixture(await fixture());
+    const first = await f.start();
+    await f.provider(first);
+    const company = (await f.app.connections.list(f.owner))[0];
+    const pending = await f.start();
+    expect(
+      (
+        await f.browser(`/connect/company/${pending.attempt_id}/provider`, {
+          revision: 1,
+          mode: "user",
+        })
+      ).status,
+    ).toBe(200);
+    await f.app.auth.api.signOut({
+      headers: new Headers({ cookie: f.cookie }),
+    });
+    const login = await f.app.auth.api.signInEmail({
+      body: {
+        email: "onboarding@example.invalid",
+        password: "Synthetic-password-123456",
+      },
+      returnHeaders: true,
+    });
+    const cookie = login.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0])
+      .join("; ");
+    const owner = (path: string, body?: unknown) =>
+      f.request(path, body, { cookie, origin: f.config.origin });
+    expect((await owner(pending.authorization_url)).status).toBe(200);
+    const count = f.calls();
+    expect(
+      (
+        await owner(`/connect/company/${pending.attempt_id}/recover-session`, {
+          revision: 1,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await owner(`/connect/company/${pending.attempt_id}/choose`, {
+          revision: 1,
+          company_id: company?.id,
+        })
+      ).status,
+    ).toBe(200);
+    expect(f.calls()).toBe(count + 1);
+    const saved = await f.app.onboarding?.get(
+      f.owner,
+      f.client.client_id,
+      pending.attempt_id,
+    );
+    expect(saved?.company?.id).toBe(company?.id);
+    const unknown = await f.start();
+    f.fail();
+    const start = await owner(
+      `/connect/company/${unknown.attempt_id}/provider`,
+      { revision: 1, mode: "user" },
+    );
+    const target = new URL(((await start.json()) as { url: string }).url);
+    await owner(
+      `/admin/fortnox/callback?${new URLSearchParams({ state: target.searchParams.get("state") ?? "", code: "B" })}`,
+    );
+    await f.app.auth.api.signOut({ headers: new Headers({ cookie }) });
+    const again = await f.app.auth.api.signInEmail({
+      body: {
+        email: "onboarding@example.invalid",
+        password: "Synthetic-password-123456",
+      },
+      returnHeaders: true,
+    });
+    const nextCookie = again.headers
+      .getSetCookie()
+      .map((c) => c.split(";")[0])
+      .join("; ");
+    const before = f.calls();
+    expect(
+      (
+        await f.request(
+          `/connect/company/${unknown.attempt_id}/recover-session`,
+          { revision: 1 },
+          { cookie: nextCookie, origin: f.config.origin },
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await f.app.onboarding?.get(
+          f.owner,
+          f.client.client_id,
+          unknown.attempt_id,
+        )
+      )?.phase,
+    ).toBe("provider_outcome_unknown");
+    expect(f.calls()).toBe(before);
+    f.recover();
+    expect(
+      (
+        await f.request(
+          `/connect/company/${unknown.attempt_id}/choose`,
+          { revision: 1, company_id: company?.id },
+          { cookie: nextCookie, origin: f.config.origin },
+        )
+      ).status,
+    ).toBe(200);
   });
 }

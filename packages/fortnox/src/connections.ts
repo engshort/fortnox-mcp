@@ -405,6 +405,16 @@ export class FortnoxConnections {
       scopes: [...scopes],
     };
   }
+  async onboardingFlow(owner: string, id: string, revision: number) {
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    const f = row?.value.find(
+      (f) => f.onboarding?.id === id && f.onboarding.revision === revision,
+    );
+    return f ? { claimed: f.claimed, expiresAt: f.expiresAt } : null;
+  }
   async cancelOnboardingPending(
     owner: string,
     session: string,

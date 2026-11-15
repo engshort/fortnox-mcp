@@ -148,6 +148,14 @@ existing company; a claimed exchange cannot be cancelled. If no verified local
 result/connection exists, unknown provider outcome needs operator investigation.
 Never claim the original exchange failed merely because its response is missing.
 
+After the bound owner session expires, the guide offers an explicit same-origin
+owner action to review the retained attempt with the new owner session. Another
+still-active session cannot take it over. An active claimed provider exchange
+returns `CONSENT_IN_PROGRESS`/`wait`; expired or absent claims retain an unknown
+outcome. Session recovery never exchanges a provider code or creates client
+authorization. The owner must verify an existing company or investigate before
+continuing. An expired unused flow may be cancelled before a fresh provider flow.
+
 Refresh uses the existing token endpoint with Basic,
 `grant_type=refresh_token`, `refresh_token` and `resource=<installation>/mcp`.
 Persist a renewal claim before dispatch and atomically save the replacement pair.

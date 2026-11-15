@@ -44,7 +44,9 @@ osäkert tokenutbyte får inte skickas igen blint.
 Vid okänt providerutfall krävs ägarens kontroll. Ett oanvänt, inte påbörjat
 kodutbyte kan avbrytas i det guidade flödet. En pågående utväxling kan inte
 återställas som om den misslyckats. Rätt befintligt företag kan uttryckligen väljas
-och verifieras; annars behöver operatören utreda läget. Utgånget eller gallrat
+och verifieras; annars behöver operatören utreda läget. Efter utgången inloggning
+kan samma installationsägare logga in igen och uttryckligen fortsätta granskningen.
+Guiden väntar om ett kodutbyte fortfarande pågår och skickar aldrig koden igen. Utgånget eller gallrat
 försök ger ett tydligt fel och ska hanteras genom appens återupptagning.
 
 Återställning från backup eller nyckelrotation ogiltigförklarar gamla

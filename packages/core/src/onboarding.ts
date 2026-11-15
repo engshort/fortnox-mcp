@@ -400,6 +400,37 @@ export class CompanyOnboarding {
       });
     return a;
   }
+  // Called only after the HTTP adapter has authenticated the installation owner
+  // and proved the old session is absent/expired. This changes no provider grant.
+  async rebindForReview(
+    owner: string,
+    id: string,
+    revision: number,
+    oldSession: string,
+    newSession: string,
+  ) {
+    return this.connections.updateSet(owner, (set) => {
+      const a = set.onboarding?.find(
+        (a) =>
+          a.id === id &&
+          a.revision === revision &&
+          a.session === oldSession &&
+          a.retainUntil > this.now(),
+      );
+      if (
+        !a ||
+        !["provider_pending", "provider_outcome_unknown", "failed"].includes(
+          a.phase,
+        )
+      )
+        throw new OnboardingError("ATTEMPT_CONFLICT");
+      a.session = newSession;
+      if (a.phase === "provider_pending") a.phase = "provider_outcome_unknown";
+      a.expiresAt = Math.min(this.now() + onboardingLifetime, a.retainUntil);
+      delete a.approval;
+      return a;
+    });
+  }
   async choose(
     owner: string,
     id: string,

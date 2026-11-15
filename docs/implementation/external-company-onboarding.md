@@ -36,7 +36,9 @@ values in the fixture source. Never use this fixture as an ordinary deployment.
 isolated real consumer backend. Generate its credentials locally. The fixture
 uses the maintained library's explicit native HTTP-loopback registration policy
 for local tests; production ENV and web callbacks remain HTTPS-only. It does not
-relax product Origin or cookie checks. A shared-host test avoids SSH/tunnel setup.
+relax product Origin or cookie checks. Set
+`FIXTURE_VALID_ORGANIZATION_NUMBERS=true` for checksum-valid synthetic identities
+in automatic consumer matching; the default intentionally tests identity review. A shared-host test avoids SSH/tunnel setup.
 
 The existing Playwright workflow can select `onboarding.spec.ts` after build:
 `cd spikes/s00-oauth && npx playwright test --config playwright.owner.config.ts onboarding.spec.ts`.
