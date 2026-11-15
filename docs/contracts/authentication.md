@@ -91,7 +91,10 @@ connections and their current program selections.
 
 Ordinary OAuth consent explicitly authorizes all current and future connections
 of the installation owner (`companyAccess: owner_connections`). The consent page
-names the current companies and explains future access. The server resolves
+names the current companies and explains future access. Its focused responsive
+layout reuses the administration's brand, CSS tokens and controls; requested
+read/write/file/refresh capabilities are listed separately. File-retention and
+policy disclosures remain visible. The server resolves
 company membership on each request; neither a supplied company ID nor the mere
 existence of an OAuth registration grants access. An empty installation may be
 approved before the first company is connected. Owner-authorized program changes

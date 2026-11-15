@@ -5,7 +5,9 @@ The shared company-access regressions in `product-oauth`, `connections` and
 existing-token owner upgrades, refresh, current membership, foreign owners,
 disconnection/reconnect, stale/expired grants and preservation of external app
 consent. The owner browser suite checks the actual consent script, program
-addition, future-company listing and owner upgrade UI on desktop/mobile. See
+addition, future-company listing and owner upgrade UI on desktop/mobile. It also
+checks read-only/all-scope consent layouts, explicit file-retention disclosures,
+the shared brand and horizontal overflow. See
 [scope and bounded evidence](implementation/installation-company-access.md).
 
 The dated S08 contracts (`financial-dates.ts` and `invoice-history.ts` under

@@ -1,6 +1,6 @@
 # API coverage plan
 
-Company authorization: [installation-wide access](../implementation/installation-company-access.md) supports current/future owner connections and explicit owner-side upgrades without replacing client tokens. Local synthetic OAuth/runtime/browser verification is separate from actual Fortnox/hosted-client acceptance. Provider operation classifications are unchanged.
+Company authorization: [installation-wide access](../implementation/installation-company-access.md) supports current/future owner connections and explicit owner-side upgrades without replacing client tokens. Local synthetic OAuth/runtime/browser verification is separate from actual Fortnox/hosted-client acceptance. The consent page reuses the administration design and groups requested capabilities without changing grants. Provider operation classifications are unchanged.
 
 Access/recovery follow-up: [the 2026-11-13 implementation](../implementation/access-renewal-2026-11-13.md)
 adds safe local read selection, explicitly renewed company approvals on the same

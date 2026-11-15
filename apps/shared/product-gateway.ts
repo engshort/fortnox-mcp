@@ -172,16 +172,74 @@ export function createProductGateway(
       );
       const companyChoices = companies
         .map(
-          (c) =>
-            `<label><input type="checkbox" name="company" checked ${onboarding ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">${escapeHtml(c.name)}<small> — ${escapeHtml(
-              programSelection(c)
-                .features.map((id) => featureLabels[id].sv)
-                .join(", ") || "Företagsuppgifter",
-            )}</small></label>`,
+          (c) => `<label class="consent-company">
+          <input type="checkbox" name="company" checked ${onboarding ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
+          <span><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(
+            programSelection(c)
+              .features.map((id) => featureLabels[id].sv)
+              .join(", ") || "Företagsuppgifter",
+          )}</small></span>
+        </label>`,
         )
-        .join("<br>");
+        .join("");
+      const scopes = (url.searchParams.get("scope") ?? "").split(" ");
+      const permissions = [
+        scopes.includes("mcp:read")
+          ? `<li><strong>Läsa företagsuppgifter</strong><p>Klienten begär läsåtkomst till anslutna företag.</p></li>`
+          : "",
+        scopes.includes("mcp:write")
+          ? `<li><strong>Skriva i Fortnox</strong><p>Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning.</p></li>`
+          : "",
+        scopes.includes("mcp:files")
+          ? `<li><strong>Hantera valda filer</strong><p>Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy.</p></li>`
+          : "",
+        scopes.includes("offline_access")
+          ? `<li><strong>Behålla anslutningen</strong><p>Klienten kan förnya anslutningen så länge godkännandet är giltigt.</p></li>`
+          : "",
+      ].join("");
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Godkänn klient</h1>${onboarding ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>` : ""}<p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag."}</p>${onboarding ? "" : "<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden. Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>"}<fieldset><legend>${onboarding ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>${companyChoices}</fieldset><button id="accept" ${onboarding ? "" : 'data-company-access="owner_connections"'}>${onboarding ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}<p id="status" role="status"></p><script src="/consent.js"></script></main></html>`,
+        `<!doctype html>
+<html lang="sv">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient · Fortnox MCP</title><link rel="stylesheet" href="/admin-assets/admin.css"></head>
+<body class="consent-page">
+  <a class="skip-link" href="#content">Till innehållet</a>
+  <header class="consent-header">
+    <a class="brand" href="/admin/companies" aria-label="Fortnox MCP, administration">
+      <svg viewBox="0 0 36 40" width="34" height="40" fill="currentColor" aria-hidden="true"><path d="M7 4h28l-3 9H5Zm-3 13h25l-3 9H12l-4 12H0Z" /></svg>
+      <span><strong>Fortnox MCP</strong><small>Administration</small></span>
+    </a>
+    <a class="consent-back" href="/admin/ai-clients">Till administrationen</a>
+  </header>
+  <main class="consent-main" id="content" tabindex="-1">
+    <div class="consent-heading"><h1>Godkänn klient</h1><p class="intro muted">Granska åtkomsten innan du ansluter din AI-klient.</p></div>
+    <div class="consent-layout">
+      <div class="consent-details">
+        <section class="consent-access" aria-labelledby="access-heading">
+          <h2 id="access-heading">${onboarding ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
+          ${
+            onboarding
+              ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>`
+              : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
+          }
+        </section>
+        <section class="consent-permissions" aria-labelledby="permissions-heading">
+          <h2 id="permissions-heading">Begärda behörigheter</h2>
+          <ul>${permissions}</ul>
+        </section>
+      </div>
+      <fieldset class="consent-companies">
+        <legend>${onboarding ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
+        <div class="consent-company-list">${companyChoices || `<p class="muted">${onboarding ? "Inga aktiva företag finns i detta godkännande. Gå tillbaka till anslutningsflödet." : "Inga företag är anslutna ännu. Företag som du ansluter senare blir tillgängliga via detta godkännande."}</p>`}</div>
+      </fieldset>
+    </div>
+    <footer class="consent-actions">
+      <button id="accept" ${onboarding ? "" : 'data-company-access="owner_connections"'}>${onboarding ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
+      ${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}
+      <p id="status" class="status" role="status"></p>
+    </footer>
+  </main>
+  <script src="/consent.js"></script>
+</body></html>`,
         200,
         "text/html; charset=utf-8",
       );

@@ -81,6 +81,11 @@ Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; 
 
 Produktens MCP-adress är `/mcp`. Endast fasta protokolluppgifter är offentliga. Företagsanrop kräver ägarens OAuth-godkännande med `mcp:read offline_access`; Fortnox-token kan inte användas som MCP-token.
 
+På sidan **Godkänn klient** ser du företagsåtkomsten, de begärda behörigheterna
+och vilka företag som är anslutna. Sidan följer administrationens utseende och
+anpassas för mobil. Läs-, skriv- och filåtkomst visas bara när klienten begär dem;
+vid filåtkomst visas även information om tillfällig lagring och rensning.
+
 Det vanliga godkännandet omfattar nuvarande och framtida anslutna företag enligt
 avsnittet ovan. Äldre avgränsade godkännanden kan uppgraderas under **AI-klienter**.
 Ett nytt OAuth-godkännande på samma klientregistrering är också möjligt, men ger
