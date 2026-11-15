@@ -227,7 +227,12 @@ export class CompanyOnboarding {
   status(a: OnboardingAttempt) {
     const phase =
       a.expiresAt <= this.now() &&
-      !["authorized", "cancelled", "provider_outcome_unknown"].includes(a.phase)
+      ![
+        "authorized",
+        "cancelled",
+        "provider_pending",
+        "provider_outcome_unknown",
+      ].includes(a.phase)
         ? "expired"
         : a.phase;
     const recovery: RecoveryAction =

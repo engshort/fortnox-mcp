@@ -78,12 +78,22 @@ export function onboardingPage(a: OnboardingAttempt, companies: Connection[]) {
   });
 }
 
-export function onboardingRecoveryPage(a: OnboardingAttempt) {
+export function onboardingReturnPage(a: OnboardingAttempt) {
+  return connectionPage({
+    title: "Anslutningsförsöket har gått ut",
+    script: "/connect/company.js",
+    content: `<div class="consent-heading"><h1>Anslutningsförsöket har gått ut</h1><p class="intro muted">Fortsätt i applikationen för att få en ny godkännandelänk.</p></div>
+      <section class="notice"><p>Dina sparade steg och det verifierade företaget bevaras medan försöket finns kvar. Återinloggning ger inte applikationen åtkomst. Du behöver granska och godkänna åtkomsten igen.</p></section>
+      <footer class="consent-actions"><form data-action="/connect/company/${a.id}/return"><input type="hidden" name="revision" value="${a.revision}"><button>Fortsätt i ${esc(a.clientName)}</button></form><p id="status" class="status" role="status" tabindex="-1"></p></footer>`,
+  });
+}
+
+export function onboardingRecoveryPage(a: OnboardingAttempt, waiting = false) {
   return connectionPage({
     title: "Återuppta ägargranskning",
     script: "/connect/company.js",
     content: `<div class="consent-heading"><h1>Återuppta ägargranskning</h1><p class="intro muted">Logga in och fortsätt kontrollera det sparade utfallet.</p></div>
-      <section class="consent-access"><h2>Kontrollera anslutningen</h2><p>Ägarsessionen har gått ut. Kontrollera det sparade utfallet. Ingen Fortnox-kod skickas igen.</p></section>
-      <footer class="consent-actions"><form data-action="/connect/company/${a.id}/recover-session"><input type="hidden" name="revision" value="${a.revision}"><button>Fortsätt granska med denna ägarsession</button></form><p id="status" class="status" role="status" tabindex="-1"></p></footer>`,
+      <section class="consent-access"><h2>${waiting ? "Fortnox-godkännande pågår" : "Kontrollera anslutningen"}</h2><p>${waiting ? "Vänta tills det pågående utbytet är klart och ladda sedan om sidan." : "Ägarsessionen eller anslutningslänken har gått ut. Kontrollera det sparade utfallet."} Ingen Fortnox-kod skickas igen.</p></section>
+      <footer class="consent-actions">${waiting ? '<a href="" class="secondary">Kontrollera sparat läge</a>' : `<form data-action="/connect/company/${a.id}/recover-session"><input type="hidden" name="revision" value="${a.revision}"><button>Fortsätt granska med denna ägarsession</button></form>`}<p id="status" class="status" role="status" tabindex="-1"></p></footer>`,
   });
 }

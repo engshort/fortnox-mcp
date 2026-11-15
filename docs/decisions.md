@@ -65,6 +65,19 @@ checks, read-only, review policy and immutable financial intent bindings remain
 mandatory. See [the authentication contract](contracts/authentication.md) and
 [implementation/evidence](implementation/installation-company-access.md).
 
+## Owner-directed server continuity (2026-11-15)
+
+The owner requested implementation of natural login return and persistent,
+revocable backend authorization from the supplied continuity brief. Effective in
+the next build containing this change, an operator may explicitly opt registered
+confidential backends into a 30-day rolling refresh policy with
+`MCP_OFFLINE_CLIENT_IDS` (default empty). This refines D05/D10 without changing
+company selection, capability scopes or manual-voucher policy. Existing pairs
+are not rewritten at startup; valid rotations can adopt the policy, while
+expired/revoked/uncertain pairs need fresh explicit consent. No SQL migration,
+deployment or production activation is authorized by this implementation.
+See [the policy and evidence](implementation/onboarding-continuity.md).
+
 ## CLA and commercial-rights decision (2026-10-20)
 
 The owner approved a **Contributor License Agreement with Easy Today AB as the legal rights recipient**. The public code and documentation remain AGPL-3.0-only; the company's additional license is non-exclusive, contributors retain copyright, and separately licensed commercial products may be built only from material for which the company has the necessary rights. The change does not alter the open-source release scope, licensing of historic third-party material, or the D03 self-hosting-first launch decision.

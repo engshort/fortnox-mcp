@@ -179,3 +179,17 @@ See [implementation and acceptance boundaries](../implementation/S11-company-pro
 ## External application company onboarding (#146)
 
 The opt-in [company-onboarding-v1 contract](company-onboarding-v1.md) composes confidential-client initiation, protected owner connection actions and explicit OAuth company consent. The backend-only requirement applies only to this new API. Existing public MCP clients and standalone onboarding retain their existing boundaries.
+
+
+### Optional confidential-backend offline policy
+
+`MCP_OFFLINE_CLIENT_IDS` defaults to an empty JSON list. Active pre-registered
+`client_secret_basic` backends with explicit `offline_access` consent may receive
+30-day rolling refresh tokens; their pair is independent of owner web sessions
+and retained onboarding attempts. Access tokens still last five minutes.
+Successful issuance/rotation persists the actual library row expiry/session
+binding and matching immutable approval/family expiry before returning the pair.
+No scope/company right is added; revoked or superseded families cannot be renewed.
+Policy removal fences detached families immediately. Existing pairs are not
+rewritten at boot; expired or uncertain pairs need fresh explicit app consent.
+See [migration, recovery and bounded verification](../implementation/onboarding-continuity.md).

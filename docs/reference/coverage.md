@@ -1,5 +1,7 @@
 # API coverage plan
 
+[Onboarding continuity](../implementation/onboarding-continuity.md) adds validated browser return and opt-in 30-day confidential-backend authorization. Local synthetic OAuth/runtime/browser checks remain separate from actual M2X/Fortnox 72-hour acceptance. No provider-operation support classification changes.
+
 Optional [account email](../implementation/account-email.md) uses Resend for
 owner welcome, password-reset codes and password-change notifications. It is
 disabled by default; local synthetic Node/workerd evidence is separate from real

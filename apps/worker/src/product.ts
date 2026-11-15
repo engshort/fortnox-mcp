@@ -20,6 +20,7 @@ export interface ProductEnv extends Partial<ProductBindings> {
   MCP_REDIRECT_URIS?: string;
   EXTERNAL_APP_ONBOARDING_ENABLED?: string;
   EXTERNAL_APP_ONBOARDING_CLIENT_IDS?: string;
+  MCP_OFFLINE_CLIENT_IDS?: string;
   FORTNOX_CLIENT_ID?: string;
   FORTNOX_CLIENT_SECRET?: string;
   FORTNOX_TEST_TENANTS?: string;

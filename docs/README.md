@@ -1,5 +1,7 @@
 # Documentation map
 
+External applications: [natural login return and optional 30-day offline access](implementation/onboarding-continuity.md), with retained-attempt recovery, separate server policy and bounded local evidence.
+
 Account email: [optional Resend setup and evidence](implementation/account-email.md)
 and [Swedish ENV instructions](users/env.sv.md#appens-e-post). Disabled by default.
 

@@ -11,6 +11,7 @@ import {
   FinancialAnalysis,
   FinancialContexts,
   LiquidityAnalysis,
+  OnboardingError,
   OpenItems,
   PayrollInputs,
   type PayrollOperation,
@@ -82,6 +83,7 @@ import {
 import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
+  offlineClientIds?: string[];
   email?: EmailSettings;
   externalAppOnboarding?: boolean;
   onboardingClients?: string[];
@@ -192,6 +194,10 @@ export function productSettings(
       .array(z.string().min(1).max(256))
       .max(16)
       .parse(JSON.parse(env.EXTERNAL_APP_ONBOARDING_CLIENT_IDS ?? "[]")),
+    offlineClientIds: z
+      .array(z.string().min(1).max(256))
+      .max(16)
+      .parse(JSON.parse(env.MCP_OFFLINE_CLIENT_IDS ?? "[]")),
     origin: origin.origin,
     secret,
     keys,
@@ -418,6 +424,7 @@ export function createProductApplication(
       : {}),
     ...(onboarding ? { onboarding } : {}),
     ...runtime,
+    offlineClientIds: settings.offlineClientIds ?? [],
     origin: settings.origin,
     secret: settings.secret,
     redirects: settings.redirects,
@@ -720,16 +727,20 @@ export function createProductApplication(
       url.pathname.startsWith("/connect/company")
     ) {
       if (!onboardingHttp)
-        return safeResponse(
-          JSON.stringify({
-            version: "company-onboarding-v1",
-            error: "ATTEMPT_NOT_FOUND",
-            recovery_action: "none",
-          }),
-          404,
+        return onboardingFailure(
+          new OnboardingError("ATTEMPT_NOT_FOUND", 404),
+          url.pathname.startsWith("/connect/company") ? request : undefined,
         );
       const response = await onboardingHttp.fetch(request);
-      return response ?? safeResponse('{"error":"NOT_FOUND"}', 404);
+      return (
+        response ??
+        (url.pathname.startsWith("/connect/company")
+          ? onboardingFailure(
+              new OnboardingError("ATTEMPT_NOT_FOUND", 404),
+              request,
+            )
+          : safeResponse('{"error":"NOT_FOUND"}', 404))
+      );
     }
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
@@ -793,6 +804,29 @@ export function createProductApplication(
           request.headers,
         );
       } catch {
+        if (
+          request.method === "GET" &&
+          request.headers.get("accept")?.includes("text/html") &&
+          url.pathname === "/admin/fortnox/callback"
+        ) {
+          const owner = await runtime.state.get<{ ownerId: string }>(
+            "installation",
+            "owner",
+          );
+          const binding =
+            owner &&
+            (await provider.onboardingReturn(owner.value.ownerId, url));
+          return new Response(null, {
+            status: 303,
+            headers: {
+              "cache-control": "no-store",
+              "referrer-policy": "no-referrer",
+              location: binding
+                ? `/connect/company/${binding.id}?revision=${binding.revision}`
+                : "/sign-in",
+            },
+          });
+        }
         return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
       }
       if (url.pathname === "/admin/clients" && request.method === "GET") {
@@ -1319,11 +1353,25 @@ export function createProductApplication(
         request.method === "GET" &&
         url.pathname === "/admin/fortnox/callback"
       ) {
+        const retained = await provider.onboardingReturn(session.user.id, url);
         const binding = await provider.onboardingCallback(
           session.user.id,
           session.session.id,
           url,
         );
+        if (
+          retained &&
+          !binding &&
+          request.headers.get("accept")?.includes("text/html")
+        )
+          return new Response(null, {
+            status: 303,
+            headers: {
+              location: `/connect/company/${retained.id}?revision=${retained.revision}`,
+              "cache-control": "no-store",
+              "referrer-policy": "no-referrer",
+            },
+          });
         try {
           const company = await provider.finish(
             session.user.id,

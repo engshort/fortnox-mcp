@@ -12,7 +12,11 @@ import { z } from "zod";
 import { boundedJson, safeResponse } from "./admin.js";
 import { connectionPage } from "./connection-page.js";
 import type { IntegrationSettings } from "./integration-settings.js";
-import { onboardingPage, onboardingRecoveryPage } from "./onboarding-page.js";
+import {
+  onboardingPage,
+  onboardingRecoveryPage,
+  onboardingReturnPage,
+} from "./onboarding-page.js";
 import { type Owner, type ProductAuth, requireOwner } from "./product-auth.js";
 
 const base = "/api/company-onboarding/v1/attempts";
@@ -27,6 +31,25 @@ const redirect = (url: string) =>
       "referrer-policy": "no-referrer",
     },
   });
+// OAuth/login errors return to a local attempt, never to query-supplied URLs.
+export function onboardingGuideRedirect(request: Request) {
+  if (
+    request.method !== "GET" ||
+    !request.headers.get("accept")?.includes("text/html")
+  )
+    return null;
+  const query = new URL(request.url).searchParams;
+  const id = z.string().uuid().safeParse(query.get("onboarding_attempt"));
+  const revision = z.coerce
+    .number()
+    .int()
+    .positive()
+    .safe()
+    .safeParse(query.get("onboarding_revision"));
+  return id.success && revision.success
+    ? redirect(`/connect/company/${id.data}?revision=${revision.data}`)
+    : null;
+}
 export function onboardingFailure(error: unknown, request?: Request) {
   const e =
     error instanceof OnboardingError
@@ -166,6 +189,12 @@ for(const form of forms)form.addEventListener('submit',async e=>{
     if(r.ok&&d.url){location.assign(d.url);return;}
     const messages={CONSENT_IN_PROGRESS:'Ett Fortnox-godkännande pågår. Slutför det innan du fortsätter.',OUTCOME_UNKNOWN:'Utfallet behöver kontrolleras. Ladda om för att se det sparade läget. Ingen kod skickas igen.',ATTEMPT_CONFLICT:'Försöket har ändrats. Öppna den senaste anslutningslänken från applikationen.',ATTEMPT_EXPIRED:'Försöket har gått ut. Återuppta anslutningen från applikationen.',AUTH_REQUIRED:'Sessionen kan inte användas för denna åtgärd. Logga in igen via anslutningslänken.'};
     status.textContent=messages[d.error]||'Åtgärden kunde inte slutföras. Kontrollera anslutningsförsöket från applikationen.';
+    if(d.error==='ATTEMPT_EXPIRED'||d.error==='AUTH_REQUIRED'){
+      const resume=document.createElement('a');
+      resume.href=location.href;
+      resume.textContent=' Logga in och fortsätt';
+      status.append(resume);
+    }
     buttons.forEach(b=>b.disabled=false);
     busy=false;
   }catch{
@@ -295,7 +324,7 @@ for(const form of forms)form.addEventListener('submit',async e=>{
       }
     }
     const browser =
-      /^\/connect\/company\/([a-f0-9-]{36})(?:\/(choose|provider|approve|cancel|cancel-provider|recover-session))?$/.exec(
+      /^\/connect\/company\/([a-f0-9-]{36})(?:\/(choose|provider|approve|cancel|cancel-provider|recover-session|return))?$/.exec(
         url.pathname,
       );
     if (!browser) return null;
@@ -327,6 +356,69 @@ for(const form of forms)form.addEventListener('submit',async e=>{
       )?.value.onboarding?.find(
         (a) => a.id === id && a.retainUntil > service.now(),
       );
+      if (!record) throw new OnboardingError("ATTEMPT_NOT_FOUND", 404);
+      if (!service.clients.includes(record.client))
+        throw new OnboardingError("AUTH_REQUIRED", 401);
+      if (request.method === "GET") {
+        const revision = z.coerce
+          .number()
+          .int()
+          .positive()
+          .safe()
+          .parse(url.searchParams.get("revision"));
+        if (record.revision !== revision)
+          throw new OnboardingError("ATTEMPT_CONFLICT");
+      }
+      const interrupted =
+        record.expiresAt <= service.now() ||
+        (!!record.session && record.session !== session.session.id);
+      if (
+        interrupted &&
+        record.session &&
+        record.session !== session.session.id
+      ) {
+        const old = await (await auth.$context).adapter.findOne<{
+          expiresAt: Date;
+        }>({
+          model: "session",
+          where: [{ field: "id", value: record.session }],
+        });
+        if (old && new Date(old.expiresAt).getTime() > service.now())
+          throw new OnboardingError("AUTH_REQUIRED", 401);
+      }
+      if (
+        interrupted &&
+        !["provider_pending", "provider_outcome_unknown", "failed"].includes(
+          record.phase,
+        )
+      ) {
+        const protocol = await validateClient(record, session.user.id);
+        if (
+          request.method === "GET" &&
+          !browser[2] &&
+          request.headers.get("accept")?.includes("text/html")
+        )
+          return safeResponse(
+            onboardingReturnPage(record),
+            410,
+            "text/html; charset=utf-8",
+          );
+        if (request.method === "POST" && browser[2] === "return") {
+          if (request.headers.get("origin") !== service.origin)
+            throw new OnboardingError("AUTH_REQUIRED", 401);
+          const input = z
+            .object({ revision: z.number().int().positive() })
+            .strict()
+            .parse(await boundedJson(request));
+          if (record.revision !== input.revision)
+            throw new OnboardingError("ATTEMPT_CONFLICT");
+          const target = new URL(protocol.redirect_uri);
+          target.searchParams.set("error", "interaction_required");
+          target.searchParams.set("state", protocol.state);
+          target.searchParams.set("iss", `${service.origin}/auth`);
+          return json({ url: target.href });
+        }
+      }
       const needsReview =
         record?.session &&
         ["provider_pending", "provider_outcome_unknown", "failed"].includes(
@@ -335,25 +427,22 @@ for(const form of forms)form.addEventListener('submit',async e=>{
         (record.session !== session.session.id ||
           record.expiresAt <= service.now());
       if (needsReview && record?.session) {
-        const old = await (await auth.$context).adapter.findOne<{
-          expiresAt: Date;
-        }>({
-          model: "session",
-          where: [{ field: "id", value: record.session }],
-        });
-        if (
-          record.session !== session.session.id &&
-          old &&
-          new Date(old.expiresAt).getTime() > service.now()
-        )
-          throw new OnboardingError("AUTH_REQUIRED", 401);
         await validateClient(record, session.user.id);
-        if (request.method === "GET" && !browser[2])
+        if (request.method === "GET" && !browser[2]) {
+          const flow = await provider.onboardingFlow(
+            session.user.id,
+            id,
+            record.revision,
+          );
           return safeResponse(
-            onboardingRecoveryPage(record),
+            onboardingRecoveryPage(
+              record,
+              !!flow?.claimed && flow.expiresAt > service.now(),
+            ),
             200,
             "text/html; charset=utf-8",
           );
+        }
         if (request.method === "POST" && browser[2] === "recover-session") {
           if (request.headers.get("origin") !== service.origin)
             throw new OnboardingError("AUTH_REQUIRED", 401);

@@ -17,6 +17,7 @@ export interface Owner {
   expiresAt: number;
 }
 export interface AuthConfig {
+  offlineClientIds?: readonly string[];
   origin: string;
   secret: string;
   database: BetterAuthOptions["database"];
@@ -25,6 +26,7 @@ export interface AuthConfig {
   emails?: AccountEmails;
 }
 export interface GrantFamily {
+  offlineAccess?: boolean;
   ownerId: string;
   clientId: string;
   revision: number;
@@ -36,6 +38,7 @@ async function assertGrantFamily(
   owner: string,
   client: string,
   code?: string,
+  offlineClients: readonly string[] = [],
 ) {
   const grant = await state.get<CompanyGrant>("company-grants", client);
   if (!grant || grant.value.ownerId !== owner) throw new Error("AUTH_REQUIRED");
@@ -50,6 +53,7 @@ async function assertGrantFamily(
     family.ownerId !== owner ||
     family.clientId !== client ||
     family.revision !== grant.value.revision ||
+    (family.offlineAccess && !offlineClients.includes(client)) ||
     family.expiresAt <= Date.now()
   )
     throw new Error("AUTH_REQUIRED");
@@ -260,6 +264,7 @@ export function createProductAuth(config: AuthConfig) {
                 throw new Error("AUTH_REQUIRED");
               if (!grant.value.revision) return ctx.json({ ok: true });
               const access = await ctx.context.adapter.findOne<{
+                id: string;
                 authorizationCodeId?: string;
                 refreshId?: string;
                 expiresAt: Date;
@@ -275,15 +280,20 @@ export function createProductAuth(config: AuthConfig) {
               if (!access?.authorizationCodeId)
                 throw new Error("AUTH_REQUIRED");
               const refresh = access.refreshId
-                ? await ctx.context.adapter.findOne<{ expiresAt: Date }>({
+                ? await ctx.context.adapter.findOne<{
+                    id: string;
+                    clientId: string;
+                    userId: string;
+                    authorizationCodeId?: string;
+                    createdAt: Date;
+                    expiresAt: Date;
+                    revoked?: Date | null;
+                    scopes: string[];
+                  }>({
                     model: "oauthRefreshToken",
                     where: [{ field: "id", value: access.refreshId }],
                   })
                 : null;
-              const expiresAt = Math.max(
-                new Date(access.expiresAt).getTime(),
-                refresh ? new Date(refresh.expiresAt).getTime() : 0,
-              );
               if (
                 !grant?.value.grantId ||
                 grant.value.ownerId !== owner.value.ownerId
@@ -298,6 +308,45 @@ export function createProductAuth(config: AuthConfig) {
                 familyRows.value[code]?.clientId !== claims.client_id
               )
                 throw new Error("AUTH_REQUIRED");
+              const client = config.offlineClientIds?.includes(claims.client_id)
+                ? await api.getClient(claims.client_id)
+                : null;
+              const offline =
+                !!client &&
+                !client.disabled &&
+                client.tokenEndpointAuthMethod === "client_secret_basic" &&
+                !!refresh?.scopes.includes("offline_access");
+              if (offline && refresh) {
+                if (
+                  refresh.clientId !== claims.client_id ||
+                  refresh.userId !== owner.value.ownerId ||
+                  refresh.authorizationCodeId !== code ||
+                  refresh.revoked
+                )
+                  throw new Error("AUTH_REQUIRED");
+                // Only finalize the freshly issued pair, before returning it.
+                // The maintained provider still owns minting, rotation and replay
+                // rejection. Persist the policy in its actual token rows, too.
+                refresh.expiresAt = new Date(
+                  new Date(refresh.createdAt).getTime() + 30 * 86400_000,
+                );
+                const updatedRefresh = await ctx.context.adapter.update({
+                  model: "oauthRefreshToken",
+                  where: [{ field: "id", value: refresh.id }],
+                  update: { expiresAt: refresh.expiresAt, sessionId: null },
+                });
+                const updatedAccess = await ctx.context.adapter.update({
+                  model: "oauthAccessToken",
+                  where: [{ field: "id", value: access.id }],
+                  update: { sessionId: null },
+                });
+                if (!updatedRefresh || !updatedAccess)
+                  throw new Error("CONNECTION_CONFLICT");
+              }
+              const expiresAt = Math.max(
+                new Date(access.expiresAt).getTime(),
+                refresh ? new Date(refresh.expiresAt).getTime() : 0,
+              );
               // Retain the same rights for the actual lifetime of successfully
               // issued/rotated tokens. An unused code keeps its ten-minute bound.
               for (const space of [
@@ -307,7 +356,10 @@ export function createProductAuth(config: AuthConfig) {
                 let saved = false;
                 for (let attempt = 0; attempt < 8 && !saved; attempt++) {
                   const row = await config.state.get<
-                    Record<string, { expiresAt: number }>
+                    Record<
+                      string,
+                      { expiresAt: number; offlineAccess?: boolean }
+                    >
                   >(space, owner.value.ownerId);
                   const key =
                     space === "oauth-approval-grants"
@@ -316,6 +368,8 @@ export function createProductAuth(config: AuthConfig) {
                   const record = row?.value[key];
                   if (!row || !record) throw new Error("AUTH_REQUIRED");
                   record.expiresAt = Math.max(record.expiresAt, expiresAt);
+                  if (space === "oauth-grant-families" && offline)
+                    record.offlineAccess = true;
                   saved = await config.state.put(
                     space,
                     owner.value.ownerId,
@@ -364,6 +418,7 @@ export function createProductAuth(config: AuthConfig) {
                 owner.value.ownerId,
                 ctx.body.client,
                 code,
+                config.offlineClientIds,
               );
               if (ctx.body.type === "authorization_code") {
                 const family = (
@@ -439,6 +494,7 @@ export function createProductAuth(config: AuthConfig) {
                 owner.value.ownerId,
                 claims.client_id,
                 token?.authorizationCodeId,
+                config.offlineClientIds,
               );
               return ctx.json({
                 ownerId: owner.value.ownerId,

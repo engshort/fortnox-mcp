@@ -49,6 +49,7 @@ const app = createProductApplication(
     testTenants: ["100001", "100002"],
     externalAppOnboarding: true,
     onboardingClients: clients,
+    offlineClientIds: clients,
   },
   {
     database: db,
@@ -287,6 +288,43 @@ const servers = [
           if (row.result) {
             const result = JSON.parse(String(row.result));
             return move(`${consumerOrigin}/companies/${result.company_id}`);
+          }
+          if (url.searchParams.get("error") === "interaction_required") {
+            const attempt = JSON.parse(String(row.attempt));
+            const state = randomBytes(32).toString("base64url");
+            const verifier = randomBytes(32).toString("base64url");
+            const key = crypto.randomUUID();
+            // Persist replacement bindings before the actual resume request.
+            db.prepare(
+              "UPDATE synthetic_consumer SET state=?,verifier=?,operation=? WHERE state=?",
+            ).run(state, verifier, key, row.state);
+            const resumed = await fetch(
+              `${origin}/api/company-onboarding/v1/attempts/${attempt.attempt_id}/resume`,
+              {
+                method: "POST",
+                headers: {
+                  authorization: basic,
+                  "content-type": "application/json",
+                  "idempotency-key": key,
+                },
+                body: JSON.stringify({
+                  expected_attempt_revision: attempt.attempt_revision,
+                  state,
+                  code_challenge: createHash("sha256")
+                    .update(verifier)
+                    .digest("base64url"),
+                  code_challenge_method: "S256",
+                }),
+              },
+            );
+            if (!resumed.ok) throw new Error("Fixture resume failed");
+            const next = (await resumed.json()) as {
+              authorization_url: string;
+            };
+            db.prepare(
+              "UPDATE synthetic_consumer SET attempt=? WHERE state=?",
+            ).run(JSON.stringify(next), state);
+            return move(next.authorization_url);
           }
           if (url.searchParams.has("error"))
             return html("<h1>Anslutningen avbröts</h1>");

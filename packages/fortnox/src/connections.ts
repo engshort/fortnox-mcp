@@ -468,6 +468,24 @@ export class FortnoxConnections {
         f.session === session && f.state === callback.searchParams.get("state"),
     )?.onboarding;
   }
+  // Navigation only: recover the local guide after login loss. Never exchange
+  // the callback code, rebind its session or grant access through this lookup.
+  async onboardingReturn(owner: string, callback: URL) {
+    if (
+      callback.origin + callback.pathname !== this.redirect() ||
+      callback.searchParams.getAll("state").length !== 1 ||
+      callback.hash
+    )
+      return null;
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    const binding = row?.value.find(
+      (f) => f.state === callback.searchParams.get("state"),
+    )?.onboarding;
+    return binding ? { id: binding.id, revision: binding.revision } : null;
+  }
   async finish(owner: string, session: string, callback: URL) {
     if (
       callback.origin + callback.pathname !== this.redirect() ||

@@ -7,6 +7,7 @@ import {
   type Connections,
   featureLabels,
   type OnboardingAttempt,
+  OnboardingError,
   programSelection,
 } from "@fortnox-mcp/core";
 import {
@@ -23,7 +24,10 @@ import {
   safeResponse,
 } from "./admin.js";
 import { connectionPage, escapeHtml } from "./connection-page.js";
-import { onboardingFailure } from "./onboarding-http.js";
+import {
+  onboardingFailure,
+  onboardingGuideRedirect,
+} from "./onboarding-http.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 export interface McpIdentity {
   ownerId: string;
@@ -106,6 +110,15 @@ export function createProductGateway(
       ].includes(url.pathname)
     )
       return oauthProviderAuthServerMetadata(auth)(request);
+    if (
+      request.method === "GET" &&
+      url.pathname === "/auth/error" &&
+      request.headers.get("accept")?.includes("text/html")
+    )
+      return onboardingFailure(
+        new OnboardingError("INVALID_REQUEST", 400),
+        request,
+      );
     if (request.method === "GET" && url.pathname === "/consent") {
       let ownerId: string;
       try {
@@ -121,6 +134,13 @@ export function createProductGateway(
         )
           throw new Error();
       } catch {
+        const continuation = onboardingGuideRedirect(request);
+        if (continuation) return continuation;
+        if (request.headers.get("accept")?.includes("text/html"))
+          return new Response(null, {
+            status: 303,
+            headers: { ...privateHeaders, location: `/sign-in${url.search}` },
+          });
         return challenge();
       }
       let onboarding: OnboardingAttempt | undefined;
@@ -157,7 +177,9 @@ export function createProductGateway(
             url.search.slice(1),
           );
         } catch (e) {
-          return onboardingFailure(e, request);
+          return (
+            onboardingGuideRedirect(request) ?? onboardingFailure(e, request)
+          );
         }
       }
       const companies = (await config.connections.list(ownerId)).filter(
@@ -179,6 +201,16 @@ export function createProductGateway(
         )
         .join("");
       const scopes = (url.searchParams.get("scope") ?? "").split(" ");
+      const offline =
+        scopes.includes("offline_access") &&
+        config.offlineClientIds?.includes(
+          url.searchParams.get("client_id") ?? "",
+        ) &&
+        (await auth.api
+          .getOnboardingClient({
+            body: { client: url.searchParams.get("client_id") ?? "" },
+          })
+          .catch(() => null));
       const permissions = [
         scopes.includes("mcp:read")
           ? `<li><strong>Läsa företagsuppgifter</strong><p>Klienten begär läsåtkomst till anslutna företag.</p></li>`
@@ -190,7 +222,7 @@ export function createProductGateway(
           ? `<li><strong>Hantera valda filer</strong><p>Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy.</p></li>`
           : "",
         scopes.includes("offline_access")
-          ? `<li><strong>Behålla anslutningen</strong><p>Klienten kan förnya anslutningen så länge godkännandet är giltigt.</p></li>`
+          ? `<li><strong>Behålla anslutningen</strong><p>${offline ? "Appens backend får förnya åtkomsten även när du är utloggad. Förnyelsetoken gäller i 30 dagar från senaste lyckade förnyelse. Installationsägaren kan återkalla åtkomsten." : "Klienten kan förnya anslutningen så länge godkännandet är giltigt."}</p></li>`
           : "",
       ].join("");
       return safeResponse(
@@ -278,7 +310,9 @@ accept.onclick=async()=>{
               url.searchParams,
             );
           } catch (e) {
-            return onboardingFailure(e, request);
+            return (
+              onboardingGuideRedirect(request) ?? onboardingFailure(e, request)
+            );
           }
         }
         // Every approval must display its company access and current companies.
@@ -518,7 +552,17 @@ accept.onclick=async()=>{
           }
         }
       }
-      return auth.handler(request);
+      const response = await auth.handler(request);
+      if (
+        request.method === "GET" &&
+        response.status >= 400 &&
+        request.headers.get("accept")?.includes("text/html")
+      )
+        return onboardingFailure(
+          new OnboardingError("INVALID_REQUEST", response.status),
+          request,
+        );
+      return response;
     }
     if (url.pathname !== "/mcp") return admin.fetch(request);
     if (url.search) return challenge();
