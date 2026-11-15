@@ -65,8 +65,8 @@ toolchain; the host's Node 22 was not used for project checks.
 | --- | --- |
 | `npm run typecheck` | Passed all four TypeScript projects |
 | `npm run lint` | Passed |
-| `npm run test:node -- tests/node/product.test.ts tests/node/product-runtime.test.ts` | 255 passed, including the actual Node start/restart and secret-file checks |
-| `npm run test:worker -- tests/worker/product.test.ts` | 251 passed in actual local workerd/D1 |
+| `npm run test:node -- tests/node/product.test.ts tests/node/product-runtime.test.ts` | 259 passed after integration with current main, including actual Node start/restart and secret-file checks |
+| `npm run test:worker -- tests/worker/product.test.ts` | 255 passed after integration with current main in actual local workerd/D1 |
 | `npm run build` | Passed with runtime license inventory and original notices |
 | `npm run test:build` | 13 passed, including native Worker and recovery CLI checks |
 | Temporary runtime-notice fixture | Original notice retained byte-for-byte; altered notice and unreviewed version rejected |
@@ -88,3 +88,22 @@ regular Playwright used the existing cached Chromium.
 
 Actual provider delivery has not been tested. No real email, Fortnox call,
 production deployment, package publication or merge is part of this work.
+
+## CI source-ledger follow-up
+
+The first PR run failed three core ledger tests because the existing operation
+matrices still pinned the pre-email versions of shared product runtime files.
+The source diffs were reviewed: product composition adds only the optional email
+adapter, the Worker entry adds its ENV types, and owner administration adds the
+welcome/reset-delivery paths. These edits change no Fortnox operation mapping,
+company policy, activation classification or provider/client acceptance evidence.
+
+Seven stale hash bindings across the connection, receipt, register, sales and
+analysis/payroll matrices were refreshed to the reviewed source bytes. All other
+matrix fields, including operation evidence and review dates, were preserved.
+The ledger assertions remain enabled; the initial failures were reproduced
+locally before refreshing the hashes.
+
+After the refresh, `npm run test:node -- tests/core` passed all 36 tests across
+nine files. A complete matrix audit matched all 102 source bindings and verified
+that every non-hash field was unchanged. Lint and whitespace checks passed.

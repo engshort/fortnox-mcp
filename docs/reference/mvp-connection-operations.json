@@ -23,7 +23,7 @@
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "02697f5c6b8e06e1489e0f8c07e4de7a004da6614b38896771d7b0814936a46d",
+      "sha256": "4d0dfe10479460a049d09a4205160df58a6ec504686beaeeced745aaafb40687",
       "kind": "independently_written_project_source"
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "path": "apps/shared/admin.ts",
-      "sha256": "a52a2ae688fd3d845f71ed9155feeb28f04c4a8fbe452923bcb8ff1020254f9e",
+      "sha256": "fdeb77091bdc683e5cb1da5f452f20733f86de868ce67cb5526fe77a1f48d706",
       "kind": "independently_written_project_source"
     },
     {
