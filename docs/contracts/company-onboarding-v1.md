@@ -65,6 +65,22 @@ is displayed: adding B retains current, previously approved A. An expired/stale
 previous selection is not silently promoted to a newer connection/access version.
 Provider state/PKCE is separate from consumer state/PKCE.
 
+The browser guide shares the administration brand and focused header with client
+consent. New Fortnox connection is the primary action; existing connections remain
+available as secondary company rows. Login continuations, session recovery and
+pending/unknown outcomes use the same visual language. A submitted page blocks
+competing actions; a missing response requires checking retained state before
+another submission. Presentation does not change the owner/session boundary.
+After provider verification or an explicit existing-company choice, the guide
+automatically continues to client consent with the exact attempt-bound company
+selected. This navigation does not approve access: the owner still reviews and
+explicitly submits client consent. Returning from that review shows the selected
+company without requiring another company choice.
+Browser GET errors requested with `Accept: text/html` use a bounded branded page
+and retain the error HTTP status. API errors, browser POSTs and non-HTML error
+requests keep the existing JSON envelope. Browser errors reveal no attempt,
+client or company details and never supply an unvalidated return URL.
+
 Connecting a company never enables a financial module or changes voucher policy.
 An existing tenant is not added as another technical company. Reconnect is bound
 to the expected company; selecting another tenant cannot replace it.

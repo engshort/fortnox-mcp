@@ -851,6 +851,96 @@ summary {
   flex-basis: 100%;
   margin: 0;
 }
+.onboarding-context {
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  border-radius: 8px;
+  background: var(--secondary);
+  overflow-wrap: anywhere;
+}
+.onboarding-context p,
+.consent-main .notice p:last-child {
+  margin-bottom: 0;
+}
+.onboarding-context p + p {
+  margin-top: 6px;
+  font-size: 14px;
+}
+.consent-main > section > h2,
+.consent-main .notice h2,
+.consent-main > .consent-access h2 {
+  font-size: 22px;
+}
+.onboarding-company {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  padding: 22px 12px;
+  border-top: 1px solid var(--border);
+}
+.onboarding-companies {
+  border-bottom: 1px solid var(--border);
+}
+.onboarding-company-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--secondary);
+}
+.onboarding-company-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.onboarding-company-name strong,
+.onboarding-company-name small {
+  display: block;
+}
+.onboarding-company-name strong {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+.onboarding-company-name small {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.onboarding-company button {
+  flex-shrink: 0;
+}
+.onboarding-new {
+  margin-bottom: 36px;
+}
+.onboarding-provider {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  max-width: 460px;
+}
+.onboarding-provider label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.onboarding-provider button {
+  margin-top: 8px;
+}
+.onboarding-empty {
+  padding: 20px 0;
+}
+.consent-actions button {
+  max-width: 100%;
+  min-height: 48px;
+  white-space: normal;
+}
+.connection-auth .login {
+  max-width: 460px;
+  margin: 0;
+}
+.connection-auth .login > p:last-child {
+  margin-top: 20px;
+}
 @media (max-width: 720px) {
   .consent-header {
     padding: 18px 20px;
@@ -878,6 +968,28 @@ summary {
   }
   .consent-actions > button {
     width: 100%;
+  }
+  .consent-actions form,
+  .onboarding-provider,
+  .onboarding-provider button {
+    width: 100%;
+  }
+  .onboarding-company {
+    gap: 12px;
+    padding: 18px 0;
+    flex-wrap: wrap;
+  }
+  .onboarding-company-name {
+    flex-basis: calc(100% - 60px);
+  }
+  .onboarding-company button {
+    margin-left: 60px;
+  }
+  .consent-actions form button {
+    width: 100%;
+  }
+  .onboarding-context {
+    padding: 18px 20px;
   }
   .consent-actions .status {
     flex-basis: auto;

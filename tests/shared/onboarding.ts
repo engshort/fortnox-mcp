@@ -295,6 +295,63 @@ export async function onboardingFixture(config: AuthConfig) {
 }
 
 export function onboardingContract(fixture: () => Promise<AuthConfig>) {
+  it("renders bounded browser errors while preserving JSON contracts and avoiding provider dispatch", async () => {
+    const f = await onboardingFixture(await fixture());
+    const a = await f.start();
+    const missing = `/connect/company/${crypto.randomUUID()}?revision=1`;
+    const html = await f.browser(missing);
+    expect(html.status).toBe(404);
+    expect(html.headers.get("content-type")).toContain("text/html");
+    expect(html.headers.get("cache-control")).toBe("no-store");
+    const content = await html.text();
+    expect(content).toContain("Anslutningsförsöket hittades inte");
+    expect(content).not.toContain("Synthetic consumer");
+    const structured = await f.request(missing, undefined, {
+      cookie: f.cookie,
+    });
+    expect(structured.status).toBe(404);
+    expect(await structured.json()).toEqual({
+      version,
+      error: "ATTEMPT_NOT_FOUND",
+      recovery_action: "none",
+    });
+    const invalid = await f.browser(
+      a.authorization_url.replace("revision=1", "revision=invalid"),
+    );
+    expect(invalid.status).toBe(400);
+    expect(await invalid.text()).toContain("Anslutningslänken är ogiltig");
+    await f.app.connections.updateSet(f.owner, (set) => {
+      const attempt = set.onboarding?.find(
+        (attempt) => attempt.id === a.attempt_id,
+      );
+      if (attempt) attempt.expiresAt = Date.now() - 1;
+    });
+    const expired = await f.browser(a.authorization_url);
+    expect(expired.status).toBe(410);
+    expect(await expired.text()).toContain("Anslutningsförsöket har gått ut");
+    const post = await f.browser(`/connect/company/${a.attempt_id}/choose`, {
+      revision: 1,
+      company_id: crypto.randomUUID(),
+    });
+    expect(post.headers.get("content-type")).toBe("application/json");
+    expect(await post.json()).toEqual({
+      version,
+      error: "ATTEMPT_EXPIRED",
+      recovery_action: "resume",
+    });
+    const api = await f.request(
+      `/api/company-onboarding/v1/attempts/${crypto.randomUUID()}`,
+      undefined,
+      { authorization: f.client.authorization, accept: "text/html" },
+    );
+    expect(api.headers.get("content-type")).toBe("application/json");
+    expect(await api.json()).toEqual({
+      version,
+      error: "ATTEMPT_NOT_FOUND",
+      recovery_action: "none",
+    });
+    expect(f.calls()).toBe(0);
+  });
   it("completes a provider connection, exact client-bound result and real MCP profile/status reads", async () => {
     const f = await onboardingFixture(await fixture());
     const a = await f.start();
@@ -312,6 +369,29 @@ export function onboardingContract(fixture: () => Promise<AuthConfig>) {
     expect(connections).toHaveLength(1);
     expect(connections[0]?.review).toBe("review_required");
     expect(connections[0]?.readOnly).toBe(true);
+    const continuation = await f.browser(location);
+    expect(continuation.status).toBe(303);
+    const authorization = continuation.headers.get("location") ?? "";
+    expect(new URL(authorization).pathname).toBe("/auth/oauth2/authorize");
+    const pendingApproval = await f.browser(authorization);
+    const consent = pendingApproval.headers.get("location") ?? "";
+    expect(new URL(consent, f.config.origin).pathname).toBe("/consent");
+    expect(
+      (await f.browser(new URL(consent, f.config.origin).href)).status,
+    ).toBe(200);
+    const attempt = await f.app.onboarding?.get(
+      f.owner,
+      f.client.client_id,
+      a.attempt_id,
+    );
+    expect(attempt?.company?.id).toBe(connections[0]?.id);
+    expect(attempt?.approval?.selection.map((c) => c.id)).toEqual([
+      connections[0]?.id,
+    ]);
+    expect(attempt?.phase).toBe("approval_pending");
+    expect(attempt?.completedAt).toBeUndefined();
+    expect(attempt?.grantId).toBeUndefined();
+    expect(f.calls()).toBe(2);
     const approved = await f.approve(a);
     expect(approved.target.searchParams.get("state")).toBe(a.input.state);
     const exchanged = await f.exchange(approved.target);

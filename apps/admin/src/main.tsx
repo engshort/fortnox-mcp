@@ -19,7 +19,7 @@ import {
   type Translate,
 } from "./forms.js";
 import { Link, usePath } from "./navigation.js";
-import { AppShell } from "./shell.js";
+import { AppShell, Brand } from "./shell.js";
 import "./style.css";
 
 type Clients = {
@@ -521,21 +521,37 @@ function App() {
                     "Could not complete the action. Check the connection and try again.",
                   )
                 : message;
-  if (!admin)
+  if (!admin) {
+    const continuation = new URLSearchParams(location.search);
+    const connecting =
+      path === "/sign-in" &&
+      (continuation.has("company_onboarding") || continuation.has("client_id"));
     return (
-      <div className="auth-page">
-        <header className="auth-header">
-          <strong>Fortnox MCP</strong>
+      <div
+        className={connecting ? "consent-page connection-auth" : "auth-page"}
+      >
+        {connecting && (
+          <a className="skip-link" href="#content">
+            {t("Till innehållet", "Skip to content")}
+          </a>
+        )}
+        <header className={connecting ? "consent-header" : "auth-header"}>
+          {connecting ? <Brand t={t} /> : <strong>Fortnox MCP</strong>}
           <button type="button" className="secondary" onClick={changeLanguage}>
             {t("English", "Svenska")}
           </button>
         </header>
-        <main>
+        <main
+          className={connecting ? "consent-main" : undefined}
+          id="content"
+          tabIndex={-1}
+        >
           <Login t={t} onError={setMessage} />
           <Message>{errorMessage}</Message>
         </main>
       </div>
     );
+  }
   const match = /^\/admin\/companies\/([^/]+)(?:\/([^/]+))?$/.exec(path);
   const company = state?.companies.find((c) => c.company_id === match?.[1]);
   return (

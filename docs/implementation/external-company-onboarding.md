@@ -6,6 +6,82 @@ based on `3f5e8bb21146b0582c981339ee31a7557af6c331`. The separately committed
 [wire contract](../contracts/company-onboarding-v1.md) was agreed with the M2X #11
 implementation chat ([M2X #11](https://github.com/m2x-se/mcp/issues/11)). This delivery changes only the Fortnox repository.
 
+## Connection guide design follow-up
+
+The owner requested the administration's existing visual language throughout the
+connection guide, with a focused header rather than the administration sidebar.
+The shared server-rendered frame now covers company selection, client consent,
+retained session review and HTML navigation errors. Login continuations use the
+same brand, typography and layout width. The existing palette, local logo and
+system fonts are retained; no asset or dependency is added.
+
+New-company connection is the primary action above existing-company rows.
+Rows show the escaped name, organization number and a secondary choose action.
+Successful provider verification and explicit existing-company choices continue
+directly to client consent with the exact attempt-bound company selected.
+The owner still explicitly reviews/submits that consent; returning to the guide
+shows the selected company without asking for another choice. Prior authorized
+company selections are preserved by the existing domain service. No list-first
+or before/after heuristic chooses the integration's resulting company.
+
+Pending consent, failed attempts, unknown provider outcomes and session recovery
+retain their domain actions. Competing page submissions are blocked while a
+request runs. A lost response leaves actions disabled and offers a read-only
+reload of retained state. Client consent likewise blocks duplicate submissions.
+GET navigation errors requested as HTML keep their error status and use bounded
+messages without client/company details; API/POST errors retain JSON. The
+authenticated owner/session/Origin/revision checks, company isolation, CSP,
+provider exchange rules and policy are unchanged. No SQL migration is required.
+
+Acceptance uses the actual local Node product and existing synthetic consumer/
+provider fixture, plus the real local workerd/D1 contracts. Browser plugin is
+unavailable; the repository's pinned Playwright Chromium harness is used for
+1487 × 1058 desktop and Pixel 7 (412 × 839 CSS pixels). Unknown state is explicitly
+seeded for the browser rendering case; actual synthetic exchange uncertainty,
+session fencing and no replay are tested separately in Node/workerd. This is not
+actual Fortnox, hosted ChatGPT, deployment or production acceptance.
+
+Local verification on 2026-11-15, based on `ccbe3e6`:
+
+- Typecheck, lint, build, 10 artifact and 3 native runtime/CLI tests passed.
+- The complete owner browser suite passed all 16 desktop/mobile cases, including
+  new A then B connections reaching consent with the intended company preselected,
+  result/profile/status readback, preserved A+B access and existing administration.
+- Broad Node/SQLite product and restart checks passed 252 tests before the final
+  automatic-continuation addition; all 12 affected OAuth/onboarding tests passed
+  again after that addition.
+- Broad workerd/D1 product checks passed 249 of 250 cases; an unchanged payroll
+  write case exceeded its five-second timeout during concurrent checks. The
+  final focused run passed all 13 OAuth/onboarding/payroll cases, including that
+  timeout case, without changing its timeout or implementation.
+- The first browser run exposed a test navigation race when reading the URL
+  before login completed. Explicitly waiting for navigation fixed both failures.
+  Initial restricted execution could not bind loopback listeners; complete
+  runtime/browser checks used the approved local execution context.
+- The separate `independent_ui_review` AI inspected the diff, raw logs and
+  desktop/mobile screenshots, independently ran the HTML/JSON error contract and
+  automatic-continuation scenario, and checked escaping/script syntax and
+  unknown-outcome actions. No blocker was found. This is **AI-executed,
+  independently AI-reviewed local synthetic acceptance**.
+
+After rebasing onto `a7a1043` (the account-email change), code candidate `0a2b7f5`
+passed typecheck, lint, build, all 16 owner browser cases, 10 artifact and 3 native
+runtime/CLI tests. Focused OAuth/onboarding/owner/source checks passed 45 Node
+tests (216 intentionally filtered) and 22 workerd tests (234 filtered). All 82
+relative links in changed documentation resolved. The rebase preserved upstream
+login/email behavior and both documentation additions; the UI code and tests
+were unchanged by it. Final evidence-only documentation edits follow this run.
+
+The first PR CI run passed the other five workflows and 461 Node/domain tests,
+but its S08/S09 source-ledger test found two stale hashes for the changed gateway
+and administration entry. Refreshing those exact source pins resolves the
+metadata mismatch; it changes no operation, support classification or acceptance
+claim. The complete source-ledger regression is checked before the CI rerun.
+
+The existing workerd source-map/form-body warnings and browser runner color-env
+warning remain. Intentional lost-response/404/410 browser cases are distinguished
+from unexpected page or console errors; the ordinary success flow has none.
+
 ## Implementation and risk classification
 
 The backend-only v1 API authenticates allowlisted confidential clients using the
