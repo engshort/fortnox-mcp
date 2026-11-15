@@ -4,7 +4,7 @@ import { accountingDate } from "./accounting.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
-import { parseAmount, sumAmounts } from "./money.js";
+import { parseAmount, sumFinancialAmounts as sumAmounts } from "./money.js";
 import { assertScopeProgram } from "./programs.js";
 
 const Exact = Decimal.clone({ precision: 96 });
@@ -16,6 +16,7 @@ const amount = z
   .transform((v) => parseAmount(v, 2));
 export const financialQuery = z
   .object({
+    analysis_context_id: z.string().uuid().optional(),
     company_id: z.string().uuid(),
     financial_year: z.number().int().positive().safe(),
     from: accountingDate,
@@ -36,6 +37,7 @@ export const financialQuery = z
 export type FinancialQuery = z.infer<typeof financialQuery>;
 const comparisonPeriod = z
   .object({
+    analysis_context_id: z.string().uuid().optional(),
     financial_year: financialQuery.shape.financial_year,
     from: accountingDate,
     to: accountingDate,
@@ -71,6 +73,7 @@ export const financialAccountsQuery = z
   .strict();
 export const financialMovementQuery = z
   .object({
+    analysis_context_id: z.string().uuid().optional(),
     company_id: z.string().uuid(),
     financial_year: z.number().int().positive().safe(),
     from: accountingDate,
@@ -111,8 +114,37 @@ const source = z
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
+export const analysisObservation = z
+  .object({
+    id: z.string().uuid(),
+    mode: z.literal("pinned_basis"),
+    expires_at: z.number().int().nonnegative(),
+    provider_access_checked_at: z.number().int().nonnegative(),
+  })
+  .strict();
+export const movementSummary = z
+  .object({
+    count: z.number().int().min(0).max(100000),
+    samples: z
+      .array(
+        z
+          .object({
+            id: z.string().max(128),
+            position: z.number().int().nonnegative(),
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict();
 export const financialBasis = z
   .object({
+    analysis_context: analysisObservation.optional(),
+    movement_summaries: z.record(z.string(), movementSummary).optional(),
+    movement_selection: z
+      .object({ total: z.number().int().min(0).max(100000) })
+      .strict()
+      .optional(),
     company_id: z.string().uuid(),
     source_version: z.string().regex(/^[a-f0-9]{64}$/),
     year: z
@@ -153,7 +185,7 @@ export const financialBasis = z
           })
           .strict(),
       )
-      .max(10000),
+      .max(100000),
     sources: z.array(source).min(1).max(1000),
     retrieved: z
       .object({
@@ -193,6 +225,7 @@ export function calculateFinancialReport(
     query.from,
     query.to,
     query.account_numbers ?? null,
+    ...(query.analysis_context_id ? [query.analysis_context_id] : []),
   ]);
   if (
     query.continuation &&
@@ -298,11 +331,21 @@ export function calculateFinancialReport(
       },
       movement_ids: effective
         .filter((m) => m.date >= query.from && m.date <= query.to)
-        .map((m) => m.id)
-        .slice(0, 20),
-      movement_count: effective.filter(
-        (m) => m.date >= query.from && m.date <= query.to,
-      ).length,
+        .flatMap(
+          (m, position) =>
+            basis.movement_summaries?.[m.id]?.samples ?? [
+              { id: m.id, position },
+            ],
+        )
+        .sort((a, b) => a.position - b.position)
+        .slice(0, 20)
+        .map((m) => m.id),
+      movement_count: effective
+        .filter((m) => m.date >= query.from && m.date <= query.to)
+        .reduce(
+          (n, m) => n + (basis.movement_summaries?.[m.id]?.count ?? 1),
+          0,
+        ),
     };
   });
   // Reconcile the complete chart before narrowing the displayed account list.
@@ -374,6 +417,9 @@ export function calculateFinancialReport(
     provider_value_fields: ["opening", "provider_closing"],
     sources: basis.sources,
     retrieved: basis.retrieved,
+    ...(basis.analysis_context
+      ? { analysis_context: basis.analysis_context }
+      : {}),
     coverage: basis.coverage,
     consistency: basis.consistency,
     complete,
@@ -400,11 +446,29 @@ export interface FinancialProvider {
     until?: number,
   ): Promise<FinancialBasis>;
 }
+export interface MovementRead {
+  effective_only?: boolean;
+  after_movement?: string;
+  page_size: number;
+}
+export interface FinancialContextReader {
+  readBasis(
+    actor: AccountingActor,
+    query: FinancialQuery,
+    rawMovements?: boolean | MovementRead,
+  ): Promise<FinancialBasis>;
+  years(
+    actor: AccountingActor,
+    company: string,
+    context: string,
+  ): Promise<import("./financial-dates.js").FinancialYearIndex>;
+}
 export class FinancialAnalysis {
   constructor(
     readonly connections: Connections,
     readonly provider: FinancialProvider,
     readonly enabled = false,
+    readonly contexts?: FinancialContextReader,
   ) {}
   private async authorize(actor: AccountingActor, company: string) {
     if (!actor.scopes.includes("mcp:read"))
@@ -423,10 +487,14 @@ export class FinancialAnalysis {
     actor: AccountingActor,
     query: FinancialQuery,
     until?: number,
+    rawMovements: boolean | MovementRead = false,
   ) {
     query = financialQuery.parse(query);
     const current = await this.authorize(actor, query.company_id);
-    const basis = await this.provider.basis(actor, query, until);
+    const basis = query.analysis_context_id
+      ? await this.contexts?.readBasis(actor, query, rawMovements)
+      : await this.provider.basis(actor, query, until);
+    if (!basis) throw new DomainError("CAPABILITY_UNAVAILABLE");
     const after = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,
@@ -440,7 +508,8 @@ export class FinancialAnalysis {
     )
       throw new DomainError("CONNECTION_CONFLICT");
     const checked = financialBasis.parse(basis);
-    calculateFinancialReport(query, checked);
+    if (!rawMovements || !query.analysis_context_id)
+      calculateFinancialReport(query, checked);
     return checked;
   }
   async report(actor: AccountingActor, input: unknown) {
@@ -484,12 +553,24 @@ export class FinancialAnalysis {
   }
   async movements(actor: AccountingActor, input: unknown) {
     const query = financialMovementQuery.parse(input),
-      basis = await this.readBasis(actor, {
-        company_id: query.company_id,
-        financial_year: query.financial_year,
-        from: query.from,
-        to: query.to,
-      });
+      basis = await this.readBasis(
+        actor,
+        {
+          analysis_context_id: query.analysis_context_id,
+          company_id: query.company_id,
+          financial_year: query.financial_year,
+          from: query.from,
+          to: query.to,
+          account_numbers: [query.account_number],
+        },
+        undefined,
+        {
+          page_size: query.page_size ?? 50,
+          ...(query.continuation
+            ? { after_movement: query.continuation.after_movement }
+            : {}),
+        },
+      );
     if (basis.company_id !== query.company_id)
       throw new DomainError("COMPANY_FORBIDDEN");
     if (
@@ -499,21 +580,23 @@ export class FinancialAnalysis {
     )
       throw new DomainError("VALIDATION_FAILED");
     // Drill-down must apply the same whole-basis identity, date and row checks.
-    calculateFinancialReport(
-      {
-        company_id: query.company_id,
-        financial_year: query.financial_year,
-        from: query.from,
-        to: query.to,
-      },
-      basis,
-    );
+    if (!query.analysis_context_id)
+      calculateFinancialReport(
+        {
+          company_id: query.company_id,
+          financial_year: query.financial_year,
+          from: query.from,
+          to: query.to,
+        },
+        basis,
+      );
     const queryKey = JSON.stringify([
       query.company_id,
       query.financial_year,
       query.from,
       query.to,
       query.account_number,
+      ...(query.analysis_context_id ? [query.analysis_context_id] : []),
     ]);
     if (
       query.continuation &&
@@ -566,6 +649,9 @@ export class FinancialAnalysis {
       source_version: basis.source_version,
       sources: basis.sources,
       retrieved: basis.retrieved,
+      ...(basis.analysis_context
+        ? { analysis_context: basis.analysis_context }
+        : {}),
       coverage: basis.coverage,
       consistency: basis.consistency,
       semantics_verified: basis.semantics_verified,
@@ -574,7 +660,7 @@ export class FinancialAnalysis {
       rows,
       page: {
         count: rows.length,
-        total_in_selection: selected.length,
+        total_in_selection: basis.movement_selection?.total ?? selected.length,
         next,
         exhausted: next === null,
       },

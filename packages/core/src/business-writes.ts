@@ -390,6 +390,14 @@ export class BusinessWrites {
         if (dispatched) throw new DomainError("INTENT_CONFLICT");
         const active = await this.authorize(actor, ref.company_id, op);
         this.bound(active, actor, p);
+        await this.connections.mutate(
+          actor.ownerId,
+          ref.company_id,
+          (current) => {
+            this.bound(current, actor, p);
+            current.financialRevision = (current.financialRevision ?? 0) + 1;
+          },
+        );
         dispatched = true;
       });
       if (!dispatched) result = { state: "failed" };

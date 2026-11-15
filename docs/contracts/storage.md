@@ -117,3 +117,20 @@ unknown and in-flight results still survive that expiry. Encryption/key checks,
 backup/restore, disconnect and authorization rules are unchanged. Retained
 discrepancy metadata is shown by owner administration and cannot authorize a
 new provider call or replay an old intent.
+
+## Optional analytical contexts
+
+The default-off S08 context store uses separate `analysis_contexts` and
+`analysis_parts` tables in SQLite/D1. AES-GCM encrypts manifests, build state,
+aggregates, row pointers and compact source rows, binding identity/context/part
+and ordinal. Fixed capacity reservations are 64 MiB/context, 128 MiB/owner and
+256 MiB/installation, including staging; TTL is ten minutes while building and
+five minutes from readiness, without sliding renewal. Temporary inputs are not
+part of connection CAS records. Expiry and failure remove active SQL rows.
+
+Node operator backups exclude these tables' contents and vacuum the copy;
+restore and key rotation discard contexts. D1 backup/Time Travel retention is
+platform-managed and distinct from active cache TTL. A D1 restore procedure must
+clear both analysis tables before accepting traffic. See [S08 retention and
+verification](../implementation/S08-performance.md); no permanent financial
+replica or immediate deletion from managed backups is claimed.

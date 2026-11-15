@@ -501,6 +501,7 @@ export class Bookkeeping {
           const e = current.bookkeeping?.executions.find((v) => v.id === p.id);
           if (e?.state !== "submitting" || e.dispatched || current.readOnly)
             throw new DomainError("INTENT_CONFLICT");
+          current.financialRevision = (current.financialRevision ?? 0) + 1;
           e.dispatched = true;
         });
       });

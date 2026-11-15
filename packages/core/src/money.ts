@@ -26,3 +26,16 @@ export function sumAmounts(inputs: readonly unknown[], scale: number): string {
   for (const input of inputs) total = total.plus(parseAmount(input, scale));
   return total.toFixed(scale);
 }
+
+// Read-only ledger aggregation has a larger independently bounded row budget.
+// Voucher validation retains the original 10,000-operand bound above.
+export function sumFinancialAmounts(
+  inputs: readonly unknown[],
+  scale: number,
+): string {
+  if (inputs.length > 100_000) throw new DomainError("VALIDATION_FAILED");
+  const partial: string[] = [];
+  for (let i = 0; i < inputs.length; i += 10_000)
+    partial.push(sumAmounts(inputs.slice(i, i + 10_000), scale));
+  return sumAmounts(partial, scale);
+}

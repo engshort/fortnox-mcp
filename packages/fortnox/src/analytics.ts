@@ -9,9 +9,12 @@ import {
   type FinancialProvider,
   type FinancialQuery,
   financialAccountsQuery,
+  largeSieLimits,
   parseAmount,
   parseSie4,
   type SieExport,
+  SieLimitError,
+  sieLimits,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import type { FortnoxConnections } from "./connections.js";
@@ -67,6 +70,34 @@ export interface FinancialVerification {
   effective_rows: boolean;
   omitted_zero_openings: boolean;
 }
+export interface FinancialReadMetric {
+  operation:
+    | "financial.year"
+    | "financial.accounts"
+    | "financial.sie4"
+    | "sie.parse"
+    | "basis";
+  bytes?: number;
+  duration_ms: number;
+  outcome: "ok" | "error" | "reused";
+}
+export interface FinancialBuild {
+  company_id: string;
+  financial_year: number;
+  start: number;
+  financialYear: {
+    id: number;
+    from: string;
+    to: string;
+    source: FinancialBasis["sources"][number];
+  };
+  first: SieExport;
+  chart: z.infer<typeof providerAccount>[];
+  sources: FinancialBasis["sources"];
+  chartComplete: boolean;
+  page: number | null;
+  bytes: number;
+}
 // Fixed read operations only. Mapping is supplied by trusted installation code,
 // never by a model argument. It classifies explicit accounts, not number ranges.
 export class FortnoxFinancialReads implements FinancialProvider {
@@ -85,13 +116,41 @@ export class FortnoxFinancialReads implements FinancialProvider {
       company: string,
       year: number,
     ) => FinancialVerification | undefined,
+    readonly options: {
+      large?: boolean;
+      observe?: (metric: FinancialReadMetric) => void;
+    } = {},
   ) {
     if (
       new Set(enabled).size !== enabled.length ||
       enabled.some((id) => !financialReadOperations.includes(id))
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
-    this.http = new DocumentHttp(connections, provider, enabled, active, now);
+    this.http = new DocumentHttp(
+      connections,
+      provider,
+      enabled,
+      active,
+      now,
+      options.large ? largeSieLimits.bytes : sieLimits.bytes,
+    );
+  }
+  metric(value: FinancialReadMetric) {
+    // Observability must never change a financial outcome. No payload/identity labels.
+    try {
+      this.options.observe?.(value);
+    } catch {
+      /* optional sink */
+    }
+  }
+  async profileVersion(company: string, year: number) {
+    return accountingHash({
+      parser: "sie4-incremental/2",
+      large: this.options.large === true,
+      calculation: "ledger-signed-debit-minus-credit/1",
+      mapping: this.mapping?.(company, year) ?? null,
+      verification: this.verification?.(company, year) ?? null,
+    });
   }
   async years(
     actor: AccountingActor,
@@ -108,7 +167,13 @@ export class FortnoxFinancialReads implements FinancialProvider {
         page: String(page),
         limit: "100",
       }).toString();
+      const tick = this.now();
       const raw = await this.http.read(context, url, until);
+      this.metric({
+        operation: "financial.year",
+        duration_ms: this.now() - tick,
+        outcome: "ok",
+      });
       const records = z.array(year).max(100).parse(raw.FinancialYears);
       const metadata = meta.safeParse(raw.MetaInformation);
       sources.push({
@@ -168,11 +233,17 @@ export class FortnoxFinancialReads implements FinancialProvider {
   ) {
     z.number().int().positive().safe().parse(id);
     const context = await this.context(actor, company, "financial.year");
+    const tick = this.now();
     const raw = await this.http.read(
       context,
       new URL(`https://api.fortnox.se/3/financialyears/${id}`),
       until,
     );
+    this.metric({
+      operation: "financial.year",
+      duration_ms: this.now() - tick,
+      outcome: "ok",
+    });
     const parsed = year.parse(raw.FinancialYear);
     if (parsed.Id !== id || parsed.FromDate > parsed.ToDate)
       throw new ProviderError(
@@ -207,7 +278,13 @@ export class FortnoxFinancialReads implements FinancialProvider {
       limit: "100",
       sortby: "number",
     }).toString();
+    const tick = this.now();
     const raw = await this.http.read(context, url, until);
+    this.metric({
+      operation: "financial.accounts",
+      duration_ms: this.now() - tick,
+      outcome: "ok",
+    });
     const records = z.array(providerAccount).max(100).parse(raw.Accounts);
     if (
       records.some((r) => r.Year !== financialYear) ||
@@ -385,6 +462,7 @@ export class FortnoxFinancialReads implements FinancialProvider {
     company: string,
     financialYear: number,
     until = Infinity,
+    reuse?: SieExport,
   ): Promise<SieExport> {
     z.number().int().positive().safe().parse(financialYear);
     const context = await this.context(actor, company, "financial.sie4");
@@ -392,13 +470,55 @@ export class FortnoxFinancialReads implements FinancialProvider {
     // exportall/selection values are not assumed from their untyped API schema.
     // Their actual zero/inactive coverage remains a separate acceptance gate.
     url.searchParams.set("financialyear", String(financialYear));
+    const started = this.now();
     const response = await this.http.readSie(context, url, until);
+    this.metric({
+      operation: "financial.sie4",
+      bytes: response.bytes.length,
+      duration_ms: this.now() - started,
+      outcome: "ok",
+    });
+    const digest = new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new Uint8Array(response.bytes)),
+    );
+    const hash = Array.from(digest, (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
     const encoding = /charset\s*=\s*"?utf-?8/i.test(response.content_type ?? "")
       ? "utf8"
       : "cp437";
+    if (reuse?.sha256 === hash && reuse.encoding === encoding) {
+      this.metric({
+        operation: "sie.parse",
+        duration_ms: 0,
+        outcome: "reused",
+      });
+      return reuse;
+    }
+    const parseStarted = this.now();
     try {
-      return await parseSie4(response.bytes, encoding);
-    } catch {
+      const parsed = await parseSie4(
+        response.bytes,
+        encoding,
+        this.options.large ? largeSieLimits : sieLimits,
+      );
+      this.metric({
+        operation: "sie.parse",
+        duration_ms: this.now() - parseStarted,
+        outcome: "ok",
+      });
+      return parsed;
+    } catch (error) {
+      this.metric({
+        operation: "sie.parse",
+        duration_ms: this.now() - parseStarted,
+        outcome: "error",
+      });
+      if (error instanceof SieLimitError)
+        throw new ProviderError(
+          "CAPABILITY_UNAVAILABLE",
+          `sie_${error.limit}_limit_${error.maximum}_use_bounded_analysis_or_larger_runtime`,
+        );
       throw new ProviderError(
         "UPSTREAM_UNAVAILABLE",
         "unsupported_or_invalid_sie4",
@@ -470,11 +590,11 @@ export class FortnoxFinancialReads implements FinancialProvider {
       complete: true,
     };
   }
-  async basis(
+  async beginBuild(
     actor: AccountingActor,
     query: FinancialQuery,
     deadline = Infinity,
-  ): Promise<FinancialBasis> {
+  ): Promise<FinancialBuild> {
     const start = this.now(),
       until = Math.min(start + 45000, deadline);
     const financialYear = await this.financialYear(
@@ -497,43 +617,74 @@ export class FortnoxFinancialReads implements FinancialProvider {
       sourceYear.to !== financialYear.to
     )
       throw new ProviderError("UPSTREAM_UNAVAILABLE", "sie_year_mismatch");
-    // An undeclared comparison-year account is retained by the parser, but is
-    // not evidence that this account exists or has a zero opening in this year.
+    return {
+      company_id: query.company_id,
+      financial_year: query.financial_year,
+      start,
+      financialYear,
+      first,
+      chart: [],
+      sources: [
+        financialYear.source,
+        {
+          operation: "financial.sie4",
+          record_id: `${query.financial_year}:first`,
+          sha256: first.sha256,
+        },
+      ],
+      chartComplete: false,
+      page: 1,
+      bytes: 0,
+    };
+  }
+  async advanceChart(
+    actor: AccountingActor,
+    build: FinancialBuild,
+    until: number,
+  ) {
+    if (build.page === null) return;
+    const result = await this.accountPage(
+      actor,
+      build.company_id,
+      build.financial_year,
+      build.page,
+      until,
+    );
+    build.sources.push(result.source);
+    build.bytes += new TextEncoder().encode(
+      JSON.stringify(result.records),
+    ).length;
+    if (
+      build.chart.length + result.records.length > 10000 ||
+      build.bytes > 2097152 ||
+      build.page > 100
+    )
+      throw new ProviderError(
+        "CAPABILITY_UNAVAILABLE",
+        "chart_limit_select_smaller_basis",
+      );
+    const existing = new Set(build.chart.map((r) => r.Number));
+    if (result.records.some((r) => existing.has(r.Number)))
+      throw new ProviderError("UPSTREAM_UNAVAILABLE", "duplicate_account");
+    build.chart.push(...result.records);
+    build.chartComplete = result.complete;
+    build.page = result.next_page;
+  }
+  async finishBuild(
+    actor: AccountingActor,
+    build: FinancialBuild,
+    until: number,
+  ): Promise<FinancialBasis> {
+    if (build.page !== null) throw new DomainError("PARTIAL_RESULT");
+    const { first, financialYear, sources, chartComplete, start } = build;
+    const query = {
+      company_id: build.company_id,
+      financial_year: build.financial_year,
+    };
     const sourceAccounts = new Map(
       first.accounts.filter((a) => a.name !== null).map((a) => [a.number, a]),
     );
-    const chart = new Map<number, z.infer<typeof providerAccount>>();
-    const sources = [
-      financialYear.source,
-      {
-        operation: "financial.sie4",
-        record_id: `${query.financial_year}:first`,
-        sha256: first.sha256,
-      },
-    ];
-    let chartComplete = false,
-      page = 1,
-      bytes = 0;
-    for (let count = 0; count < 100 && this.now() < until; count++) {
-      const result = await this.accountPage(
-        actor,
-        query.company_id,
-        query.financial_year,
-        page,
-        until,
-      );
-      sources.push(result.source);
-      bytes += JSON.stringify(result.records).length;
-      if (chart.size + result.records.length > 10000 || bytes > 2097152) break;
-      for (const record of result.records) {
-        if (chart.has(record.Number))
-          throw new ProviderError("UPSTREAM_UNAVAILABLE", "duplicate_account");
-        chart.set(record.Number, record);
-      }
-      chartComplete = result.complete;
-      if (result.next_page === null) break;
-      page = result.next_page;
-    }
+    const chart = new Map(build.chart.map((a) => [a.Number, a]));
     const limitations = new Set(
       first.limitations.filter(
         (v) =>
@@ -633,6 +784,7 @@ export class FortnoxFinancialReads implements FinancialProvider {
       query.company_id,
       query.financial_year,
       until,
+      first,
     );
     sources.push({
       operation: "financial.sie4",
@@ -698,5 +850,65 @@ export class FortnoxFinancialReads implements FinancialProvider {
       consistency: changed ? "changed" : "bounded_recheck",
       limitations: [...limitations].sort(),
     };
+  }
+  async beginAnalysisYear(
+    actor: AccountingActor,
+    query: FinancialQuery,
+    until: number,
+  ) {
+    const { first, ...cursor } = await this.beginBuild(actor, query, until);
+    return { source: first, cursor };
+  }
+  async advanceAnalysisYear(
+    actor: AccountingActor,
+    input: unknown,
+    source: () => Promise<unknown>,
+    until: number,
+  ) {
+    const cursor = input as Omit<FinancialBuild, "first">;
+    if (cursor.page !== null) {
+      // Chart pages never load, decrypt or re-encrypt the immutable SIE dataset.
+      const build = { ...cursor, first: undefined as unknown as SieExport };
+      await this.advanceChart(actor, build, until);
+      const { first: _first, ...next } = build;
+      return { cursor: next };
+    }
+    const first = (await source()) as SieExport;
+    return {
+      basis: await this.finishBuild(actor, { ...cursor, first }, until),
+    };
+  }
+  async basis(
+    actor: AccountingActor,
+    query: FinancialQuery,
+    deadline = Infinity,
+  ): Promise<FinancialBasis> {
+    const started = this.now(),
+      until = Math.min(started + 45000, deadline);
+    try {
+      const build = await this.beginBuild(actor, query, until);
+      while (build.page !== null) {
+        if (this.now() >= until)
+          throw new ProviderError(
+            "UPSTREAM_UNAVAILABLE",
+            "read_budget_exhausted_use_prepare_financial_analysis",
+          );
+        await this.advanceChart(actor, build, until);
+      }
+      const result = await this.finishBuild(actor, build, until);
+      this.metric({
+        operation: "basis",
+        duration_ms: this.now() - started,
+        outcome: "ok",
+      });
+      return result;
+    } catch (error) {
+      this.metric({
+        operation: "basis",
+        duration_ms: this.now() - started,
+        outcome: "error",
+      });
+      throw error;
+    }
   }
 }

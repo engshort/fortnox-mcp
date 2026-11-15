@@ -104,3 +104,22 @@ Paginate or stream with explicit limits. Return partial status and continuation 
 - A booked bank account is never described as a live bank balance.
 
 Sources: [F09–F11](../reference/sources.md). See [verification gates](../reference/verification-gates.md).
+
+## Optional pinned analysis contexts
+
+When explicitly enabled, `prepare_financial_analysis` prepares a bounded,
+short-lived encrypted observation for up to five actual fiscal years. Repeated
+calls with its ID advance preparation; no totals are returned until ready.
+The existing ledger analysis, date-driven balances, movements and transactions
+accept optional `analysis_context_id`; comparison selections accept one per side.
+Without it they retain live source reads.
+
+Pinned output includes `analysis_context` and the original `retrieved` interval.
+Five-minute TTL limits retention, not source freshness. Provider-access checks
+are separate observations. External changes require a new preparation; local
+financial dispatch, access/program/generation and evidence-version changes
+invalidate the old context. Its ID participates in continuations. Coverage,
+source disagreements, exact amounts, unknown balances and reconciliation limits
+remain unchanged. The source voucher detail tool still reads live data.
+
+See [implementation, quotas and verification limits](../implementation/S08-performance.md).

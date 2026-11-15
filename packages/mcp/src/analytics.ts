@@ -1,11 +1,14 @@
 import {
   type AccountingActor,
+  AnalysisContextError,
   accountBalanceQuery,
   accountCategory,
   accountingDate,
+  analysisObservation,
   DatedFinancialAnalysis,
   DomainError,
   type FinancialAnalysis,
+  FinancialContexts,
   financialAccountsQuery,
   financialBasis,
   financialComparisonQuery,
@@ -14,6 +17,7 @@ import {
   financialTransactionQuery,
   financialTransactionResult,
   financialVoucherReference,
+  prepareFinancialAnalysisQuery,
 } from "@fortnox-mcp/core";
 import {
   type FortnoxFinancialReads,
@@ -37,6 +41,7 @@ const continuation = z
   .strict();
 const report = z
   .object({
+    analysis_context: analysisObservation.optional(),
     company_id: z.string().uuid(),
     financial_year: financialBasis.shape.year,
     interval: z.object({ from: accountingDate, to: accountingDate }).strict(),
@@ -85,7 +90,7 @@ const report = z
               })
               .strict(),
             movement_ids: z.array(z.string().max(128)).max(20),
-            movement_count: z.number().int().min(0).max(10000),
+            movement_count: z.number().int().min(0).max(100000),
           })
           .strict(),
       )
@@ -110,6 +115,7 @@ const report = z
   .strict();
 const movementPage = z
   .object({
+    analysis_context: analysisObservation.optional(),
     value_origin: z.literal("provider_export"),
     reference_origin: z.literal("parsed_provider_export"),
     company_id: z.string().uuid(),
@@ -137,7 +143,7 @@ const movementPage = z
     page: z
       .object({
         count: z.number().int().min(0).max(50),
-        total_in_selection: z.number().int().min(0).max(10000),
+        total_in_selection: z.number().int().min(0).max(100000),
         next: financialMovementQuery.shape.continuation.unwrap().nullable(),
         exhausted: z.boolean(),
       })
@@ -240,7 +246,8 @@ export function registerFinancialReads(
                   ? error.code
                   : "UPSTREAM_UNAVAILABLE",
               reason:
-                error instanceof ProviderError
+                error instanceof ProviderError ||
+                error instanceof AnalysisContextError
                   ? error.reason
                   : "request_failed",
               correlation_id: crypto.randomUUID(),
@@ -256,6 +263,41 @@ export function registerFinancialReads(
       },
     );
   };
+  if (
+    service.enabled &&
+    service.contexts instanceof FinancialContexts &&
+    service.contexts.enabled &&
+    (
+      [
+        "financial.accounts",
+        "financial.year",
+        "financial.years",
+        "financial.sie4",
+      ] as const
+    ).every((op) => provider.enabled.includes(op))
+  ) {
+    const contexts = service.contexts;
+    register(
+      "prepare_financial_analysis",
+      "Prepare a short-lived financial analysis basis",
+      "Prepare a pinned, encrypted read-only basis for up to five actual fiscal years. Repeat with the returned analysis_context_id while building. Use a ready ID in analysis/balance/movement/transaction tools for follow-up questions without another SIE/chart download. Results retain their original retrieval time and expire five minutes after readiness. Omit the ID after expiry to prepare again. No totals are returned while building.",
+      prepareFinancialAnalysisQuery,
+      z
+        .object({
+          analysis_context_id: z.string().uuid(),
+          state: z.enum(["building", "ready"]),
+          expires_at: z.number().int(),
+          years_completed: z.number().int().min(0).max(5),
+          years_total: z.number().int().min(1).max(5),
+          next_action: z.enum([
+            "query_with_analysis_context_id",
+            "repeat_prepare_with_analysis_context_id",
+          ]),
+        })
+        .strict(),
+      (actor, q) => contexts.prepare(actor, q),
+    );
+  }
   if (
     service.enabled &&
     (
@@ -342,7 +384,7 @@ export function registerFinancialReads(
     register(
       "get_financial_analysis",
       "Read financial analysis",
-      "Compute exact signed ledger movements for an explicit company, fiscal year and date interval. Source coverage and reconciliation limits remain explicit. Continuations bind the source version; totals cover the entire selected account set. No live bank balance or financial write.",
+      "Compute exact signed ledger movements for an explicit company, fiscal year and date interval. Optional analysis_context_id pins a prepared observation and its original retrieval time. Source coverage and reconciliation limits remain explicit. Continuations bind the source version; totals cover the entire selected account set. No live bank balance or financial write.",
       financialQuery,
       report,
       (actor, value) => service.report(actor, value),
@@ -356,7 +398,7 @@ export function registerFinancialReads(
     register(
       "list_financial_movements",
       "Read account movements and source references",
-      "Read a bounded account/date selection with source-bound continuation and exact voucher references. Provider coverage and row semantics remain explicit; no financial write.",
+      "Use optional analysis_context_id to reuse a prepared observation. Read a bounded account/date selection with source-bound continuation and exact voucher references. Provider coverage and row semantics remain explicit; no financial write.",
       financialMovementQuery,
       movementPage,
       (actor, value) => service.movements(actor, value),

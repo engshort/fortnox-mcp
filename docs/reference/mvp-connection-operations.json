@@ -8,37 +8,37 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
+      "sha256": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "1996c207a040799da296bd226e1061e279866db295c47fd941c2ee976ffa9a1e",
+      "sha256": "9dc4f89fdcb246bf79c6df090d84dd13c127840b6a4ec01a8d3c007154f52885",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "adad8b510ec2a9c5df8491e0207807829f5cf6cfd8b5a73406548f62859a17bb",
+      "sha256": "2081d8f3ef1f12f62281bbb2dc86af9f7ed082cbddfab007244b751b60703dd0",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "f03482738d54e8b73cd8e2173fdf676067e516eca9f4eadf8a6e5929d1833106",
+      "sha256": "94e4a1d8053f81fbc05ad240d5e8ed8fd3e0e61fef270838f42026012099011a",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "69d695c338ad4a2ff7606e39477adfb43e3eacff18cdd8b71a68849b1b63bd9c",
+      "sha256": "24e17f2e73d6a85b7eebb166221fbaecc228eefb557194837c5167db3c1b5dbc",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "1549f1a843d99f855b6969de883b19b0c42576aed26a8622755afc0dbf4b8693",
+      "sha256": "5d8111311d43622c546756bd8aef5b2b7b8a8159a2bbb89035929a75ce642e63",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/admin.ts",
-      "sha256": "92fa572eb43deb6c263670ee0be8883ccb5ee46d220fbb4ace4e926c52c83ca3",
+      "sha256": "a52a2ae688fd3d845f71ed9155feeb28f04c4a8fbe452923bcb8ff1020254f9e",
       "kind": "independently_written_project_source"
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "path": "packages/core/src/programs.ts",
-      "sha256": "dd7ff03119c059184c02ec62ef86f5b78c3f1c9e228a91215783bb28b6579e85",
+      "sha256": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3",
       "kind": "independently_written_project_source"
     }
   ],

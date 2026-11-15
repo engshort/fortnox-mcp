@@ -26,6 +26,7 @@ export class DocumentHttp {
     readonly enabled: readonly string[],
     readonly active: () => boolean,
     readonly now = Date.now,
+    readonly sieByteLimit = 2097152,
   ) {
     this.budget = new FortnoxHttp({
       fetch: provider.config.fetch,
@@ -180,8 +181,17 @@ export class DocumentHttp {
       }
       let bytes: Uint8Array;
       try {
-        bytes = await boundedBytes(response, sie ? 2097152 : 262144);
-      } catch {
+        bytes = await boundedBytes(response, sie ? this.sieByteLimit : 262144);
+      } catch (error) {
+        if (
+          sie &&
+          error instanceof ProviderError &&
+          error.reason === "response_limit"
+        )
+          throw new ProviderError(
+            "CAPABILITY_UNAVAILABLE",
+            `sie_bytes_limit_${this.sieByteLimit}_use_bounded_analysis_or_larger_runtime`,
+          );
         throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
       }
       await context.assertActive();

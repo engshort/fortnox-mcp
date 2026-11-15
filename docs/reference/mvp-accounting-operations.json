@@ -5,8 +5,8 @@
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
     "packages/core/src/accounting.ts": "765aed0ccc035d94dbb3292be04cee8fe7572279d40acdf6d030272326abe151",
-    "packages/core/src/bookkeeping.ts": "80b9c6e65822b917f19eb29df977fe72df01de9857aa8491c6b1e8dc7cacd745",
-    "packages/core/src/connections.ts": "44472760dd2f56902983d0ab6c46d36cb6aa62fa48c5ac70b7b2ee7ff1a9ae8b",
+    "packages/core/src/bookkeeping.ts": "f4ad64407ad403974f4ca058e4cd0f35cd89fac2b4cd2c5e434142711aa06a03",
+    "packages/core/src/connections.ts": "24e17f2e73d6a85b7eebb166221fbaecc228eefb557194837c5167db3c1b5dbc",
     "packages/fortnox/src/accounting.ts": "dd59308d4f4bd1772d1ec30ddddea1eef38d9b962ab75fe2384261644765b1af",
     "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
     "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",

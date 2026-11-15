@@ -5,10 +5,12 @@ import {
   productSettings,
 } from "../../shared/product.js";
 import { d1State } from "./product-storage.js";
-import { d1ReceiptFiles } from "./receipt-storage.js";
+import { d1AnalysisStore, d1ReceiptFiles } from "./receipt-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
   ASSETS?: Fetcher;
   PUBLIC_ORIGIN?: string;
+  FINANCIAL_ANALYSIS_CONTEXTS_ENABLED?: string;
+  FINANCIAL_LARGE_READS_ENABLED?: string;
   AUTH_SECRET?: string;
   CREDENTIAL_KEYS?: string;
   CREDENTIAL_ACTIVE_KEY?: string;
@@ -32,6 +34,7 @@ export default {
       await Promise.all([
         cleanupProduct(d1State(env.DB)),
         d1ReceiptFiles(env.DB).cleanup(Date.now()),
+        d1AnalysisStore(env.DB).cleanup(Date.now()),
       ]);
   },
   async fetch(request: Request, env: ProductEnv): Promise<Response> {
@@ -60,6 +63,7 @@ export default {
             }
           : {}),
         receiptFiles: d1ReceiptFiles(env.DB),
+        analysisStore: d1AnalysisStore(env.DB),
         fileSource: receiptFileSource(
           settings.receiptSource ?? receiptSourceSettings({}, false),
           "worker",

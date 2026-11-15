@@ -1,4 +1,5 @@
 import {
+  type AnalysisStore,
   Bookkeeping,
   baseScopes,
   type ClientFile,
@@ -8,6 +9,7 @@ import {
   CredentialVault,
   DomainError,
   FinancialAnalysis,
+  FinancialContexts,
   LiquidityAnalysis,
   OpenItems,
   PayrollInputs,
@@ -89,6 +91,8 @@ export interface ProductSettings {
   accountingReferences?: boolean;
   receiptProviderConsent?: boolean;
   receiptSource?: ReceiptSourceSettings;
+  financialAnalysisContexts?: boolean;
+  financialLargeReads?: boolean;
 }
 // Supplied only by the separately built M14 experiment entry, never read from
 // normal product ENV. This permits client evidence collection, not activation.
@@ -172,6 +176,9 @@ export function productSettings(
     receiptProviderConsent,
   });
   return {
+    financialAnalysisContexts:
+      env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
+    financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
     externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
     onboardingClients: z
       .array(z.string().min(1).max(256))
@@ -223,6 +230,7 @@ export function createProductApplication(
   runtime: Pick<AuthConfig, "database" | "state"> & {
     assets?: AdminAssets;
     receiptFiles?: ReceiptFileStore;
+    analysisStore?: AnalysisStore;
     fileSource?: (
       input: ClientFile,
     ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
@@ -447,12 +455,26 @@ export function createProductApplication(
               (m) => m.company_id === company && m.financial_year === year,
             )?.mapping,
           readEvidence.financialVerification,
+          { large: settings.financialLargeReads === true },
         )
       : undefined;
   const financial = financialProvider
     ? {
         provider: financialProvider,
-        service: new FinancialAnalysis(connections, financialProvider, true),
+        service: new FinancialAnalysis(
+          connections,
+          financialProvider,
+          true,
+          runtime.analysisStore && settings.financialAnalysisContexts
+            ? new FinancialContexts(
+                connections,
+                financialProvider,
+                runtime.analysisStore,
+                true,
+                now,
+              )
+            : undefined,
+        ),
       }
     : undefined;
   const openItems =

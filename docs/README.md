@@ -1,5 +1,7 @@
 # Documentation map
 
+S08/#143: [optional pinned analysis contexts, larger SIE inputs and performance evidence](implementation/S08-performance.md). Both extensions default off; provider/hosted-client acceptance remains separate.
+
 Company access: [same-registration approval renewal, safe local read additions
 and owner receipt recovery](implementation/access-renewal-2026-11-13.md).
 Unknown writes remain retained; activation and actual acceptance stay separate.
