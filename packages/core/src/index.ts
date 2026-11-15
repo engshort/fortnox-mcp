@@ -13,6 +13,7 @@ export * from "./intents.js";
 export * from "./invoice-history.js";
 export * from "./liquidity.js";
 export * from "./money.js";
+export * from "./onboarding.js";
 export * from "./open-items.js";
 export * from "./payroll.js";
 export * from "./ports.js";

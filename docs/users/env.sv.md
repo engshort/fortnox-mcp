@@ -89,3 +89,7 @@ Se [operatörens teststeg](../implementation/M04-receipts-evidence.md#operator-p
 för tunnel, privat Worker-konfiguration och avveckling. Efter provet stängs filinput
 av, transporten återställs till `none` och testets relähemlighet tas bort. Denna
 förberedelse är inte ett godkänt liveprov eller stöd för direkt Worker-hämtning.
+
+## Extern appinitierad anslutning
+
+`EXTERNAL_APP_ONBOARDING_ENABLED=true` aktiverar det nya flödet. `EXTERNAL_APP_ONBOARDING_CLIENT_IDS` är en JSON-lista med uttryckligen tillåtna registrerade klient-ID:n, normalt `[]`. Dessa inställningar begränsar endast det nya flödet; befintliga MCP-klienter påverkas inte. Se [användarguiden](extern-appanslutning.sv.md).

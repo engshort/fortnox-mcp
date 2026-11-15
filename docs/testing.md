@@ -261,3 +261,7 @@ exercise retention, source/access changes, concurrency and failure cleanup.
 `analysis-restart` additionally reopens an actual SQLite file.
 `npm run benchmark:analysis -- 30` uses synthetic inputs only; see
 [S08 measurements and remaining actual acceptance](implementation/S08-performance.md).
+
+## External application onboarding regressions
+
+Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). The separate actual M2X-backend browser run against the synthetic provider is recorded in that evidence document; actual Fortnox acceptance remains unverified.

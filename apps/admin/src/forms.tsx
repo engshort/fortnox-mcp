@@ -134,6 +134,18 @@ export function Login({
         location.assign("/sign-in");
         return;
       }
+      const continuation = new URLSearchParams(location.search);
+      const onboarding = continuation.get("company_onboarding");
+      if (
+        onboarding &&
+        /^[a-f0-9-]{36}$/.test(onboarding) &&
+        /^[1-9][0-9]*$/.test(continuation.get("revision") ?? "")
+      ) {
+        location.assign(
+          `/connect/company/${onboarding}?revision=${continuation.get("revision")}`,
+        );
+        return;
+      }
       location.assign(
         location.search ? `/auth/oauth2/authorize${location.search}` : "/admin",
       );

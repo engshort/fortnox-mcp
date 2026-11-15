@@ -4,6 +4,7 @@ import {
   baseScopes,
   type ClientFile,
   type CompanyGrant,
+  CompanyOnboarding,
   Connections,
   CredentialVault,
   DomainError,
@@ -70,11 +71,14 @@ import {
   IntegrationSettings,
   integrationInput,
 } from "./integration-settings.js";
+import { onboardingFailure, onboardingRoutes } from "./onboarding-http.js";
 import { type AdminAssets, ownerWeb } from "./owner-web.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
+  externalAppOnboarding?: boolean;
+  onboardingClients?: string[];
   origin: string;
   secret: string;
   keys: Record<string, string>;
@@ -175,6 +179,11 @@ export function productSettings(
     financialAnalysisContexts:
       env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
     financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
+    externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
+    onboardingClients: z
+      .array(z.string().min(1).max(256))
+      .max(16)
+      .parse(JSON.parse(env.EXTERNAL_APP_ONBOARDING_CLIENT_IDS ?? "[]")),
     origin: origin.origin,
     secret,
     keys,
@@ -387,7 +396,16 @@ export function createProductApplication(
     connections.vault,
     settings,
   );
+  const onboarding = settings.externalAppOnboarding
+    ? new CompanyOnboarding(
+        connections,
+        settings.origin,
+        settings.onboardingClients ?? [],
+        now,
+      )
+    : undefined;
   const config = {
+    ...(onboarding ? { onboarding } : {}),
     ...runtime,
     origin: settings.origin,
     secret: settings.secret,
@@ -673,10 +691,35 @@ export function createProductApplication(
       ...(receiptWorkflow ? { receiptWorkflow } : {}),
     }),
   );
+  const onboardingHttp = onboarding
+    ? onboardingRoutes({
+        onboarding,
+        auth: gateway.auth,
+        provider,
+        integration,
+        redirects: settings.redirects,
+      })
+    : undefined;
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (
+      url.pathname.startsWith("/api/company-onboarding/") ||
+      url.pathname.startsWith("/connect/company")
+    ) {
+      if (!onboardingHttp)
+        return safeResponse(
+          JSON.stringify({
+            version: "company-onboarding-v1",
+            error: "ATTEMPT_NOT_FOUND",
+            recovery_action: "none",
+          }),
+          404,
+        );
+      const response = await onboardingHttp.fetch(request);
+      return response ?? safeResponse('{"error":"NOT_FOUND"}', 404);
+    }
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
     if (url.pathname === "/mcp" && businessTest && now() >= businessTest.until)
@@ -1213,6 +1256,11 @@ export function createProductApplication(
         request.method === "GET" &&
         url.pathname === "/admin/fortnox/callback"
       ) {
+        const binding = await provider.onboardingCallback(
+          session.user.id,
+          session.session.id,
+          url,
+        );
         try {
           const company = await provider.finish(
             session.user.id,
@@ -1222,12 +1270,26 @@ export function createProductApplication(
           return new Response(null, {
             status: 303,
             headers: {
-              location: `${settings.origin}/admin/companies/${company.id}`,
+              location: binding
+                ? `${settings.origin}/connect/company/${binding.id}?revision=${binding.revision}`
+                : `${settings.origin}/admin/companies/${company.id}`,
               "cache-control": "no-store",
               "referrer-policy": "no-referrer",
             },
           });
         } catch (error) {
+          if (binding) {
+            if (request.headers.get("accept")?.includes("text/html"))
+              return new Response(null, {
+                status: 303,
+                headers: {
+                  location: `${settings.origin}/connect/company/${binding.id}?revision=${binding.revision}`,
+                  "cache-control": "no-store",
+                  "referrer-policy": "no-referrer",
+                },
+              });
+            return onboardingFailure(error);
+          }
           if (request.headers.get("accept")?.includes("text/html"))
             return new Response(null, {
               status: 303,
@@ -1278,6 +1340,7 @@ export function createProductApplication(
     },
     connections,
     provider,
+    onboarding,
     bookkeeping,
     auth: gateway.auth,
     receiptFiles,

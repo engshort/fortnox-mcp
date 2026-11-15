@@ -426,3 +426,7 @@ Read-only aggregation, paging, exact source references and financial completenes
 limits remain enforced. See [implementation and evidence](../implementation/S08-performance.md).
 No actual hosted Worker/provider/ChatGPT acceptance or complete G07/G09 gate is
 established by the synthetic fixtures or local runtime tests.
+
+## External application onboarding — issue #146
+
+The optional [v1 contract](../contracts/company-onboarding-v1.md) reuses existing company consent/profile/status operations. Shared OAuth/MCP and full regression tests passed Node and actual local workerd/D1, with restart, owner-session recovery and desktop/mobile browser coverage independently reviewed; [implementation evidence](../implementation/external-company-onboarding.md) records exact limits and actual M2X-backend acceptance with a synthetic provider and pending actual Fortnox acceptance. No new provider or financial operation is claimed.
