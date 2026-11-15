@@ -173,7 +173,7 @@ export function createProductGateway(
       const companyChoices = companies
         .map(
           (c) =>
-            `<label><input type="checkbox" name="company" checked value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">${escapeHtml(c.name)}<small> — ${escapeHtml(
+            `<label><input type="checkbox" name="company" checked ${onboarding ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">${escapeHtml(c.name)}<small> — ${escapeHtml(
               programSelection(c)
                 .features.map((id) => featureLabels[id].sv)
                 .join(", ") || "Företagsuppgifter",
@@ -181,14 +181,14 @@ export function createProductGateway(
         )
         .join("<br>");
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Godkänn klient</h1>${onboarding ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>` : ""}<p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><fieldset><legend>Välj företag för detta godkännande</legend>${companyChoices}</fieldset><button id="accept">Godkänn begärda behörigheter till valda företag</button>${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}<p id="status" role="status"></p><script src="/consent.js"></script></main></html>`,
+        `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Godkänn klient</title><link rel="stylesheet" href="/admin-assets/admin.css"><main class="login"><h1>Godkänn klient</h1>${onboarding ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>` : ""}<p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning." : "Klienten begär läsåtkomst till anslutna företag."}</p>${onboarding ? "" : "<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden. Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>"}<fieldset><legend>${onboarding ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>${companyChoices}</fieldset><button id="accept" ${onboarding ? "" : 'data-company-access="owner_connections"'}>${onboarding ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}<p id="status" role="status"></p><script src="/consent.js"></script></main></html>`,
         200,
         "text/html; charset=utf-8",
       );
     }
     if (request.method === "GET" && url.pathname === "/consent.js")
       return safeResponse(
-        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),companies:[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value))})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';};`,
+        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(document.querySelector('#accept').dataset.companyAccess?{company_access:document.querySelector('#accept').dataset.companyAccess}:{}),companies:[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value))})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';};`,
         200,
         "text/javascript",
       );
@@ -214,7 +214,7 @@ export function createProductGateway(
             return onboardingFailure(e);
           }
         }
-        // Every approval must display the concrete current company selection.
+        // Every approval must display its company access and current companies.
         url.searchParams.set("prompt", "consent");
         request = new Request(url, request);
       }
@@ -273,6 +273,7 @@ export function createProductGateway(
           const body = z
             .object({
               accept: z.boolean(),
+              company_access: z.literal("owner_connections").optional(),
               oauth_query: z.string().max(12000),
               companies: z
                 .array(
@@ -311,6 +312,7 @@ export function createProductGateway(
               let onboarding: OnboardingAttempt | undefined;
               const query = new URLSearchParams(body.data.oauth_query);
               if (query.has("onboarding_attempt")) {
+                if (body.data.company_access) throw new Error();
                 if (!config.onboarding) throw new Error();
                 const a = await config.onboarding.validateQuery(
                   session.user.id,
@@ -360,6 +362,7 @@ export function createProductGateway(
                       },
                     }
                   : undefined,
+                body.data.company_access,
               );
               await auth.api.bindProductCode({
                 body: {

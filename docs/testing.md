@@ -1,5 +1,13 @@
 # Test strategy and evidence
 
+The shared company-access regressions in `product-oauth`, `connections` and
+`onboarding` exercise installation-wide consent before connecting a company,
+existing-token owner upgrades, refresh, current membership, foreign owners,
+disconnection/reconnect, stale/expired grants and preservation of external app
+consent. The owner browser suite checks the actual consent script, program
+addition, future-company listing and owner upgrade UI on desktop/mobile. See
+[scope and bounded evidence](implementation/installation-company-access.md).
+
 The dated S08 contracts (`financial-dates.ts` and `invoice-history.ts` under
 `tests/shared`) run through Node/SQLite and actual local workerd/D1. They cover
 inclusive dates, multiple/non-calendar fiscal years, source-bound continuations,

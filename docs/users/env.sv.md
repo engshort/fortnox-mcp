@@ -55,7 +55,7 @@ Den separata [produkt-testinstallationen](https://fortnox-mcp-product-test.alexa
 
 Nästa manuella steg är att etablera ägaren på `/setup`, ansluta de tillåtna testföretagen på `/admin` och prova klienten. Bootstrapkoden finns endast lokalt i `.data/product-bootstrap-code.txt`, gäller i tio minuter och kan förnyas med kommandot ovan medan bootstrap fortfarande är oanvänd. Du behöver inte använda en utgången kod eller radera databasen.
 
-Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-test.alexander-c06.workers.dev/admin/fortnox/callback`. Klientens MCP-adress är `https://fortnox-mcp-product-test.alexander-c06.workers.dev/mcp`. Efter att företag lagts till eller återanslutits kräver denna version en ny MCP-registrering och ett nytt godkännande. Den förberedda installationen innebär inte att dessa manuella prov redan är godkända.
+Fortnox-integrationens exakta callback ska vara `https://fortnox-mcp-product-test.alexander-c06.workers.dev/admin/fortnox/callback`. Klientens MCP-adress är `https://fortnox-mcp-product-test.alexander-c06.workers.dev/mcp`. Klienter med godkännande för alla anslutna företag får åtkomst till tillagda eller återanslutna företag via samma anslutning. Äldre godkännanden kan uppgraderas under **AI-klienter** utan ny MCP-registrering. Den förberedda installationen innebär inte att dessa manuella prov redan är godkända.
 
 
 ## Förbered filtransport för kvittoprovet

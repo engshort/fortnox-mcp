@@ -19,6 +19,26 @@ Detta är produktimplementation under verifiering. Implementerade operationer
 är aktiverade i den vanliga installationen. Testkörningar använder separat
 installation och uttryckligen tillåtna testföretag.
 
+## En klientanslutning för dina företag
+
+När du ansluter AI-klienten godkänner du åtkomst till alla företag som du
+ansluter till denna Fortnox MCP-installation, nu och i framtiden. Därefter blir
+nya företag tillgängliga via samma klientanslutning. Kör `list_companies` i
+klienten för att hämta den aktuella listan. Även ändrad programåtkomst och en
+verifierad återanslutning av samma företag följer med utan nytt klientgodkännande.
+
+För äldre klientgodkännanden: öppna **AI-klienter** och välj **Tillåt alla
+nuvarande och framtida företag** för den klient du vill uppgradera. Det behövs
+bara en gång och kräver ingen omanslutning i AI-klienten. Äldre godkännanden
+förblir avgränsade tills du gör detta. Utgången eller återkallad klientinloggning
+kan fortfarande kräva ny inloggning. Externa appars avgränsade godkännanden
+hanteras i deras eget anslutningsflöde.
+
+Skrivskydd, granskningskrav och klientens beviljade läs-, skriv- och filbehörigheter
+gäller per anrop. Ett nytt företag får fortfarande grundpolicyn skrivskydd och
+obligatorisk granskning. Frånkoppling stoppar åtkomsten direkt. Gamla förslag
+eller okända skrivutfall återaktiveras inte av den gemensamma företagsåtkomsten.
+
 ## Ägare och inloggning
 
 **Inställningar** visar API-uppgifternas status. Välj **Ange Fortnox API uppgifter**
@@ -55,13 +75,18 @@ Credentials krypteras med en extern 32-byte-nyckel (base64). Förvara nycklarna 
 
 Nyckelkontrollen gäller även privata företagslistor och status, och finns kvar efter frånkoppling när credentials har raderats. Vid flera nyckelversioner måste alla nycklar som fortfarande används finnas kvar. Äldre experimentella anslutningar uppgraderas först när befintliga credentials kan dekrypteras; annars spärras åtkomsten och operatören behöver återställa den korrekta konfigurationen. Radera inte ägaridentiteten eller byt nyckel på chans.
 
-Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; samma Fortnox-tenant kan inte läggas till två gånger. Klientens företagsbehörigheter binds till aktuell anslutningsgeneration. Grundpolicyn är skrivskydd och obligatorisk granskning av framtida manuella verifikationer.
+Installationen har högst 20 anslutningar. Företag får opaka stabila handtag; samma Fortnox-tenant kan inte läggas till två gånger. Äldre avgränsade klientgodkännanden binds till aktuell anslutningsgeneration; godkännanden för alla anslutna företag följer ägarens aktuella anslutningar. Grundpolicyn är skrivskydd och obligatorisk granskning av framtida manuella verifikationer.
 
 ## Anslut AI-klienten
 
 Produktens MCP-adress är `/mcp`. Endast fasta protokolluppgifter är offentliga. Företagsanrop kräver ägarens OAuth-godkännande med `mcp:read offline_access`; Fortnox-token kan inte användas som MCP-token.
 
-Godkännandet gäller valda företag och deras anslutnings- och åtkomstversioner. När ett företag läggs till, återansluts eller får nya funktioner behöver du godkänna företagsåtkomsten igen. Servern stöder ett nytt OAuth-godkännande på samma klientregistrering. Öppna anslutningens godkännandeflöde igen i AI-klienten och välj företagen. Tidigare token får inte den nya åtkomsten; klienten behöver nya token efter godkännandet. Enbart Reload tools förnyar inte företagsåtkomst. Det faktiska förnyelseflödet i respektive värdklient återstår att verifiera.
+Det vanliga godkännandet omfattar nuvarande och framtida anslutna företag enligt
+avsnittet ovan. Äldre avgränsade godkännanden kan uppgraderas under **AI-klienter**.
+Ett nytt OAuth-godkännande på samma klientregistrering är också möjligt, men ger
+nya token och ersätter föregående godkännande. **Reload tools** ändrar inte ett
+sparat företagsgodkännande. Lokala tester verifierar serverns beteende;
+faktiskt beteende i respektive värdklient återstår att verifiera.
 
 ## Begränsningar vid läsning
 
@@ -83,7 +108,7 @@ Frånkoppling stoppar nya anrop och tar bort lagrade credentials. Ett anrop som 
 
 Ett tidigare behörigt anrop kan få `CONNECTION_DISCONNECTED` direkt efter frånkoppling. Okänt eller obehörigt företag ger `COMPANY_FORBIDDEN`, och ett providerfel som kräver nytt godkännande ger `RECONNECT_REQUIRED`. Inget av felresultaten lämnar en företagsprofil. Andra behöriga företag kan fortfarande läsas.
 
-Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Ge därefter samma klientregistrering ett nytt företagsgodkännande. Äldre grants och framtida granskningsunderlag återfår inte giltighet genom återanslutningen.
+Återanslutning kräver nytt Fortnox-godkännande och företagskontroll. Samma tenant behåller sitt företagshandtag men får ny behörighetsgeneration; ett annat företag får ett nytt handtag. Klienter med åtkomst till alla anslutna företag kan använda samma anslutning efter företagskontrollen. Äldre avgränsade godkännanden behöver uppgraderas eller förnyas. Gamla granskningsunderlag återfår inte giltighet genom återanslutningen.
 
 
 ## Vad är verifierat?
@@ -125,9 +150,9 @@ Befintlig lokal åtkomst behålls tills ersättningen har verifierats. Ett avbru
 eller misslyckat flöde visas tydligt; kontrollera anslutningen om Fortnox kräver ny
 inloggning. Väntande samtycken kan avbrytas under **Drift**.
 
-Företagets ID, skrivskydd och verifikationspolicy behålls efter en utökning. Gamla
-AI-klientgodkännanden och förslag återaktiveras inte: ge klienten ett nytt
-företagsgodkännande. **AI-klienter** visar sparade företagsgodkännanden och om de
+Företagets ID, skrivskydd och verifikationspolicy behålls efter en utökning. Gamla förslag återaktiveras inte. Klientgodkännanden för alla anslutna företag
+följer ändringen. Äldre avgränsade klientgodkännanden kan uppgraderas under
+**AI-klienter** eller förnyas genom klientens godkännandeflöde. **AI-klienter** visar sparade företagsgodkännanden och om de
 fortfarande gäller, men inte om klienten har en aktiv inloggning.
 
 **Inaktivera program lokalt** stoppar programmets funktioner på servern.

@@ -628,8 +628,8 @@ export function ProgramConnectionDialog({
           </details>
           <p className="muted">
             {t(
-              "Efter godkännandet kontrollerar vi företag och beviljad åtkomst. Funktionsstöd och licens redovisas separat. AI-klienten behöver ett nytt godkännande.",
-              "After consent we check the company and granted access. Capability support and licensing are reported separately. The AI client needs fresh consent.",
+              "Efter godkännandet kontrollerar vi företag och beviljad åtkomst. Klienter med åtkomst till alla anslutna företag får tillgång utan nytt klientgodkännande. Funktionsstöd och licens redovisas separat.",
+              "After consent we check the company and granted access. Clients authorized for all connected companies gain access without fresh client consent. Capability support and licensing are reported separately.",
             )}
           </p>
           {error.includes(t("En tidigare skrivning", "A previous write")) && (
