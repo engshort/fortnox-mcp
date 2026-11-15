@@ -110,6 +110,33 @@ export function Login({
   const setup = location.pathname === "/setup",
     reset = location.pathname === "/reset-password";
   const [busy, setBusy] = useState(false);
+  const [emailStatus, setEmailStatus] = useState("");
+  async function requestReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setEmailStatus("");
+    try {
+      await api(
+        "/auth/request-password-reset",
+        Object.fromEntries(new FormData(event.currentTarget)),
+      );
+      setEmailStatus(
+        t(
+          "Om adressen tillhör installationsägaren och e-post är konfigurerad kommer en kod. Koden gäller i tio minuter. Om mejlet uteblir, kontakta installationsoperatören.",
+          "If the address belongs to the installation owner and email is configured, a code will arrive. It expires in ten minutes. If no email arrives, contact the installation operator.",
+        ),
+      );
+    } catch {
+      setEmailStatus(
+        t(
+          "Koden kunde inte begäras. Vänta en timme vid upprepade försök, eller kontakta installationsoperatören om e-post inte är aktiverad.",
+          "Could not request a code. Wait one hour after repeated attempts, or contact the installation operator if email is disabled.",
+        ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -166,10 +193,34 @@ export function Login({
       </h1>
       <p>
         {t(
-          "Engångskoder utfärdas privat av installationsoperatören. Skicka aldrig koder eller lösenord till ChatGPT.",
-          "One-time codes are issued privately by the installation operator. Never send codes or passwords to ChatGPT.",
+          "Skicka aldrig engångskoder eller lösenord till ChatGPT. Installationsoperatören kan hjälpa dig med en kod.",
+          "Never send one-time codes or passwords to ChatGPT. The installation operator can help you obtain a code.",
         )}
       </p>
+      {reset && (
+        <details>
+          <summary>
+            {t("Begär kod via e-post", "Request a code by email")}
+          </summary>
+          <p>
+            {t(
+              "Kräver att installationsoperatören har aktiverat e-post.",
+              "Requires email to be enabled by the installation operator.",
+            )}
+          </p>
+          <form onSubmit={requestReset}>
+            <Field
+              name="email"
+              label={t("Ägarens e-post", "Owner email")}
+              type="email"
+            />
+            <button type="submit" disabled={busy}>
+              {t("Skicka engångskod", "Send one-time code")}
+            </button>
+          </form>
+          <Message>{emailStatus}</Message>
+        </details>
+      )}
       <form onSubmit={submit}>
         {(setup || reset) && (
           <Field

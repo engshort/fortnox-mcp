@@ -74,9 +74,15 @@ import {
 import { onboardingFailure, onboardingRoutes } from "./onboarding-http.js";
 import { type AdminAssets, ownerWeb } from "./owner-web.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
+import {
+  type EmailSettings,
+  emailSettings,
+  resendAccountEmails,
+} from "./product-email.js";
 import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
+  email?: EmailSettings;
   externalAppOnboarding?: boolean;
   onboardingClients?: string[];
   origin: string;
@@ -175,7 +181,9 @@ export function productSettings(
     accountingReferences,
     receiptProviderConsent,
   });
+  const email = emailSettings(env);
   return {
+    ...(email ? { email } : {}),
     financialAnalysisContexts:
       env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
     financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
@@ -405,6 +413,9 @@ export function createProductApplication(
       )
     : undefined;
   const config = {
+    ...(settings.email
+      ? { emails: resendAccountEmails(settings.email, settings.origin) }
+      : {}),
     ...(onboarding ? { onboarding } : {}),
     ...runtime,
     origin: settings.origin,

@@ -1,5 +1,8 @@
 # Documentation map
 
+Account email: [optional Resend setup and evidence](implementation/account-email.md)
+and [Swedish ENV instructions](users/env.sv.md#appens-e-post). Disabled by default.
+
 Company access: [installation-wide client approval and owner-side migration](implementation/installation-company-access.md) includes future connected companies without reconnecting the AI client. External application onboarding remains company-specific; actual hosted-client acceptance stays separate.
 
 S08/#143: [optional pinned analysis contexts, larger SIE inputs and performance evidence](implementation/S08-performance.md). Both extensions default off; provider/hosted-client acceptance remains separate.

@@ -7,6 +7,7 @@ const secretNames = [
   "CREDENTIAL_KEYS",
   "FORTNOX_CLIENT_SECRET",
   "BACKUP_KEY",
+  "RESEND_API_KEY",
 ] as const;
 export async function nodeEnvironment(input: NodeJS.ProcessEnv) {
   const env = { ...input };

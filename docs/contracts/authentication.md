@@ -11,9 +11,41 @@ existing vault, bound to the installation owner. Status returns only
 overwritten through the UI. New consent uses these settings; existing connections
 retain their original encrypted credentials until explicitly reconnected.
 
-The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup and password-reset requests are not exposed. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
+The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup is not exposed. Password-reset requests remain unavailable unless the operator explicitly enables account email. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
 
-Reset issuance requires installation access. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form only redeems that private code through the maintained auth component, with exact Origin checks and admin-session revocation.
+## Optional account email
+
+Resend account email is disabled by default (`RESEND_ENABLED=false`). Explicit
+activation requires `RESEND_API_KEY` and a bare verified sender address in
+`RESEND_FROM`. Node also supports the mutually exclusive `RESEND_API_KEY_FILE`.
+The key is server-only and is never returned through admin state or MCP.
+
+The [account-email adapter](../implementation/account-email.md) sends a welcome
+message only after a successful owner bootstrap, a reset code issued by the
+maintained auth component, and a notification after a successful password reset.
+The product still has one installation owner; this adds no public signup or
+multi-user management. Recipients come from the registered account, never an
+arbitrary model-supplied delivery target. No email-sending MCP tool is exposed.
+
+When configured, `POST /auth/request-password-reset` accepts only an email address,
+requires the exact installation Origin and checks a durable installation-wide
+limit of three attempts per hour before account lookup. This authentication
+recovery endpoint intentionally works without an existing session. Only the
+active owner's account can receive a reset code. The endpoint returns the same
+generic acknowledgement for unknown addresses, non-owner accounts and uncertain
+delivery; it does not assert that mail arrived. Tokens last ten minutes, are
+single-use and revoke existing sessions on successful redemption. Redirect
+destinations and caller-supplied message content are rejected.
+
+Each email attempt has a ten-second timeout and a Resend idempotency key. Unknown
+delivery is not retried automatically or promoted to confirmed delivery. Welcome
+or password-change notification failure cannot roll back completed account
+creation/password reset. Operator recovery remains available. Provider errors,
+tokens and message contents are never logged; SDK debug mode is rejected. No
+durable outbound queue, bounce webhook or inbox-delivery guarantee is added.
+
+Operator reset issuance requires installation access and remains available with
+email disabled. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form redeems operator- or email-issued codes through the maintained auth component, with exact Origin checks and admin-session revocation.
 
 Sources: [F01–F04, F06 in sources](../reference/sources.md). OAuth between the AI client and this server is separate from OAuth between this server and Fortnox.
 
