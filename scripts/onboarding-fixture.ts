@@ -78,7 +78,14 @@ const app = createProductApplication(
       CompanyInformation: {
         DatabaseNumber: b ? "100002" : "100001",
         CompanyName: b ? "Synthetic B" : "Synthetic A",
-        OrganizationNumber: b ? "000000-0002" : "000000-0001",
+        OrganizationNumber:
+          process.env.FIXTURE_VALID_ORGANIZATION_NUMBERS === "true"
+            ? b
+              ? "559999-0024"
+              : "559999-0016"
+            : b
+              ? "000000-0002"
+              : "000000-0001",
       },
     });
   },
