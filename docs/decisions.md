@@ -135,7 +135,7 @@ common authenticated domain execution service, rather than an unchecked HTTP
 proxy. The MCP tool catalogue does not gain a generic proxy tool.
 
 Private source schemas require source-bound owner reviews. The bridge defaults
-off, new write/file scopes require consent and existing grants are not widened.
+off, the new bridge/write/file scopes require consent and existing grants are not widened.
 Company ownership/membership, read-only, manual-voucher policy, exact validation,
 bounded state and unknown-outcome recovery remain mandatory. Missing domain or
 specialist prerequisites remain explicit unavailable capabilities. No provider

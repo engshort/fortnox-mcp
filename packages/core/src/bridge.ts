@@ -21,6 +21,7 @@ export interface BridgeOperation {
   effect: "read" | "write";
   reconciliation: "none" | "exact_existing_target";
   finance: boolean;
+  manualVouchers: boolean;
   files: boolean;
   unavailable: string | null;
   parameters: Array<{
@@ -123,6 +124,8 @@ export class FortnoxBridge {
     z.string().uuid().parse(company);
     if (actorResource(actor) !== "api" || !hasPermission(actor, "read"))
       throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "bridge"))
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     const c = await this.connections.authorizeActor(actor, company);
     if (op) this.checkOperation(actor, c, op);
     if (write && op?.effect === "write")
@@ -146,7 +149,7 @@ export class FortnoxBridge {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     // Manual accounting can never be relabelled as a general mutation by a
     // catalogue. Editing/deleting vouchers needs its own domain implementation.
-    if (op.effect === "write" && /^\/3\/vouchers(?:\/|$)/.test(op.path)) {
+    if (op.effect === "write" && op.manualVouchers) {
       if (c.review === "review_required")
         throw new DomainError("REVIEW_REQUIRED");
       if (op.method !== "POST" || op.path !== "/3/vouchers")
@@ -173,6 +176,7 @@ export class FortnoxBridge {
         effect: op.effect,
         reconciliation: op.reconciliation,
         finance: op.finance,
+        manual_vouchers: op.manualVouchers,
         files: op.files,
         available: reason === null,
         reason,

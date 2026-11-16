@@ -24,6 +24,7 @@ if (!input || !output || extra.length) {
       effect: "write",
       reconciliation: "none",
       finance: true,
+      manual_vouchers: true,
       files: true,
       credentials: "specialist",
       unavailable: "domain_validation_required",

@@ -1,6 +1,6 @@
 import { DomainError } from "./errors.js";
 
-export type Permission = "read" | "finance_read" | "write" | "files";
+export type Permission = "read" | "finance_read" | "write" | "files" | "bridge";
 export type ApiResource = "mcp" | "api";
 export interface RequestActor {
   readonly oauthClientId?: string;
@@ -31,6 +31,8 @@ export function requestActor(
     permissions.push("finance_read");
   if (identity.scopes.includes(`${prefix}:write`)) permissions.push("write");
   if (identity.scopes.includes(`${prefix}:files`)) permissions.push("files");
+  if (resource === "api" && identity.scopes.includes("api:bridge"))
+    permissions.push("bridge");
   return {
     ...(identity.oauthClientId
       ? { oauthClientId: identity.oauthClientId }

@@ -4,11 +4,11 @@
   "reviewedAt": "2026-11-16",
   "sourceStrategy": "Original transport/domain implementation and synthetic fixtures; authorized provider schemas remain private installation inputs. No active provider catalogue ships.",
   "sourceHashes": {
-    "packages/core/src/bridge.ts": "093528f1c172c5bf5e433fb97bcc47c9028495f956ba8575433049ea2b102dbf",
+    "packages/core/src/bridge.ts": "3d9d3b12c5fd3d0e3b70e674d4e894fe0bda5a09ea0a3b129f9383c89b4ecbe4",
     "packages/core/src/bridge-schema.ts": "a15c891ed91e2636d7657ea0a09d245e7dc2410c523ae41a558781c14355dc38",
     "packages/fortnox/src/bridge.ts": "16cd9f80afdb6896e15d913227e572f8d6ac0a665acf570399b235bedcb41895",
     "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
-    "apps/shared/bridge-catalog.ts": "d5061bf5ad160a1fafbd2b9c5072d7ed5bd2c943dd40b6a96e6a769a02ea5679"
+    "apps/shared/bridge-catalog.ts": "b08606ec6af32f900805b765d8522dc91fca6008a152e45a7eede5dd18984ea2"
   },
   "operations": [
     {

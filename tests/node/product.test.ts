@@ -95,7 +95,7 @@ accountingMigrationContract(
         ),
     };
   },
-  ["api:write", "api:files"],
+  ["api:bridge", "api:write", "api:files"],
   "api/v1",
 );
 diagnosticsContract(async () => (await fixture()).state);

@@ -111,7 +111,7 @@ export function createProductAuth(config: AuthConfig) {
       "mcp:finance:read",
       "api:read",
       "api:finance:read",
-      ...(config.restBridge ? ["api:write", "api:files"] : []),
+      ...(config.restBridge ? ["api:bridge", "api:write", "api:files"] : []),
       "offline_access",
     ],
     grantTypes: ["authorization_code", "refresh_token"],
@@ -133,7 +133,9 @@ export function createProductAuth(config: AuthConfig) {
               allowedScopes: [
                 "api:read",
                 "api:finance:read",
-                ...(config.restBridge ? ["api:write", "api:files"] : []),
+                ...(config.restBridge
+                  ? ["api:bridge", "api:write", "api:files"]
+                  : []),
                 "offline_access",
               ],
             },

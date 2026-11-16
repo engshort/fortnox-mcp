@@ -14,7 +14,8 @@ uses the existing connection/token/pacing services. The authenticated owner can
 replace a complete private catalogue; it is never bundled into public artifacts.
 Effect classification is explicit, including delivery GETs. Expanded OAuth scopes
 need new consent. New claims bind stable registration and subject independently
-of rotating grant-family identifiers.
+of rotating grant-family identifiers. The separate `api:bridge` scope also prevents
+old metadata/finance read grants from acquiring native bridge access automatically.
 
 Manual voucher creation uses the existing exact voucher validator and company
 policy. Document replacements fence their original source and explicit row set.

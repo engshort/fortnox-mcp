@@ -2,7 +2,8 @@
 
 For native Fortnox methods, paths, writes and files, use the separately enabled
 [catalogue-driven REST bridge](contracts/bridge.md). Existing normalized GET
-resources retain the contract below; bridge write/file scopes need new consent.
+resources retain the contract below; `api:bridge` and any write/file scopes need
+new consent before using the native bridge.
 
 The opt-in REST API shares services with MCP. Read the [contract](contracts/rest.md)
 and [coverage/evidence](implementation/REST-read-api.md) before enabling provider

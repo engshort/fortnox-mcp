@@ -217,6 +217,7 @@ export async function syntheticBridgeCatalog() {
         ],
         effect: method === "get" && !path.endsWith("/email") ? "read" : "write",
         finance: path.includes("vouchers") || path.includes("invoices"),
+        manual_vouchers: path.includes("vouchers"),
         files: path.includes("inbox"),
         unavailable: null,
       })),
@@ -310,7 +311,13 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
           ownerId: owner,
           oauthClientId: "stable-registration",
           clientId: "synthetic-api-client",
-          scopes: ["api:read", "api:finance:read", "api:write", "api:files"],
+          scopes: [
+            "api:read",
+            "api:bridge",
+            "api:finance:read",
+            "api:write",
+            "api:files",
+          ],
         },
         "api",
       );
@@ -385,6 +392,16 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
         compileBridgeCatalog({
           ...bundle,
           operations: bundle.operations.map((o) =>
+            o.operation_id === "voucher_create"
+              ? { ...o, manual_vouchers: false }
+              : o,
+          ),
+        }),
+      ).rejects.toThrow();
+      await expect(
+        compileBridgeCatalog({
+          ...bundle,
+          operations: bundle.operations.map((o) =>
             o.operation_id === "invoice_email" ? { ...o, effect: "read" } : o,
           ),
         }),
@@ -402,6 +419,7 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
             effect: "write",
             reconciliation: "none",
             finance: false,
+            manual_vouchers: false,
             files: false,
             available: false,
             reason: "specialist_credentials_required",
@@ -472,7 +490,13 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
           )
         ).status,
       ).toBe(403);
-      f.setActor({ ...f.actor(), permissions: ["read"] });
+      const authorized = f.actor();
+      f.setActor({
+        ...authorized,
+        permissions: authorized.permissions.filter((p) => p !== "bridge"),
+      });
+      expect((await f.req("fortnox/3/customers")).status).toBe(403);
+      f.setActor({ ...f.actor(), permissions: ["read", "bridge"] });
       expect((await f.write(crypto.randomUUID())).status).toBe(403);
       expect((await f.req("fortnox/3/invoices/1/email")).status).toBe(403);
       f.setActor({ ...f.actor(), resource: "mcp" });
@@ -494,6 +518,11 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
         f.config,
         f.fetcher,
       );
+      expect(
+        (await recreated.bridge.operations(f.actor(), f.a.id)).operations.some(
+          (op) => op.operation_id === "customer_create",
+        ),
+      ).toBe(true);
       const c = (await recreated.connections.list(f.actor().ownerId)).find(
         (v) => v.id === f.a.id,
       );

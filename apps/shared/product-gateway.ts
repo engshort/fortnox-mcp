@@ -137,7 +137,9 @@ export function createProductGateway(
           scopes_supported: [
             "api:read",
             "api:finance:read",
-            ...(config.restBridge ? ["api:write", "api:files"] : []),
+            ...(config.restBridge
+              ? ["api:bridge", "api:write", "api:files"]
+              : []),
             "offline_access",
           ],
           bearer_methods_supported: ["header"],
@@ -285,18 +287,27 @@ export function createProductGateway(
           })
           .catch(() => null));
       const permissions = [
-        scopes.some((s) => ["mcp:finance:read", "api:finance:read"].includes(s))
-          ? `<li><strong>Läsa ekonomiska rådata</strong><p>Kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Ger ingen skrivbehörighet.</p></li>`
+        scopes.includes("api:bridge")
+          ? `<li><strong>Använda Fortnox-bryggan</strong><p>Applikationen får använda katalogens granskade Fortnox-operationer för de valda företagen, inom nedanstående rättigheter och företagets policy.</p></li>`
           : "",
+        scopes.includes("api:bridge") && scopes.includes("api:finance:read")
+          ? `<li><strong>Läsa ekonomiska företagsdata</strong><p>Kan omfatta fakturor, verifikationer, konton och löneunderlag enligt företagets program och den granskade katalogen. Ger ingen skrivbehörighet.</p></li>`
+          : scopes.some((s) =>
+                ["mcp:finance:read", "api:finance:read"].includes(s),
+              )
+            ? `<li><strong>Läsa ekonomiska rådata</strong><p>Kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Ger ingen skrivbehörighet.</p></li>`
+            : "",
         scopes.includes("mcp:read") || scopes.includes("api:read")
           ? `<li><strong>Läsa företagsuppgifter</strong><p>Klienten begär läsåtkomst till anslutna företag.</p></li>`
           : "",
         scopes.includes("mcp:write") || scopes.includes("api:write")
           ? `<li><strong>Skriva i Fortnox</strong><p>Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning.</p></li>`
           : "",
-        scopes.includes("mcp:files") || scopes.includes("api:files")
-          ? `<li><strong>Hantera valda filer</strong><p>Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy.</p></li>`
-          : "",
+        scopes.includes("api:files")
+          ? `<li><strong>Hantera företagets filer och bilagor</strong><p>Applikationen får läsa och överföra filer i de valda företagen enligt katalog och behörighet. Bryggan behåller ingen permanent filkopia; uppladdade bilagor lagras i Fortnox.</p></li>`
+          : scopes.includes("mcp:files")
+            ? `<li><strong>Hantera valda filer</strong><p>Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy.</p></li>`
+            : "",
         scopes.includes("offline_access")
           ? `<li><strong>Behålla anslutningen</strong><p>${offline ? "Appens backend får förnya åtkomsten även när du är utloggad. Förnyelsetoken gäller i 30 dagar från senaste lyckade förnyelse. Installationsägaren kan återkalla åtkomsten." : "Klienten kan förnya anslutningen så länge godkännandet är giltigt."}</p></li>`
           : "",

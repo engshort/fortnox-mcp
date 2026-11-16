@@ -31,6 +31,7 @@ const review = z
     effect: z.enum(["read", "write"]),
     reconciliation: z.enum(["none", "exact_existing_target"]).default("none"),
     finance: z.boolean(),
+    manual_vouchers: z.boolean(),
     files: z.boolean(),
     credentials: z.enum(["company_oauth", "specialist"]),
     unavailable: z
@@ -82,6 +83,12 @@ export async function compileBridgeCatalog(
     if (!entry.unavailable && !entry.scopes.length)
       throw new DomainError("VALIDATION_FAILED");
     bridgeSafePath(entry.path);
+    if (
+      entry.effect === "write" &&
+      /^\/3\/vouchers(?:\/|$)/.test(entry.path) &&
+      !entry.manual_vouchers
+    )
+      throw new DomainError("VALIDATION_FAILED");
     if (
       (entry.method !== "GET" &&
         entry.method !== "HEAD" &&
@@ -164,6 +171,7 @@ export async function compileBridgeCatalog(
       effect: entry.effect,
       reconciliation: entry.reconciliation,
       finance: entry.finance,
+      manualVouchers: entry.manual_vouchers,
       files: entry.files,
       unavailable,
       parameters: [...parameterMap.values()],
@@ -183,6 +191,7 @@ export async function compileBridgeCatalog(
   };
 }
 interface Active {
+  encoding?: "gzip-base64";
   slot: number;
   id: string;
   chunks: number;
@@ -206,6 +215,12 @@ export class BridgeCatalogStore {
     const row = await this.state.get<Directory>("bridge-catalog", owner);
     const active = row?.value.active;
     if (!active) return null;
+    if (
+      !Number.isInteger(active.chunks) ||
+      active.chunks < 1 ||
+      active.chunks > (active.encoding ? 100 : 600)
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (this.cached?.id === active.id) return this.cached.catalog;
     let raw = "";
     for (let n = 0; n < active.chunks; n++) {
@@ -217,6 +232,39 @@ export class BridgeCatalogStore {
         throw new DomainError("CAPABILITY_UNAVAILABLE");
       raw += chunk.value.data;
     }
+    if (active.encoding === "gzip-base64") {
+      const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+      if (bytes.length > 1048576)
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      const stream = new Response(bytes).body;
+      if (!stream) throw new DomainError("CAPABILITY_UNAVAILABLE");
+      const reader = stream
+        .pipeThrough(new DecompressionStream("gzip"))
+        .getReader();
+      const parts: Uint8Array[] = [];
+      let size = 0;
+      try {
+        for (;;) {
+          const part = await reader.read();
+          if (part.done) break;
+          size += part.value.length;
+          if (size > 8 * 1024 * 1024) {
+            await reader.cancel();
+            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          }
+          parts.push(part.value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      const decoded = new Uint8Array(size);
+      let offset = 0;
+      for (const part of parts) {
+        decoded.set(part, offset);
+        offset += part.length;
+      }
+      raw = new TextDecoder("utf-8", { fatal: true }).decode(decoded);
+    }
     const catalog = await compileBridgeCatalog(JSON.parse(raw));
     this.cached = { id: active.id, catalog };
     return catalog;
@@ -224,8 +272,21 @@ export class BridgeCatalogStore {
   async install(owner: string, input: unknown) {
     const catalog = await compileBridgeCatalog(input);
     const raw = JSON.stringify(bridgeCatalogInput.parse(input));
-    if (raw.length > 8 * 1024 * 1024)
+    if (new TextEncoder().encode(raw).length > 8 * 1024 * 1024)
       throw new DomainError("VALIDATION_FAILED");
+    const stream = new Response(raw).body;
+    if (!stream) throw new DomainError("CAPABILITY_UNAVAILABLE");
+    const compressed = new Uint8Array(
+      await new Response(
+        stream.pipeThrough(new CompressionStream("gzip")),
+      ).arrayBuffer(),
+    );
+    if (compressed.length > 1048576)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    let binary = "";
+    for (let n = 0; n < compressed.length; n += 16384)
+      binary += String.fromCharCode(...compressed.subarray(n, n + 16384));
+    const stored = btoa(binary);
     const row = await this.state.get<Directory>("bridge-catalog", owner);
     if (row?.value.upload && row.value.upload.until > this.now())
       throw new DomainError("CONNECTION_CONFLICT");
@@ -244,7 +305,7 @@ export class BridgeCatalogStore {
       ))
     )
       throw new DomainError("CONNECTION_CONFLICT");
-    const chunks = Math.ceil(raw.length / 16000);
+    const chunks = Math.ceil(stored.length / 16000);
     for (let n = 0; n < chunks; n++) {
       const key = this.chunkId(owner, slot, n);
       const prior = await this.state.get("bridge-catalog-chunks", key);
@@ -258,7 +319,7 @@ export class BridgeCatalogStore {
         !(await this.state.put(
           "bridge-catalog-chunks",
           key,
-          { id, data: raw.slice(n * 16000, (n + 1) * 16000) },
+          { id, data: stored.slice(n * 16000, (n + 1) * 16000) },
           prior?.version ?? null,
         ))
       )
@@ -270,7 +331,7 @@ export class BridgeCatalogStore {
       !(await this.state.put(
         "bridge-catalog",
         owner,
-        { active: { slot, id, chunks } },
+        { active: { slot, id, chunks, encoding: "gzip-base64" } },
         current.version,
       ))
     )

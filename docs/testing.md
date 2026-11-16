@@ -4,7 +4,7 @@ The shared `bridge` contract runs on Node/SQLite and actual local workerd/D1:
 private source-bound operation reviews, native HTTP/decimal/file fidelity,
 company/resource/scope isolation, durable concurrent claims, exact-target PUT
 recovery, preserved unknown effects, voucher policy and revocation during reads.
-The REST OAuth contract also requests explicit write/file scopes; migration 0009
+The REST OAuth contract also requests explicit bridge/write/file scopes; migration 0009
 must not widen existing client, consent or token scopes. Actual Fortnox/hosted
 consumer acceptance remains separate; see [bridge evidence](implementation/REST-bridge.md).
 

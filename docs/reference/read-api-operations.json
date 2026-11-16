@@ -4,7 +4,7 @@
   "reviewedAt": "2026-11-16",
   "sourceStrategy": "Independently written TypeScript/contracts and original synthetic fixtures; no redistributed provider specification. OpenAPI output describes only this project API.",
   "sourceHashes": {
-    "packages/core/src/actor.ts": "c8b552ea5ce4b20f78b9cf884ce473a39dba395ec166fd8594561f3120fdafd5",
+    "packages/core/src/actor.ts": "d905d654e86c6ead32a01f0fa0a0a0c8c55264a4aefcf82bdbb0ef7fb8ae253d",
     "packages/core/src/connections.ts": "9755dca58a364d4b04910a5639a0e718cd7840fe4aa53e68fd990b7b39009b5f",
     "packages/core/src/read-contracts.ts": "991850f4a49baee0eaabeff7953f13dfd3277b10ed9e30a221768876ef200fc7",
     "packages/core/src/reads.ts": "10813d54e8eac8f1edacec92b7fee66880e5ebf3f89802abcc6d97d4a713d7a6",
@@ -14,9 +14,9 @@
     "packages/fortnox/src/company-reads.ts": "7238b0382a825ccd9d57ba7091f89b4e0fcac60f39d1b5cc6b63712e045967b6",
     "packages/mcp/src/reads.ts": "a664330e62ac7bbd8018b1d86a9ecd0dc5db8abd9085f2c7f8e7e563ba47049e",
     "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
-    "packages/rest/src/openapi.ts": "412a38312bb6bd312b7b440d65a895d8632c1c00556818535f01d7dca4e17f46",
-    "apps/shared/product-auth.ts": "3463a96d9707e472c3ac8e854fdc0b6299eb993b111f2b64200d9e773878491e",
-    "apps/shared/product-gateway.ts": "8a63bb452a95a7ad39832c3d86a74c6996bdf752de2ad9106ae62dfdcdb86f16",
+    "packages/rest/src/openapi.ts": "1b95eaadd8824d37acd558baf2a75451db1d6e52a35846d343c7120ff1d5f87a",
+    "apps/shared/product-auth.ts": "a1d680bb5a84d4c20ee5cbede3338c656716a01e0cae5d8ff4d4ac4957efb26d",
+    "apps/shared/product-gateway.ts": "36d3e29c7ae3bc81144779ab16ba628e6223b232747b1784dec70f6e252d4b27",
     "apps/shared/product.ts": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320"
   },
   "operations": [

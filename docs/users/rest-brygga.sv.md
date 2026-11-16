@@ -14,7 +14,8 @@ skapar ett underlag där alla operationer är avstängda tills de har granskats.
 Underlaget ska inte läggas i Git eller publiceras.
 
 Applikationen använder REST-API:ts vanliga OAuth-inloggning. Du väljer uttryckligen
-vilka företag den får använda. Skrivning kräver ett nytt medgivande med
+vilka företag den får använda. Bryggan kräver ett nytt medgivande med `api:bridge`,
+även för läsning. Äldre läsåtkomst utökas inte automatiskt. Skrivning kräver dessutom
 `api:write`; filhantering kräver `api:files`. Ekonomisk läsning kräver även
 `api:finance:read`. Gamla medgivanden får inte dessa rättigheter automatiskt.
 

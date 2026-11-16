@@ -701,7 +701,7 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       );
     const callback = "https://client.example.invalid/callback";
     const scope =
-      "api:read api:finance:read api:write api:files offline_access";
+      "api:read api:bridge api:finance:read api:write api:files offline_access";
     const registration = await req("/auth/oauth2/register", {
       client_name: "Synthetic REST client",
       redirect_uris: [callback],
@@ -737,7 +737,10 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       cookie,
     });
     expect(page.status).toBe(200);
-    expect(await page.text()).toContain("Välj företag");
+    const consentText = await page.text();
+    expect(consentText).toContain("Välj företag");
+    expect(consentText).toContain("Använda Fortnox-bryggan");
+    expect(consentText).toContain("Hantera företagets filer och bilagor");
     const accept = await req(
       "/auth/oauth2/consent",
       {
@@ -780,6 +783,7 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       "finance_read",
       "write",
       "files",
+      "bridge",
     ]);
     expect((await req("/api/v1/companies")).status).toBe(401);
     expect((await req("/api/v1/companies", undefined, { cookie })).status).toBe(

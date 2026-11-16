@@ -1,7 +1,7 @@
 -- Expand only the known API resource policy. Client registrations, consents and
 -- existing token families retain their scopes and require explicit reapproval.
 UPDATE oauthResource
-SET allowedScopes = json_insert(allowedScopes, '$[#]', 'api:write', '$[#]', 'api:files')
+SET allowedScopes = json_insert(allowedScopes, '$[#]', 'api:bridge', '$[#]', 'api:write', '$[#]', 'api:files')
 WHERE substr(identifier, -7) = '/api/v1'
   AND json_valid(allowedScopes)
   AND json_type(allowedScopes) = 'array'

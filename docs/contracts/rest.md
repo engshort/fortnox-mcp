@@ -1,7 +1,8 @@
 # Read API contract
 
 The separately enabled [native REST bridge](bridge.md) adds catalogue-bound
-actions and files with explicit `api:write`/`api:files` consent. Statements below
+actions and files with explicit `api:bridge` plus `api:write`/`api:files` consent
+where applicable. Statements below
 about GET-only routes and no write/file permissions describe the original
 normalized read resources, not the separately guarded bridge namespace.
 

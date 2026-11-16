@@ -13,12 +13,16 @@ subject/client grants. MCP, administration and provisioning credentials cannot
 authorize it. Cross-origin browser access is not enabled; consumers use backend
 requests without owner cookies.
 
-`api:read` is required throughout. Classified financial operations additionally
+`api:read` and the separately consented `api:bridge` are required throughout.
+Existing REST read grants cannot acquire native register/financial access simply
+because the installation enables the bridge. Classified financial operations additionally
 need `api:finance:read`, actions need `api:write`, and file operations need
 `api:files`. Company membership, program selection, granted Fortnox scopes,
 read-only policy, connection generation and restore blocks remain authoritative.
 Migration 0009 expands only known API resource policies, not registrations,
-consents or existing token families. Request expanded scopes and consent again.
+consents or existing token families. Register the consumer with the expanded
+scopes and consent again; create a dedicated registration if an older client's
+registered scope ceiling cannot be updated through its supported management flow.
 Disabling the bridge stops its routes even for previously authorized tokens.
 
 ## Private catalogue
@@ -33,6 +37,7 @@ The bundle contains `version`, the original `specification` JSON string,
 `source_sha256` and an `operations` review array. Every source operation must have
 exactly one review, matching `operation_id`, uppercase `method` and `path`.
 Each review declares `scopes`, `effect` (`read`/`write`), `finance`, `files`,
+`manual_vouchers` (whether an operation can change manual accounting rows),
 `reconciliation` (`none` by default, or independently reviewed
 `exact_existing_target` for an existing-target replacement),
 `credentials` (`company_oauth`/`specialist`) and nullable `unavailable`.
@@ -52,7 +57,9 @@ The protected owner installs the bundle with exact-origin, authenticated
 `PUT /admin/fortnox/bridge-catalog`, `Content-Type: application/json`. API tokens,
 members and additional administrators cannot install it. GET returns only the
 revision and operation count. The bundle is bounded to 8 MiB, 1,000 operations
-and the existing source-parser budgets. A complete staged upload atomically
+and the existing source-parser budgets.
+The private stored bundle is gzip-compressed, capped at 1 MiB compressed and
+8 MiB decompressed, to bound cold-start D1 reads. A complete staged upload atomically
 replaces the active pointer. Two fixed chunk slots bound storage, including
 interrupted uploads. Partial/mismatched chunks fail closed. A revision hashes
 both source and review; changing review alone fences ongoing execution.
@@ -90,6 +97,9 @@ unmodelled object properties are rejected. No defaults, balancing rows, accounts
 or tax decisions are invented. Numbers are bounded to 48 integer and 18 fractional
 digits. Request bodies are at most 1 MiB; provider responses at most 2 MiB, with a
 15-second provider request timeout and shared client/tenant pacing.
+Consumers of native numeric JSON must also use exact number parsing; ordinary
+JavaScript `Response.json()` can round amounts. The normalized read API keeps
+its separate decimal-string contract.
 
 JSON media types and validated PDF/PNG/JPEG multipart/binary inputs are supported.
 Unsupported media types or file profiles fail rather than passing unchecked

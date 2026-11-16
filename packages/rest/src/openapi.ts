@@ -137,6 +137,7 @@ export function openApiDocument(origin = "") {
             {
               oauth2: [
                 "api:read",
+                "api:bridge",
                 ...(!["get", "head"].includes(method) ? ["api:write"] : []),
               ],
             },
@@ -163,7 +164,7 @@ export function openApiDocument(origin = "") {
     get: {
       operationId: "bridge_operations",
       parameters: [companyParameter],
-      security: [{ oauth2: ["api:read"] }],
+      security: [{ oauth2: ["api:read", "api:bridge"] }],
       responses: {
         "200": {
           description:
@@ -185,7 +186,7 @@ export function openApiDocument(origin = "") {
     get: {
       operationId: "bridge_execution_status",
       parameters: executionParameters,
-      security: [{ oauth2: ["api:read"] }],
+      security: [{ oauth2: ["api:read", "api:bridge"] }],
       responses: bridgeResponse,
     },
   };
@@ -194,7 +195,7 @@ export function openApiDocument(origin = "") {
       post: {
         operationId: "bridge_reconcile",
         parameters: executionParameters,
-        security: [{ oauth2: ["api:read", "api:write"] }],
+        security: [{ oauth2: ["api:read", "api:bridge", "api:write"] }],
         requestBody: {
           content: {
             "application/json": {
@@ -225,6 +226,8 @@ export function openApiDocument(origin = "") {
                   "Read authorized invoices, vouchers and annual account balances",
                 "api:write":
                   "Execute catalogue-classified Fortnox actions under company policy",
+                "api:bridge":
+                  "Use the separately consented native Fortnox bridge",
                 "api:files": "Transfer validated company-bound Fortnox files",
                 offline_access: "Refresh access after owner consent",
               },
