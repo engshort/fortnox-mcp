@@ -6,13 +6,13 @@
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
     "packages/core/src/receipt-files.ts": "faca3f8b0fa8a72c6313e6c862b02215c267015597d0277dce19293f9d8ba3c7",
-    "packages/core/src/receipts.ts": "6206cc2e43c3740f7376f974c7809f51d743f83455c1454d6808b5b84b56a465",
-    "packages/core/src/receipt-provider.ts": "753d6b62e3a86632c87f1f429c1694afe64c026a7567aa8a5dce937701cfd38c",
+    "packages/core/src/receipts.ts": "b0a1b17f40089c1895787db8c1fd2a8cf0d57061eb6bf7ac487bb29896e30081",
+    "packages/core/src/receipt-provider.ts": "9f928194f0339a6ad3cf757744c95311fc41be1afe4694fcafca3d2bf764fba0",
     "packages/fortnox/src/receipt-files.ts": "fd322b6d4c9a60c2307c87ceea3e5acc60435366b3cd64a7552de2549e7a2be1",
     "packages/fortnox/src/http.ts": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
     "packages/mcp/src/receipt-attachments.ts": "5f7ecc4876ab4b8640578e37de2edf1a44d3fad24ecb39d56281844c0278b052",
     "packages/core/src/receipt-workflow.ts": "e4a1ceb3bf882ae6398683f0e093ca1af3bb77bbb0b9e2080b0e8133ee9233ac",
-    "packages/core/src/bookkeeping.ts": "772153476624f2b63049babd68f2867bc2be7c2da3c92c07714a82078a6ebb0c",
+    "packages/core/src/bookkeeping.ts": "8a7e743d67bea8fb4ccad14d629109cb4cc7480161ca752d3868258bddf62722",
     "packages/mcp/src/receipts.ts": "0642b7bddfc92f32886c02021da0c6efb7109a322f0b43b28ac3a75a3971f8d5",
     "packages/ui/src/receipt-review.ts": "6b813f8ab1f12557a62343a4c698bba3c209a889e4768c3ddc97cb8035929134",
     "packages/files/src/transport.ts": "e424a64656aee5d26c6cdf439c8f6085b588d3a74905d5778c5902d53c136821",
@@ -24,7 +24,7 @@
     "apps/node/src/product-main.ts": "0a252a9d4aa20f8dfc2c37490b0e7c7dca996cb95a8d03ffa237c05cd9b67d30",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "0c0513327253d035a56950116b2ad5f05ecaac7c96c31ae22d92a27aa389e8a2",
+    "apps/shared/product.ts": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320",
     "packages/fortnox/src/connections.ts": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
     "apps/worker/src/receipt-test.ts": "18a078cd5741e78e9a8420e32adb5332f27e43fba48f411ead2460ea442f6f91",
     "scripts/build.mjs": "cf1ad4effc560fe92ed0fa4bdef3544fcb3c4fea6ac2559107b5953de76a9902",
@@ -32,7 +32,7 @@
     "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873",
     "apps/node/src/product-runtime.ts": "f9793bc64b0974f3e5f54bd380ed9b0e1dc5a2216fc1cbcb7a105da60e78a13b",
     "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784",
-    "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3"
+    "packages/core/src/programs.ts": "d13e890fb05d704ac2962c17a18c6372ac4da61a2776853321a32db64eda831b"
   },
   "gates": {
     "provider": "#94",
@@ -88,7 +88,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -119,7 +119,7 @@
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",

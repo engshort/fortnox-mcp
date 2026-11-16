@@ -279,6 +279,13 @@ export class ReceiptAttachments {
     assertFeature(c, "receipt-files");
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.receipts.connections.assertWritesAllowed();
+    if (
+      write &&
+      c.bridge?.executions.some((e) =>
+        ["submitting", "outcome_unknown"].includes(e.state),
+      )
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
     return c;
   }
   private async step(
@@ -298,6 +305,12 @@ export class ReceiptAttachments {
       return { state: "outcome_unknown" as const };
     const attempt = crypto.randomUUID();
     await this.receipts.connections.mutate(actor.ownerId, c.id, (current) => {
+      if (
+        current.bridge?.executions.some((e) =>
+          ["submitting", "outcome_unknown"].includes(e.state),
+        )
+      )
+        throw new DomainError("OUTCOME_UNKNOWN");
       if (
         current.generation !== batch.generation ||
         current.policyVersion !== batch.policy ||

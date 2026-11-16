@@ -160,6 +160,13 @@ export class Receipts {
     if (!this.enabled || !this.files.enabled || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.connections.assertWritesAllowed();
+    if (
+      write &&
+      c.bridge?.executions.some((e) =>
+        ["submitting", "outcome_unknown"].includes(e.state),
+      )
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
     return c;
   }
   async prepare(actor: AccountingActor, input: unknown) {

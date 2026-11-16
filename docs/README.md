@@ -1,5 +1,11 @@
 # Documentation map
 
+Optional [catalogue-driven REST bridge](contracts/bridge.md):
+[implementation/evidence](implementation/REST-bridge.md) and
+[Swedish integration guide](users/rest-brygga.sv.md). Native methods/paths/bodies
+share authorization and domain safeguards; private operation reviews and actual
+provider acceptance remain separate.
+
 Opt-in [REST integration](rest-api.md): [API contract](contracts/rest.md),
 [Swedish guide](users/rest-api.sv.md), [implementation/evidence](implementation/REST-read-api.md)
 and [financial read classifications](reference/read-api-operations.json).

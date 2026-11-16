@@ -23,6 +23,7 @@ export interface Owner {
 }
 export interface AuthConfig {
   restApi?: boolean;
+  restBridge?: boolean;
   offlineClientIds?: readonly string[];
   memberships?: Memberships;
   multiUser?: boolean;
@@ -110,6 +111,7 @@ export function createProductAuth(config: AuthConfig) {
       "mcp:finance:read",
       "api:read",
       "api:finance:read",
+      ...(config.restBridge ? ["api:bridge", "api:write", "api:files"] : []),
       "offline_access",
     ],
     grantTypes: ["authorization_code", "refresh_token"],
@@ -128,7 +130,14 @@ export function createProductAuth(config: AuthConfig) {
         ? [
             {
               identifier: `${config.origin}/api/v1`,
-              allowedScopes: ["api:read", "api:finance:read", "offline_access"],
+              allowedScopes: [
+                "api:read",
+                "api:finance:read",
+                ...(config.restBridge
+                  ? ["api:bridge", "api:write", "api:files"]
+                  : []),
+                "offline_access",
+              ],
             },
           ]
         : []),

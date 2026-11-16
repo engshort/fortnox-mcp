@@ -173,6 +173,9 @@ export const retainBusinessExecution = (e: BusinessExecution, now: number) =>
 
 function assertNoUnresolved(c: Connection) {
   if (
+    c.bridge?.executions.some((e) =>
+      ["submitting", "outcome_unknown"].includes(e.state),
+    ) ||
     c.business?.executions.some(
       (e) => e.state === "submitting" || e.state === "outcome_unknown",
     )
@@ -204,11 +207,7 @@ export class BusinessWrites {
       (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     assertScopeProgram(c, op.scope);
     if (!op.enabled || !c.scopes.includes(op.scope) || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
@@ -281,11 +280,7 @@ export class BusinessWrites {
   }
   async status(actor: AccountingActor, input: BusinessReference) {
     const ref = businessReference.parse(input);
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      ref.company_id,
-    );
+    const c = await this.connections.authorizeActor(actor, ref.company_id);
     if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const e = c.business?.executions.find(
       (v) =>

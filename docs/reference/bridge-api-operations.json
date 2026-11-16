@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "scope": "catalogue-driven-rest-bridge",
+  "reviewedAt": "2026-11-16",
+  "sourceStrategy": "Original transport/domain implementation and synthetic fixtures; authorized provider schemas remain private installation inputs. No active provider catalogue ships.",
+  "sourceHashes": {
+    "packages/core/src/bridge.ts": "ea5cd10a0f8e0bd15dce307bbaf9e44e608dc1bc29592e77d332174c6649a507",
+    "packages/core/src/bridge-schema.ts": "a15c891ed91e2636d7657ea0a09d245e7dc2410c523ae41a558781c14355dc38",
+    "packages/fortnox/src/bridge.ts": "16cd9f80afdb6896e15d913227e572f8d6ac0a665acf570399b235bedcb41895",
+    "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
+    "apps/shared/bridge-catalog.ts": "b08606ec6af32f900805b765d8522dc91fca6008a152e45a7eede5dd18984ea2"
+  },
+  "operations": [
+    {
+      "localId": "bridge_request",
+      "path": "/api/v1/companies/{company_id}/fortnox/{provider_path}",
+      "method": "catalogued",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    },
+    {
+      "localId": "bridge_operations",
+      "path": "/api/v1/companies/{company_id}/bridge/operations",
+      "method": "GET",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    },
+    {
+      "localId": "bridge_execution_status",
+      "path": "/api/v1/companies/{company_id}/bridge/executions/{execution_id}",
+      "method": "GET",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    },
+    {
+      "localId": "bridge_reconcile",
+      "path": "/api/v1/companies/{company_id}/bridge/executions/{execution_id}/reconcile",
+      "method": "POST",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    },
+    {
+      "localId": "bridge_catalog_install",
+      "path": "/admin/fortnox/bridge-catalog",
+      "method": "PUT",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    }
+  ]
+}

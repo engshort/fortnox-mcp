@@ -12,6 +12,7 @@ import {
   FinancialAnalysis,
   FinancialContexts,
   FinancialReads,
+  FortnoxBridge,
   LiquidityAnalysis,
   Memberships,
   OnboardingError,
@@ -49,12 +50,14 @@ import {
   receiptSourceSettings,
 } from "@fortnox-mcp/files";
 import {
+  boundedBytes,
   diagnoseConnection,
   diagnosisInput,
   type FinancialMapping,
   type FinancialReadEvidence,
   type FinancialReadOperation,
   FortnoxAccounting,
+  FortnoxBridgeProvider,
   FortnoxCompanyReads,
   FortnoxConnections,
   FortnoxConsentError,
@@ -75,6 +78,7 @@ import {
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { boundedJson, safeResponse } from "./admin.js";
+import { BridgeCatalogStore } from "./bridge-catalog.js";
 import {
   IntegrationSettings,
   integrationInput,
@@ -86,6 +90,7 @@ import {
   type AuthConfig,
   requireAdministrator,
   requireMember,
+  requireOwner,
 } from "./product-auth.js";
 import {
   type EmailSettings,
@@ -114,6 +119,7 @@ export interface ProductSettings {
   receiptProviderConsent?: boolean;
   receiptSource?: ReceiptSourceSettings;
   restApi?: boolean;
+  restBridge?: boolean;
   financialReadModules?: readonly ReadModule[];
   financialAnalysisContexts?: boolean;
   financialLargeReads?: boolean;
@@ -262,6 +268,7 @@ export function productSettings(
     receiptProviderConsent,
     financialReadModules,
     restApi: env.REST_API_ENABLED === "true",
+    restBridge: env.REST_BRIDGE_ENABLED === "true",
     receiptSource: receiptSourceSettings(env, testMode),
   };
 }
@@ -486,6 +493,7 @@ export function createProductApplication(
     redirects: settings.redirects,
     connections,
     restApi: settings.restApi === true && !fileTest,
+    restBridge: settings.restBridge === true && !fileTest && !businessTest,
   };
   // Owner-authorized activation is separate from acceptance evidence. Review
   // still requires the UI-only capability in a conforming MCP Apps host.
@@ -772,6 +780,25 @@ export function createProductApplication(
   const receiptWorkflow = receiptAttachments
     ? new ReceiptWorkflow(receiptAttachments, !fileTest && !businessTest)
     : undefined;
+  const bridgeCatalog = new BridgeCatalogStore(runtime.state, async () => {
+    const owner = await runtime.state.get<{ ownerId: string }>(
+      "installation",
+      "owner",
+    );
+    if (!owner) throw new DomainError("AUTH_REQUIRED");
+    return owner.value.ownerId;
+  });
+  const bridge = new FortnoxBridge(
+    connections,
+    new FortnoxBridgeProvider(
+      connections,
+      provider,
+      () => bridgeCatalog.current(),
+      bookkeeping,
+    ),
+    () => bridgeCatalog.current(),
+    now,
+  );
   const gateway = createProductGateway(
     config,
     (identity) =>
@@ -796,6 +823,7 @@ export function createProductApplication(
         ...(receiptWorkflow ? { receiptWorkflow } : {}),
       }),
     reads,
+    config.restBridge ? bridge : undefined,
   );
   const onboardingHttp = onboarding
     ? onboardingRoutes({
@@ -817,6 +845,58 @@ export function createProductApplication(
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (url.pathname === "/admin/fortnox/bridge-catalog") {
+      if (!config.restApi || !config.restBridge)
+        return safeResponse('{"error":"NOT_FOUND"}', 404);
+      try {
+        const session = await requireOwner(
+          gateway.auth,
+          runtime.state,
+          request.headers,
+        );
+        if (request.method === "GET") {
+          const catalog = await bridgeCatalog.current();
+          return safeResponse(
+            JSON.stringify({
+              revision: catalog?.revision ?? null,
+              operations: catalog?.operations.length ?? 0,
+            }),
+          );
+        }
+        if (request.method !== "PUT")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (
+          request.headers.get("origin") !== settings.origin ||
+          request.headers.get("content-type")?.split(";")[0] !==
+            "application/json"
+        )
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        const bytes = await boundedBytes(
+          new Response(request.body),
+          8 * 1024 * 1024,
+        );
+        const result = await bridgeCatalog.install(
+          session.user.id,
+          JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
+        );
+        return safeResponse(JSON.stringify(result));
+      } catch (error) {
+        const code =
+          error instanceof DomainError
+            ? error.code
+            : error instanceof Error && error.message === "AUTH_REQUIRED"
+              ? "AUTH_REQUIRED"
+              : "VALIDATION_FAILED";
+        return safeResponse(
+          JSON.stringify({ error: code }),
+          code === "AUTH_REQUIRED"
+            ? 401
+            : code === "CONNECTION_CONFLICT"
+              ? 409
+              : 400,
+        );
+      }
+    }
     if (
       url.pathname.startsWith("/api/company-onboarding/") ||
       url.pathname.startsWith("/connect/company")
@@ -1592,6 +1672,8 @@ export function createProductApplication(
     onboarding,
     bookkeeping,
     reads,
+    bridge,
+    bridgeCatalog,
     auth: gateway.auth,
     receiptFiles,
     receipts,

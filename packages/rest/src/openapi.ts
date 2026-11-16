@@ -71,9 +71,144 @@ export function openApiDocument(origin = "") {
       },
     },
   };
+  const companyParameter = {
+    name: "company_id",
+    in: "path",
+    required: true,
+    schema: { type: "string", format: "uuid" },
+  };
+  const bridgeResponse = {
+    "200": {
+      description:
+        "Native provider response, or existing execution status on a repeated key.",
+    },
+    "201": { description: "Native provider creation acknowledgement." },
+    "204": { description: "Native provider acknowledgement without a body." },
+    "400": { description: "Invalid schema, parameter, key or body." },
+    "401": { description: "Active API OAuth authorization required." },
+    "403": { description: "Company, scope, program or operation unavailable." },
+    "404": {
+      description:
+        "Bridge disabled, unknown operation or inaccessible execution.",
+    },
+    "409": {
+      description:
+        "Unknown outcome, review required, changed precondition or idempotency conflict. Never automatically resend.",
+    },
+    "413": { description: "Payload exceeds the configured transport limit." },
+    "428": {
+      description: "Document replacement requires the current bridge ETag.",
+    },
+    "429": { description: "Shared provider budget exhausted." },
+    "502": { description: "Provider response unavailable or invalid." },
+  };
+  paths["/companies/{company_id}/fortnox/{fortnox_path}"] = Object.fromEntries(
+    ["get", "post", "put", "patch", "delete", "head", "options"].map(
+      (method) => [
+        method,
+        {
+          operationId: `bridge_${method}`,
+          "x-greedy-path": true,
+          description:
+            "Opt-in native Fortnox bridge. fortnox_path contains literal slash-separated provider path segments. The private reviewed catalogue determines effect, scopes, media types and availability. GET delivery operations also require write scope and Idempotency-Key. New endpoints require an owner-installed catalogue update.",
+          parameters: [
+            companyParameter,
+            {
+              name: "fortnox_path",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              example: "3/customers",
+            },
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: !["get", "head"].includes(method),
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "If-Match",
+              in: "header",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          security: [
+            {
+              oauth2: [
+                "api:read",
+                "api:bridge",
+                ...(!["get", "head"].includes(method) ? ["api:write"] : []),
+              ],
+            },
+          ],
+          ...(!["get", "head"].includes(method)
+            ? {
+                requestBody: {
+                  content: {
+                    "application/json": { schema: {} },
+                    "multipart/form-data": { schema: { type: "object" } },
+                    "application/octet-stream": {
+                      schema: { type: "string", format: "binary" },
+                    },
+                  },
+                },
+              }
+            : {}),
+          responses: bridgeResponse,
+        },
+      ],
+    ),
+  );
+  paths["/companies/{company_id}/bridge/operations"] = {
+    get: {
+      operationId: "bridge_operations",
+      parameters: [companyParameter],
+      security: [{ oauth2: ["api:read", "api:bridge"] }],
+      responses: {
+        "200": {
+          description:
+            "Versioned catalogue with company-specific availability and reasons.",
+        },
+      },
+    },
+  };
+  const executionParameters = [
+    companyParameter,
+    {
+      name: "execution_id",
+      in: "path",
+      required: true,
+      schema: { type: "string", format: "uuid" },
+    },
+  ];
+  paths["/companies/{company_id}/bridge/executions/{execution_id}"] = {
+    get: {
+      operationId: "bridge_execution_status",
+      parameters: executionParameters,
+      security: [{ oauth2: ["api:read", "api:bridge"] }],
+      responses: bridgeResponse,
+    },
+  };
+  paths["/companies/{company_id}/bridge/executions/{execution_id}/reconcile"] =
+    {
+      post: {
+        operationId: "bridge_reconcile",
+        parameters: executionParameters,
+        security: [{ oauth2: ["api:read", "api:bridge", "api:write"] }],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: { type: "object", additionalProperties: false },
+            },
+          },
+        },
+        responses: bridgeResponse,
+      },
+    };
   return {
     openapi: "3.1.0",
-    info: { title: "Fortnox MCP read API", version: "1.0.0" },
+    info: { title: "Fortnox MCP REST API", version: "1.1.0" },
     servers: [{ url: `${origin}/api/v1` }],
     "x-oauth-resource": `${origin}/api/v1`,
     paths,
@@ -89,6 +224,11 @@ export function openApiDocument(origin = "") {
                 "api:read": "Read authorized company metadata and references",
                 "api:finance:read":
                   "Read authorized invoices, vouchers and annual account balances",
+                "api:write":
+                  "Execute catalogue-classified Fortnox actions under company policy",
+                "api:bridge":
+                  "Use the separately consented native Fortnox bridge",
+                "api:files": "Transfer validated company-bound Fortnox files",
                 offline_access: "Refresh access after owner consent",
               },
             },

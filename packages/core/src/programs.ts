@@ -322,6 +322,7 @@ export function assertNoUncertainWrites(c: Connection) {
     [
       ...(c.bookkeeping?.executions ?? []),
       ...(c.business?.executions ?? []),
+      ...(c.bridge?.executions ?? []),
     ].some((e) => ["submitting", "outcome_unknown"].includes(e.state)) ||
     (c.receiptBatches ?? []).some((b) =>
       b.items.some((i) =>

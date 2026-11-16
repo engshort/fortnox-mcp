@@ -23,17 +23,17 @@
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "0c0513327253d035a56950116b2ad5f05ecaac7c96c31ae22d92a27aa389e8a2",
+      "sha256": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "0a355887c9b81d289e150503e5d94746bfcc59ab103ba309db983cdb1ff3636d",
+      "sha256": "9755dca58a364d4b04910a5639a0e718cd7840fe4aa53e68fd990b7b39009b5f",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "d5656b00a9767a0e4b6b35fab815998ce86162d180ef1800c4e45c3879d3596b",
+      "sha256": "8189982b43f5716c67f665109f208f4570b877860b2d8050eb2fe09ea88bde6e",
       "kind": "independently_written_project_source"
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "path": "packages/core/src/programs.ts",
-      "sha256": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3",
+      "sha256": "d13e890fb05d704ac2962c17a18c6372ac4da61a2776853321a32db64eda831b",
       "kind": "independently_written_project_source"
     }
   ],

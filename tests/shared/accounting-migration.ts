@@ -5,12 +5,14 @@ export function accountingMigrationContract(
     all(sql: string): Promise<unknown>;
     migrate(): Promise<unknown>;
   }>,
-  addedScope = "mcp:write",
+  addedScope: string | string[] = "mcp:write",
+  resource = "mcp",
 ) {
+  const prefix = resource === "api/v1" ? "api" : "mcp";
   it(`additive ${addedScope} capability migration is idempotent and never broadens existing client/consent/token scopes`, async () => {
     const db = await fixture();
     await db.execute(
-      `INSERT INTO oauthResource(id,identifier,name,allowedScopes) VALUES('old-resource','https://synthetic.invalid/mcp','Synthetic','["mcp:read","offline_access"]'),('custom-resource','https://custom.invalid/mcp','Custom','["custom:read"]')`,
+      `INSERT INTO oauthResource(id,identifier,name,allowedScopes) VALUES('old-resource','https://synthetic.invalid/${resource}','Synthetic','["${prefix}:read","offline_access"]'),('custom-resource','https://custom.invalid/${resource}','Custom','["custom:read"]')`,
     );
     await db.execute(
       `INSERT INTO "user"(id,name,email,emailVerified,createdAt,updatedAt) VALUES('migration-owner','Synthetic','migration@example.invalid',1,1,1)`,
@@ -36,9 +38,9 @@ export function accountingMigrationContract(
     ).toEqual([
       {
         allowedScopes: JSON.stringify([
-          "mcp:read",
+          `${prefix}:read`,
           "offline_access",
-          addedScope,
+          ...(Array.isArray(addedScope) ? addedScope : [addedScope]),
         ]),
       },
     ]);

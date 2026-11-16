@@ -4,6 +4,7 @@ import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import scopeSchema from "../../apps/worker/migrations/0005_accounting_scope.sql?raw";
 import readScopeSchema from "../../apps/worker/migrations/0008_financial_read_scope.sql?raw";
+import bridgeScopeSchema from "../../apps/worker/migrations/0009_rest_bridge_scopes.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
@@ -13,6 +14,7 @@ import {
   analyticsAuthorizationContract,
   analyticsCalculationContract,
 } from "../shared/analytics.js";
+import { bridgeContract } from "../shared/bridge.js";
 import { businessWritesContract } from "../shared/business-writes.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
@@ -95,6 +97,24 @@ async function fixture() {
   };
 }
 ownerContract(fixture);
+bridgeContract(fixture);
+accountingMigrationContract(
+  async () => {
+    await fixture();
+    return {
+      execute: async (sql: string) => env.DB.exec(sql),
+      all: async (sql: string) => (await env.DB.prepare(sql).all()).results,
+      migrate: async () =>
+        env.DB.exec(
+          bridgeScopeSchema
+            .replace(/--[^\n]*(?:\n|$)/g, "")
+            .replace(/\n/g, " "),
+        ),
+    };
+  },
+  ["api:bridge", "api:write", "api:files"],
+  "api/v1",
+);
 diagnosticsContract(async () => (await fixture()).state);
 ownerSetupContract(fixture);
 connectionContract(async () => (await fixture()).state);

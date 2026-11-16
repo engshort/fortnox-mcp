@@ -1,5 +1,11 @@
 # Read API contract
 
+The separately enabled [native REST bridge](bridge.md) adds catalogue-bound
+actions and files with explicit `api:bridge` plus `api:write`/`api:files` consent
+where applicable. Statements below
+about GET-only routes and no write/file permissions describe the original
+normalized read resources, not the separately guarded bridge namespace.
+
 The opt-in `/api/v1` JSON API and new financial MCP tools call shared TypeScript
 services. REST adds no provider coverage by itself. See [implementation and
 verification](../implementation/REST-read-api.md), [developer integration](../rest-api.md)

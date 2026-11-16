@@ -56,7 +56,7 @@ const invoice = {
     },
   ],
 };
-async function setup(config: AuthConfig) {
+async function setup(config: AuthConfig, bridge = false) {
   let providerCalls = 0;
   let hook: ((request: Request) => Promise<Response | undefined>) | undefined;
   const app = createProductApplication(
@@ -71,6 +71,7 @@ async function setup(config: AuthConfig) {
       clientSecret: "synthetic-client-secret",
       testTenants: ["100001", "100002"],
       restApi: true,
+      restBridge: bridge,
       accountingReferences: true,
       financialReadModules: modules,
     },
@@ -248,22 +249,19 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
         ).status,
       ).toBe(403);
       await expect(
-        f.app.bookkeeping.prepare(
-          { ...f.actor, permissions: ["read", "write"] },
-          {
-            company_id: f.a.id,
-            financial_year: 7,
-            date: "2026-02-01",
-            series: "A",
-            description: "Synthetic voucher",
-            currency: "SEK",
-            attachments: [],
-            rows: [
-              { account: 1930, debit: "1.00", credit: "0.00" },
-              { account: 3001, debit: "0.00", credit: "1.00" },
-            ],
-          },
-        ),
+        f.app.bookkeeping.prepare(f.actor, {
+          company_id: f.a.id,
+          financial_year: 7,
+          date: "2026-02-01",
+          series: "A",
+          description: "Synthetic voucher",
+          currency: "SEK",
+          attachments: [],
+          rows: [
+            { account: 1930, debit: "1.00", credit: "0.00" },
+            { account: 3001, debit: "0.00", credit: "1.00" },
+          ],
+        }),
       ).rejects.toThrow("AUTH_REQUIRED");
       const disabled = new FinancialReads(
         f.app.connections,
@@ -645,7 +643,7 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
 export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
   it("uses real PKCE/consent/refresh/revocation for REST, isolates MCP/admin tokens and preserves an explicit company selection", async () => {
     const config = await fixture();
-    const f = await setup(config);
+    const f = await setup(config, true);
     const seeded = await f.app.auth.api.signUpEmail({
       body: {
         email: "rest-owner@example.invalid",
@@ -702,7 +700,8 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
         }),
       );
     const callback = "https://client.example.invalid/callback";
-    const scope = "api:read api:finance:read offline_access";
+    const scope =
+      "api:read api:bridge api:finance:read api:write api:files offline_access";
     const registration = await req("/auth/oauth2/register", {
       client_name: "Synthetic REST client",
       redirect_uris: [callback],
@@ -738,7 +737,10 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       cookie,
     });
     expect(page.status).toBe(200);
-    expect(await page.text()).toContain("Välj företag");
+    const consentText = await page.text();
+    expect(consentText).toContain("Välj företag");
+    expect(consentText).toContain("Använda Fortnox-bryggan");
+    expect(consentText).toContain("Hantera företagets filer och bilagor");
     const accept = await req(
       "/auth/oauth2/consent",
       {
@@ -773,6 +775,16 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       refresh_token: string;
     };
     const auth = { authorization: `Bearer ${tokens.access_token}` };
+    const identity = await f.app.auth.api.verifyProductToken({
+      body: { token: tokens.access_token, resource: "api" },
+    });
+    expect(requestActor(identity, "api").permissions).toEqual([
+      "read",
+      "finance_read",
+      "write",
+      "files",
+      "bridge",
+    ]);
     expect((await req("/api/v1/companies")).status).toBe(401);
     expect((await req("/api/v1/companies", undefined, { cookie })).status).toBe(
       401,

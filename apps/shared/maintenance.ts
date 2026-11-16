@@ -1,6 +1,7 @@
 import {
   type ConnectionSet,
   Memberships,
+  retainBridgeExecution,
   retainBusinessExecution,
   retainVoucherExecution,
   type StateStore,
@@ -19,6 +20,10 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
       (a) => a.retainUntil > now,
     );
     for (const c of row.value.connections) {
+      if (c.bridge)
+        c.bridge.executions = c.bridge.executions.filter((e) =>
+          retainBridgeExecution(e, now),
+        );
       if (c.business) {
         c.business.proposals = c.business.proposals.filter(
           (p) => p.expires > now,

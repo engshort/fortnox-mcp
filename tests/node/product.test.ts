@@ -10,6 +10,7 @@ import {
   analyticsAuthorizationContract,
   analyticsCalculationContract,
 } from "../shared/analytics.js";
+import { bridgeContract } from "../shared/bridge.js";
 import { businessWritesContract } from "../shared/business-writes.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
@@ -75,6 +76,28 @@ async function fixture() {
   };
 }
 ownerContract(fixture);
+bridgeContract(fixture);
+accountingMigrationContract(
+  async () => {
+    const { database } = await fixture();
+    return {
+      execute: async (sql: string) => database.exec(sql),
+      all: async (sql: string) => database.prepare(sql).all(),
+      migrate: async () =>
+        database.exec(
+          readFileSync(
+            new URL(
+              "../../apps/worker/migrations/0009_rest_bridge_scopes.sql",
+              import.meta.url,
+            ),
+            "utf8",
+          ),
+        ),
+    };
+  },
+  ["api:bridge", "api:write", "api:files"],
+  "api/v1",
+);
 diagnosticsContract(async () => (await fixture()).state);
 ownerSetupContract(fixture);
 connectionContract(async () => (await fixture()).state);
