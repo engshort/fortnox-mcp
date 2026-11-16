@@ -1,6 +1,6 @@
 # S02 — Owner, authorization and companies
 
-Status: not started. Depends on S01 and S00 authentication evidence.
+Original baseline status: not started. See [M02 evidence](M02-connections-evidence.md) for delivered owner/company behavior. The owner-authorized [2026-11-16 team extension](team-access.md) implements optional administrators, members and generic provisioning with local acceptance; it does not promote remaining provider/client gates.
 
 ## Deliver
 

@@ -14,6 +14,7 @@ import {
   type ConnectionSet,
   Connections,
   type CredentialVault,
+  Memberships,
   receiptFileBinding,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
@@ -221,6 +222,11 @@ export async function restoreDatabase(options: {
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
         DELETE FROM product_state WHERE space IN ('company-grants','fortnox-flows','continuations');`);
       const restoredOwner = installation?.value.ownerId;
+      if (restoredOwner)
+        await new Memberships(state, true).maintenance(
+          restoredOwner,
+          "restore",
+        );
       const restored = restoredOwner
         ? await state.get<ConnectionSet>("connections", restoredOwner)
         : null;
@@ -291,6 +297,7 @@ export async function rotateCredentials(
   try {
     clearAnalysisCache(db);
     await connections.rotateKey(owner);
+    await new Memberships(state, true).maintenance(owner, "rotation");
     await new IntegrationSettings(state, vault, {
       clientId: "",
       clientSecret: "",

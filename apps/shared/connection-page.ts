@@ -14,7 +14,7 @@ export function connectionPage({
   title: string;
   content: string;
   script?: "/connect/company.js" | "/consent.js";
-  back?: "/admin/companies" | "/admin/ai-clients";
+  back?: "/admin/companies" | "/admin/ai-clients" | "/app";
 }) {
   return `<!doctype html>
 <html lang="sv">

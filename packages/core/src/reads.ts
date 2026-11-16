@@ -37,8 +37,12 @@ export class CompanyReads {
     const companies = [];
     for (const c of await this.connections.list(actor.ownerId)) {
       try {
-        await this.connections.authorizeActor(actor, c.id, false);
-        companies.push(describeCompany(c));
+        const authorized = await this.connections.authorizeActor(
+          actor,
+          c.id,
+          false,
+        );
+        companies.push(describeCompany(authorized));
       } catch (error) {
         if (
           !(error instanceof DomainError) ||

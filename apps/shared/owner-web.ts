@@ -10,7 +10,12 @@ export function ownerWeb(
 ) {
   const router = new Hono();
   router.onError(() => safeResponse('{"error":"REQUEST_FAILED"}', 503));
-  for (const path of ["/setup", "/sign-in", "/reset-password"])
+  for (const path of [
+    "/setup",
+    "/sign-in",
+    "/reset-password",
+    "/accept-invitation",
+  ])
     router.get(path, () =>
       safeResponse(shell, 200, "text/html; charset=utf-8"),
     );
@@ -44,6 +49,9 @@ export function ownerWeb(
     "/admin/companies/:id/payroll",
     "/admin/companies/:id/access",
     "/admin/ai-clients",
+    "/admin/members",
+    "/admin/membership-sources",
+    "/app",
     "/admin/settings",
     "/admin/operations",
     "/admin/help",

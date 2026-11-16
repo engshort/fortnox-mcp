@@ -1,6 +1,6 @@
 # Architecture
 
-Status: the S01 package boundaries, local synthetic runtime entries and initial SQLite/D1 intent adapters are implemented. Provider integration, remote authentication and business workflows below remain target design. See [S01 evidence](implementation/S01-evidence.md).
+Status: these boundaries originated in S01; see the [documentation map](README.md) for current implementation and acceptance evidence. The optional [team extension](implementation/team-access.md) adds user-specific authorization while retaining the installation data partition. Historical S01 evidence does not establish later product acceptance.
 
 ## Components and boundaries
 
@@ -23,14 +23,14 @@ Workspace structure (created in S01; responsibilities expand in later scopes):
 | `packages/ui` | Small setup/admin and MCP Apps views |
 | `apps/node` | Node HTTP/stdio entry points, SQLite/storage adapter, Docker |
 | `apps/worker` | Cloudflare HTTP entry point and platform bindings |
-| `apps/shared` | Portable SQL adapter shared by runtime-specific SQLite/D1 bindings |
+| `apps/shared` | Shared product HTTP/authentication composition and portable SQL adapters |
 | `tests` | Synthetic contract, integration and client acceptance evidence |
 
 ## Web application and HTTP routing (D22)
 
-The **planned**, protected owner web application uses React with a Vite production build. Its static assets are served from the same origin as the installation on both Cloudflare Workers and Node.js. Hono will compose product HTTP routes around the existing Fetch-based handlers; it must not replace the MCP SDK, move policies into UI routes, or introduce a second backend. The current `@hono/node-server` adapter is not itself a Hono router.
+The protected web application uses React with a Vite production build. Its static assets are served from the same origin as the installation on both Cloudflare Workers and Node.js. Hono composes same-origin shell/asset routes around the existing Fetch-based product handlers. It does not replace the MCP SDK, move policies into UI routes or introduce a second backend. Optional team access adds administrator and personal views; authorization stays in the shared domain layer.
 
-Keep distinct entry points and trust boundaries for the owner setup/admin app and embedded MCP Apps receipt/voucher review. The embedded views must remain compatible with actual host CSP, model/UI visibility and server-enforced review acceptance under G02 before any framework migration. Existing HTML-based views may remain in place until verified replacements are ready.
+Keep distinct entry points and trust boundaries for the protected setup/admin/member app and embedded MCP Apps receipt/voucher review. The embedded views must remain compatible with actual host CSP, model/UI visibility and server-enforced review acceptance under G02 before any framework migration. Existing HTML-based views may remain in place until verified replacements are ready.
 
 The dependency-free public GitHub Pages website (`index.html`, `installera/`, `site/`) is **outside** this decision. See [D22](decisions.md#d22--web-application-framework-proposed-2026-11-06) and [S11](implementation/S11-setup-deployment.md) for decision and acceptance details.
 
@@ -70,4 +70,4 @@ The Hono read router is mounted in the existing product application for both
 runtimes. REST does not call MCP over HTTP or duplicate the provider connection
 lifecycle. Its own OpenAPI document is generated from shared Zod read contracts.
 
-Modules register capabilities and contracts; runtime adapters implement storage/transport; clients advertise UI/file capabilities. Future teams, hosted multi-user operation, payroll expansion and event listeners can extend these seams. They do not justify building a multi-user SaaS control plane now.
+Modules register capabilities and contracts; runtime adapters implement storage/transport; clients advertise UI/file capabilities. Optional team access uses these seams without replacing company storage or policy. Hosted multi-user operation, external SSO, payroll expansion and event listeners remain separate extensions. They do not justify building a multi-user SaaS control plane now.

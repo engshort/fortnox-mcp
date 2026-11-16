@@ -9,7 +9,7 @@ Approved baseline: 2026-10-18. Product owner: alex-engvall. Details below consol
 | D03 | Self-hosting first; no central project service at launch | Each Community installation has its own Fortnox Client ID/Secret. Never distribute a shared secret. Separately licensed hosted/premium services may be considered later but are not included in the launch plan. |
 | D04 | TypeScript; portable core | Cloudflare evaluated first for simple deployment; Node.js/Docker alternative. |
 | D05 | Setup wizard plus developer configuration | Browser setup for owner identity, companies, status and client instructions. |
-| D06 | One owner, multiple companies in v1 | Company isolation from the first executable slice; future team roles must not require rewriting domain isolation. |
+| D06 | One protected owner, multiple companies and optional installation administrators/members | Owner-requested extension on 2026-11-16: explicit company rights, user-specific client grants and generic membership provisioning; company data remains in the installation partition. |
 | D07 | Broad read/write use, not just search | Common Fortnox workflows form the stable-release baseline. Restricted APIs are classified separately. |
 | D08 | Analysis in the AI client | Server retrieves data and performs deterministic calculations with evidence; no required model API key. |
 | D09 | Full financial data basis | All available accounts/balances, assets, liabilities, equity, income, expenses and transactions; liquidity and cross-period/company comparisons. |
@@ -94,7 +94,7 @@ Rationale: preserve a genuine, unrestricted AGPL Community project while enablin
 **Decision**
 
 - **HTTP routing:** Adopt **Hono** incrementally for the product's HTTP routes (owner administration, setup, OAuth callbacks where appropriate, and static assets). Compose the existing Fetch `Request`/`Response` handlers without moving company authorization, accounting rules or MCP protocol responsibilities into routes. Use the same routing composition in Cloudflare Workers and Node.js via the existing `@hono/node-server` adapter. Using the adapter today does **not** mean Hono routing is already in place.
-- **Protected web UI:** Use **React** for interactive owner-only setup and administration, bundled with **Vite** into versioned static assets. Serve those assets from the installation's own origin in both runtimes; do not require a separate frontend server, Node-only SSR, or a centrally hosted control plane. Keep one owner with multiple explicitly authorized companies as the v1 product model.
+- **Protected web UI:** Use **React** for interactive protected setup and administration, bundled with **Vite** into versioned static assets. Serve those assets from the installation's own origin in both runtimes; do not require a separate frontend server, Node-only SSR, or a centrally hosted control plane. Keep one protected owner with multiple explicitly authorized companies; the optional D06 team extension adds installation administrators and assigned members.
 - **Embedded MCP Apps:** Treat receipt/voucher review as separate, independently built entry points. React may be reused only if the actual client host accepts the output, its restrictive CSP and the verified approval boundary. Until then, retain the existing self-contained review UI; no React migration may weaken `review_required`, expose a commit capability to the model, or reclassify an unsupported client as supported.
 - **Public website:** Keep `index.html`, `installera/` and `site/` dependency-free static GitHub Pages content under D19. This decision applies to the authenticated web application, not marketing/documentation pages.
 
@@ -106,7 +106,7 @@ The project already has a portable TypeScript core, Cloudflare and Node runtime 
 
 **Required boundaries and acceptance before migration**
 
-- Reuse existing authentication, owner/company authorization, read-only and per-company voucher policies, immutable proposals, one-time approval and unknown-write handling. The browser never becomes the authority for these checks. Admin and secret/policy operations remain unavailable to model-callable MCP tools; no arbitrary Fortnox proxy is added.
+- Reuse existing authentication, installation/member/company authorization, read-only and per-company voucher policies, immutable proposals, one-time approval and unknown-write handling. The browser never becomes the authority for these checks. Admin and secret/policy operations remain unavailable to model-callable MCP tools; no arbitrary Fortnox proxy is added.
 - Keep credentials, refresh tokens and privileged review capabilities out of bundled assets, browser storage, browser logs and model-visible responses. Preserve same-origin protections, secure session cookies, CSRF defenses where relevant, content security policy and strict server-side input validation.
 - Prove equivalent route behavior and authorization across Worker/D1 and Node/SQLite. Check static-asset delivery, OAuth redirects, deploy/package size, Worker resource limits, accessibility, Swedish/English UI and failure/recovery behavior. Independently verify MCP Apps CSP, remount/replay and trusted-review behavior under G02 before replacing the embedded view.
 - Integrate gradually with `packages/ui` and the existing `apps/shared` product application; migrate only after tests preserve behavior. Do not couple the portable domain core to Hono, React, Vite or platform-specific storage.
@@ -133,3 +133,30 @@ Retention defaults, package boundaries and tool names in the contracts are initi
 - A general ban on commercial use/resale: not adopted; AGPL is the selected open-source license.
 
 Future changes must record the changed ID, reason, effective release, migration impact and owner approval. Do not leave conflicting current rules in a new document.
+
+## D06/D22 — Optional team access (2026-11-16)
+
+The owner requested multiple installation administrators, an employee view and
+generic integration-driven user synchronization, including administrator roles.
+The owner then explicitly authorized implementation of the proposed plan.
+This extends the earlier single-user launch restriction for the next prerelease;
+it does not remove the protected installation owner or change D01 independence.
+
+Additional administrators manage the installation. Members receive explicit
+read/read-write company assignments and their own OAuth approvals. A versioned
+backend REST API, usable by M2X or any other consumer, manages source-owned
+memberships. Only the owner can delegate administrator provisioning. One source
+controls each membership; local emergency blocks prevail and missing sync entries
+are never implicitly deleted. External SSO, SCIM and per-program member roles
+are outside this slice. Both team access and provisioning default off.
+
+D22's protected React/Vite application expands to these role-appropriate views.
+Financial policy, exact validation, verified review and unknown-write recovery
+remain shared domain requirements. See the [contract](contracts/membership-provisioning-v1.md)
+and [implementation evidence](implementation/team-access.md).
+
+Migration preserves existing owner identity, company IDs, encrypted credentials
+and owner client grants. Non-owner identities are added explicitly; there is no
+transfer of owner grants to members. Restore blocks team access pending review.
+Implementation authorization does not authorize deployment, publication or a
+production account operation.

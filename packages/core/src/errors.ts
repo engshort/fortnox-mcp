@@ -1,4 +1,5 @@
 export type ErrorCode =
+  | "IDEMPOTENCY_CONFLICT"
   | "PROPOSAL_STALE"
   | "AUTH_REQUIRED"
   | "RESOURCE_NOT_FOUND"

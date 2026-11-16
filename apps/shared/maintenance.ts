@@ -1,5 +1,6 @@
 import {
   type ConnectionSet,
+  Memberships,
   retainBusinessExecution,
   retainVoucherExecution,
   type StateStore,
@@ -10,6 +11,7 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
   const owner = (await state.get<Owner>("installation", "owner"))?.value
     .ownerId;
   if (!owner) return;
+  await new Memberships(state, true, () => now).maintenance(owner, "cleanup");
   for (let attempt = 0; attempt < 8; attempt++) {
     const row = await state.get<ConnectionSet>("connections", owner);
     if (!row) break;

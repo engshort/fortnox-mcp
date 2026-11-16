@@ -14,6 +14,7 @@ export * from "./financial-reads.js";
 export * from "./intents.js";
 export * from "./invoice-history.js";
 export * from "./liquidity.js";
+export * from "./memberships.js";
 export * from "./money.js";
 export * from "./onboarding.js";
 export * from "./open-items.js";

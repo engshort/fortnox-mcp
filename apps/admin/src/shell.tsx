@@ -39,6 +39,7 @@ export function Brand({
 
 export function AppShell({
   path,
+  multiUser = false,
   t,
   language,
   onLanguage,
@@ -46,6 +47,7 @@ export function AppShell({
   children,
 }: {
   path: string;
+  multiUser?: boolean;
   t: Translate;
   language: string;
   onLanguage: () => void;
@@ -55,6 +57,16 @@ export function AppShell({
   const items = [
     ["companies", "companies", t("Företag", "Companies")],
     ["ai-clients", "clients", t("AI-klienter", "AI clients")],
+    ...(multiUser
+      ? [
+          ["members", "clients", t("Medlemmar", "Members")],
+          [
+            "membership-sources",
+            "settings",
+            t("Integrationer", "Integrations"),
+          ],
+        ]
+      : []),
     ["settings", "settings", t("Inställningar", "Settings")],
     ["operations", "operations", t("Drift", "Operations")],
   ];
@@ -73,6 +85,11 @@ export function AppShell({
             <Link
               key={route}
               href={`/admin/${route}`}
+              aria-label={
+                route === "membership-sources"
+                  ? t("Medlemsintegrationer", "Membership integrations")
+                  : undefined
+              }
               aria-current={
                 path.startsWith(`/admin/${route}`) ? "page" : undefined
               }

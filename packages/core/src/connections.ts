@@ -4,6 +4,11 @@ import type { BookkeepingState } from "./bookkeeping.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
 import {
+  type MemberPrincipal,
+  Memberships,
+  principalGrantKey,
+} from "./memberships.js";
+import {
   completeOnboardingCompany,
   type OnboardingApproval,
   type OnboardingAttempt,
@@ -125,6 +130,9 @@ export interface ConnectionSet {
 }
 export interface CompanyGrant {
   resource?: ApiResource;
+  subjectId?: string;
+  membershipRevision?: number;
+  registrationKey?: string;
   companyAccess?: "owner_connections";
   oauthClientId?: string;
   onboarding?: OnboardingApproval;
@@ -139,6 +147,7 @@ export class Connections {
   constructor(
     readonly state: StateStore,
     readonly vault: CredentialVault,
+    readonly memberships = new Memberships(state),
   ) {}
   binding(owner: string, c: Pick<Connection, "id" | "generation" | "mode">) {
     return JSON.stringify([owner, c.id, c.generation, c.mode]);
@@ -306,26 +315,45 @@ export class Connections {
       !connection
     )
       throw new DomainError("COMPANY_FORBIDDEN");
+    let member: MemberPrincipal | undefined;
+    if (grant.value.subjectId && grant.value.subjectId !== owner) {
+      member = await this.memberships.principal(grant.value.subjectId);
+      if (
+        member.ownerId !== owner ||
+        member.revision !== grant.value.membershipRevision ||
+        (member.role === "member" && !member.companies[company])
+      )
+        throw new DomainError("COMPANY_FORBIDDEN");
+      if (
+        member.role === "member" &&
+        grant.value.companyAccess === "owner_connections"
+      )
+        throw new DomainError("COMPANY_FORBIDDEN");
+    }
+    const authorizedConnection =
+      member?.role === "member" && member.companies[company] === "read"
+        ? { ...connection, readOnly: true }
+        : connection;
+    // Recheck the current registration at each domain boundary, including
+    // selected-company grants, so in-flight work cannot outlive revocation.
+    if (grantId.startsWith("oauth-grant:") && grant.value.oauthClientId) {
+      const current = await this.state.get<CompanyGrant>(
+        "company-grants",
+        grant.value.registrationKey ?? grant.value.oauthClientId,
+      );
+      if (
+        current?.value.ownerId !== owner ||
+        current.value.grantId !== grantId ||
+        current.value.revision !== grant.value.revision
+      )
+        throw new DomainError("COMPANY_FORBIDDEN");
+    }
     if (grant.value.companyAccess === "owner_connections") {
-      if (grantId.startsWith("oauth-grant:")) {
-        const current = grant.value.oauthClientId
-          ? await this.state.get<CompanyGrant>(
-              "company-grants",
-              grant.value.oauthClientId,
-            )
-          : null;
-        if (
-          current?.value.ownerId !== owner ||
-          current.value.grantId !== grantId ||
-          current.value.revision !== grant.value.revision
-        )
-          throw new DomainError("COMPANY_FORBIDDEN");
-      }
       if (connection.state === "disconnected")
         throw new DomainError("CONNECTION_DISCONNECTED");
       if (active && connection.state !== "active")
         throw new DomainError("RECONNECT_REQUIRED");
-      return connection;
+      return authorizedConnection;
     }
     if (!Object.hasOwn(grant.value.companies, company))
       throw new DomainError("COMPANY_FORBIDDEN");
@@ -345,7 +373,7 @@ export class Connections {
       throw new DomainError("COMPANY_FORBIDDEN");
     if (active && connection.state !== "active")
       throw new DomainError("RECONNECT_REQUIRED");
-    return connection;
+    return authorizedConnection;
   }
   async authorizeActor(actor: Actor, company: string, active = true) {
     return this.authorize(
@@ -416,6 +444,7 @@ export class Connections {
     context?: { expectedRevision: number; onboarding: OnboardingApproval },
     companyAccess?: "owner_connections",
     resource: ApiResource = "mcp",
+    principal?: MemberPrincipal,
   ) {
     if (
       client.startsWith("owner-recovery:") ||
@@ -425,6 +454,21 @@ export class Connections {
       (resource === "api" && (companyAccess || context))
     )
       throw new DomainError("COMPANY_FORBIDDEN");
+    if (principal) {
+      const active = await this.memberships.principal(principal.subjectId);
+      if (
+        active.ownerId !== owner ||
+        active.revision !== principal.revision ||
+        (active.role === "member" &&
+          (companyAccess || selected.some((s) => !active.companies[s.id])))
+      )
+        throw new DomainError("COMPANY_FORBIDDEN");
+    }
+    const registrationKey = principalGrantKey(
+      owner,
+      principal?.subjectId ?? owner,
+      client,
+    );
     const current = await this.list(owner);
     for (const s of selected) {
       const c = current.find((c) => c.id === s.id);
@@ -435,7 +479,10 @@ export class Connections {
       )
         throw new DomainError("CONNECTION_CONFLICT");
     }
-    const prior = await this.state.get<CompanyGrant>("company-grants", client);
+    const prior = await this.state.get<CompanyGrant>(
+      "company-grants",
+      registrationKey,
+    );
     if (prior && prior.value.ownerId !== owner)
       throw new DomainError("COMPANY_FORBIDDEN");
     if (context && (prior?.value.revision ?? 0) !== context.expectedRevision)
@@ -444,6 +491,13 @@ export class Connections {
       resource,
       ...(companyAccess ? { companyAccess } : {}),
       oauthClientId: client,
+      registrationKey,
+      ...(principal && principal.subjectId !== owner
+        ? {
+            subjectId: principal.subjectId,
+            membershipRevision: principal.revision,
+          }
+        : {}),
       ...(context ? { onboarding: context.onboarding } : {}),
       ownerId: owner,
       companies: Object.fromEntries(selected.map((s) => [s.id, s.generation])),
@@ -483,7 +537,7 @@ export class Connections {
     if (
       !(await this.state.put(
         "company-grants",
-        client,
+        registrationKey,
         grant,
         prior?.version ?? null,
       ))

@@ -18,6 +18,7 @@ export function Field({
   minLength?: number;
   maxLength?: number;
   min?: number;
+  defaultValue?: string;
 }) {
   const id = useId();
   return (
@@ -122,8 +123,8 @@ export function Login({
       );
       setEmailStatus(
         t(
-          "Om adressen tillhör installationsägaren och e-post är konfigurerad kommer en kod. Koden gäller i tio minuter. Om mejlet uteblir, kontakta installationsoperatören.",
-          "If the address belongs to the installation owner and email is configured, a code will arrive. It expires in ten minutes. If no email arrives, contact the installation operator.",
+          "Om adressen tillhör ett aktivt konto och e-post är konfigurerad kommer en kod. Koden gäller i tio minuter. Om mejlet uteblir, kontakta installationsoperatören.",
+          "If the address belongs to an active account and email is configured, a code will arrive. It expires in ten minutes. If no email arrives, contact the installation operator.",
         ),
       );
     } catch {
@@ -149,7 +150,7 @@ export function Login({
     ))
       field.value = "";
     try {
-      await api(
+      const result = await api<{ redirect?: "/app" | "/admin" }>(
         reset
           ? "/auth/reset-password"
           : setup
@@ -173,9 +174,11 @@ export function Login({
         );
         return;
       }
-      location.assign(
-        location.search ? `/auth/oauth2/authorize${location.search}` : "/admin",
-      );
+      if (location.search) {
+        location.assign(`/auth/oauth2/authorize${location.search}`);
+        return;
+      }
+      location.assign(result.redirect === "/app" ? "/app" : "/admin");
     } catch (error) {
       onError(error instanceof Error ? error.message : "REQUEST_FAILED");
     } finally {

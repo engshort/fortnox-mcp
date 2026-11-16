@@ -140,3 +140,19 @@ platform-managed and distinct from active cache TTL. A D1 restore procedure must
 clear both analysis tables before accepting traffic. See [S08 retention and
 verification](../implementation/S08-performance.md); no permanent financial
 replica or immediate deletion from managed backups is claimed.
+
+## Optional membership directory
+
+[Team access](membership-provisioning-v1.md) uses the existing `product_state`
+CAS table with a schema-1 installation directory. It contains minimal identity,
+source, assignment, revision and bounded audit/idempotency state; it is not a
+financial replica. Passwords remain in Better Auth. Source secrets and invitation
+secrets are hash-only except short-lived encrypted idempotent invitation results.
+Capacity is 100 members, 16 sources, 128 live operations and 128 audit records
+within 120,000 characters. Capacity fails explicitly without evicting live results.
+
+Owner authorization maps retain their installation partition and existing
+128-entry limits. Each new non-owner grant has an independent subject/client
+registration key and membership revision. Cleanup removes expired invitation
+results. Key rotation invalidates invitation/result material; restore also
+blocks non-owner members and revokes source credentials pending owner review.

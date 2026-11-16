@@ -3,7 +3,12 @@ import {
   type OAuthOptions,
   oauthProvider,
 } from "@better-auth/oauth-provider";
-import type { CompanyGrant, ConnectionSet } from "@fortnox-mcp/core";
+import {
+  type CompanyGrant,
+  type ConnectionSet,
+  Memberships,
+  principalGrantKey,
+} from "@fortnox-mcp/core";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { z } from "zod";
@@ -19,6 +24,8 @@ export interface Owner {
 export interface AuthConfig {
   restApi?: boolean;
   offlineClientIds?: readonly string[];
+  memberships?: Memberships;
+  multiUser?: boolean;
   origin: string;
   secret: string;
   database: BetterAuthOptions["database"];
@@ -28,6 +35,7 @@ export interface AuthConfig {
 }
 export interface GrantFamily {
   offlineAccess?: boolean;
+  subjectId?: string;
   ownerId: string;
   clientId: string;
   revision: number;
@@ -41,30 +49,44 @@ async function assertGrantFamily(
   code?: string,
   offlineClients: readonly string[] = [],
   resource: "mcp" | "api" = "mcp",
+  subject?: string,
+  memberships = new Memberships(state),
 ) {
-  const grant = await state.get<CompanyGrant>("company-grants", client);
-  if (
-    !grant ||
-    grant.value.ownerId !== owner ||
-    (grant.value.resource ?? "mcp") !== resource
-  )
-    throw new Error("AUTH_REQUIRED");
-  if (!grant.value.revision) return client; // Existing tokens retain only legacy grants.
   const families = await state.get<Record<string, GrantFamily>>(
     "oauth-grant-families",
     owner,
   );
   const family = code ? families?.value[code] : undefined;
+  const subjectId = subject ?? family?.subjectId ?? owner;
+  const key = principalGrantKey(owner, subjectId, client);
+  const grant = await state.get<CompanyGrant>("company-grants", key);
+  if (
+    !grant ||
+    grant.value.ownerId !== owner ||
+    (grant.value.subjectId ?? owner) !== subjectId ||
+    (grant.value.resource ?? "mcp") !== resource
+  )
+    throw new Error("AUTH_REQUIRED");
+  if (subjectId !== owner) {
+    const member = await memberships.principal(subjectId);
+    if (
+      member.ownerId !== owner ||
+      member.revision !== grant.value.membershipRevision
+    )
+      throw new Error("AUTH_REQUIRED");
+  }
+  if (!grant.value.revision && subjectId === owner) return client;
   if (
     !family ||
     family.ownerId !== owner ||
     family.clientId !== client ||
+    (family.subjectId ?? owner) !== subjectId ||
     family.revision !== grant.value.revision ||
     (family.offlineAccess && !offlineClients.includes(client)) ||
-    family.expiresAt <= Date.now()
+    family.expiresAt <= Date.now() ||
+    !grant.value.grantId
   )
     throw new Error("AUTH_REQUIRED");
-  if (!grant.value.grantId) throw new Error("AUTH_REQUIRED");
   return grant.value.grantId;
 }
 export async function hashToken(token: string) {
@@ -76,6 +98,8 @@ export async function hashToken(token: string) {
   ).join("");
 }
 export function createProductAuth(config: AuthConfig) {
+  const memberships =
+    config.memberships ?? new Memberships(config.state, config.multiUser);
   const oauthOptions = {
     loginPage: "/sign-in",
     consentPage: "/consent",
@@ -126,7 +150,7 @@ export function createProductAuth(config: AuthConfig) {
     resourcePrivileges: () => false,
   } satisfies OAuthOptions<string[]>;
 
-  return betterAuth({
+  const auth = betterAuth({
     baseURL: config.origin,
     basePath: "/auth",
     secret: config.secret,
@@ -141,30 +165,21 @@ export function createProductAuth(config: AuthConfig) {
       resetPasswordTokenExpiresIn: 600,
       sendResetPassword: async ({ user, token }) => {
         if (config.onReset) await config.onReset(token);
-        if (config.emails) {
-          const owner = await config.state.get<Owner>("installation", "owner");
-          if (
-            owner?.value.phase === "active" &&
-            owner.value.ownerId === user.id
-          )
-            await config.emails.passwordReset(user.email, token);
+        if (!config.emails) return;
+        try {
+          await memberships.principal(user.id);
+        } catch {
+          return;
         }
+        await config.emails.passwordReset(user.email, token);
       },
       onPasswordReset: async ({ user }) => {
         if (!config.emails) return;
         try {
-          const owner = await config.state.get<Owner>("installation", "owner");
-          if (
-            owner?.value.phase === "active" &&
-            owner.value.ownerId === user.id
-          )
-            await config.emails.passwordChanged(
-              user.email,
-              crypto.randomUUID(),
-            );
+          await memberships.principal(user.id);
+          await config.emails.passwordChanged(user.email, crypto.randomUUID());
         } catch {
-          // The password is already changed; notification failure cannot
-          // turn this completed authentication action into a failed reset.
+          // The completed password reset cannot be rolled back by notification failure.
         }
       },
     },
@@ -225,6 +240,7 @@ export function createProductAuth(config: AuthConfig) {
               body: z.object({
                 code: z.string().max(4096),
                 owner: z.string(),
+                subject: z.string().optional(),
                 client: z.string(),
                 revision: z.number().int(),
                 onboarding: z
@@ -256,6 +272,7 @@ export function createProductAuth(config: AuthConfig) {
                     ? { onboarding: ctx.body.onboarding }
                     : {}),
                   ownerId: ctx.body.owner,
+                  ...(ctx.body.subject ? { subjectId: ctx.body.subject } : {}),
                   clientId: ctx.body.client,
                   revision: ctx.body.revision,
                   expiresAt: Date.now() + 600000,
@@ -284,16 +301,25 @@ export function createProductAuth(config: AuthConfig) {
               );
               if (
                 owner?.value.phase !== "active" ||
-                claims.sub !== owner.value.ownerId ||
+                typeof claims.sub !== "string" ||
                 typeof claims.client_id !== "string"
               )
                 throw new Error("AUTH_REQUIRED");
               const grant = await config.state.get<CompanyGrant>(
                 "company-grants",
-                claims.client_id,
+                principalGrantKey(
+                  owner.value.ownerId,
+                  claims.sub,
+                  claims.client_id,
+                ),
               );
               if (!grant || grant.value.ownerId !== owner.value.ownerId)
                 throw new Error("AUTH_REQUIRED");
+              if (claims.sub !== owner.value.ownerId) {
+                const p = await memberships.principal(claims.sub);
+                if (p.revision !== grant.value.membershipRevision)
+                  throw new Error("AUTH_REQUIRED");
+              }
               if (!grant.value.revision) return ctx.json({ ok: true });
               const access = await ctx.context.adapter.findOne<{
                 id: string;
@@ -337,7 +363,9 @@ export function createProductAuth(config: AuthConfig) {
               >("oauth-grant-families", owner.value.ownerId);
               if (
                 familyRows?.value[code]?.revision !== grant.value.revision ||
-                familyRows.value[code]?.clientId !== claims.client_id
+                familyRows.value[code]?.clientId !== claims.client_id ||
+                (familyRows.value[code]?.subjectId ?? owner.value.ownerId) !==
+                  claims.sub
               )
                 throw new Error("AUTH_REQUIRED");
               const client = config.offlineClientIds?.includes(claims.client_id)
@@ -351,7 +379,7 @@ export function createProductAuth(config: AuthConfig) {
               if (offline && refresh) {
                 if (
                   refresh.clientId !== claims.client_id ||
-                  refresh.userId !== owner.value.ownerId ||
+                  refresh.userId !== claims.sub ||
                   refresh.authorizationCodeId !== code ||
                   refresh.revoked
                 )
@@ -453,6 +481,8 @@ export function createProductAuth(config: AuthConfig) {
                 code,
                 config.offlineClientIds,
                 ctx.body.resource,
+                undefined,
+                memberships,
               );
               if (ctx.body.type === "authorization_code") {
                 const family = (
@@ -506,7 +536,7 @@ export function createProductAuth(config: AuthConfig) {
               const resource = `${config.origin}${api ? "/api/v1" : "/mcp"}`;
               if (
                 owner?.value.phase !== "active" ||
-                claims.sub !== owner.value.ownerId ||
+                typeof claims.sub !== "string" ||
                 claims.iss !== `${config.origin}/auth` ||
                 (api && !config.restApi) ||
                 audience.length !== 1 ||
@@ -549,9 +579,12 @@ export function createProductAuth(config: AuthConfig) {
                 token?.authorizationCodeId,
                 config.offlineClientIds,
                 ctx.body.resource,
+                claims.sub,
+                memberships,
               );
               return ctx.json({
                 ownerId: owner.value.ownerId,
+                subjectId: claims.sub,
                 clientId: grantId,
                 oauthClientId: claims.client_id,
                 scopes: claims.scope.split(" "),
@@ -562,6 +595,7 @@ export function createProductAuth(config: AuthConfig) {
       },
     ],
   });
+  return Object.assign(auth, { memberships });
 }
 export type ProductAuth = ReturnType<typeof createProductAuth>;
 export async function requireOwner(
@@ -576,5 +610,20 @@ export async function requireOwner(
     session?.user.id !== owner.value.ownerId
   )
     throw new Error("AUTH_REQUIRED");
+  return session;
+}
+
+export async function requireMember(auth: ProductAuth, headers: Headers) {
+  const session = await auth.api.getSession({ headers });
+  if (!session) throw new Error("AUTH_REQUIRED");
+  const principal = await auth.memberships.principal(session.user.id);
+  return { ...session, principal };
+}
+export async function requireAdministrator(
+  auth: ProductAuth,
+  headers: Headers,
+) {
+  const session = await requireMember(auth, headers);
+  if (session.principal.role === "member") throw new Error("AUTH_REQUIRED");
   return session;
 }

@@ -4,6 +4,7 @@ import {
   createProductAuth,
   hashToken,
   type Owner,
+  requireMember,
   requireOwner,
 } from "./product-auth.js";
 
@@ -231,7 +232,7 @@ export function createAdmin(config: AuthConfig) {
         }
         if (url.pathname === "/auth/sign-out") {
           try {
-            await requireOwner(auth, config.state, request.headers);
+            await requireMember(auth, request.headers);
           } catch {
             return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
           }
@@ -264,8 +265,26 @@ export function createAdmin(config: AuthConfig) {
             error = "AUTH_UNAVAILABLE";
           }
         }
+        let redirect: "/app" | "/admin" | undefined;
+        if (
+          response.ok &&
+          url.pathname === "/auth/sign-in/email" &&
+          auth.memberships.enabled
+        ) {
+          try {
+            const signed = z
+              .object({ user: z.object({ id: z.string() }) })
+              .parse(await response.clone().json());
+            const principal = await auth.memberships.principal(signed.user.id);
+            redirect = principal.role === "member" ? "/app" : "/admin";
+          } catch {
+            return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
+          }
+        }
         const safe = safeResponse(
-          response.ok ? '{"ok":true}' : JSON.stringify({ error }),
+          response.ok
+            ? JSON.stringify({ ok: true, ...(redirect ? { redirect } : {}) })
+            : JSON.stringify({ error }),
           status,
         );
         for (const cookie of response.headers.getSetCookie())

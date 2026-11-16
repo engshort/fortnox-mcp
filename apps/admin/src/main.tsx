@@ -18,6 +18,7 @@ import {
   Message,
   type Translate,
 } from "./forms.js";
+import { AcceptInvitation, EmployeePage, MembersPage } from "./members.js";
 import { Link, usePath } from "./navigation.js";
 import { AppShell, Brand } from "./shell.js";
 import "./style.css";
@@ -521,6 +522,8 @@ function App() {
                     "Could not complete the action. Check the connection and try again.",
                   )
                 : message;
+  if (path === "/app")
+    return <EmployeePage t={t} onLanguage={changeLanguage} />;
   if (!admin) {
     const continuation = new URLSearchParams(location.search);
     const connecting =
@@ -546,7 +549,11 @@ function App() {
           id="content"
           tabIndex={-1}
         >
-          <Login t={t} onError={setMessage} />
+          {path === "/accept-invitation" ? (
+            <AcceptInvitation t={t} />
+          ) : (
+            <Login t={t} onError={setMessage} />
+          )}
           <Message>{errorMessage}</Message>
         </main>
       </div>
@@ -557,6 +564,7 @@ function App() {
   return (
     <AppShell
       path={path}
+      multiUser={state?.multi_user === true}
       t={t}
       language={language}
       onLanguage={changeLanguage}
@@ -612,6 +620,14 @@ function App() {
             )
           ) : path === "/admin/ai-clients" ? (
             <ClientPage state={state} t={t} />
+          ) : path === "/admin/members" ||
+            path === "/admin/membership-sources" ? (
+            <MembersPage
+              key={path}
+              companies={state.companies}
+              t={t}
+              sources={path === "/admin/membership-sources"}
+            />
           ) : path === "/admin/operations" ? (
             <Operations state={state} t={t} perform={perform} />
           ) : path === "/admin/fortnox/api-credentials" ? (
@@ -627,8 +643,8 @@ function App() {
                 <p>{state.owner.email}</p>
                 <p>
                   {t(
-                    "Endast ägaren får ändra integrationsuppgifter och företagspolicy.",
-                    "Only the owner may change integration credentials and company policy.",
+                    "Ägaren och installationsadministratörer får ändra integrationsuppgifter och företagspolicy.",
+                    "The owner and installation administrators may change integration credentials and company policy.",
                   )}
                 </p>
                 <a href="/reset-password">
