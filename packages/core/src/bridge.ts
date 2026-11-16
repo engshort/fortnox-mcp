@@ -407,6 +407,7 @@ export class FortnoxBridge {
       await this.connections.mutate(actor.ownerId, company, (c) => {
         const saved = c.bridge?.executions.find((e) => e.id === execution.id);
         if (!saved) throw new DomainError("OUTCOME_UNKNOWN");
+        if (saved.state === "succeeded" || saved.state === "failed") return;
         saved.state =
           result?.state ?? (dispatched ? "outcome_unknown" : "failed");
         if (result) saved.providerStatus = result.status;

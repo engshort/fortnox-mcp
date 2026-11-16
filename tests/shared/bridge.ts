@@ -2,6 +2,7 @@ import {
   BusinessWrites,
   bridgeSchemaCheck,
   DomainError,
+  FortnoxBridge,
   parseBridgeJson,
   type RequestActor,
   requestActor,
@@ -614,6 +615,51 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
       expect(reconciled.status).toBe(200);
       expect(await reconciled.json()).toMatchObject({ state: "succeeded" });
       expect(writes).toBe(1);
+      let started: () => void = () => {};
+      const reached = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      let release: () => void = () => {};
+      f.setHook(async (request) => {
+        if (request.method === "PUT") {
+          writes++;
+          return new Promise<Response>((resolve) => {
+            release = () => resolve(new Response("", { status: 500 }));
+            started();
+          });
+        }
+        return Response.json({ Customer: { Name: "Replacement" } });
+      });
+      const late = f.req(
+        "fortnox/3/customers/C1",
+        "PUT",
+        '{"Customer":{"Name":"Replacement"}}',
+        {
+          "content-type": "application/json",
+          "idempotency-key": crypto.randomUUID(),
+        },
+      );
+      await reached;
+      try {
+        const snapshot = (await f.app.connections.list(f.actor().ownerId)).find(
+          (c) => c.id === f.a.id,
+        );
+        const pending = snapshot?.bridge?.executions.at(-1);
+        if (!pending) throw new Error("Missing synthetic execution");
+        const future = new FortnoxBridge(
+          f.app.connections,
+          f.app.bridge.provider,
+          f.app.bridge.catalog,
+          () => Date.now() + 120001,
+        );
+        expect(
+          await future.reconcile(f.actor(), f.a.id, pending.id),
+        ).toMatchObject({ state: "succeeded" });
+      } finally {
+        release();
+      }
+      expect(await (await late).json()).toMatchObject({ state: "succeeded" });
+      expect(writes).toBe(2);
     });
     it("records a proven pre-dispatch budget failure without blocking later valid actions", async () => {
       const f = await setup();
