@@ -7,8 +7,12 @@
     "packages/core/src/bridge.ts": "ea5cd10a0f8e0bd15dce307bbaf9e44e608dc1bc29592e77d332174c6649a507",
     "packages/core/src/bridge-schema.ts": "a15c891ed91e2636d7657ea0a09d245e7dc2410c523ae41a558781c14355dc38",
     "packages/fortnox/src/bridge.ts": "16cd9f80afdb6896e15d913227e572f8d6ac0a665acf570399b235bedcb41895",
-    "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
-    "apps/shared/bridge-catalog.ts": "b08606ec6af32f900805b765d8522dc91fca6008a152e45a7eede5dd18984ea2"
+    "packages/rest/src/index.ts": "e1a02bea22bc727b485c9812abed371c9e60e95ebdfb7283b3d7404c5e7f3ec6",
+    "apps/shared/bridge-catalog.ts": "f8af8fd4fc1e0a880c906da0f3e77bea15fef70eef523acdf97f7179a1ba0e53",
+    "packages/core/src/sync.ts": "7f0b461acdf1f7eece83ae305ee576b67e3b718de83b048200f162d09dc8185a",
+    "apps/shared/sync-sql.ts": "c34f80cb21a6ecf58cf245894912513763c4c21b059bf156a53a627bd93221a1",
+    "apps/node/src/fortnox-events.ts": "37730b5fd7edf37f46f45d1250cb3378d75d84a36d8a66a35a68606cabd60894",
+    "packages/fortnox/src/events.ts": "6914d97ea564dbabea9076a3b93ecd7dbbbcf6fa0562e9246623ae76462fe765"
   },
   "operations": [
     {
@@ -60,6 +64,26 @@
       "supported": false,
       "providerVerification": "not_run",
       "capability": "Subject/client/resource/company-bound authorization and independently reviewed catalogue; no provider coverage promotion."
+    },
+    {
+      "localId": "company_sync_manifest",
+      "path": "/api/v1/companies/{company_id}/sync/manifest",
+      "method": "GET",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Twelve reviewed company-bound native read profiles; scopes, fiscal years and paging are explicit; availability is separate from verified provider support."
+    },
+    {
+      "localId": "company_sync_changes",
+      "path": "/api/v1/companies/{company_id}/sync/changes",
+      "method": "GET",
+      "status": "implemented_unverified",
+      "enabledByDefault": false,
+      "supported": false,
+      "providerVerification": "not_run",
+      "capability": "Bounded subject/client/company/source-bound encrypted cursors, atomic journal/offsets and explicit continuity resets. Node native WebSocket synthetic verification only; no hosted consumer or live provider acceptance."
     }
   ]
 }

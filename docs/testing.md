@@ -1,5 +1,13 @@
 # Test strategy and evidence
 
+The shared `company-sync` contract runs on Node/SQLite and actual local workerd/D1:
+reviewed discovery, exact native reads, bootstrap/tail traversal, company and
+cursor isolation, revocation/cancellation and explicit epoch/source/retention
+resets. The native Node WebSocket test exercises synthetic protocol commands,
+in-place tenant renewal and opaque-offset reconnect. SQLite journal tests inject
+transaction failure, reopen a real file and check installation capacity.
+See [evidence and actual acceptance limits](implementation/company-sync.md).
+
 The shared `bridge` contract runs on Node/SQLite and actual local workerd/D1:
 private source-bound operation reviews, native HTTP/decimal/file fidelity,
 company/resource/scope isolation, durable concurrent claims, exact-target PUT

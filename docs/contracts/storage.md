@@ -1,5 +1,12 @@
 # Operational storage and retention
 
+Optional [company sync](company-sync-v1.md) adds separate bounded metadata tables
+for journal heads, events and upstream offsets. Signals and offsets commit
+atomically. Event retention is seven days/1,000 per company/20,000 per installation;
+durable floors and epochs make lost continuity explicit. Node snapshots exclude
+event/offset bodies; restore and credential-key rotation invalidate continuity.
+No financial records or raw WebSocket frames are retained.
+
 REST OAuth approvals share the immutable approval/family stores and bind their
 resource explicitly. Internal legacy API grants use `api-company-grants-v1`,
 separately from legacy MCP grants. `read-continuations-v1` retains at most 32 live opaque financial paging

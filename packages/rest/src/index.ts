@@ -3,6 +3,7 @@ import {
   bridgeLimits,
   bridgePathMatch,
   bridgeSafePath,
+  type CompanySync,
   DomainError,
   type FortnoxBridge,
   type ReadDefinition,
@@ -75,6 +76,7 @@ export function restApi(config: {
   enabled: boolean;
   services: ReadServices;
   bridge?: FortnoxBridge;
+  sync?: CompanySync;
   authenticate: (request: Request) => Promise<Actor>;
 }) {
   const routes = new Hono<{ Variables: { actor: Actor } }>();
@@ -128,6 +130,32 @@ export function restApi(config: {
     return response;
   });
   routes.get("/openapi.json", () => json(openApiDocument(config.origin)));
+  if (config.sync) {
+    const sync = config.sync;
+    routes.get("/companies/:company_id/sync/manifest", async (c) => {
+      if (new URL(c.req.url).search) throw new DomainError("VALIDATION_FAILED");
+      const result = await sync.manifest(
+        c.get("actor"),
+        c.req.param("company_id"),
+      );
+      await config.authenticate(c.req.raw);
+      return json(result);
+    });
+    routes.get("/companies/:company_id/sync/changes", async (c) => {
+      const query = new URL(c.req.url).searchParams;
+      if ([...query.keys()].some((key) => query.getAll(key).length !== 1))
+        throw new DomainError("VALIDATION_FAILED");
+      return json(
+        await sync.changes(
+          c.get("actor"),
+          c.req.param("company_id"),
+          Object.fromEntries(query),
+          () => config.authenticate(c.req.raw),
+          c.req.raw.signal,
+        ),
+      );
+    });
+  }
   if (config.bridge) {
     const bridge = config.bridge;
     routes.get("/companies/:company_id/bridge/operations", async (c) => {

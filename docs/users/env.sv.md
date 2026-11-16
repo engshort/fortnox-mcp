@@ -19,6 +19,8 @@ Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd l
 | `MCP_REDIRECT_URIS` | JSON-lista över exakt tillåtna HTTPS-callbacks för AI-klienten. Mallen innehåller probens observerade ChatGPT-callback; kontrollera att den gäller avsett klientkonto. |
 | `REST_API_ENABLED` | `false` som standard. Aktiverar REST-transport med eget OAuth-medgivande; providerkrav kvarstår. Se [REST-guiden](rest-api.sv.md). |
 | `REST_BRIDGE_ENABLED` | `false` som standard. Kräver även `REST_API_ENABLED`, privat granskad katalog och nytt medgivande för skrivning/filer. Se [REST-bryggan](rest-brygga.sv.md). |
+| `REST_SYNC_ENABLED` | `false` som standard. Kräver REST-API och brygga. Ger synkmanifest och skyddat ändringsflöde för externa tjänster; se [synk](synk.sv.md). |
+| `FORTNOX_EVENTS_ENABLED` | `false` som standard. Valfri Node/Docker-anslutning till Fortnox WebSocket för synk. Cloudflare annonserar realtid som otillgänglig. |
 | `FINANCIAL_READ_MODULES` | Tom som standard. Kommaseparerade `customer_invoices,supplier_invoices,vouchers,accounts` för uttryckligen tillåtna testläsningar. Kräver testläge och nytt medgivande där scopes saknas. |
 | `FORTNOX_TEST_MODE` | `false` som standard. Krävs för nya rådataoperationer i `FINANCIAL_READ_MODULES` och isolerade acceptansbyggen; ändrar inte befintliga MCP-funktioner. |
 | `FORTNOX_CLIENT_ID` | Client ID från installationens egen opublicerade Fortnox-testintegration. |

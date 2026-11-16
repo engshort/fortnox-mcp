@@ -6,6 +6,7 @@ import {
 } from "../../shared/product.js";
 import { d1State } from "./product-storage.js";
 import { d1AnalysisStore, d1ReceiptFiles } from "./receipt-storage.js";
+import { d1SyncJournal } from "./sync-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
   ASSETS?: Fetcher;
   PUBLIC_ORIGIN?: string;
@@ -28,6 +29,9 @@ export interface ProductEnv extends Partial<ProductBindings> {
   FORTNOX_TEST_TENANTS?: string;
   ACCOUNTING_REFERENCES_ENABLED?: string;
   REST_API_ENABLED?: string;
+  REST_BRIDGE_ENABLED?: string;
+  REST_SYNC_ENABLED?: string;
+  FORTNOX_EVENTS_ENABLED?: string;
   FINANCIAL_READ_MODULES?: string;
   FORTNOX_RECEIPT_CONSENT?: string;
   RECEIPT_FILE_TRANSPORT?: string;
@@ -43,6 +47,7 @@ export default {
         cleanupProduct(d1State(env.DB)),
         d1ReceiptFiles(env.DB).cleanup(Date.now()),
         d1AnalysisStore(env.DB).cleanup(Date.now()),
+        d1SyncJournal(env.DB).cleanup(Date.now()),
       ]);
   },
   async fetch(request: Request, env: ProductEnv): Promise<Response> {
@@ -57,6 +62,7 @@ export default {
       return await createProductApplication(settings, {
         database: env.DB,
         state: d1State(env.DB),
+        ...(settings.restSync ? { syncJournal: d1SyncJournal(env.DB) } : {}),
         ...(env.ASSETS
           ? {
               assets: async (name: "admin.js" | "admin.css") => {

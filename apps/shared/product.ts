@@ -6,6 +6,7 @@ import {
   type CompanyGrant,
   CompanyOnboarding,
   CompanyReads,
+  CompanySync,
   Connections,
   CredentialVault,
   DomainError,
@@ -100,6 +101,8 @@ import {
 import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
+  restSync?: boolean;
+  fortnoxEvents?: boolean;
   offlineClientIds?: string[];
   multiUser?: boolean;
   membershipProvisioning?: boolean;
@@ -269,6 +272,8 @@ export function productSettings(
     financialReadModules,
     restApi: env.REST_API_ENABLED === "true",
     restBridge: env.REST_BRIDGE_ENABLED === "true",
+    restSync: env.REST_SYNC_ENABLED === "true",
+    fortnoxEvents: env.FORTNOX_EVENTS_ENABLED === "true",
     receiptSource: receiptSourceSettings(env, testMode),
   };
 }
@@ -305,6 +310,10 @@ export function createProductApplication(
     assets?: AdminAssets;
     receiptFiles?: ReceiptFileStore;
     analysisStore?: AnalysisStore;
+    syncJournal?: import("@fortnox-mcp/core").SyncJournal;
+    realtimeStatus?: (
+      company: string,
+    ) => import("@fortnox-mcp/core").RealtimeStatus;
     fileSource?: (
       input: ClientFile,
     ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
@@ -824,6 +833,17 @@ export function createProductApplication(
       }),
     reads,
     config.restBridge ? bridge : undefined,
+    settings.restSync &&
+      config.restApi &&
+      config.restBridge &&
+      runtime.syncJournal
+      ? new CompanySync(
+          bridge,
+          runtime.syncJournal,
+          runtime.realtimeStatus ?? (() => "unavailable"),
+          now,
+        )
+      : undefined,
   );
   const onboardingHttp = onboarding
     ? onboardingRoutes({

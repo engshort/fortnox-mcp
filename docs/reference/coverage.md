@@ -1,5 +1,12 @@
 # API coverage plan
 
+The optional [company-sync-v1 contract](../contracts/company-sync-v1.md) adds
+reviewed discovery for twelve resources and bounded change signals. Shared
+Node/D1 and synthetic WebSocket checks are recorded in
+[implementation evidence](../implementation/company-sync.md). These are not
+live provider or hosted M2X acceptance. No operation is promoted to verified
+support; unverified event year mapping uses explicit resource rescan.
+
 The optional [catalogue-driven REST bridge](../contracts/bridge.md) adds native
 HTTP addressing, reviewed private catalogue import and durable action claims.
 It defaults off and ships no active provider catalogue. Parsing all 451 entries

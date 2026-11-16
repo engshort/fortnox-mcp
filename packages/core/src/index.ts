@@ -32,3 +32,4 @@ export * from "./receipts.js";
 export * from "./registers.js";
 export * from "./sales-documents.js";
 export * from "./sie.js";
+export * from "./sync.js";

@@ -13,11 +13,11 @@
     "packages/fortnox/src/financial-reads.ts": "8dd8d18c5d1181b0c339ab01820596fddc7baba9510c2d6b1e77ab6310894cc8",
     "packages/fortnox/src/company-reads.ts": "7238b0382a825ccd9d57ba7091f89b4e0fcac60f39d1b5cc6b63712e045967b6",
     "packages/mcp/src/reads.ts": "a664330e62ac7bbd8018b1d86a9ecd0dc5db8abd9085f2c7f8e7e563ba47049e",
-    "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
-    "packages/rest/src/openapi.ts": "1b95eaadd8824d37acd558baf2a75451db1d6e52a35846d343c7120ff1d5f87a",
+    "packages/rest/src/index.ts": "e1a02bea22bc727b485c9812abed371c9e60e95ebdfb7283b3d7404c5e7f3ec6",
+    "packages/rest/src/openapi.ts": "2fe8e2c342e064ddc0d27719094320838b53273642e8e2a8e847ef5698a1fd91",
     "apps/shared/product-auth.ts": "a1d680bb5a84d4c20ee5cbede3338c656716a01e0cae5d8ff4d4ac4957efb26d",
-    "apps/shared/product-gateway.ts": "36d3e29c7ae3bc81144779ab16ba628e6223b232747b1784dec70f6e252d4b27",
-    "apps/shared/product.ts": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320"
+    "apps/shared/product-gateway.ts": "ee281ddc885fbda3d2b48212bc3c78125178e54adcebea9b2e37db86983e5c98",
+    "apps/shared/product.ts": "d61ea756f611f24a216bdd93d5688772171854dac49471bd5a837ff4afed7383"
   },
   "operations": [
     {

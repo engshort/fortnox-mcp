@@ -77,6 +77,74 @@ export function openApiDocument(origin = "") {
     required: true,
     schema: { type: "string", format: "uuid" },
   };
+  for (const endpoint of ["manifest", "changes"]) {
+    paths[`/companies/{company_id}/sync/${endpoint}`] = {
+      get: {
+        operationId: `company_sync_${endpoint}`,
+        description:
+          endpoint === "manifest"
+            ? "company-sync-v1 reviewed resource discovery. Disabled by default; availability is separate from provider verification."
+            : "company-sync-v1 bounded change signals. Save the bootstrap tail before a baseline. Explicit resync_required replaces incomplete replay; no financial payloads.",
+        security: [{ oauth2: ["api:read", "api:bridge", "api:finance:read"] }],
+        parameters: [
+          companyParameter,
+          ...(endpoint === "changes"
+            ? [
+                {
+                  name: "cursor",
+                  in: "query",
+                  schema: { type: "string", maxLength: 4096 },
+                },
+                {
+                  name: "limit",
+                  in: "query",
+                  schema: {
+                    type: "integer",
+                    minimum: 1,
+                    maximum: 100,
+                    default: 100,
+                  },
+                },
+                {
+                  name: "wait_seconds",
+                  in: "query",
+                  schema: {
+                    type: "integer",
+                    minimum: 0,
+                    maximum: 20,
+                    default: 0,
+                  },
+                },
+              ]
+            : []),
+        ],
+        responses: {
+          "200": {
+            description:
+              endpoint === "manifest"
+                ? "Version, company/revision bindings, twelve resource profiles and realtime availability."
+                : "Version and company/revision bindings, events, next_cursor, has_more, resync_required, resync_reason, realtime_status.",
+          },
+          "400": {
+            description:
+              "Invalid, foreign or forged cursor; duplicate or unknown query.",
+          },
+          "401": {
+            description:
+              "Active API authorization required, including after long-poll.",
+          },
+          "403": {
+            description: "Company, scope or current permission denied.",
+          },
+          "404": { description: "Optional sync disabled." },
+          "409": {
+            description:
+              "Connection or authorization changed during the request.",
+          },
+        },
+      },
+    };
+  }
   const bridgeResponse = {
     "200": {
       description:
