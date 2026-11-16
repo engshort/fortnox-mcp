@@ -30,7 +30,7 @@ Per company:
 - `client_managed`: permit model-callable manual-voucher execution; the AI client's own approval settings apply.
 - Read-only access, when configured, overrides both and denies every mutation.
 
-Only the authenticated installation owner can change policy through administration, not through model-callable tools. Increment a policy version and invalidate affected pending approvals when it changes. A policy change cannot retroactively authorize an old request.
+The authenticated installation owner and, when optional team access is enabled, active installation administrators can change policy through administration. Model-callable tools and provisioning credentials cannot change it. Increment a policy version and invalidate affected pending approvals when it changes. A policy change cannot retroactively authorize an old request.
 
 Normal actions retain standard client approvals. Do not silently extend the manual-voucher rule to every action or relax it through a generic endpoint tool. Any operation that creates/changes manual-voucher accounting rows must enter the same protected domain service. Future support for editing/deleting manual vouchers needs an explicit review/validation classification before exposure.
 
@@ -38,7 +38,7 @@ Normal actions retain standard client approvals. Do not silently extend the manu
 
 Show company name and stable identity, fiscal year, date, series, description, each accounting row, debit/credit totals, difference, currency, linked receipt and warnings. Batch review provides per-item selection and individual totals, not only a pooled batch balance.
 
-The server stores a short-lived canonical proposal and hash. The model cannot set its approval state. A UI-specific commit endpoint/tool accepts a server-generated proposal reference, not replacement accounting rows. At commit, verify owner/company, proposal hash/version, policy version, expiry, one-time execution intent and current provider constraints.
+The server stores a short-lived canonical proposal and hash. The model cannot set its approval state. A UI-specific commit endpoint/tool accepts a server-generated proposal reference, not replacement accounting rows. At commit, verify installation/subject/current membership/company, proposal hash/version, policy version, expiry, one-time execution intent and current provider constraints.
 
 Changing amount, account, date, company, attachment identity or selected set invalidates the previous review. A double click must not create two writes. A partial batch approval authorizes only selected immutable items.
 

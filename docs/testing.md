@@ -19,6 +19,14 @@ pair. The existing owner browser harness covers expiry before/during login,
 validated `interaction_required`, revision renewal and the same company, on
 desktop/mobile. These synthetic checks do not replace actual M2X scheduler,
 provider, hosted-runtime or 72-wall-clock-hour acceptance.
+The optional S02/S11 membership contract (`tests/shared/memberships.ts`) runs
+through the existing Node/SQLite and actual workerd/D1 product suites. It checks
+same-client/different-subject OAuth isolation, read-only preparation, administrator
+and source boundaries, explicit deactivation, invitation replay, revision/CAS
+conflicts and preserved uncertain writes. The owner browser harness includes
+`members.spec.ts` for invitation → personal view → password/login and generic
+source provisioning on desktop/mobile. See [team evidence](implementation/team-access.md).
+
 
 Optional [account-email tests](implementation/account-email.md) run through the
 shared owner contract on Node/SQLite and actual local workerd/D1. They use

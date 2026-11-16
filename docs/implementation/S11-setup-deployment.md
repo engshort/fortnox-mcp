@@ -2,6 +2,8 @@
 
 Status: first infrastructure slice implemented, with one hosted installation verified in an existing account on 2026-10-18; fresh-account onboarding and lifecycle acceptance remain pending. The protected wizard depends on S02/S03; final workflow acceptance depends on S06/S07. See [the first Cloudflare slice](S11-cloudflare-first-installation.md) and [evidence](S11-cloudflare-evidence.md).
 
+Optional team extension (2026-11-16): [role-appropriate administration, personal views and generic provisioning](team-access.md) are implemented with local synthetic acceptance and remain disabled by default. Actual consumer/host acceptance is separate.
+
 ## Deliver
 
 Implement the small owner wizard from [deployment](../deployment.md): bootstrap/login, own Fortnox credentials, company consent/status, policy settings and tested ChatGPT connection instructions. Add Swedish/English UI and documentation. Admin configuration is not exposed as model tools.
@@ -12,7 +14,7 @@ Package Node/Docker and Worker deployments with persistent operational storage, 
 
 ### Protected web application baseline (D22)
 
-For subsequent S11/M18 setup/admin UI work, introduce Hono incrementally as the shared product HTTP router and use React + Vite for interactive owner-only administration. Serve built assets on the installation origin in both Worker and Node runtimes. Keep the public GitHub Pages site static. Do not replace the existing status page or MCP Apps review view without equivalent tests and actual host/CSP/review evidence. See [D22](../decisions.md#d22--web-application-framework-proposed-2026-11-06).
+For subsequent S11/M18 setup/admin UI work, introduce Hono incrementally as the shared product HTTP router and use React + Vite for interactive protected administration. Serve built assets on the installation origin in both Worker and Node runtimes. Keep the public GitHub Pages site static. Do not replace the existing status page or MCP Apps review view without equivalent tests and actual host/CSP/review evidence. See [D22](../decisions.md#d22--web-application-framework-proposed-2026-11-06).
 
 ## Acceptance
 

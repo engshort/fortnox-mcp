@@ -16,6 +16,8 @@ export interface Investigation {
   proposal_hash: string;
 }
 export interface InstallationState {
+  multi_user?: boolean;
+  principal?: { role: "owner" | "admin"; subject_id: string };
   owner: { email: string };
   integration: {
     configured: boolean;

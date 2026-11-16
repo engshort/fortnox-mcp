@@ -7,7 +7,7 @@ advertises that scope without updating existing clients or tokens.
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 The protected owner application uses same-origin Hono routes and built React/Vite
-assets. `/admin/state` requires an owner session; MCP bearer tokens cannot
+assets. `/admin/state` requires an owner or active installation-administrator session; MCP bearer tokens cannot
 administer the installation. `/admin/fortnox/configuration` accepts strict,
 write-only credentials with the exact browser Origin and encrypts them using the
 existing vault, bound to the installation owner. Status returns only
@@ -27,16 +27,16 @@ The key is server-only and is never returned through admin state or MCP.
 The [account-email adapter](../implementation/account-email.md) sends a welcome
 message only after a successful owner bootstrap, a reset code issued by the
 maintained auth component, and a notification after a successful password reset.
-The product still has one installation owner; this adds no public signup or
-multi-user management. Recipients come from the registered account, never an
+The installation keeps one protected owner. Optional team management is a
+separate feature under [membership provisioning](membership-provisioning-v1.md); public signup remains closed. Recipients come from the registered account, never an
 arbitrary model-supplied delivery target. No email-sending MCP tool is exposed.
 
 When configured, `POST /auth/request-password-reset` accepts only an email address,
 requires the exact installation Origin and checks a durable installation-wide
 limit of three attempts per hour before account lookup. This authentication
 recovery endpoint intentionally works without an existing session. Only the
-active owner's account can receive a reset code. The endpoint returns the same
-generic acknowledgement for unknown addresses, non-owner accounts and uncertain
+active owner or, with team access enabled, an active unblocked member can receive a reset code. The endpoint returns the same
+generic acknowledgement for unknown addresses, unauthorized accounts and uncertain
 delivery; it does not assert that mail arrived. Tokens last ten minutes, are
 single-use and revoke existing sessions on successful redemption. Redirect
 destinations and caller-supplied message content are rejected.
@@ -57,12 +57,35 @@ Sources: [F01–F04, F06 in sources](../reference/sources.md). OAuth between the
 
 | Object | Meaning |
 | --- | --- |
-| Installation owner | The one human principal authorized to administer the initial installation |
-| MCP client authorization | A client-specific grant to invoke allowed tools for that owner |
+| Installation owner | Protected bootstrap principal and stable installation data partition |
+| Installation administrator | Active member authorized to administer the installation, except protected owner controls |
+| Member | Active unblocked subject with explicit read/read-write company assignments |
+| MCP client authorization | A subject/client-specific grant intersected with current membership and company rights |
 | Fortnox connection | Provider credentials, tenant identity, granted scopes, account type and status |
 | Company handle | Opaque stable local ID mapping to a connection the caller may use |
 
 The server resolves allowed connections from authenticated identity. It checks this for every list, read, write, file, proposal, continuation and status lookup. An organization number, provider ID or local company handle supplied by the model never grants access.
+
+## Optional team access
+
+The [membership contract](membership-provisioning-v1.md) defines roles, invitations,
+source ownership, generic provisioning and revocation. `MULTI_USER_ENABLED=false`
+preserves the original owner-only boundary. Team access distinguishes the
+installation owner/data partition from the acting subject, both server-derived.
+Members use `/app` and `/api/me`; they cannot call admin routes. With team access
+enabled, successful email login returns a server-selected `redirect` (`/app` or
+`/admin`) alongside `ok`; inactive or blocked subjects receive no session cookie. Browser mutations
+require the exact Origin. Service provisioning credentials cannot authorize MCP.
+
+Each non-owner OAuth approval and code family binds a subject and membership
+revision. Company access is the intersection of current membership, explicit
+client approval and existing scopes/program/policy checks. Read-only membership
+also blocks preparation and file ingestion. Changed rights invalidate old
+approvals, even after reactivation; identical desired-state sync does not.
+Installation administrators may consent to current/future companies. Members
+select explicit companies; added assignments require renewed consent. The existing
+external company-onboarding flow continues to require the protected owner.
+Historical owner-only descriptions below apply to legacy/single-user operation.
 
 ## Installation bootstrap
 
@@ -74,7 +97,7 @@ Admin operations and MCP tool grants are separate: a model-callable bearer token
 
 Implement the authorization requirements of each supported MCP protocol revision using a tested OAuth component: HTTPS, protected-resource/authorization-server metadata, appropriate issuer/audience/resource checks, PKCE, exact registered redirect validation, expiring codes and tokens, and client registration/metadata compatibility where required. Never accept a Fortnox access token as this server's own access token.
 
-Restrict each MCP grant to the installation owner and authorized capabilities. Do not implement transparent token passthrough. A valid token for one audience or installation must fail on another. Record the actual supported discovery and refresh behavior in the client matrix.
+Restrict each MCP grant to its authenticated subject, current membership and authorized capabilities. Legacy grants remain owner-only. Do not implement transparent token passthrough. A valid token for one audience or installation must fail on another. Record the actual supported discovery and refresh behavior in the client matrix.
 
 ## MCP server → Fortnox
 
@@ -96,7 +119,7 @@ Client-credentials access does not mean a user can connect any tenant without co
 
 ## Company identity and privilege
 
-After activation, verify the company identity through an authorized provider response and display its name/organization number to the owner. Never infer ownership solely by decoding an unverified JWT. `/3/me` includes a `SysAdmin` field in the supplied specification, but service-account identity and the human administrator are not interchangeable. S00 tests semantics before using it for any privilege decision. V1 policy administration is assigned to the installation owner, not automatically to whoever presents an upstream token.
+After activation, verify the company identity through an authorized provider response and display its name/organization number to the owner. Never infer ownership solely by decoding an unverified JWT. `/3/me` includes a `SysAdmin` field in the supplied specification, but service-account identity and the human administrator are not interchangeable. S00 tests semantics before using it for any privilege decision. Policy administration is assigned to the installation owner and, when team access is enabled, active installation administrators. An upstream token never establishes this authority.
 
 Different connections must not share mutable headers, selected company or fiscal-year state. If the same tenant is connected twice, deduplicate deliberately or require owner resolution; do not let duplicate aliases bypass rate limits, write intents or approval policies.
 

@@ -5,6 +5,9 @@ Opt-in [REST integration](rest-api.md): [API contract](contracts/rest.md),
 and [financial read classifications](reference/read-api-operations.json).
 
 External applications: [natural login return and optional 30-day offline access](implementation/onboarding-continuity.md), with retained-attempt recovery, separate server policy and bounded local evidence.
+Optional team access: [implementation/evidence](implementation/team-access.md),
+[generic membership provisioning](contracts/membership-provisioning-v1.md) and
+[Swedish member guide](users/medlemmar.sv.md). Both feature flags default off.
 
 Account email: [optional Resend setup and evidence](implementation/account-email.md)
 and [Swedish ENV instructions](users/env.sv.md#appens-e-post). Disabled by default.

@@ -3,6 +3,7 @@ import { DomainError } from "./errors.js";
 export type Permission = "read" | "finance_read" | "write" | "files";
 export type ApiResource = "mcp" | "api";
 export interface RequestActor {
+  readonly subjectId?: string;
   ownerId: string;
   clientId: string;
   resource: ApiResource;
@@ -11,6 +12,7 @@ export interface RequestActor {
 // Compatibility for internal callers of the prerelease domain API. Network
 // adapters always construct RequestActor after validating their own resource.
 export interface LegacyMcpActor {
+  readonly subjectId?: string;
   ownerId: string;
   clientId: string;
   scopes: readonly string[];
@@ -30,6 +32,7 @@ export function requestActor(
     if (identity.scopes.includes("mcp:files")) permissions.push("files");
   }
   return {
+    ...(identity.subjectId ? { subjectId: identity.subjectId } : {}),
     ownerId: identity.ownerId,
     clientId: identity.clientId,
     resource,

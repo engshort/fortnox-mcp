@@ -141,3 +141,11 @@ kan få policyn vid nästa lyckade rotation; utgångna eller osäkra par kräver
 appgodkännande. Borttagning ur listan spärrar redan frikopplade tokenfamiljer.
 Detta utökar inga scopes eller kundbehörigheter. Se
 [återinloggning och beständig åtkomst](extern-appanslutning.sv.md#beständig-åtkomst-för-appens-backend).
+## Flera användare och medlemssynkronisering
+
+`MULTI_USER_ENABLED=true` aktiverar administratörer och medarbetare.
+`MEMBERSHIP_PROVISIONING_ENABLED=true` aktiverar dessutom det generella
+integrations-API:t när flera användare är aktiverat. Båda är `false` från början.
+Skapa och avgränsa integrationskällor i administrationen; använd inte en vanlig
+MCP-token eller företagsanslutningens klienthemlighet för medlemssynk.
+Se [medlemsguiden](medlemmar.sv.md).

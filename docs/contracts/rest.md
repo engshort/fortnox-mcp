@@ -18,7 +18,11 @@ including capabilities and OpenAPI, require an active API bearer token.
 `api:finance:read` additionally permits independently enabled financial reads.
 `offline_access` permits the existing bounded refresh flow. API scopes grant no
 write, file or owner-administration capability. Wrong-resource, mixed-protocol,
-expired/revoked tokens and inactive owners fail. Admin cookies are not API
+expired/revoked tokens and inactive owners fail. With optional team access enabled,
+active administrators and members can approve API access using their own accounts.
+Member selections are limited to current company assignments; registrations and
+approvals are bound to the actual subject. Blocking, deactivation and membership
+revision changes invalidate existing member API tokens and refresh families. Admin cookies are not API
 authorization. Cross-origin browser requests are not enabled in this version.
 
 REST consent names data categories and lists active companies for explicit

@@ -32,8 +32,13 @@ import {
   onboardingFailure,
   onboardingGuideRedirect,
 } from "./onboarding-http.js";
-import { type AuthConfig, requireOwner } from "./product-auth.js";
+import {
+  type AuthConfig,
+  requireMember,
+  requireOwner,
+} from "./product-auth.js";
 export interface McpIdentity {
+  subjectId?: string;
   ownerId: string;
   clientId: string;
   scopes: string[];
@@ -173,9 +178,10 @@ export function createProductGateway(
     if (request.method === "GET" && url.pathname === "/consent") {
       let ownerId: string;
       let resource: "mcp" | "api";
+      let memberSession: Awaited<ReturnType<typeof requireMember>>;
       try {
-        ownerId = (await requireOwner(auth, config.state, request.headers)).user
-          .id;
+        memberSession = await requireMember(auth, request.headers);
+        ownerId = memberSession.principal.ownerId;
         if (
           !(await verifyOAuthQueryParams(
             url.search.slice(1),
@@ -238,13 +244,19 @@ export function createProductGateway(
       const companies = (await config.connections.list(ownerId)).filter(
         (c) =>
           c.state === "active" &&
+          (memberSession.principal.role !== "member" ||
+            !!memberSession.principal.companies[c.id]) &&
           (!onboarding ||
             onboarding.approval?.selection.some((s) => s.id === c.id)),
       );
+      const selectedOnly =
+        !!onboarding ||
+        resource === "api" ||
+        memberSession.principal.role === "member";
       const companyChoices = companies
         .map(
           (c) => `<label class="consent-company">
-          <input type="checkbox" name="company" checked ${onboarding || resource === "api" ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
+          <input type="checkbox" name="company" checked ${selectedOnly ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
           <span><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(
             programSelection(c)
               .features.map((id) => featureLabels[id].sv)
@@ -284,19 +296,24 @@ export function createProductGateway(
       return safeResponse(
         connectionPage({
           title: "Godkänn klient",
-          back: "/admin/ai-clients",
+          back:
+            memberSession.principal.role === "member"
+              ? "/app"
+              : "/admin/ai-clients",
           script: "/consent.js",
           content: `    <div class="consent-heading"><h1>Godkänn klient</h1><p class="intro muted">Granska åtkomsten innan du ansluter din AI-klient.</p></div>
     <div class="consent-layout">
       <div class="consent-details">
         <section class="consent-access" aria-labelledby="access-heading">
-          <h2 id="access-heading">${onboarding || resource === "api" ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
+          <h2 id="access-heading">${selectedOnly ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
           ${
             onboarding
               ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>`
               : resource === "api"
                 ? `<p>Välj vilka anslutna företag applikationen får läsa. Detta samtycke omfattar endast de valda företagen och ger ingen skrivbehörighet.</p>`
-                : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
+                : selectedOnly
+                  ? `<p>Godkännandet omfattar de företag du väljer nedan och begränsas alltid av dina aktuella läs- och skrivrättigheter. Nya tilldelningar kräver ett nytt godkännande.</p>`
+                  : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
           }
         </section>
         <section class="consent-permissions" aria-labelledby="permissions-heading">
@@ -305,12 +322,12 @@ export function createProductGateway(
         </section>
       </div>
       <fieldset class="consent-companies">
-        <legend>${onboarding || resource === "api" ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
+        <legend>${selectedOnly ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
         <div class="consent-company-list">${companyChoices || `<p class="muted">${onboarding ? "Inga aktiva företag finns i detta godkännande. Gå tillbaka till anslutningsflödet." : "Inga företag är anslutna ännu. Företag som du ansluter senare blir tillgängliga via detta godkännande."}</p>`}</div>
       </fieldset>
     </div>
     <footer class="consent-actions">
-      <button id="accept" ${onboarding || resource === "api" ? "" : 'data-company-access="owner_connections"'}>${onboarding || resource === "api" ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
+      <button id="accept" ${selectedOnly ? "" : 'data-company-access="owner_connections"'}>${selectedOnly ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
       ${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}
       <p id="status" class="status" role="status" tabindex="-1"></p>
     </footer>
@@ -387,7 +404,7 @@ accept.onclick=async()=>{
           if (request.headers.get("origin") !== config.origin)
             return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
           try {
-            await requireOwner(auth, config.state, request.headers);
+            await requireMember(auth, request.headers);
           } catch {
             return challenge();
           }
@@ -479,16 +496,16 @@ accept.onclick=async()=>{
           )
             return safeResponse('{"error":"CONSENT_DENIED"}', 400);
           if (body.data.accept) {
-            const session = await requireOwner(
-              auth,
-              config.state,
-              request.headers,
-            );
+            const session = await requireMember(auth, request.headers);
             try {
               let onboarding: OnboardingAttempt | undefined;
               const query = new URLSearchParams(body.data.oauth_query);
               if (query.has("onboarding_attempt")) {
-                if (resource === "api" || body.data.company_access)
+                if (
+                  resource === "api" ||
+                  body.data.company_access ||
+                  session.principal.role !== "owner"
+                )
                   throw new Error();
                 if (!config.onboarding) throw new Error();
                 const a = await config.onboarding.validateQuery(
@@ -525,7 +542,7 @@ accept.onclick=async()=>{
                 : null;
               if (!code) return safeResponse('{"error":"CONSENT_DENIED"}', 400);
               const grant = await config.connections.renewGrant(
-                session.user.id,
+                session.principal.ownerId,
                 client,
                 body.data.companies,
                 onboarding
@@ -541,11 +558,13 @@ accept.onclick=async()=>{
                   : undefined,
                 body.data.company_access,
                 resource,
+                session.principal,
               );
               await auth.api.bindProductCode({
                 body: {
                   code,
-                  owner: session.user.id,
+                  owner: session.principal.ownerId,
+                  subject: session.principal.subjectId,
                   client,
                   revision: grant.revision as number,
                   ...(onboarding

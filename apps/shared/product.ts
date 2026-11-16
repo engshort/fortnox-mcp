@@ -13,6 +13,7 @@ import {
   FinancialContexts,
   FinancialReads,
   LiquidityAnalysis,
+  Memberships,
   OnboardingError,
   OpenItems,
   PayrollInputs,
@@ -78,9 +79,14 @@ import {
   IntegrationSettings,
   integrationInput,
 } from "./integration-settings.js";
+import { membershipRoutes } from "./membership-http.js";
 import { onboardingFailure, onboardingRoutes } from "./onboarding-http.js";
 import { type AdminAssets, ownerWeb } from "./owner-web.js";
-import { type AuthConfig, requireOwner } from "./product-auth.js";
+import {
+  type AuthConfig,
+  requireAdministrator,
+  requireMember,
+} from "./product-auth.js";
 import {
   type EmailSettings,
   emailSettings,
@@ -90,6 +96,8 @@ import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
   offlineClientIds?: string[];
+  multiUser?: boolean;
+  membershipProvisioning?: boolean;
   email?: EmailSettings;
   externalAppOnboarding?: boolean;
   onboardingClients?: string[];
@@ -226,6 +234,8 @@ export function productSettings(
   });
   const email = emailSettings(env);
   return {
+    multiUser: env.MULTI_USER_ENABLED === "true",
+    membershipProvisioning: env.MEMBERSHIP_PROVISIONING_ENABLED === "true",
     ...(email ? { email } : {}),
     financialAnalysisContexts:
       env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
@@ -419,9 +429,11 @@ export function createProductApplication(
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   const fileTestActive = () => !!fileTest && now() < fileTest.until;
+  const memberships = new Memberships(runtime.state, settings.multiUser);
   const connections = new Connections(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
+    memberships,
   );
   const programGates = () => ({
     payrollConsent:
@@ -470,6 +482,7 @@ export function createProductApplication(
     offlineClientIds: settings.offlineClientIds ?? [],
     origin: settings.origin,
     secret: settings.secret,
+    memberships,
     redirects: settings.redirects,
     connections,
     restApi: settings.restApi === true && !fileTest,
@@ -793,6 +806,13 @@ export function createProductApplication(
         redirects: settings.redirects,
       })
     : undefined;
+  const memberHttp = membershipRoutes({
+    auth: gateway.auth,
+    connections,
+    memberships,
+    origin: settings.origin,
+    provisioning: settings.membershipProvisioning === true,
+  });
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
@@ -816,6 +836,15 @@ export function createProductApplication(
             )
           : safeResponse('{"error":"NOT_FOUND"}', 404))
       );
+    }
+    if (
+      url.pathname.startsWith("/api/me") ||
+      url.pathname.startsWith("/api/membership-provisioning/") ||
+      url.pathname.startsWith("/api/invitations/") ||
+      url.pathname.startsWith("/admin/members") ||
+      url.pathname.startsWith("/admin/membership-sources")
+    ) {
+      return memberHttp(request);
     }
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
@@ -871,13 +900,9 @@ export function createProductApplication(
       url.pathname.startsWith("/admin/companies/") ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
-      let session: Awaited<ReturnType<typeof requireOwner>>;
+      let session: Awaited<ReturnType<typeof requireAdministrator>>;
       try {
-        session = await requireOwner(
-          gateway.auth,
-          runtime.state,
-          request.headers,
-        );
+        session = await requireAdministrator(gateway.auth, request.headers);
       } catch {
         if (
           request.method === "GET" &&
@@ -909,18 +934,20 @@ export function createProductApplication(
           "company-grants",
           101,
         );
-        const companies = await connections.list(session.user.id);
+        const companies = await connections.list(session.principal.ownerId);
         const clients = await Promise.all(
           rows
             .slice(0, 100)
             .filter(
               (r) =>
-                r.value.ownerId === session.user.id &&
+                r.value.ownerId === session.principal.ownerId &&
+                (r.value.subjectId ?? r.value.ownerId) ===
+                  session.principal.subjectId &&
                 !r.id.startsWith("owner-recovery:"),
             )
             .map(async (r) => {
               const grant = await connections.clientGrant(
-                session.user.id,
+                session.principal.ownerId,
                 r.id,
               );
               const all = grant.companyAccess === "owner_connections";
@@ -972,8 +999,17 @@ export function createProductApplication(
             })
             .strict()
             .parse(await boundedJson(request));
+          const existingGrant = await runtime.state.get<CompanyGrant>(
+            "company-grants",
+            body.client_id,
+          );
+          if (
+            (existingGrant?.value.subjectId ?? existingGrant?.value.ownerId) !==
+            session.principal.subjectId
+          )
+            throw new DomainError("COMPANY_FORBIDDEN");
           await connections.allowOwnerConnections(
-            session.user.id,
+            session.principal.ownerId,
             body.client_id,
             body.grant_id,
             body.revision,
@@ -1007,9 +1043,9 @@ export function createProductApplication(
           if (!profileActive()) throw new DomainError("CAPABILITY_UNAVAILABLE");
           const companyId = z.string().uuid().parse(businessReconcile[1]);
           const executionId = z.string().uuid().parse(businessReconcile[2]);
-          const company = (await connections.list(session.user.id)).find(
-            (c) => c.id === companyId,
-          );
+          const company = (
+            await connections.list(session.principal.ownerId)
+          ).find((c) => c.id === companyId);
           if (!company) throw new DomainError("COMPANY_FORBIDDEN");
           const execution = company.business?.executions.find(
             (e) => e.id === executionId,
@@ -1021,7 +1057,7 @@ export function createProductApplication(
             );
           if (!service) throw new DomainError("CAPABILITY_UNAVAILABLE");
           const result = await service.reconcileOwner(
-            session.user.id,
+            session.principal.ownerId,
             companyId,
             executionId,
           );
@@ -1048,7 +1084,7 @@ export function createProductApplication(
           return safeResponse(
             JSON.stringify(
               await receiptAttachments.reconcileOwner(
-                session.user.id,
+                session.principal.ownerId,
                 z.string().uuid().parse(receiptReconcile[1]),
                 z.string().uuid().parse(receiptReconcile[2]),
               ),
@@ -1074,7 +1110,7 @@ export function createProductApplication(
           return safeResponse(
             JSON.stringify(
               await bookkeeping.reconcileOwner(
-                session.user.id,
+                session.principal.ownerId,
                 z.string().uuid().parse(voucherReconcile[1]),
                 z.string().uuid().parse(voucherReconcile[2]),
               ),
@@ -1091,18 +1127,18 @@ export function createProductApplication(
       if (programRoute) {
         try {
           const companyId = z.string().uuid().parse(programRoute[1]);
-          const company = (await connections.list(session.user.id)).find(
-            (c) => c.id === companyId,
-          );
+          const company = (
+            await connections.list(session.principal.ownerId)
+          ).find((c) => c.id === companyId);
           if (!company) throw new DomainError("COMPANY_FORBIDDEN");
           const gates = programGates();
           if (!programRoute[2] && request.method === "GET")
             return safeResponse(
               JSON.stringify({
                 ...programStatus(company, gates),
-                pending: (await provider.pending(session.user.id)).includes(
-                  companyId,
-                ),
+                pending: (
+                  await provider.pending(session.principal.ownerId)
+                ).includes(companyId),
               }),
             );
           if (request.method !== "POST" || !programRoute[2])
@@ -1113,7 +1149,7 @@ export function createProductApplication(
           if (programRoute[2] === "disable") {
             const input = programChange.omit({ features: true }).parse(body);
             await connections.disableProgram(
-              session.user.id,
+              session.principal.ownerId,
               companyId,
               input.program,
               input.expected_revision,
@@ -1127,7 +1163,7 @@ export function createProductApplication(
           if (preview.action === "none") return safeResponse('{"ok":true}');
           if (preview.action === "local_selection") {
             await connections.selectProgram(
-              session.user.id,
+              session.principal.ownerId,
               companyId,
               input,
               gates,
@@ -1135,13 +1171,13 @@ export function createProductApplication(
             return safeResponse('{"ok":true}');
           }
           const credentials = await connections.credentials(
-            session.user.id,
+            session.principal.ownerId,
             company,
           );
           return safeResponse(
             JSON.stringify({
               url: await provider.start(
-                session.user.id,
+                session.principal.ownerId,
                 session.session.id,
                 {
                   mode: company.mode,
@@ -1158,12 +1194,27 @@ export function createProductApplication(
         }
       }
       if (request.method === "GET" && url.pathname === "/admin/state") {
-        const companies = await connections.list(session.user.id);
-        const pending = await provider.pending(session.user.id);
+        const companies = await connections.list(session.principal.ownerId);
+        const pending = await provider.pending(session.principal.ownerId);
         return safeResponse(
           JSON.stringify({
-            owner: { email: session.user.email },
-            integration: await integration.status(session.user.id, connections),
+            owner: {
+              email:
+                (
+                  await (
+                    await gateway.auth.$context
+                  ).internalAdapter.findUserById(session.principal.ownerId)
+                )?.email ?? session.user.email,
+            },
+            principal: {
+              role: session.principal.role,
+              subject_id: session.principal.subjectId,
+            },
+            multi_user: settings.multiUser === true,
+            integration: await integration.status(
+              session.principal.ownerId,
+              connections,
+            ),
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
             test_mode: !!businessTest || !!fileTest,
@@ -1277,7 +1328,7 @@ export function createProductApplication(
         );
       }
       if (request.method === "GET" && url.pathname === "/admin") {
-        const companies = await connections.list(session.user.id);
+        const companies = await connections.list(session.principal.ownerId);
         const investigations = companies
           .flatMap((c) =>
             (c.bookkeeping?.executions ?? [])
@@ -1314,18 +1365,21 @@ export function createProductApplication(
               .object({ revision: z.number().int().positive().safe() })
               .strict()
               .parse(body);
-            await integration.forget(session.user.id, input.revision);
-            await provider.cancelPending(session.user.id, null);
+            await integration.forget(session.principal.ownerId, input.revision);
+            await provider.cancelPending(session.principal.ownerId, null);
             return safeResponse('{"ok":true}');
           }
           if (url.pathname === "/admin/fortnox/cancel-consent") {
             z.object({}).strict().parse(body);
-            await provider.cancelPending(session.user.id, session.session.id);
+            await provider.cancelPending(
+              session.principal.ownerId,
+              session.session.id,
+            );
             return safeResponse('{"ok":true}');
           }
           if (url.pathname === "/admin/fortnox/configuration") {
             await integration.save(
-              session.user.id,
+              session.principal.ownerId,
               integrationInput.parse(body),
             );
             return safeResponse('{"ok":true}');
@@ -1335,7 +1389,10 @@ export function createProductApplication(
               .object({ company_id: z.string().uuid() })
               .strict()
               .parse(body);
-            await connections.disconnect(session.user.id, input.company_id);
+            await connections.disconnect(
+              session.principal.ownerId,
+              input.company_id,
+            );
             return safeResponse('{"ok":true}');
           }
           if (url.pathname === "/admin/fortnox/policy") {
@@ -1349,7 +1406,7 @@ export function createProductApplication(
               .strict()
               .parse(body);
             await connections.setAccountingPolicy(
-              session.user.id,
+              session.principal.ownerId,
               input.company_id,
               input.policy_version,
               input.review,
@@ -1366,7 +1423,7 @@ export function createProductApplication(
               .strict()
               .parse(body);
             await bookkeeping.attestReference(
-              session.user.id,
+              session.principal.ownerId,
               input.proposal,
               input.reference,
             );
@@ -1378,13 +1435,13 @@ export function createProductApplication(
               JSON.stringify(
                 await diagnoseConnection(
                   {
-                    owner: session.user.id,
+                    owner: session.principal.ownerId,
                     connections,
                     provider,
                     testMode: true,
                     authorize: async (id) => {
                       const company = (
-                        await connections.list(session.user.id)
+                        await connections.list(session.principal.ownerId)
                       ).find((c) => c.id === id);
                       if (!company) throw new DomainError("COMPANY_FORBIDDEN");
                       return company;
@@ -1406,11 +1463,13 @@ export function createProductApplication(
             return safeResponse(
               JSON.stringify({
                 url: await provider.start(
-                  session.user.id,
+                  session.principal.ownerId,
                   session.session.id,
                   {
                     mode: input.mode,
-                    ...((await integration.credentials(session.user.id)) ?? {
+                    ...((await integration.credentials(
+                      session.principal.ownerId,
+                    )) ?? {
                       clientId: "",
                       clientSecret: "",
                     }),
@@ -1430,7 +1489,7 @@ export function createProductApplication(
       ) {
         const retained = await provider.onboardingReturn(session.user.id, url);
         const binding = await provider.onboardingCallback(
-          session.user.id,
+          session.principal.ownerId,
           session.session.id,
           url,
         );
@@ -1449,7 +1508,7 @@ export function createProductApplication(
           });
         try {
           const company = await provider.finish(
-            session.user.id,
+            session.principal.ownerId,
             session.session.id,
             url,
           );
@@ -1502,7 +1561,10 @@ export function createProductApplication(
         return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
       return fetchRequest(request);
     },
-    (request) => requireOwner(gateway.auth, runtime.state, request.headers),
+    (request) =>
+      new URL(request.url).pathname.startsWith("/app")
+        ? requireMember(gateway.auth, request.headers)
+        : requireAdministrator(gateway.auth, request.headers),
     runtime.assets,
   );
   return {
@@ -1525,6 +1587,7 @@ export function createProductApplication(
       return response;
     },
     connections,
+    memberships,
     provider,
     onboarding,
     bookkeeping,

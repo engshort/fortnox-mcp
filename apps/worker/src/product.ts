@@ -9,6 +9,8 @@ import { d1AnalysisStore, d1ReceiptFiles } from "./receipt-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
   ASSETS?: Fetcher;
   PUBLIC_ORIGIN?: string;
+  MULTI_USER_ENABLED?: string;
+  MEMBERSHIP_PROVISIONING_ENABLED?: string;
   FINANCIAL_ANALYSIS_CONTEXTS_ENABLED?: string;
   FINANCIAL_LARGE_READS_ENABLED?: string;
   AUTH_SECRET?: string;

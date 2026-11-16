@@ -22,6 +22,7 @@ import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
 import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
+import { membershipContract } from "../shared/memberships.js";
 import { onboardingContract } from "../shared/onboarding.js";
 import { onboardingContinuityContract } from "../shared/onboarding-continuity.js";
 import { openItemsContract } from "../shared/open-items.js";
@@ -163,3 +164,4 @@ accountingMigrationContract(async () => {
       ),
   };
 }, "mcp:finance:read");
+membershipContract(fixture);
