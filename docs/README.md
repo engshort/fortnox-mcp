@@ -1,5 +1,9 @@
 # Documentation map
 
+Opt-in [REST integration](rest-api.md): [API contract](contracts/rest.md),
+[Swedish guide](users/rest-api.sv.md), [implementation/evidence](implementation/REST-read-api.md)
+and [financial read classifications](reference/read-api-operations.json).
+
 Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
 [English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
 and [pending actual acceptance](implementation/M05-actual-acceptance.md).

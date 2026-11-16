@@ -23,7 +23,11 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
     }
     if (await state.put("connections", owner, row.value, row.version)) break;
   }
-  for (const space of ["fortnox-flows", "continuations"]) {
+  for (const space of [
+    "fortnox-flows",
+    "continuations",
+    "read-continuations-v1",
+  ]) {
     for (let n = 0; n < 8; n++) {
       const row = await state.get<unknown>(space, owner);
       if (!row) break;

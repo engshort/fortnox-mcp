@@ -5,11 +5,11 @@
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
     "packages/core/src/accounting.ts": "89d356c33342583e447197b63c0d5c368f4066596a3cf4029760121cbb8c7393",
-    "packages/core/src/bookkeeping.ts": "0827981f7107178e76f0aeedd86e491e907e6b7f551f08112b9308d8b15fd2b6",
-    "packages/core/src/connections.ts": "444645c80ce80ff0bc137c9b90aea557a9d85d98aef15f62e69098aebb32175f",
-    "packages/fortnox/src/accounting.ts": "c662c2d0dcc8c15690466c25a4ee6295ffb839682a6f6cc9fa96923ff1070b04",
-    "packages/fortnox/src/http.ts": "9637946b9ec1158e32426b75b7b2a9c0b62e50f0eab27f185cace082a6f28f08",
-    "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
+    "packages/core/src/bookkeeping.ts": "d958c90ed55bbacd2e53f9324def0bd63bf39514c1bcb38d2c239b68fcc19437",
+    "packages/core/src/connections.ts": "8d9cfd09e8fa8f3977a15354be815be43281903a9d43dd26d412ffc6f5150faf",
+    "packages/fortnox/src/accounting.ts": "2ee73e7a3da7a2bbf9b030e189fa25dd6cdf4b35f480f020c2711d3c5e0c025d",
+    "packages/fortnox/src/http.ts": "2ad97304af11770b9487aa29e7fcb1efba65cd89252c5856b0c94944037b0b56",
+    "packages/mcp/src/accounting.ts": "b1ec9f901324547198bef406990d5635fcb4792f02ecc70d8ea4f341e2ef711d",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20"
   },
   "gates": {
@@ -466,5 +466,9 @@
       "operationIdSource": "private user-supplied snapshot sha256:10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7; checked 2026-11-06; no source redistribution or automatic activation"
     }
   ],
-  "implementationNote": "Milestone 4 binds receipt proposals to immutable file/batch identities and a receipt execution guard. Existing dated live evidence does not verify this new code or enable provider/host gates."
+  "implementationNote": "Milestone 4 binds receipt proposals to immutable file/batch identities and a receipt execution guard. Existing dated live evidence does not verify this new code or enable provider/host gates.",
+  "sourceRecheck": {
+    "date": "2026-11-16",
+    "reason": "Shared transport-independent authorization and read adapters; existing live observations remain bound to their original commits. No provider support promotion."
+  }
 }

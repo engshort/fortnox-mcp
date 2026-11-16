@@ -1,5 +1,10 @@
 # Authentication and company authorization
 
+The opt-in [REST resource](rest.md) uses `/api/v1`, separate read scopes and
+explicitly selected company grants. MCP and REST tokens are not interchangeable.
+New financial MCP reads require fresh `mcp:finance:read` consent; migration 0007
+advertises that scope without updating existing clients or tokens.
+
 The protected owner application uses same-origin Hono routes and built React/Vite
 assets. `/admin/state` requires an owner session; MCP bearer tokens cannot
 administer the installation. `/admin/fortnox/configuration` accepts strict,

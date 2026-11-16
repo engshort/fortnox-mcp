@@ -1,25 +1,29 @@
 import {
   type Bookkeeping,
+  CompanyReads,
   type Connections,
   DomainError,
+  type ReadServices,
   type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
   type ReceiptWorkflow,
+  requestActor,
+  requirePermission,
 } from "@fortnox-mcp/core";
 import {
-  companyInformation,
   diagnoseConnection,
   diagnosisInput,
   diagnosisOutput,
+  FortnoxCompanyReads,
   type FortnoxConnections,
-  FortnoxHttp,
   ProviderError,
 } from "@fortnox-mcp/fortnox";
 import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerReads } from "./reads.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
@@ -105,6 +109,8 @@ export function companyServer(context: {
   provider: FortnoxConnections;
   testMode: boolean;
   diagnostics?: boolean;
+  companyReads?: CompanyReads;
+  reads?: ReadServices;
   bookkeeping?: Bookkeeping;
   receiptFiles?: ReceiptFiles;
   receipts?: Receipts;
@@ -121,18 +127,18 @@ export function companyServer(context: {
     sources: [] as string[],
     warnings: ["Product live acceptance pending; test installation only."],
   });
-  const describe = (c: Awaited<ReturnType<Connections["list"]>>[number]) => ({
-    company_id: c.id,
-    name: c.name,
-    state: c.state,
-    mode: c.mode,
-    read_only: c.readOnly,
-    manual_vouchers: c.review,
-  });
+  const companyReads =
+    context.companyReads ??
+    new CompanyReads(
+      context.connections,
+      new FortnoxCompanyReads(context.connections, context.provider),
+      context.testMode,
+    );
+  const actor = context.identity ? requestActor(context.identity, "mcp") : null;
   const identity = () => {
-    if (!context.identity?.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
-    return context.identity;
+    if (!actor) throw new DomainError("AUTH_REQUIRED");
+    requirePermission(actor, "read");
+    return actor;
   };
   const reply = async <T>(
     schema: z.ZodType<T>,
@@ -193,29 +199,10 @@ export function companyServer(context: {
     () =>
       reply(listOutput, async () => {
         const who = identity();
-        const companies = [];
-        for (const c of await context.connections.list(who.ownerId)) {
-          try {
-            await context.connections.authorize(
-              who.ownerId,
-              who.clientId,
-              c.id,
-              false,
-            );
-            companies.push(describe(c));
-          } catch (error) {
-            if (
-              !(error instanceof DomainError) ||
-              !["COMPANY_FORBIDDEN", "CONNECTION_DISCONNECTED"].includes(
-                error.code,
-              )
-            )
-              throw error;
-          }
-        }
+        const data = await companyReads.companies(who);
         return {
           status: "ok",
-          data: { companies, count: companies.length },
+          data,
           evidence: proof(),
           continuation: null,
         };
@@ -234,16 +221,11 @@ export function companyServer(context: {
     (input) =>
       reply(statusOutput, async () => {
         const who = identity();
-        const c = await context.connections.authorize(
-          who.ownerId,
-          who.clientId,
-          input.company_id,
-          false,
-        );
+        const data = await companyReads.status(who, input.company_id);
         return {
           status: "ok",
-          company_id: c.id,
-          data: describe(c),
+          company_id: data.company_id,
+          data,
           evidence: proof(),
           continuation: null,
         };
@@ -293,49 +275,11 @@ export function companyServer(context: {
       (input) =>
         reply(profileOutput, async () => {
           const who = identity();
-          const c = await context.connections.authorize(
-            who.ownerId,
-            who.clientId,
-            input.company_id,
-          );
-          if (!context.testMode)
-            throw new DomainError("CAPABILITY_UNAVAILABLE");
-          if (!c.scopes.includes("companyinformation"))
-            throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
-          const active = async () => {
-            await context.connections.authorize(
-              who.ownerId,
-              who.clientId,
-              c.id,
-            );
-          };
-          const http = new FortnoxHttp({
-            fetch: context.provider.config.fetch,
-            state: context.connections.state,
-          });
-          const raw = await http.read(
-            {
-              owner: who.ownerId,
-              company: c.id,
-              generation: c.generation,
-              tenant: c.tenant,
-              clientId: (await context.connections.credentials(who.ownerId, c))
-                .clientId,
-              assertActive: active,
-              token: (force) => context.provider.token(who.ownerId, c, force),
-            },
-            "company_information",
-          );
-          const data = companyInformation.parse(raw).CompanyInformation;
-          if (String(data.DatabaseNumber) !== c.tenant)
-            throw new DomainError("COMPANY_FORBIDDEN");
+          const data = await companyReads.profile(who, input.company_id);
           return {
             status: "ok",
-            company_id: c.id,
-            data: {
-              name: data.CompanyName,
-              organization_number: data.OrganizationNumber ?? "",
-            },
+            company_id: input.company_id,
+            data,
             evidence: {
               ...proof(),
               sources: ["Fortnox GET /3/companyinformation"],
@@ -345,21 +289,13 @@ export function companyServer(context: {
         }),
     );
   if (context.bookkeeping?.gates.references)
-    registerAccounting(server, context.bookkeeping, context.identity);
+    registerAccounting(server, context.bookkeeping, actor);
   if (context.receiptFiles)
-    registerReceiptFiles(server, context.receiptFiles, context.identity);
+    registerReceiptFiles(server, context.receiptFiles, actor);
   if (context.receipts)
-    registerReceipts(
-      server,
-      context.receipts,
-      context.identity,
-      context.receiptWorkflow,
-    );
+    registerReceipts(server, context.receipts, actor, context.receiptWorkflow);
   if (context.receiptAttachments)
-    registerReceiptAttachments(
-      server,
-      context.receiptAttachments,
-      context.identity,
-    );
+    registerReceiptAttachments(server, context.receiptAttachments, actor);
+  if (context.reads) registerReads(server, context.reads, actor);
   return server;
 }

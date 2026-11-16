@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type Actor, type ApiResource, actorResource } from "./actor.js";
 import type { BookkeepingState } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
 import type { StateStore } from "./ports.js";
@@ -231,8 +232,12 @@ export class Connections {
     grantId: string,
     company: string,
     active = true,
+    resource: ApiResource = "mcp",
   ) {
-    const grant = await this.state.get<CompanyGrant>("company-grants", grantId);
+    const grant = await this.state.get<CompanyGrant>(
+      resource === "api" ? "api-company-grants-v1" : "company-grants",
+      grantId,
+    );
     const connection = (await this.list(owner)).find((c) => c.id === company);
     if (
       grant?.value.ownerId !== owner ||
@@ -253,7 +258,23 @@ export class Connections {
       throw new DomainError("RECONNECT_REQUIRED");
     return connection;
   }
-  async grant(owner: string, grantId: string, selected: readonly string[]) {
+  async authorizeActor(actor: Actor, company: string, active = true) {
+    return this.authorize(
+      actor.ownerId,
+      actor.clientId,
+      company,
+      active,
+      actorResource(actor),
+    );
+  }
+  async grant(
+    owner: string,
+    grantId: string,
+    selected: readonly string[],
+    resource: ApiResource = "mcp",
+  ) {
+    const namespace =
+      resource === "api" ? "api-company-grants-v1" : "company-grants";
     const companies: Record<string, number> = {};
     const connections = await this.list(owner);
     for (const id of selected) {
@@ -262,10 +283,7 @@ export class Connections {
       companies[id] = c.generation;
     }
     for (let n = 0; n < 8; n++) {
-      const prior = await this.state.get<CompanyGrant>(
-        "company-grants",
-        grantId,
-      );
+      const prior = await this.state.get<CompanyGrant>(namespace, grantId);
       if (
         prior &&
         (prior.value.ownerId !== owner ||
@@ -274,7 +292,7 @@ export class Connections {
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         await this.state.put(
-          "company-grants",
+          namespace,
           grantId,
           { ownerId: owner, companies },
           prior?.version ?? null,

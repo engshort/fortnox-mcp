@@ -62,4 +62,12 @@ Workers free-tier CPU limits, schema-catalog size, decimal/SIE parsing and uploa
 
 ## Extension seams
 
+The [REST read adapter](contracts/rest.md) shares portable company/accounting/
+financial services with MCP. Both adapters convert validated OAuth grants into
+domain permissions. API company grants and continuation bindings include the
+resource; existing MCP storage and public result formats remain compatible.
+The Hono read router is mounted in the existing product application for both
+runtimes. REST does not call MCP over HTTP or duplicate the provider connection
+lifecycle. Its own OpenAPI document is generated from shared Zod read contracts.
+
 Modules register capabilities and contracts; runtime adapters implement storage/transport; clients advertise UI/file capabilities. Future teams, hosted multi-user operation, payroll expansion and event listeners can extend these seams. They do not justify building a multi-user SaaS control plane now.

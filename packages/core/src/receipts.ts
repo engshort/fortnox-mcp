@@ -5,6 +5,7 @@ import {
   type VoucherInput,
   voucherInput,
 } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type {
   AccountingActor,
   Bookkeeping,
@@ -122,16 +123,12 @@ export class Receipts {
     write = false,
   ) {
     if (
-      !actor.scopes.includes("mcp:read") ||
-      !actor.scopes.includes("mcp:files") ||
-      (write && !actor.scopes.includes("mcp:write"))
+      !hasPermission(actor, "read") ||
+      !hasPermission(actor, "files") ||
+      (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     if (!this.enabled || !this.files.enabled || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.connections.assertWritesAllowed();

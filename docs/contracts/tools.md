@@ -1,5 +1,11 @@
 # MCP tool and provider contract
 
+The [REST/shared financial-read contract](rest.md) adds `get_capabilities` and
+default-off invoice, supplier-invoice, voucher and account read tools. Financial
+tools require `mcp:read` plus `mcp:finance:read`, share services/schemas with REST
+and remain limited to explicitly configured test companies. Existing tool formats
+and financial write/file gates are preserved.
+
 Milestone 2 adds implemented experimental `list_companies`, `get_connection_status` and test-only `get_company_profile` with strict schemas, durable authorization and structured errors. Profile execution remains disabled outside explicit two-tenant acceptance mode. See [evidence](../implementation/M02-connections-evidence.md).
 
 Most names below are proposed public contracts to finalize in S03. The opt-in

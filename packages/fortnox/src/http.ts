@@ -2,6 +2,54 @@ import { DomainError, type StateStore } from "@fortnox-mcp/core";
 import { z } from "zod";
 
 export const providerOperations = {
+  read_invoices: {
+    method: "GET",
+    path: "/3/invoices",
+    scope: "invoice",
+    effect: "read",
+  },
+  read_invoice: {
+    method: "GET",
+    path: "/3/invoices",
+    scope: "invoice",
+    effect: "read",
+  },
+  read_supplier_invoices: {
+    method: "GET",
+    path: "/3/supplierinvoices",
+    scope: "supplierinvoice",
+    effect: "read",
+  },
+  read_supplier_invoice: {
+    method: "GET",
+    path: "/3/supplierinvoices",
+    scope: "supplierinvoice",
+    effect: "read",
+  },
+  read_vouchers: {
+    method: "GET",
+    path: "/3/vouchers",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  read_voucher: {
+    method: "GET",
+    path: "/3/vouchers",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  read_accounts: {
+    method: "GET",
+    path: "/3/accounts",
+    scope: "bookkeeping",
+    effect: "read",
+  },
+  read_account: {
+    method: "GET",
+    path: "/3/accounts",
+    scope: "bookkeeping",
+    effect: "read",
+  },
   company_information: {
     method: "GET",
     path: "/3/companyinformation",
@@ -66,6 +114,8 @@ export const providerOperations = {
 } as const;
 export type ProviderOperation = keyof typeof providerOperations;
 export interface ProviderReadParameters {
+  documentNumber?: string;
+  limit?: number;
   accountNumber?: number;
   fileId?: string;
   financialYear?: number;
@@ -84,6 +134,7 @@ export interface ProviderContext {
 export class ProviderError extends DomainError {
   constructor(
     code:
+      | "RESOURCE_NOT_FOUND"
       | "CAPABILITY_UNAVAILABLE"
       | "UPSTREAM_UNAVAILABLE"
       | "RECONNECT_REQUIRED"
@@ -190,7 +241,62 @@ export class FortnoxHttp {
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const spec = providerOperations[operation];
     const url = new URL(`https://api.fortnox.se${spec.path}`);
-    if (!["company_information", "identity"].includes(operation)) {
+    if (operation.startsWith("read_")) {
+      const list = [
+        "read_invoices",
+        "read_supplier_invoices",
+        "read_vouchers",
+        "read_accounts",
+      ].includes(operation);
+      const yearly = [
+        "read_accounts",
+        "read_account",
+        "read_vouchers",
+        "read_voucher",
+      ].includes(operation);
+      const params = z
+        .object({
+          financialYear: z.number().int().positive().safe().optional(),
+          page: z.number().int().min(1).max(10000).optional(),
+          limit: z.number().int().min(1).max(100).optional(),
+          documentNumber: z
+            .string()
+            .regex(/^[1-9]\d{0,11}$/)
+            .optional(),
+          accountNumber: z.number().int().min(1000).max(9999).optional(),
+          voucher: z
+            .object({
+              series: z.string().regex(/^[A-Z0-9]{1,8}$/),
+              number: z.number().int().positive().safe(),
+            })
+            .strict()
+            .optional(),
+        })
+        .strict()
+        .parse(parameters);
+      if (
+        yearly !== (params.financialYear !== undefined) ||
+        list !== (params.page !== undefined && params.limit !== undefined) ||
+        (!list && (params.page !== undefined || params.limit !== undefined)) ||
+        ["read_invoice", "read_supplier_invoice"].includes(operation) !==
+          (params.documentNumber !== undefined) ||
+        (operation === "read_account") !==
+          (params.accountNumber !== undefined) ||
+        (operation === "read_voucher") !== (params.voucher !== undefined)
+      )
+        throw new DomainError("VALIDATION_FAILED");
+      if (params.financialYear !== undefined)
+        url.searchParams.set("financialyear", String(params.financialYear));
+      if (params.documentNumber) url.pathname += `/${params.documentNumber}`;
+      if (params.accountNumber !== undefined)
+        url.pathname += `/${params.accountNumber}`;
+      if (params.voucher)
+        url.pathname += `/${params.voucher.series}/${params.voucher.number}`;
+      if (list) {
+        url.searchParams.set("page", String(params.page));
+        url.searchParams.set("limit", String(params.limit));
+      }
+    } else if (!["company_information", "identity"].includes(operation)) {
       const params = z
         .object({
           financialYear: z.number().int().positive().safe().optional(),
@@ -298,13 +404,23 @@ export class FortnoxHttp {
       let body: unknown;
       try {
         body =
-          operation === "voucher"
+          operation === "voucher" || operation.startsWith("read_")
             ? parseExactProviderJson(text)
             : JSON.parse(text);
       } catch {
         throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_json");
       }
       if (!response.ok) {
+        if (
+          response.status === 404 &&
+          [
+            "read_invoice",
+            "read_supplier_invoice",
+            "read_voucher",
+            "read_account",
+          ].includes(operation)
+        )
+          throw new ProviderError("RESOURCE_NOT_FOUND", "record_not_found");
         const error = z
           .object({
             ErrorInformation: z.object({

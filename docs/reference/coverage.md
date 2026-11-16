@@ -1,5 +1,12 @@
 # API coverage plan
 
+The opt-in [REST/shared-read implementation](../implementation/REST-read-api.md)
+adds a separate API OAuth resource and common REST/MCP services. Eight new
+financial read mappings are `implemented_unverified`, default-off and limited
+to explicitly allowlisted test runs; see the [read ledger](read-api-operations.json).
+Existing MCP grants are not widened. This establishes no new verified provider
+coverage, arbitrary-date balances, financial writes or file capabilities.
+
 The [owner's 2026-11-09 MVP acceptance and release authorization](../implementation/M05-release-authorization-2026-11-09.md)
 permits a bounded prerelease after green CI. This decision changes no operation
 classification or default activation gate; actual scenario evidence remains scoped.

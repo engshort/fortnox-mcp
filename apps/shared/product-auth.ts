@@ -15,6 +15,7 @@ export interface Owner {
   expiresAt: number;
 }
 export interface AuthConfig {
+  restApi?: boolean;
   origin: string;
   secret: string;
   database: BetterAuthOptions["database"];
@@ -33,16 +34,41 @@ export function createProductAuth(config: AuthConfig) {
   const oauthOptions = {
     loginPage: "/sign-in",
     consentPage: "/consent",
-    scopes: ["mcp:read", "mcp:write", "mcp:files", "offline_access"],
+    scopes: [
+      "mcp:read",
+      "mcp:write",
+      "mcp:files",
+      "mcp:finance:read",
+      "api:read",
+      "api:finance:read",
+      "offline_access",
+    ],
     grantTypes: ["authorization_code", "refresh_token"],
     resources: [
       {
         identifier: `${config.origin}/mcp`,
-        allowedScopes: ["mcp:read", "mcp:write", "mcp:files", "offline_access"],
+        allowedScopes: [
+          "mcp:read",
+          "mcp:write",
+          "mcp:files",
+          "mcp:finance:read",
+          "offline_access",
+        ],
       },
+      ...(config.restApi
+        ? [
+            {
+              identifier: `${config.origin}/api/v1`,
+              allowedScopes: ["api:read", "api:finance:read", "offline_access"],
+            },
+          ]
+        : []),
     ],
     resourceSeedMode: "insertOnly",
     clientRegistrationDefaultResources: [`${config.origin}/mcp`],
+    clientRegistrationAllowedResources: config.restApi
+      ? [`${config.origin}/api/v1`]
+      : [],
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
     clientRegistrationRequirePKCE: true,
@@ -81,7 +107,13 @@ export function createProductAuth(config: AuthConfig) {
         id: "product-token-validation",
         endpoints: {
           verifyProductToken: createAuthEndpoint.serverOnly(
-            { method: "POST", body: z.object({ token: z.string().max(4096) }) },
+            {
+              method: "POST",
+              body: z.object({
+                token: z.string().max(4096),
+                resource: z.enum(["mcp", "api"]).default("mcp"),
+              }),
+            },
             async (ctx) => {
               const claims = await getOAuthProviderApi(
                 ctx,
@@ -94,15 +126,28 @@ export function createProductAuth(config: AuthConfig) {
               const audience = Array.isArray(claims.aud)
                 ? claims.aud
                 : [claims.aud];
+              const api = ctx.body.resource === "api";
+              const resource = `${config.origin}${api ? "/api/v1" : "/mcp"}`;
               if (
                 owner?.value.phase !== "active" ||
                 claims.sub !== owner.value.ownerId ||
                 claims.iss !== `${config.origin}/auth` ||
-                !audience.includes(`${config.origin}/mcp`) ||
+                (api && !config.restApi) ||
+                audience.length !== 1 ||
+                audience[0] !== resource ||
                 claims.cnf ||
                 typeof claims.client_id !== "string" ||
                 typeof claims.scope !== "string" ||
-                !claims.scope.split(" ").includes("mcp:read")
+                !claims.scope
+                  .split(" ")
+                  .includes(api ? "api:read" : "mcp:read") ||
+                claims.scope
+                  .split(" ")
+                  .some(
+                    (scope) =>
+                      scope !== "offline_access" &&
+                      !scope.startsWith(api ? "api:" : "mcp:"),
+                  )
               )
                 throw ctx.error("UNAUTHORIZED", {
                   message: "Invalid authorization",

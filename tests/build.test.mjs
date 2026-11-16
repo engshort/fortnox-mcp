@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,6 +9,33 @@ import { test } from "node:test";
 import installation from "../dist/installation.js";
 import product from "../dist/product-worker.js";
 import worker from "../dist/worker.js";
+
+test("built OpenAPI is the project's read API and is covered by artifact hashes", async () => {
+  const bytes = await readFile(resolve("dist/openapi.json"));
+  const document = JSON.parse(bytes.toString("utf8"));
+  assert.equal(document.openapi, "3.1.0");
+  assert.deepEqual(document.servers, [{ url: "/api/v1" }]);
+  assert.equal(document.paths["/companies"].get.operationId, "list_companies");
+  assert.equal(
+    document.paths["/companies/{company_id}/customer-invoices"].get.operationId,
+    "list_invoices",
+  );
+  assert.deepEqual(
+    document.paths["/companies/{company_id}/customer-invoices"].get.security,
+    [{ oauth2: ["api:read", "api:finance:read"] }],
+  );
+  assert.equal(
+    Object.keys(document.paths).some((path) => path.startsWith("/3/")),
+    false,
+  );
+  const build = JSON.parse(
+    await readFile(resolve("dist/build-info.json"), "utf8"),
+  );
+  assert.equal(
+    build.artifacts["openapi.json"],
+    createHash("sha256").update(bytes).digest("hex"),
+  );
+});
 
 test("built docs entry serves guides without bundling an external specification", {
   timeout: 10_000,
@@ -121,6 +149,7 @@ test("built product Node entry migrates, bootstraps once and starts without prov
         }),
         MCP_REDIRECT_URIS: '["https://client.example.invalid/callback"]',
         FORTNOX_TEST_MODE: "false",
+        REST_API_ENABLED: "true",
       },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -153,6 +182,17 @@ test("built product Node entry migrates, bootstraps once and starts without prov
     }),
   });
   assert.equal(response.status, 200);
+  const base = `http://127.0.0.1:${port}`;
+  assert.equal(
+    (await fetch(`${base}/.well-known/oauth-protected-resource/api/v1`)).status,
+    200,
+  );
+  const privateApi = await fetch(`${base}/api/v1/companies`);
+  assert.equal(privateApi.status, 401);
+  assert.match(
+    privateApi.headers.get("www-authenticate"),
+    /oauth-protected-resource\/api\/v1/,
+  );
   const replay = await fetch(`http://127.0.0.1:${port}/admin/bootstrap`, {
     method: "POST",
     headers: {

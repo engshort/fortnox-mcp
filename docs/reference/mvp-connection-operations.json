@@ -8,32 +8,32 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "a46b5af5b2c25287aba8945961fa9ab24c0ac41c63b539d0991a47e73d403928",
+      "sha256": "2ad97304af11770b9487aa29e7fcb1efba65cd89252c5856b0c94944037b0b56",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "0cec43cc091a9dafcbc5de43385c86916bee6f0b7a83d571717d432328123be9",
+      "sha256": "ff1e0ee7759f0a42b5505ef17f1d95ef5ebe00daf1647901c95cd274bdc3ff1d",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "ceba47a184cbe63c21382729ae8c9388170ec05eaf867333455e43ef18c4d58b",
+      "sha256": "87fba02a633a314b4f204d071f71a3009721ca3c25d841b2cd339650feec9245",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "0a27fac962481d335935dc666dd57dacd9591dc65e6ed17c2185888c4ca220e3",
+      "sha256": "2dbfdd52a97b833639f04d0d4257a6ca14cfdb1405773522b3e253820c67f751",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "8b506a3d7a8afb851bb617b82f7c68b9acbdc2ad53544d13838e78ed82fee5da",
+      "sha256": "8d9cfd09e8fa8f3977a15354be815be43281903a9d43dd26d412ffc6f5150faf",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "c37a5549b5fa52a108dab1dc2afc21509cde3c7cbba3c1a8cbb37eafe950a218",
+      "sha256": "08f4499ce491228a988935f6f17c89393eb1e1d087b01760937021697dde7b4b",
       "kind": "independently_written_project_source"
     },
     {
@@ -289,5 +289,9 @@
   },
   "fullG06Issue": 36,
   "sourceRightsIssue": 35,
-  "defaultEnabledProviderOperations": []
+  "defaultEnabledProviderOperations": [],
+  "sourceRecheck": {
+    "date": "2026-11-16",
+    "reason": "Shared transport-independent authorization and read adapters; existing live observations remain bound to their original commits. No provider support promotion."
+  }
 }

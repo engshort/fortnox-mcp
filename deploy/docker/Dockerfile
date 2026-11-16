@@ -19,6 +19,7 @@ WORKDIR /app
 RUN command -v flock && mkdir -p /data && chown 10001:10001 /data && chmod 0700 /data
 COPY --from=build /app/dist/product-node.js /app/dist/product-node.js
 COPY --from=build /app/dist/product-ops.js /app/dist/product-ops.js
+COPY --from=build /app/dist/openapi.json /app/dist/openapi.json
 COPY --from=build /app/dist/admin /app/public
 COPY --from=build /app/dist/licenses /app/licenses
 COPY --from=build /app/dist/runtime-components.json /app/runtime-components.json

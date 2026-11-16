@@ -120,6 +120,8 @@ export class FortnoxConnections {
               "project",
               "inbox",
               "connectfile",
+              "invoice",
+              "supplierinvoice",
             ].includes(s),
         ))
     )

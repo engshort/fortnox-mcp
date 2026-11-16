@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import { voucherReference } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
@@ -63,16 +64,12 @@ export class ReceiptAttachments {
     write: boolean,
   ) {
     if (
-      !actor.scopes.includes("mcp:read") ||
-      !actor.scopes.includes("mcp:files") ||
-      (write && !actor.scopes.includes("mcp:write"))
+      !hasPermission(actor, "read") ||
+      !hasPermission(actor, "files") ||
+      (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.receipts.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.receipts.connections.authorizeActor(actor, company);
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.receipts.connections.assertWritesAllowed();
     return c;

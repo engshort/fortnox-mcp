@@ -2,7 +2,12 @@ import {
   oauthProviderAuthServerMetadata,
   verifyOAuthQueryParams,
 } from "@better-auth/oauth-provider";
-import type { Connections } from "@fortnox-mcp/core";
+import {
+  type Connections,
+  DomainError,
+  type ReadServices,
+  requestActor,
+} from "@fortnox-mcp/core";
 import {
   createMcpHandler,
   isLegacyRequest,
@@ -10,6 +15,7 @@ import {
   WebStandardStreamableHTTPServerTransport,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { restApi } from "../../packages/rest/src/index.js";
 import {
   boundedJson,
   createAdmin,
@@ -49,9 +55,39 @@ export function createProductGateway(
     connections: Connections;
   },
   server: (identity: McpIdentity | null) => McpServer,
+  reads: ReadServices,
 ) {
   const admin = createAdmin(config);
   const auth = admin.auth;
+  const api = restApi({
+    origin: config.origin,
+    enabled: config.restApi === true,
+    services: reads,
+    authenticate: async (request) => {
+      const header = request.headers.get("authorization");
+      if (!header || !/^Bearer [^\s]+$/i.test(header))
+        throw new DomainError("AUTH_REQUIRED");
+      try {
+        return requestActor(
+          await auth.api.verifyProductToken({
+            body: { token: header.slice(7), resource: "api" },
+          }),
+          "api",
+        );
+      } catch {
+        throw new DomainError("AUTH_REQUIRED");
+      }
+    },
+  });
+  const consentResource = (query: URLSearchParams) => {
+    const resources = query.getAll("resource");
+    if (resources.length > 1) throw new DomainError("AUTH_REQUIRED");
+    const resource = resources[0] ?? `${config.origin}/mcp`;
+    if (resource === `${config.origin}/mcp`) return "mcp" as const;
+    if (resource === `${config.origin}/api/v1` && config.restApi)
+      return "api" as const;
+    throw new DomainError("AUTH_REQUIRED");
+  };
   const challenge = () =>
     new Response("OAuth required", {
       status: 401,
@@ -68,6 +104,22 @@ export function createProductGateway(
         request.headers.get("origin") !== config.origin)
     )
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (url.pathname === "/api/v1" || url.pathname.startsWith("/api/v1/"))
+      return api.fetch(request);
+    if (
+      request.method === "GET" &&
+      url.pathname === "/.well-known/oauth-protected-resource/api/v1"
+    ) {
+      if (!config.restApi) return safeResponse('{"error":"NOT_FOUND"}', 404);
+      return safeResponse(
+        JSON.stringify({
+          resource: `${config.origin}/api/v1`,
+          authorization_servers: [`${config.origin}/auth`],
+          scopes_supported: ["api:read", "api:finance:read", "offline_access"],
+          bearer_methods_supported: ["header"],
+        }),
+      );
+    }
     if (
       request.method === "GET" &&
       [
@@ -83,6 +135,7 @@ export function createProductGateway(
             "mcp:read",
             "mcp:write",
             "mcp:files",
+            "mcp:finance:read",
             "offline_access",
           ],
           bearer_methods_supported: ["header"],
@@ -98,8 +151,10 @@ export function createProductGateway(
     )
       return oauthProviderAuthServerMetadata(auth)(request);
     if (request.method === "GET" && url.pathname === "/consent") {
+      let companies = "";
+      let finance = false;
       try {
-        await requireOwner(auth, config.state, request.headers);
+        const session = await requireOwner(auth, config.state, request.headers);
         if (
           !(await verifyOAuthQueryParams(
             url.search.slice(1),
@@ -109,18 +164,35 @@ export function createProductGateway(
           ))
         )
           throw new Error();
+        const resource = consentResource(url.searchParams);
+        finance = (url.searchParams.get("scope") ?? "")
+          .split(" ")
+          .some((scope) =>
+            ["api:finance:read", "mcp:finance:read"].includes(scope),
+          );
+        if (resource === "api") {
+          companies = `<fieldset><legend>Välj företag för applikationens läsåtkomst</legend>${(
+            await config.connections.list(session.user.id)
+          )
+            .filter((c) => c.state === "active")
+            .map(
+              (c) =>
+                `<label><input type="checkbox" name="company" value="${escapeMarkup(c.id)}">${escapeMarkup(c.name)} (${escapeMarkup(c.id)})</label>`,
+            )
+            .join("")}</fieldset>`;
+        }
       } catch {
         return challenge();
       }
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst bokför inte och aktiverar inga overifierade operationer." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring kräver separat aktiverad operation, företagets aktuella policy och granskning där den krävs." : "Klienten begär läsåtkomst till anslutna företag. Befintliga behörigheter utökas inte automatiskt."}</p><button id="accept">Godkänn begärda behörigheter till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
+        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst bokför inte och aktiverar inga overifierade operationer." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring kräver separat aktiverad operation, företagets aktuella policy och granskning där den krävs." : "Klienten begär läsåtkomst till företagsuppgifter och referenser. Befintliga behörigheter utökas inte automatiskt."}</p>${finance ? "<p>Ekonomiläsning omfattar kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Det ger ingen skrivbehörighet.</p>" : ""}${companies}<button id="accept">Godkänn begärda behörigheter till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
         200,
         "text/html; charset=utf-8",
       );
     }
     if (request.method === "GET" && url.pathname === "/consent.js")
       return safeResponse(
-        `document.querySelector('#accept').onclick=async()=>{const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1)})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Ny registrering kan krävas.';};`,
+        `document.querySelector('#accept').onclick=async()=>{const fields=document.querySelectorAll('input[name="company"]');const selected=[...fields].filter(e=>e.checked).map(e=>e.value);if(document.querySelector('fieldset')&&!selected.length){document.querySelector('#status').textContent='Välj minst ett företag.';return;}const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(document.querySelector('fieldset')?{company_ids:selected}:{})})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Ny registrering kan krävas.';};`,
         200,
         "text/javascript",
       );
@@ -178,7 +250,11 @@ export function createProductGateway(
         }
         if (url.pathname === "/auth/oauth2/consent") {
           const body = z
-            .object({ accept: z.boolean(), oauth_query: z.string().max(12000) })
+            .object({
+              accept: z.boolean(),
+              oauth_query: z.string().max(12000),
+              company_ids: z.array(z.string().uuid()).min(1).max(64).optional(),
+            })
             .safeParse(parsed);
           if (
             !body.success ||
@@ -194,6 +270,22 @@ export function createProductGateway(
             "client_id",
           );
           if (!client) return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+          let resource: "mcp" | "api";
+          try {
+            resource = consentResource(
+              new URLSearchParams(body.data.oauth_query),
+            );
+          } catch {
+            return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+          }
+          if (
+            resource === "api" &&
+            body.data.accept &&
+            (!body.data.company_ids ||
+              new Set(body.data.company_ids).size !==
+                body.data.company_ids.length)
+          )
+            return safeResponse('{"error":"CONSENT_DENIED"}', 400);
           if (body.data.accept) {
             const session = await requireOwner(
               auth,
@@ -204,9 +296,12 @@ export function createProductGateway(
               await config.connections.grant(
                 session.user.id,
                 client,
-                (await config.connections.list(session.user.id))
-                  .filter((c) => c.state === "active")
-                  .map((c) => c.id),
+                resource === "api"
+                  ? (body.data.company_ids ?? [])
+                  : (await config.connections.list(session.user.id))
+                      .filter((c) => c.state === "active")
+                      .map((c) => c.id),
+                resource,
               );
             } catch {
               return safeResponse(
@@ -215,6 +310,17 @@ export function createProductGateway(
               );
             }
           }
+          request = new Request(request.url, {
+            method: "POST",
+            headers: {
+              ...Object.fromEntries(request.headers),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              accept: body.data.accept,
+              oauth_query: body.data.oauth_query,
+            }),
+          });
         }
       }
       return auth.handler(request);
@@ -308,4 +414,11 @@ async function boundedText(request: Request) {
     offset += c.length;
   }
   return new TextDecoder().decode(out);
+}
+function escapeMarkup(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }

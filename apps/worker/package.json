@@ -8,6 +8,7 @@
     "@fortnox-mcp/core": "0.0.0",
     "@fortnox-mcp/mcp": "0.0.0",
     "@fortnox-mcp/ui": "0.0.0",
-    "@fortnox-mcp/files": "0.0.0"
+    "@fortnox-mcp/files": "0.0.0",
+    "@fortnox-mcp/rest": "0.0.0"
   }
 }

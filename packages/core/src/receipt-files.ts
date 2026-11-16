@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Ciphertext, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
@@ -126,16 +127,9 @@ export class ReceiptFiles {
     company: string,
     write = false,
   ) {
-    if (
-      !actor.scopes.includes("mcp:read") ||
-      !actor.scopes.includes("mcp:files")
-    )
+    if (!hasPermission(actor, "read") || !hasPermission(actor, "files"))
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     if (!this.enabled || (write && c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;

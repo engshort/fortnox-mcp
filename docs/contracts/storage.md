@@ -1,5 +1,11 @@
 # Operational storage and retention
 
+REST company grants use `api-company-grants-v1` separately from legacy MCP
+grants. `read-continuations-v1` retains at most 32 live opaque financial paging
+records per owner for ten minutes, bound to client/resource/company/generation/
+query. It stores no invoice or ledger payload. Maintenance removes expired
+records; interrupted reads can resume only with current authorization.
+
 Milestone 4 adds separate encrypted temporary file manifests/chunks through migration `0006_receipt_files.sql`. Owner capacity is atomically bounded; references expire in 55 minutes and Node/Worker cleanup physically deletes bytes. Old encryption key versions must remain until file cleanup completes. See [receipt evidence](../implementation/M04-receipts-evidence.md).
 
 M16 keeps only upload/link attempt state and opaque provider references in the

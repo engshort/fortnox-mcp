@@ -16,6 +16,7 @@ import { ownerSetupContract } from "../shared/owner-setup.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { providerContract } from "../shared/provider.js";
+import { readApiContract, readOAuthContract } from "../shared/read-api.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
 const opened: DatabaseSync[] = [];
@@ -64,20 +65,28 @@ maintenanceContract(async () => (await fixture()).state);
 accountingContract(async () => (await fixture()).state);
 accountingTransportContract(async () => (await fixture()).state);
 accountingSelectionContract(async () => (await fixture()).state);
-accountingMigrationContract(async () => {
-  const { database } = await fixture();
-  return {
-    execute: async (sql) => database.exec(sql),
-    all: async (sql) => database.prepare(sql).all(),
-    migrate: async () =>
-      database.exec(
-        readFileSync(
-          new URL(
-            "../../apps/worker/migrations/0005_accounting_scope.sql",
-            import.meta.url,
+for (const [migration, addedScope] of [
+  ["0005_accounting_scope.sql", "mcp:write"],
+  ["0007_financial_read_scope.sql", "mcp:finance:read"],
+] as const) {
+  accountingMigrationContract(async () => {
+    const { database } = await fixture();
+    return {
+      execute: async (sql) => database.exec(sql),
+      all: async (sql) => database.prepare(sql).all(),
+      migrate: async () =>
+        database.exec(
+          readFileSync(
+            new URL(
+              `../../apps/worker/migrations/${migration}`,
+              import.meta.url,
+            ),
+            "utf8",
           ),
-          "utf8",
         ),
-      ),
-  };
-});
+    };
+  }, addedScope);
+}
+
+readApiContract(fixture);
+readOAuthContract(fixture);

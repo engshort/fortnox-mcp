@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
 import type { ReceiptAttachments } from "./receipt-provider.js";
@@ -40,16 +41,12 @@ export class ReceiptWorkflow {
     if (!this.enabled || !this.receipts.bookkeeping.gates.writes)
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (
-      !actor.scopes.includes("mcp:write") ||
-      !actor.scopes.includes("mcp:files") ||
-      !actor.scopes.includes("mcp:read")
+      !hasPermission(actor, "write") ||
+      !hasPermission(actor, "files") ||
+      !hasPermission(actor, "read")
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.receipts.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.receipts.connections.authorizeActor(actor, company);
     if (c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     return c;
   }

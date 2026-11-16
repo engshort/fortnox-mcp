@@ -6,6 +6,7 @@ import {
   type Connections,
   DomainError,
   fileDigest,
+  hasPermission,
   providerFileId,
   type ReceiptFileRecord,
   type ReceiptProvider,
@@ -97,16 +98,12 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
     write = false,
   ): Promise<ProviderContext> {
     if (
-      !actor.scopes.includes("mcp:read") ||
-      !actor.scopes.includes("mcp:files") ||
-      (write && !actor.scopes.includes("mcp:write"))
+      !hasPermission(actor, "read") ||
+      !hasPermission(actor, "files") ||
+      (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!this.provider.config.testTenants.includes(c.tenant))
       throw new DomainError("COMPANY_FORBIDDEN");
@@ -120,11 +117,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
       clientId: (await this.connections.credentials(actor.ownerId, c)).clientId,
       token: (force) => this.provider.token(actor.ownerId, c, force),
       assertActive: async () => {
-        const current = await this.connections.authorize(
-          actor.ownerId,
-          actor.clientId,
-          company,
-        );
+        const current = await this.connections.authorizeActor(actor, company);
         if (
           current.generation !== c.generation ||
           current.policyVersion !== c.policyVersion ||
@@ -275,11 +268,7 @@ export class FortnoxReceiptFiles implements ReceiptProvider {
       new URL("https://api.fortnox.se/3/inbox?path=Inbox_v"),
       form,
       async () => {
-        const current = await this.connections.authorize(
-          actor.ownerId,
-          actor.clientId,
-          company,
-        );
+        const current = await this.connections.authorizeActor(actor, company);
         if (
           current.generation !== file.record.generation ||
           current.policyVersion !== file.record.policy

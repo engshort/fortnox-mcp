@@ -1,10 +1,14 @@
 import {
   Bookkeeping,
   type ClientFile,
+  CompanyReads,
   Connections,
   CredentialVault,
   DomainError,
+  FinancialReads,
   proposalReference,
+  type ReadModule,
+  ReadServices,
   ReceiptAttachments,
   ReceiptFileError,
   type ReceiptFileStore,
@@ -22,8 +26,10 @@ import {
   diagnoseConnection,
   diagnosisInput,
   FortnoxAccounting,
+  FortnoxCompanyReads,
   FortnoxConnections,
   FortnoxConsentError,
+  FortnoxFinancialReads,
   FortnoxReceiptFiles,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
@@ -50,6 +56,8 @@ export interface ProductSettings {
   accountingReferences?: boolean;
   receiptProviderConsent?: boolean;
   receiptSource?: ReceiptSourceSettings;
+  restApi?: boolean;
+  financialReadModules?: readonly ReadModule[];
 }
 // Supplied only by the separately built M14 experiment entry, never read from
 // normal product ENV. This permits client evidence collection, not activation.
@@ -61,9 +69,14 @@ export interface ProductFileTest {
 export function requestedFortnoxScopes(
   settings: Pick<
     ProductSettings,
-    "testMode" | "accountingReferences" | "receiptProviderConsent"
+    | "testMode"
+    | "accountingReferences"
+    | "receiptProviderConsent"
+    | "financialReadModules"
   >,
 ) {
+  if (settings.financialReadModules?.length && !settings.testMode)
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
     settings.receiptProviderConsent &&
     (!settings.testMode || !settings.accountingReferences)
@@ -76,6 +89,17 @@ export function requestedFortnoxScopes(
       ? ["bookkeeping", "settings", "costcenter", "project"]
       : []),
     ...(settings.receiptProviderConsent ? ["inbox", "connectfile"] : []),
+    ...((settings.financialReadModules ?? []).includes("customer_invoices")
+      ? ["invoice"]
+      : []),
+    ...((settings.financialReadModules ?? []).includes("supplier_invoices")
+      ? ["supplierinvoice"]
+      : []),
+    ...((settings.financialReadModules ?? []).some((module) =>
+      ["accounts", "vouchers"].includes(module),
+    ) && !settings.accountingReferences
+      ? ["bookkeeping"]
+      : []),
   ];
 }
 export function productSettings(
@@ -119,10 +143,27 @@ export function productSettings(
   const accountingReferences =
     testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
   const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
+  const financialReadModules = z
+    .array(
+      z.enum([
+        "customer_invoices",
+        "supplier_invoices",
+        "vouchers",
+        "accounts",
+      ]),
+    )
+    .max(4)
+    .parse(
+      (env.FINANCIAL_READ_MODULES ?? "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+    );
   requestedFortnoxScopes({
     testMode,
     accountingReferences,
     receiptProviderConsent,
+    financialReadModules,
   });
   return {
     origin: origin.origin,
@@ -136,6 +177,8 @@ export function productSettings(
     testTenants,
     accountingReferences,
     receiptProviderConsent,
+    financialReadModules,
+    restApi: env.REST_API_ENABLED === "true",
     receiptSource: receiptSourceSettings(env, testMode),
   };
 }
@@ -216,6 +259,7 @@ export function createProductApplication(
     secret: settings.secret,
     redirects: settings.redirects,
     connections,
+    restApi: settings.restApi === true && !fileTest,
   };
   // G02/#32 and G06/G07 require current, operation-specific evidence. An ENV flag
   // must not be able to turn an unverified host or provider into an approved one.
@@ -234,6 +278,19 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
+  const readModules =
+    !fileTest && settings.testMode ? (settings.financialReadModules ?? []) : [];
+  const companyReads = new CompanyReads(
+    connections,
+    new FortnoxCompanyReads(connections, provider),
+    settings.testMode,
+  );
+  const financialReads = new FinancialReads(
+    connections,
+    new FortnoxFinancialReads(connections, provider, readModules),
+    readModules,
+  );
+  const reads = new ReadServices(companyReads, bookkeeping, financialReads);
   const receiptFiles = runtime.receiptFiles
     ? new ReceiptFiles(
         connections,
@@ -275,19 +332,24 @@ export function createProductApplication(
   const receiptWorkflow = receiptAttachments
     ? new ReceiptWorkflow(receiptAttachments, false)
     : undefined;
-  const gateway = createProductGateway(config, (identity) =>
-    companyServer({
-      identity,
-      connections,
-      provider,
-      testMode: settings.testMode,
-      diagnostics: !fileTest,
-      ...(!fileTest ? { bookkeeping } : {}),
-      ...(receiptFiles ? { receiptFiles } : {}),
-      ...(receipts ? { receipts } : {}),
-      ...(receiptAttachments ? { receiptAttachments } : {}),
-      ...(receiptWorkflow ? { receiptWorkflow } : {}),
-    }),
+  const gateway = createProductGateway(
+    config,
+    (identity) =>
+      companyServer({
+        identity,
+        connections,
+        provider,
+        companyReads,
+        ...(!fileTest ? { reads } : {}),
+        testMode: settings.testMode,
+        diagnostics: !fileTest,
+        ...(!fileTest ? { bookkeeping } : {}),
+        ...(receiptFiles ? { receiptFiles } : {}),
+        ...(receipts ? { receipts } : {}),
+        ...(receiptAttachments ? { receiptAttachments } : {}),
+        ...(receiptWorkflow ? { receiptWorkflow } : {}),
+      }),
+    reads,
   );
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -575,6 +637,7 @@ export function createProductApplication(
     connections,
     provider,
     bookkeeping,
+    reads,
     auth: gateway.auth,
     receiptFiles,
     receipts,
