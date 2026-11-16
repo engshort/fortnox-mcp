@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import {
   type BusinessOperation,
@@ -277,8 +278,7 @@ export class Registers {
     action: "list" | "get" | "create" | "update",
   ) {
     z.string().uuid().parse(company);
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     if (!this.enabled.includes(`${resource}.${action}` as RegisterOperation))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const c = await this.connections.authorize(

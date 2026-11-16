@@ -1,5 +1,11 @@
 # Operational storage and retention
 
+REST OAuth approvals share the immutable approval/family stores and bind their
+resource explicitly. Internal legacy API grants use `api-company-grants-v1`,
+separately from legacy MCP grants. `read-continuations-v1` retains at most 32 live opaque financial paging
+records per owner for ten minutes, bound to client/resource/company/generation/
+query. It stores no invoice or ledger payload. Maintenance removes expired
+records; interrupted reads can resume only with current authorization.
 Client approval renewal keeps two owner-partitioned maps of at most 128 live
 authorization snapshots/code-family bindings each. Unused entries expire in ten
 minutes; successful OAuth exchange/refresh retains the same rights through the

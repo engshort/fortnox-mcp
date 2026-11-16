@@ -158,6 +158,7 @@ export async function prepareRelease({ version, output, image, measurement }) {
   );
   await copyFile("docs/deployment-linux.md", join(directory, "INSTALL.en.md"));
   await copyFile("docs/users/docker.sv.md", join(directory, "INSTALL.sv.md"));
+  await copyFile("dist/openapi.json", join(directory, "openapi.json"));
   await writeFile(
     join(directory, "sbom.cdx.json"),
     JSON.stringify(
@@ -198,6 +199,7 @@ export async function prepareRelease({ version, output, image, measurement }) {
         "sha256sum",
         "/app/dist/product-node.js",
         "/app/dist/product-ops.js",
+        "/app/dist/openapi.json",
         "/app/public/admin.js",
         "/app/public/admin.css",
       ])

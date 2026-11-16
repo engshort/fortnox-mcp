@@ -9,6 +9,7 @@ import {
   assertProgram,
   type Connections,
   DomainError,
+  hasPermission,
   parseAmount,
   referenceAccountNumbers,
   type SubmitResult,
@@ -187,15 +188,11 @@ export class FortnoxAccounting implements AccountingProvider {
     company: string,
     operation: ProviderOperation,
   ): Promise<ProviderContext> {
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     const required = providerOperations[operation].scope;
     assertProgram(c, "bookkeeping");
     assertFeature(c, "references");
-    if (!this.gates.references || !actor.scopes.includes("mcp:read"))
+    if (!this.gates.references || !hasPermission(actor, "read"))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!c.scopes.includes(required))
       throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
@@ -207,11 +204,7 @@ export class FortnoxAccounting implements AccountingProvider {
       generation,
       clientId: (await this.connections.credentials(actor.ownerId, c)).clientId,
       assertActive: async () => {
-        const current = await this.connections.authorize(
-          actor.ownerId,
-          actor.clientId,
-          company,
-        );
+        const current = await this.connections.authorizeActor(actor, company);
         if (current.generation !== generation)
           throw new DomainError("COMPANY_FORBIDDEN");
         assertProgram(current, "bookkeeping");
@@ -457,12 +450,8 @@ export class FortnoxAccounting implements AccountingProvider {
     beforeDispatch: () => Promise<void>,
   ): Promise<SubmitResult> {
     const voucher = voucherInput.parse(input);
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      voucher.company_id,
-    );
-    if (!this.gates.writes || !actor.scopes.includes("mcp:write") || c.readOnly)
+    const c = await this.connections.authorizeActor(actor, voucher.company_id);
+    if (!this.gates.writes || !hasPermission(actor, "write") || c.readOnly)
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const body = voucherRequestBody(voucher);
     const context = await this.context(actor, c.id, "voucher");

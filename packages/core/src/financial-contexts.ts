@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingDate, accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import {
   type AnalysisRecord,
   type AnalysisStore,
@@ -151,8 +152,7 @@ export class FinancialContexts implements FinancialContextReader {
   private async binding(actor: AccountingActor, company: string) {
     if (!this.enabled)
       throw new AnalysisContextError("analysis_contexts_disabled");
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const c = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

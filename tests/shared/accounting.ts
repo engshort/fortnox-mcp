@@ -238,7 +238,7 @@ export function accountingContract(fixture: () => Promise<StateStore>) {
       "COMPANY_FORBIDDEN",
     );
     f.provider.read = async (actor) => {
-      expect(actor.scopes).toEqual(["mcp:read"]);
+      expect("scopes" in actor && actor.scopes).toEqual(["mcp:read"]);
       return p.voucher;
     };
     expect(

@@ -7,6 +7,7 @@ import {
   validateVoucher,
   voucherInput,
 } from "./accounting.js";
+import { type Actor, hasPermission } from "./actor.js";
 import type { Ciphertext, Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
 import { assertFeature, assertProgram } from "./programs.js";
@@ -19,11 +20,7 @@ export const voucherReference = z
   })
   .strict();
 export type VoucherReference = z.infer<typeof voucherReference>;
-export interface AccountingActor {
-  ownerId: string;
-  clientId: string;
-  scopes: readonly string[];
-}
+export type AccountingActor = Actor;
 export interface AccountingYears {
   company_id: string;
   retrieved_at: number;
@@ -134,15 +131,11 @@ export class Bookkeeping {
     write = false,
   ) {
     if (
-      !actor.scopes.includes("mcp:read") ||
-      (write && !actor.scopes.includes("mcp:write"))
+      !hasPermission(actor, "read") ||
+      (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
-    const c = await this.connections.authorize(
-      actor.ownerId,
-      actor.clientId,
-      company,
-    );
+    const c = await this.connections.authorizeActor(actor, company);
     assertProgram(c, "bookkeeping");
     assertFeature(c, "references");
     if (!this.gates.references) throw new DomainError("CAPABILITY_UNAVAILABLE");
@@ -234,8 +227,7 @@ export class Bookkeeping {
     if (receipt) receipt = receiptProposalBinding.parse(receipt);
     const value = voucherInput.parse(input);
     const c = await this.authorize(actor, value.company_id);
-    if (!actor.scopes.includes("mcp:write"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "write")) throw new DomainError("AUTH_REQUIRED");
     if (c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     const validated = validateVoucher(
       value,

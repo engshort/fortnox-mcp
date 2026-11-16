@@ -36,6 +36,7 @@ import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
+import { readApiContract, readOAuthContract } from "../shared/read-api.js";
 import { registersContract } from "../shared/registers.js";
 import { salesDocumentsContract } from "../shared/sales-documents.js";
 import {
@@ -141,3 +142,24 @@ liquidityContract(async () => (await fixture()).state);
 onboardingContract(fixture);
 
 onboardingContinuityContract(fixture);
+
+readApiContract(fixture);
+readOAuthContract(fixture);
+
+accountingMigrationContract(async () => {
+  const { database } = await fixture();
+  return {
+    execute: async (sql) => database.exec(sql),
+    all: async (sql) => database.prepare(sql).all(),
+    migrate: async () =>
+      database.exec(
+        readFileSync(
+          new URL(
+            "../../apps/worker/migrations/0008_financial_read_scope.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      ),
+  };
+}, "mcp:finance:read");

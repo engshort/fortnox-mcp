@@ -16,6 +16,11 @@ await build({
 });
 
 await buildAdmin({ configFile: "apps/admin/vite.config.ts" });
+await promisify(execFile)(process.execPath, [
+  "--import",
+  "tsx",
+  "scripts/build-openapi.ts",
+]);
 
 const operationsBuild = await build({
   entryPoints: ["scripts/product-ops.ts"],
@@ -160,6 +165,7 @@ const artifacts = {};
 for (const path of [
   "product-node.js",
   "product-ops.js",
+  "openapi.json",
   "admin/admin.js",
   "admin/admin.css",
 ])

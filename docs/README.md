@@ -1,5 +1,9 @@
 # Documentation map
 
+Opt-in [REST integration](rest-api.md): [API contract](contracts/rest.md),
+[Swedish guide](users/rest-api.sv.md), [implementation/evidence](implementation/REST-read-api.md)
+and [financial read classifications](reference/read-api-operations.json).
+
 External applications: [natural login return and optional 30-day offline access](implementation/onboarding-continuity.md), with retained-attempt recovery, separate server policy and bounded local evidence.
 
 Account email: [optional Resend setup and evidence](implementation/account-email.md)

@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import { z } from "zod";
 import { accountingDate } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
@@ -471,8 +472,7 @@ export class FinancialAnalysis {
     readonly contexts?: FinancialContextReader,
   ) {}
   private async authorize(actor: AccountingActor, company: string) {
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const current = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

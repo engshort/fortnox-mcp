@@ -21,6 +21,7 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
           activeKey: "a",
           redirects: [callback],
           testMode: false,
+          restApi: true,
           clientId: "",
           clientSecret: "",
           testTenants: [],
@@ -319,6 +320,7 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         activeKey: "a",
         redirects: [callback],
         testMode: false,
+        restApi: true,
         clientId: "synthetic-client",
         clientSecret: "synthetic-client-secret",
         testTenants: [],
@@ -531,6 +533,13 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       ).toBe(true);
     }
     expect(claims.scopes).not.toContain("mcp:write");
+    expect(
+      (
+        await req("/api/v1/companies", undefined, {
+          authorization: `Bearer ${tokens.access_token}`,
+        })
+      ).status,
+    ).toBe(401);
     for (const path of [
       "/admin/fortnox/configuration",
       "/admin/fortnox/diagnose",

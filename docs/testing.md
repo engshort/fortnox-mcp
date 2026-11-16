@@ -1,5 +1,14 @@
 # Test strategy and evidence
 
+The shared REST/read contracts run in Node/SQLite and actual local workerd/D1.
+They cover resource-specific company grants, exact provider money, invoice and
+voucher detail reads, annual/custom/inactive account data, continuation binding/
+expiry/recreation, late disconnection, REST/MCP equivalence and OpenAPI routes.
+The product OAuth test performs PKCE, explicit company selection, API access,
+MCP/admin denial, refresh rotation and revocation using synthetic data only.
+These checks establish no live provider or hosted external-client acceptance;
+see [REST evidence and limits](implementation/REST-read-api.md).
+
 [Onboarding continuity](implementation/onboarding-continuity.md) adds shared
 `onboarding-continuity.ts` cases through the actual maintained OAuth library on
 Node/SQLite and local workerd/D1: 73-hour simulated idle, logout/purge, repeated

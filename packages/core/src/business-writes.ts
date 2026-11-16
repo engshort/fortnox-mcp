@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Ciphertext, Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
@@ -199,8 +200,8 @@ export class BusinessWrites {
     write = true,
   ) {
     if (
-      !actor.scopes.includes("mcp:read") ||
-      (write && !actor.scopes.includes("mcp:write"))
+      !hasPermission(actor, "read") ||
+      (write && !hasPermission(actor, "write"))
     )
       throw new DomainError("AUTH_REQUIRED");
     const c = await this.connections.authorize(
@@ -285,8 +286,7 @@ export class BusinessWrites {
       actor.clientId,
       ref.company_id,
     );
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const e = c.business?.executions.find(
       (v) =>
         v.id === ref.proposal_id &&

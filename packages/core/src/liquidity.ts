@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingDate } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import { type FinancialAnalysis, financialBasis } from "./analytics.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Connections } from "./connections.js";
@@ -110,8 +111,7 @@ export class LiquidityAnalysis {
     ) => CashAccountMapping | undefined,
   ) {}
   private async authorize(actor: AccountingActor, company: string) {
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const c = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

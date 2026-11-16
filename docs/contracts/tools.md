@@ -1,5 +1,11 @@
 # MCP tool and provider contract
 
+The [REST/shared financial-read contract](rest.md) adds `get_capabilities` and
+default-off invoice, supplier-invoice, voucher and account read tools. Financial
+tools require `mcp:read` plus `mcp:finance:read`, share services/schemas with REST
+and remain limited to explicitly configured test companies. Existing tool formats
+and financial write/file gates are preserved.
+
 Date-driven analysis adds `get_account_balances` and
 `list_financial_transactions`, plus optional historical `as_of` input on
 `list_receivables`/`list_payables`. These are read-only tools with strict inputs,

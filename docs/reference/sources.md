@@ -1,5 +1,13 @@
 # Source register
 
+REST/shared financial reads rechecked the [current API reference](https://api.fortnox.se/apidocs)
+and [scope guide](https://www.fortnox.se/developer/guides-and-good-to-know/scopes)
+on 2026-11-16 for explicit invoice/supplier-invoice/voucher/account read mappings.
+The independently authored [read ledger](read-api-operations.json) records limits
+and missing live evidence. No provider specification is redistributed. Resource
+registration/PKCE behavior was checked against the installed Better Auth 1.7.10
+types/source and its [provider documentation](https://better-auth.com/docs/plugins/oauth-provider).
+
 Reviewed on **2026-10-18**. Sources describe upstream behavior; project choices are in [decisions](../decisions.md). Online docs can change. Recheck affected sources and actual client/provider behavior during implementation.
 
 F07 was rechecked on 2026-10-20 for the original documentation guide; F06 was

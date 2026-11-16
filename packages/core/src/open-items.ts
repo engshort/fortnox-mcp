@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingDate, accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import type { Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
@@ -193,8 +194,7 @@ export class OpenItems {
     company: string,
     kind: OpenItemKind,
   ) {
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const connection = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

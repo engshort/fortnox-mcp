@@ -5,6 +5,7 @@ import {
   type Connections,
   customerFields,
   DomainError,
+  hasPermission,
   parseAmount,
   priceSelection,
   type RegisterFields,
@@ -271,12 +272,12 @@ export class FortnoxRegisters implements RegisterProvider {
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         !this.enabled.includes(`${resource}.${action}` as RegisterOperation) ||
-        !actor.scopes.includes("mcp:read") ||
+        !hasPermission(actor, "read") ||
         !current.scopes.includes(registerScope(resource))
       )
         throw new DomainError("CAPABILITY_UNAVAILABLE");
       if (action === "create" || action === "update") {
-        if (current.readOnly || !actor.scopes.includes("mcp:write"))
+        if (current.readOnly || !hasPermission(actor, "write"))
           throw new DomainError("CAPABILITY_UNAVAILABLE");
         await this.connections.assertWritesAllowed();
       }

@@ -17,6 +17,7 @@ export interface Owner {
   expiresAt: number;
 }
 export interface AuthConfig {
+  restApi?: boolean;
   offlineClientIds?: readonly string[];
   origin: string;
   secret: string;
@@ -39,9 +40,15 @@ async function assertGrantFamily(
   client: string,
   code?: string,
   offlineClients: readonly string[] = [],
+  resource: "mcp" | "api" = "mcp",
 ) {
   const grant = await state.get<CompanyGrant>("company-grants", client);
-  if (!grant || grant.value.ownerId !== owner) throw new Error("AUTH_REQUIRED");
+  if (
+    !grant ||
+    grant.value.ownerId !== owner ||
+    (grant.value.resource ?? "mcp") !== resource
+  )
+    throw new Error("AUTH_REQUIRED");
   if (!grant.value.revision) return client; // Existing tokens retain only legacy grants.
   const families = await state.get<Record<string, GrantFamily>>(
     "oauth-grant-families",
@@ -72,16 +79,41 @@ export function createProductAuth(config: AuthConfig) {
   const oauthOptions = {
     loginPage: "/sign-in",
     consentPage: "/consent",
-    scopes: ["mcp:read", "mcp:write", "mcp:files", "offline_access"],
+    scopes: [
+      "mcp:read",
+      "mcp:write",
+      "mcp:files",
+      "mcp:finance:read",
+      "api:read",
+      "api:finance:read",
+      "offline_access",
+    ],
     grantTypes: ["authorization_code", "refresh_token"],
     resources: [
       {
         identifier: `${config.origin}/mcp`,
-        allowedScopes: ["mcp:read", "mcp:write", "mcp:files", "offline_access"],
+        allowedScopes: [
+          "mcp:read",
+          "mcp:write",
+          "mcp:files",
+          "mcp:finance:read",
+          "offline_access",
+        ],
       },
+      ...(config.restApi
+        ? [
+            {
+              identifier: `${config.origin}/api/v1`,
+              allowedScopes: ["api:read", "api:finance:read", "offline_access"],
+            },
+          ]
+        : []),
     ],
     resourceSeedMode: "insertOnly",
     clientRegistrationDefaultResources: [`${config.origin}/mcp`],
+    clientRegistrationAllowedResources: config.restApi
+      ? [`${config.origin}/api/v1`]
+      : [],
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
     clientRegistrationRequirePKCE: true,
@@ -389,6 +421,7 @@ export function createProductAuth(config: AuthConfig) {
                 token: z.string().max(4096),
                 client: z.string(),
                 type: z.enum(["authorization_code", "refresh_token"]),
+                resource: z.enum(["mcp", "api"]).default("mcp"),
               }),
             },
             async (ctx) => {
@@ -419,6 +452,7 @@ export function createProductAuth(config: AuthConfig) {
                 ctx.body.client,
                 code,
                 config.offlineClientIds,
+                ctx.body.resource,
               );
               if (ctx.body.type === "authorization_code") {
                 const family = (
@@ -449,7 +483,13 @@ export function createProductAuth(config: AuthConfig) {
             },
           ),
           verifyProductToken: createAuthEndpoint.serverOnly(
-            { method: "POST", body: z.object({ token: z.string().max(4096) }) },
+            {
+              method: "POST",
+              body: z.object({
+                token: z.string().max(4096),
+                resource: z.enum(["mcp", "api"]).default("mcp"),
+              }),
+            },
             async (ctx) => {
               const claims = await getOAuthProviderApi(
                 ctx,
@@ -462,15 +502,28 @@ export function createProductAuth(config: AuthConfig) {
               const audience = Array.isArray(claims.aud)
                 ? claims.aud
                 : [claims.aud];
+              const api = ctx.body.resource === "api";
+              const resource = `${config.origin}${api ? "/api/v1" : "/mcp"}`;
               if (
                 owner?.value.phase !== "active" ||
                 claims.sub !== owner.value.ownerId ||
                 claims.iss !== `${config.origin}/auth` ||
-                !audience.includes(`${config.origin}/mcp`) ||
+                (api && !config.restApi) ||
+                audience.length !== 1 ||
+                audience[0] !== resource ||
                 claims.cnf ||
                 typeof claims.client_id !== "string" ||
                 typeof claims.scope !== "string" ||
-                !claims.scope.split(" ").includes("mcp:read")
+                !claims.scope
+                  .split(" ")
+                  .includes(api ? "api:read" : "mcp:read") ||
+                claims.scope
+                  .split(" ")
+                  .some(
+                    (scope) =>
+                      scope !== "offline_access" &&
+                      !scope.startsWith(api ? "api:" : "mcp:"),
+                  )
               )
                 throw ctx.error("UNAUTHORIZED", {
                   message: "Invalid authorization",
@@ -495,6 +548,7 @@ export function createProductAuth(config: AuthConfig) {
                 claims.client_id,
                 token?.authorizationCodeId,
                 config.offlineClientIds,
+                ctx.body.resource,
               );
               return ctx.json({
                 ownerId: owner.value.ownerId,

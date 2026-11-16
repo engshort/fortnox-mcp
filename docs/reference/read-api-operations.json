@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "scope": "rest-and-shared-financial-reads",
+  "reviewedAt": "2026-11-16",
+  "sourceStrategy": "Independently written TypeScript/contracts and original synthetic fixtures; no redistributed provider specification. OpenAPI output describes only this project API.",
+  "sourceHashes": {
+    "packages/core/src/actor.ts": "b0ad94354d50faeb31c7f6b57ec62ac35f7c068c92bf33572e910f24d172f33f",
+    "packages/core/src/connections.ts": "a1f2fa21737d512b7676f16830ffd68bd717ae04a78f12dd557546d945e28dc3",
+    "packages/core/src/read-contracts.ts": "991850f4a49baee0eaabeff7953f13dfd3277b10ed9e30a221768876ef200fc7",
+    "packages/core/src/reads.ts": "97cc74709acdbd53544b9808c819eb9a51d3526d6370bdb44e308e4a66d83339",
+    "packages/core/src/financial-reads.ts": "e699d0e68a85bcb29a7943b135ec3dab4700cc54486d1158403ff8ec8b6d90d3",
+    "packages/fortnox/src/http.ts": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
+    "packages/fortnox/src/financial-reads.ts": "8dd8d18c5d1181b0c339ab01820596fddc7baba9510c2d6b1e77ab6310894cc8",
+    "packages/fortnox/src/company-reads.ts": "7238b0382a825ccd9d57ba7091f89b4e0fcac60f39d1b5cc6b63712e045967b6",
+    "packages/mcp/src/reads.ts": "a664330e62ac7bbd8018b1d86a9ecd0dc5db8abd9085f2c7f8e7e563ba47049e",
+    "packages/rest/src/index.ts": "b40c7547457e77a36c8fd3c676ac4faa09470b7758a8d41057ee52ccdc312957",
+    "packages/rest/src/openapi.ts": "bb18e2786c7085bc8fc334d74aa144fe0f96c9e55e3fbcf83767aa60a84909b2",
+    "apps/shared/product-auth.ts": "9558bbc2a768aa19bbda6432fc89f8f56e5514132755cc394429fc598bfba8b5",
+    "apps/shared/product-gateway.ts": "92013b8501a365f96e238532deb05b39c078b92187bc6c3aeb4ce43af12b9fa4",
+    "apps/shared/product.ts": "725cd0a86247a10e0fc99ee9747f9f72065c34dba18850d7affae56ff07ff2f1"
+  },
+  "operations": [
+    {
+      "localId": "read_invoices",
+      "method": "GET",
+      "path": "/3/invoices",
+      "providerScope": "invoice",
+      "module": "customer_invoices",
+      "responseEnvelope": "Invoices",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_invoice",
+      "method": "GET",
+      "path": "/3/invoices/{DocumentNumber}",
+      "providerScope": "invoice",
+      "module": "customer_invoices",
+      "responseEnvelope": "Invoice",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_supplier_invoices",
+      "method": "GET",
+      "path": "/3/supplierinvoices",
+      "providerScope": "supplierinvoice",
+      "module": "supplier_invoices",
+      "responseEnvelope": "SupplierInvoices",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_supplier_invoice",
+      "method": "GET",
+      "path": "/3/supplierinvoices/{GivenNumber}",
+      "providerScope": "supplierinvoice",
+      "module": "supplier_invoices",
+      "responseEnvelope": "SupplierInvoice",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_vouchers",
+      "method": "GET",
+      "path": "/3/vouchers",
+      "providerScope": "bookkeeping",
+      "module": "vouchers",
+      "responseEnvelope": "Vouchers",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_voucher",
+      "method": "GET",
+      "path": "/3/vouchers/{VoucherSeries}/{VoucherNumber}",
+      "providerScope": "bookkeeping",
+      "module": "vouchers",
+      "responseEnvelope": "Voucher",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_accounts",
+      "method": "GET",
+      "path": "/3/accounts",
+      "providerScope": "bookkeeping",
+      "module": "accounts",
+      "responseEnvelope": "Accounts",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    },
+    {
+      "localId": "read_account",
+      "method": "GET",
+      "path": "/3/accounts/{Number}",
+      "providerScope": "bookkeeping",
+      "module": "accounts",
+      "responseEnvelope": "Account",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": false,
+      "testOnly": true,
+      "authentication": "Own resource-specific client token/grant; owner/company/generation; explicit finance-read permission; provider scope and allowlisted test tenant.",
+      "retry": "Shared bounded read retries and rate budget; no redirects or arbitrary URLs.",
+      "money": "Exact original JSON lexemes; bounded decimal text; unknown/missing values are never zero.",
+      "primaryReferences": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/parameters"
+      ],
+      "syntheticTests": [
+        "tests/shared/read-api.ts",
+        "tests/node/product.test.ts",
+        "tests/worker/product.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual provider shape/permission/license acceptance in explicitly authorized test companies.",
+        "Hosted external OAuth client acceptance.",
+        "Representative payload sizes and annual-value semantics where applicable."
+      ]
+    }
+  ]
+}

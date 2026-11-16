@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type Actor, type ApiResource, actorResource } from "./actor.js";
 import type { BookkeepingState } from "./bookkeeping.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
@@ -123,6 +124,7 @@ export interface ConnectionSet {
   onboarding?: OnboardingAttempt[];
 }
 export interface CompanyGrant {
+  resource?: ApiResource;
   companyAccess?: "owner_connections";
   oauthClientId?: string;
   onboarding?: OnboardingApproval;
@@ -272,6 +274,7 @@ export class Connections {
     grantId: string,
     company: string,
     active = true,
+    resource: ApiResource = "mcp",
   ) {
     const approved = grantId.startsWith("oauth-grant:")
       ? (
@@ -285,7 +288,10 @@ export class Connections {
       ? approved
         ? { value: approved }
         : null
-      : await this.state.get<CompanyGrant>("company-grants", grantId);
+      : await this.state.get<CompanyGrant>(
+          resource === "api" ? "api-company-grants-v1" : "company-grants",
+          grantId,
+        );
     const connection = (await this.list(owner)).find((c) => c.id === company);
     // A request authenticated under a legacy client ID cannot cross the first
     // renewal into the mutable registration's new permissions.
@@ -293,6 +299,8 @@ export class Connections {
       throw new DomainError("COMPANY_FORBIDDEN");
     if (
       grant?.value.ownerId !== owner ||
+      (grantId.startsWith("oauth-grant:") &&
+        (grant.value.resource ?? "mcp") !== resource) ||
       (grant.value.expiresAt !== undefined &&
         grant.value.expiresAt <= Date.now()) ||
       !connection
@@ -339,7 +347,23 @@ export class Connections {
       throw new DomainError("RECONNECT_REQUIRED");
     return connection;
   }
-  async grant(owner: string, grantId: string, selected: readonly string[]) {
+  async authorizeActor(actor: Actor, company: string, active = true) {
+    return this.authorize(
+      actor.ownerId,
+      actor.clientId,
+      company,
+      active,
+      actorResource(actor),
+    );
+  }
+  async grant(
+    owner: string,
+    grantId: string,
+    selected: readonly string[],
+    resource: ApiResource = "mcp",
+  ) {
+    const namespace =
+      resource === "api" ? "api-company-grants-v1" : "company-grants";
     if (
       grantId.startsWith("owner-recovery:") ||
       grantId.startsWith("oauth-grant:")
@@ -355,10 +379,7 @@ export class Connections {
       accessRevisions[id] = c.accessRevision ?? 0;
     }
     for (let n = 0; n < 8; n++) {
-      const prior = await this.state.get<CompanyGrant>(
-        "company-grants",
-        grantId,
-      );
+      const prior = await this.state.get<CompanyGrant>(namespace, grantId);
       if (
         prior &&
         (prior.value.revision ||
@@ -373,7 +394,7 @@ export class Connections {
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         await this.state.put(
-          "company-grants",
+          namespace,
           grantId,
           { ownerId: owner, companies, accessRevisions },
           prior?.version ?? null,
@@ -394,12 +415,14 @@ export class Connections {
     }>,
     context?: { expectedRevision: number; onboarding: OnboardingApproval },
     companyAccess?: "owner_connections",
+    resource: ApiResource = "mcp",
   ) {
     if (
       client.startsWith("owner-recovery:") ||
       client.startsWith("oauth-grant:") ||
       new Set(selected.map((c) => c.id)).size !== selected.length ||
-      (context && companyAccess)
+      (context && companyAccess) ||
+      (resource === "api" && (companyAccess || context))
     )
       throw new DomainError("COMPANY_FORBIDDEN");
     const current = await this.list(owner);
@@ -418,6 +441,7 @@ export class Connections {
     if (context && (prior?.value.revision ?? 0) !== context.expectedRevision)
       throw new DomainError("CONNECTION_CONFLICT");
     const grant: CompanyGrant = {
+      resource,
       ...(companyAccess ? { companyAccess } : {}),
       oauthClientId: client,
       ...(context ? { onboarding: context.onboarding } : {}),

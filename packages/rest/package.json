@@ -1,0 +1,14 @@
+{
+  "name": "@fortnox-mcp/rest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@fortnox-mcp/core": "0.0.0",
+    "@fortnox-mcp/fortnox": "0.0.0",
+    "hono": "4.13.17",
+    "zod": "4.6.7"
+  }
+}

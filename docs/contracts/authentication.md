@@ -1,5 +1,9 @@
 # Authentication and company authorization
 
+The opt-in [REST resource](rest.md) uses `/api/v1`, separate read scopes and
+explicitly selected company grants. MCP and REST tokens are not interchangeable.
+New financial MCP reads require fresh `mcp:finance:read` consent; migration 0008
+advertises that scope without updating existing clients or tokens.
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 The protected owner application uses same-origin Hono routes and built React/Vite

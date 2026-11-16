@@ -5,10 +5,13 @@ import {
 import {
   type CompanyOnboarding,
   type Connections,
+  DomainError,
   featureLabels,
   type OnboardingAttempt,
   OnboardingError,
   programSelection,
+  type ReadServices,
+  requestActor,
 } from "@fortnox-mcp/core";
 import {
   createMcpHandler,
@@ -17,6 +20,7 @@ import {
   WebStandardStreamableHTTPServerTransport,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { restApi } from "../../packages/rest/src/index.js";
 import {
   boundedJson,
   createAdmin,
@@ -62,9 +66,39 @@ export function createProductGateway(
     onboarding?: CompanyOnboarding;
   },
   server: (identity: McpIdentity | null) => McpServer,
+  reads: ReadServices,
 ) {
   const admin = createAdmin(config);
   const auth = admin.auth;
+  const api = restApi({
+    origin: config.origin,
+    enabled: config.restApi === true,
+    services: reads,
+    authenticate: async (request) => {
+      const header = request.headers.get("authorization");
+      if (!header || !/^Bearer [^\s]+$/i.test(header))
+        throw new DomainError("AUTH_REQUIRED");
+      try {
+        return requestActor(
+          await auth.api.verifyProductToken({
+            body: { token: header.slice(7), resource: "api" },
+          }),
+          "api",
+        );
+      } catch {
+        throw new DomainError("AUTH_REQUIRED");
+      }
+    },
+  });
+  const consentResource = (query: URLSearchParams) => {
+    const resources = query.getAll("resource");
+    if (resources.length > 1) throw new DomainError("AUTH_REQUIRED");
+    const resource = resources[0] ?? `${config.origin}/mcp`;
+    if (resource === `${config.origin}/mcp`) return "mcp" as const;
+    if (resource === `${config.origin}/api/v1` && config.restApi)
+      return "api" as const;
+    throw new DomainError("AUTH_REQUIRED");
+  };
   const challenge = () =>
     new Response("OAuth required", {
       status: 401,
@@ -81,6 +115,22 @@ export function createProductGateway(
         request.headers.get("origin") !== config.origin)
     )
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (url.pathname === "/api/v1" || url.pathname.startsWith("/api/v1/"))
+      return api.fetch(request);
+    if (
+      request.method === "GET" &&
+      url.pathname === "/.well-known/oauth-protected-resource/api/v1"
+    ) {
+      if (!config.restApi) return safeResponse('{"error":"NOT_FOUND"}', 404);
+      return safeResponse(
+        JSON.stringify({
+          resource: `${config.origin}/api/v1`,
+          authorization_servers: [`${config.origin}/auth`],
+          scopes_supported: ["api:read", "api:finance:read", "offline_access"],
+          bearer_methods_supported: ["header"],
+        }),
+      );
+    }
     if (
       request.method === "GET" &&
       [
@@ -96,6 +146,7 @@ export function createProductGateway(
             "mcp:read",
             "mcp:write",
             "mcp:files",
+            "mcp:finance:read",
             "offline_access",
           ],
           bearer_methods_supported: ["header"],
@@ -121,6 +172,7 @@ export function createProductGateway(
       );
     if (request.method === "GET" && url.pathname === "/consent") {
       let ownerId: string;
+      let resource: "mcp" | "api";
       try {
         ownerId = (await requireOwner(auth, config.state, request.headers)).user
           .id;
@@ -133,6 +185,7 @@ export function createProductGateway(
           ))
         )
           throw new Error();
+        resource = consentResource(url.searchParams);
       } catch {
         const continuation = onboardingGuideRedirect(request);
         if (continuation) return continuation;
@@ -146,7 +199,7 @@ export function createProductGateway(
       let onboarding: OnboardingAttempt | undefined;
       if (url.searchParams.has("onboarding_attempt")) {
         try {
-          if (!config.onboarding) throw new Error();
+          if (resource === "api" || !config.onboarding) throw new Error();
           const session = await requireOwner(
             auth,
             config.state,
@@ -191,7 +244,7 @@ export function createProductGateway(
       const companyChoices = companies
         .map(
           (c) => `<label class="consent-company">
-          <input type="checkbox" name="company" checked ${onboarding ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
+          <input type="checkbox" name="company" checked ${onboarding || resource === "api" ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
           <span><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(
             programSelection(c)
               .features.map((id) => featureLabels[id].sv)
@@ -212,7 +265,10 @@ export function createProductGateway(
           })
           .catch(() => null));
       const permissions = [
-        scopes.includes("mcp:read")
+        scopes.some((s) => ["mcp:finance:read", "api:finance:read"].includes(s))
+          ? `<li><strong>Läsa ekonomiska rådata</strong><p>Kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Ger ingen skrivbehörighet.</p></li>`
+          : "",
+        scopes.includes("mcp:read") || scopes.includes("api:read")
           ? `<li><strong>Läsa företagsuppgifter</strong><p>Klienten begär läsåtkomst till anslutna företag.</p></li>`
           : "",
         scopes.includes("mcp:write")
@@ -234,11 +290,13 @@ export function createProductGateway(
     <div class="consent-layout">
       <div class="consent-details">
         <section class="consent-access" aria-labelledby="access-heading">
-          <h2 id="access-heading">${onboarding ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
+          <h2 id="access-heading">${onboarding || resource === "api" ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
           ${
             onboarding
               ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>`
-              : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
+              : resource === "api"
+                ? `<p>Välj vilka anslutna företag applikationen får läsa. Detta samtycke omfattar endast de valda företagen och ger ingen skrivbehörighet.</p>`
+                : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
           }
         </section>
         <section class="consent-permissions" aria-labelledby="permissions-heading">
@@ -247,12 +305,12 @@ export function createProductGateway(
         </section>
       </div>
       <fieldset class="consent-companies">
-        <legend>${onboarding ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
+        <legend>${onboarding || resource === "api" ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
         <div class="consent-company-list">${companyChoices || `<p class="muted">${onboarding ? "Inga aktiva företag finns i detta godkännande. Gå tillbaka till anslutningsflödet." : "Inga företag är anslutna ännu. Företag som du ansluter senare blir tillgängliga via detta godkännande."}</p>`}</div>
       </fieldset>
     </div>
     <footer class="consent-actions">
-      <button id="accept" ${onboarding ? "" : 'data-company-access="owner_connections"'}>${onboarding ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
+      <button id="accept" ${onboarding || resource === "api" ? "" : 'data-company-access="owner_connections"'}>${onboarding || resource === "api" ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
       ${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}
       <p id="status" class="status" role="status" tabindex="-1"></p>
     </footer>
@@ -403,6 +461,23 @@ accept.onclick=async()=>{
             "client_id",
           );
           if (!client) return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+          let resource: "mcp" | "api";
+          try {
+            resource = consentResource(
+              new URLSearchParams(body.data.oauth_query),
+            );
+          } catch {
+            return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+          }
+          if (
+            resource === "api" &&
+            body.data.accept &&
+            (body.data.company_access ||
+              !body.data.companies.length ||
+              new Set(body.data.companies.map((c) => c.id)).size !==
+                body.data.companies.length)
+          )
+            return safeResponse('{"error":"CONSENT_DENIED"}', 400);
           if (body.data.accept) {
             const session = await requireOwner(
               auth,
@@ -413,7 +488,8 @@ accept.onclick=async()=>{
               let onboarding: OnboardingAttempt | undefined;
               const query = new URLSearchParams(body.data.oauth_query);
               if (query.has("onboarding_attempt")) {
-                if (body.data.company_access) throw new Error();
+                if (resource === "api" || body.data.company_access)
+                  throw new Error();
                 if (!config.onboarding) throw new Error();
                 const a = await config.onboarding.validateQuery(
                   session.user.id,
@@ -464,6 +540,7 @@ accept.onclick=async()=>{
                     }
                   : undefined,
                 body.data.company_access,
+                resource,
               );
               await auth.api.bindProductCode({
                 body: {
@@ -492,6 +569,17 @@ accept.onclick=async()=>{
               return safeResponse('{"error":"CONSENT_CONFLICT"}', 409);
             }
           }
+          request = new Request(request.url, {
+            method: "POST",
+            headers: {
+              ...Object.fromEntries(request.headers),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              accept: body.data.accept,
+              oauth_query: body.data.oauth_query,
+            }),
+          });
         }
         if (url.pathname === "/auth/oauth2/token") {
           const body = z
@@ -500,6 +588,7 @@ accept.onclick=async()=>{
               grant_type: z.enum(["authorization_code", "refresh_token"]),
               code: z.string().optional(),
               refresh_token: z.string().optional(),
+              resource: z.string().optional(),
             })
             .safeParse(parsed);
           if (!body.success)
@@ -520,11 +609,18 @@ accept.onclick=async()=>{
             }
           }
           if (!client) return safeResponse('{"error":"invalid_client"}', 400);
+          let resource: "mcp" | "api";
           try {
+            resource = consentResource(
+              new URLSearchParams(
+                body.data.resource ? { resource: body.data.resource } : {},
+              ),
+            );
             await auth.api.verifyProductExchange({
               body: {
                 client,
                 type: body.data.grant_type,
+                resource,
                 token:
                   (body.data.grant_type === "authorization_code"
                     ? body.data.code
@@ -544,7 +640,7 @@ accept.onclick=async()=>{
               body: { token: tokens.access_token },
             });
             await auth.api.verifyProductToken({
-              body: { token: tokens.access_token },
+              body: { token: tokens.access_token, resource },
             });
             return response;
           } catch {

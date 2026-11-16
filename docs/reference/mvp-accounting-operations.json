@@ -5,11 +5,11 @@
   "sourceStrategy": "independently written; no redistributed OpenAPI or generated provider implementation",
   "sourceHashes": {
     "packages/core/src/accounting.ts": "765aed0ccc035d94dbb3292be04cee8fe7572279d40acdf6d030272326abe151",
-    "packages/core/src/bookkeeping.ts": "f4ad64407ad403974f4ca058e4cd0f35cd89fac2b4cd2c5e434142711aa06a03",
-    "packages/core/src/connections.ts": "cb3707931b6db2e1907c58504e9156de1e032f180972c27dde6e04feefe824c6",
-    "packages/fortnox/src/accounting.ts": "dd59308d4f4bd1772d1ec30ddddea1eef38d9b962ab75fe2384261644765b1af",
-    "packages/fortnox/src/http.ts": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
-    "packages/mcp/src/accounting.ts": "e91e56deaba3b50d858336ac21d39209fea008b6e135f6898f037a6472f97c7f",
+    "packages/core/src/bookkeeping.ts": "772153476624f2b63049babd68f2867bc2be7c2da3c92c07714a82078a6ebb0c",
+    "packages/core/src/connections.ts": "a1f2fa21737d512b7676f16830ffd68bd717ae04a78f12dd557546d945e28dc3",
+    "packages/fortnox/src/accounting.ts": "ed824705146f87063062d8bf718f7b96440af4fca734cdb8cdbb055de9821179",
+    "packages/fortnox/src/http.ts": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
+    "packages/mcp/src/accounting.ts": "b1ec9f901324547198bef406990d5635fcb4792f02ecc70d8ea4f341e2ef711d",
     "packages/ui/src/voucher-review.ts": "78631552e312ae60f814f31f4ce61316f551456b5a4b3de5d1f6e26125d3ef20",
     "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3"
   },

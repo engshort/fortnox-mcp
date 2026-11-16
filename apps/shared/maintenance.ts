@@ -38,6 +38,7 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
   for (const space of [
     "fortnox-flows",
     "continuations",
+    "read-continuations-v1",
     "oauth-grant-families",
     "oauth-approval-grants",
   ]) {

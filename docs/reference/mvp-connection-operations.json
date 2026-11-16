@@ -8,7 +8,7 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "c0b89051312c51e5fb8b219b4cfedd5cc733048bcac7064c957437b8b859a661",
+      "sha256": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
       "kind": "independently_written_project_source"
     },
     {
@@ -18,22 +18,22 @@
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "aa988881ed3c35e64723fee485d4c1daa954481a80105f71fea423fe344cdcf7",
+      "sha256": "9d5349fd3cc8ad24e33d52d4fffd4deaf6e97c687b08829ca457aa18d7c16a4b",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "d372106f3dd5b8102f3b1fc717e95481f0493b56872c11ff19f4001c0ad25e93",
+      "sha256": "725cd0a86247a10e0fc99ee9747f9f72065c34dba18850d7affae56ff07ff2f1",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "cb3707931b6db2e1907c58504e9156de1e032f180972c27dde6e04feefe824c6",
+      "sha256": "a1f2fa21737d512b7676f16830ffd68bd717ae04a78f12dd557546d945e28dc3",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "5d8111311d43622c546756bd8aef5b2b7b8a8159a2bbb89035929a75ce642e63",
+      "sha256": "daa74ed1d36c3381de598234abf722442009f3b31af10b50e6f565c032d89b2f",
       "kind": "independently_written_project_source"
     },
     {
@@ -294,5 +294,9 @@
   },
   "fullG06Issue": 36,
   "sourceRightsIssue": 35,
-  "defaultEnabledProviderOperations": []
+  "defaultEnabledProviderOperations": [],
+  "sourceRecheck": {
+    "date": "2026-11-16",
+    "reason": "Integrate opt-in REST and resource-bound immutable OAuth grants with current main. Current source pins only; historical provider evidence and operation support remain unchanged."
+  }
 }

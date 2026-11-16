@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingDate, accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import {
   analysisObservation,
   calculateFinancialReport,
@@ -187,8 +188,7 @@ export class DatedFinancialAnalysis {
   ) {}
 
   private async authorize(actor: AccountingActor, company: string) {
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const c = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

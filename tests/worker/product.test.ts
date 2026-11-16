@@ -3,6 +3,7 @@ import stateSchema from "../../apps/worker/migrations/0002_product_state.sql?raw
 import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import scopeSchema from "../../apps/worker/migrations/0005_accounting_scope.sql?raw";
+import readScopeSchema from "../../apps/worker/migrations/0008_financial_read_scope.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
@@ -38,6 +39,7 @@ import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
 import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
+import { readApiContract, readOAuthContract } from "../shared/read-api.js";
 import { registersContract } from "../shared/registers.js";
 import { salesDocumentsContract } from "../shared/sales-documents.js";
 import {
@@ -154,3 +156,18 @@ liquidityContract(async () => (await fixture()).state);
 onboardingContract(fixture);
 
 onboardingContinuityContract(fixture);
+
+readApiContract(fixture);
+readOAuthContract(fixture);
+
+accountingMigrationContract(async () => {
+  await fixture();
+  return {
+    execute: async (sql) => env.DB.exec(sql),
+    all: async (sql) => (await env.DB.prepare(sql).all()).results,
+    migrate: async () =>
+      env.DB.exec(
+        readScopeSchema.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "),
+      ),
+  };
+}, "mcp:finance:read");

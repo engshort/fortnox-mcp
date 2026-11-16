@@ -5,11 +5,13 @@ import {
   type ClientFile,
   type CompanyGrant,
   CompanyOnboarding,
+  CompanyReads,
   Connections,
   CredentialVault,
   DomainError,
   FinancialAnalysis,
   FinancialContexts,
+  FinancialReads,
   LiquidityAnalysis,
   OnboardingError,
   OpenItems,
@@ -20,6 +22,8 @@ import {
   programChange,
   programStatus,
   proposalReference,
+  type ReadModule,
+  ReadServices,
   ReceiptAttachments,
   ReceiptFileError,
   type ReceiptFileStore,
@@ -50,12 +54,14 @@ import {
   type FinancialReadEvidence,
   type FinancialReadOperation,
   FortnoxAccounting,
+  FortnoxCompanyReads,
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxFinancialReads,
   FortnoxOpenItems,
   FortnoxPayrollReads,
   FortnoxPayrollWrites,
+  FortnoxRawFinancialReads,
   FortnoxReceiptFiles,
   FortnoxRegisters,
   FortnoxSalesDocuments,
@@ -99,6 +105,8 @@ export interface ProductSettings {
   accountingReferences?: boolean;
   receiptProviderConsent?: boolean;
   receiptSource?: ReceiptSourceSettings;
+  restApi?: boolean;
+  financialReadModules?: readonly ReadModule[];
   financialAnalysisContexts?: boolean;
   financialLargeReads?: boolean;
 }
@@ -135,7 +143,10 @@ export interface ProductBusinessTest {
 export function requestedFortnoxScopes(
   settings: Pick<
     ProductSettings,
-    "testMode" | "accountingReferences" | "receiptProviderConsent"
+    | "testMode"
+    | "accountingReferences"
+    | "receiptProviderConsent"
+    | "financialReadModules"
   >,
 ) {
   return [
@@ -145,6 +156,17 @@ export function requestedFortnoxScopes(
       ? ["bookkeeping", "settings", "costcenter", "project"]
       : []),
     ...(settings.receiptProviderConsent ? ["inbox", "connectfile"] : []),
+    ...((settings.financialReadModules ?? []).includes("customer_invoices")
+      ? ["invoice"]
+      : []),
+    ...((settings.financialReadModules ?? []).includes("supplier_invoices")
+      ? ["supplierinvoice"]
+      : []),
+    ...((settings.financialReadModules ?? []).some((module) =>
+      ["accounts", "vouchers"].includes(module),
+    ) && !settings.accountingReferences
+      ? ["bookkeeping"]
+      : []),
   ];
 }
 export function productSettings(
@@ -176,12 +198,31 @@ export function productSettings(
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
+  const financialReadModules = z
+    .array(
+      z.enum([
+        "customer_invoices",
+        "supplier_invoices",
+        "vouchers",
+        "accounts",
+      ]),
+    )
+    .max(4)
+    .parse(
+      (env.FINANCIAL_READ_MODULES ?? "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+    );
+  if (financialReadModules.length && !testMode)
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   const accountingReferences = true;
   const receiptProviderConsent = true;
   requestedFortnoxScopes({
     testMode,
     accountingReferences,
     receiptProviderConsent,
+    financialReadModules,
   });
   const email = emailSettings(env);
   return {
@@ -209,6 +250,8 @@ export function productSettings(
     testTenants,
     accountingReferences,
     receiptProviderConsent,
+    financialReadModules,
+    restApi: env.REST_API_ENABLED === "true",
     receiptSource: receiptSourceSettings(env, testMode),
   };
 }
@@ -429,6 +472,7 @@ export function createProductApplication(
     secret: settings.secret,
     redirects: settings.redirects,
     connections,
+    restApi: settings.restApi === true && !fileTest,
   };
   // Owner-authorized activation is separate from acceptance evidence. Review
   // still requires the UI-only capability in a conforming MCP Apps host.
@@ -447,6 +491,32 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
+  if (
+    settings.financialReadModules?.length &&
+    (!settings.testMode ||
+      settings.testTenants.length !== 2 ||
+      new Set(settings.testTenants).size !== 2 ||
+      settings.testTenants.some((t) => !/^\d{1,15}$/.test(t)))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const readModules =
+    !fileTest && settings.testMode ? (settings.financialReadModules ?? []) : [];
+  const companyReads = new CompanyReads(
+    connections,
+    new FortnoxCompanyReads(connections, provider),
+    true,
+  );
+  const rawFinancialReads = new FinancialReads(
+    connections,
+    new FortnoxRawFinancialReads(
+      connections,
+      provider,
+      readModules,
+      settings.testTenants,
+    ),
+    readModules,
+  );
+  const reads = new ReadServices(companyReads, bookkeeping, rawFinancialReads);
   const registers = !fileTest
     ? new Registers(
         connections,
@@ -689,25 +759,30 @@ export function createProductApplication(
   const receiptWorkflow = receiptAttachments
     ? new ReceiptWorkflow(receiptAttachments, !fileTest && !businessTest)
     : undefined;
-  const gateway = createProductGateway(config, (identity) =>
-    companyServer({
-      identity,
-      connections,
-      provider,
-      testMode: true,
-      diagnostics: !fileTest,
-      ...(!fileTest ? { bookkeeping } : {}),
-      ...(registers ? { registers } : {}),
-      ...(payroll ? { payroll } : {}),
-      ...(openItems ? { openItems } : {}),
-      ...(liquidity ? { liquidity } : {}),
-      ...(financial ? { financial } : {}),
-      ...(salesDocuments ? { salesDocuments } : {}),
-      ...(receiptFiles ? { receiptFiles } : {}),
-      ...(receipts ? { receipts } : {}),
-      ...(receiptAttachments ? { receiptAttachments } : {}),
-      ...(receiptWorkflow ? { receiptWorkflow } : {}),
-    }),
+  const gateway = createProductGateway(
+    config,
+    (identity) =>
+      companyServer({
+        identity,
+        connections,
+        provider,
+        testMode: true,
+        companyReads,
+        ...(!fileTest ? { reads } : {}),
+        diagnostics: !fileTest,
+        ...(!fileTest ? { bookkeeping } : {}),
+        ...(registers ? { registers } : {}),
+        ...(payroll ? { payroll } : {}),
+        ...(openItems ? { openItems } : {}),
+        ...(liquidity ? { liquidity } : {}),
+        ...(financial ? { financial } : {}),
+        ...(salesDocuments ? { salesDocuments } : {}),
+        ...(receiptFiles ? { receiptFiles } : {}),
+        ...(receipts ? { receipts } : {}),
+        ...(receiptAttachments ? { receiptAttachments } : {}),
+        ...(receiptWorkflow ? { receiptWorkflow } : {}),
+      }),
+    reads,
   );
   const onboardingHttp = onboarding
     ? onboardingRoutes({
@@ -1453,6 +1528,7 @@ export function createProductApplication(
     provider,
     onboarding,
     bookkeeping,
+    reads,
     auth: gateway.auth,
     receiptFiles,
     receipts,

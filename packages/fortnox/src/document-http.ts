@@ -4,6 +4,7 @@ import {
   assertScopeProgram,
   type Connections,
   DomainError,
+  hasPermission,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import type { FortnoxConnections } from "./connections.js";
@@ -67,12 +68,12 @@ export class DocumentHttp {
         throw new DomainError("COMPANY_FORBIDDEN");
       if (
         !this.enabled.includes(operation) ||
-        !actor.scopes.includes("mcp:read") ||
+        !hasPermission(actor, "read") ||
         !c.scopes.includes(scope)
       )
         throw new DomainError("CAPABILITY_UNAVAILABLE");
       if (write) {
-        if (c.readOnly || !actor.scopes.includes("mcp:write"))
+        if (c.readOnly || !hasPermission(actor, "write"))
           throw new DomainError("CAPABILITY_UNAVAILABLE");
         await this.connections.assertWritesAllowed();
       }

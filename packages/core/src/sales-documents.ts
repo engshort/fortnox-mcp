@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { accountingDate } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor, AccountingProvider } from "./bookkeeping.js";
 import {
   type BusinessOperation,
@@ -404,8 +405,7 @@ export class SalesDocuments {
     action: string,
   ) {
     z.string().uuid().parse(company);
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     if (!this.enabled.includes(`${resource}.${action}`))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const c = await this.connections.authorize(

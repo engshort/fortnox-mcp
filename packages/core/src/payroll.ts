@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import { z } from "zod";
 import { accountingDate, accountingHash } from "./accounting.js";
+import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import {
   type BusinessOperation,
@@ -349,8 +350,7 @@ export class PayrollInputs {
     company: string,
     operation: PayrollOperation,
   ) {
-    if (!actor.scopes.includes("mcp:read"))
-      throw new DomainError("AUTH_REQUIRED");
+    if (!hasPermission(actor, "read")) throw new DomainError("AUTH_REQUIRED");
     const c = await this.connections.authorize(
       actor.ownerId,
       actor.clientId,

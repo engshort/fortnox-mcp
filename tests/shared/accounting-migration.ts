@@ -5,8 +5,9 @@ export function accountingMigrationContract(
     all(sql: string): Promise<unknown>;
     migrate(): Promise<unknown>;
   }>,
+  addedScope = "mcp:write",
 ) {
-  it("additive write capability migration is idempotent and never broadens existing client/consent/token scopes", async () => {
+  it(`additive ${addedScope} capability migration is idempotent and never broadens existing client/consent/token scopes`, async () => {
     const db = await fixture();
     await db.execute(
       `INSERT INTO oauthResource(id,identifier,name,allowedScopes) VALUES('old-resource','https://synthetic.invalid/mcp','Synthetic','["mcp:read","offline_access"]'),('custom-resource','https://custom.invalid/mcp','Custom','["custom:read"]')`,
@@ -32,7 +33,15 @@ export function accountingMigrationContract(
       await db.all(
         `SELECT allowedScopes FROM oauthResource WHERE id='old-resource'`,
       ),
-    ).toEqual([{ allowedScopes: '["mcp:read","offline_access","mcp:write"]' }]);
+    ).toEqual([
+      {
+        allowedScopes: JSON.stringify([
+          "mcp:read",
+          "offline_access",
+          addedScope,
+        ]),
+      },
+    ]);
     expect(
       await db.all(
         `SELECT allowedScopes FROM oauthResource WHERE id='custom-resource'`,

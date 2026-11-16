@@ -6,6 +6,7 @@ import {
   DomainError,
   proposalReference,
   referenceAccountNumbers,
+  referencesRead as referencesOutput,
   reviewCommitInput,
   voucherInput,
 } from "@fortnox-mcp/core";
@@ -38,41 +39,9 @@ const error = z
       .strict(),
   })
   .strict();
-const dimensionRule = z.enum(["REQUIRED", "ALLOWED", "NOTALLOWED", "UNKNOWN"]);
-export const referencesOutput = z
-  .object({
-    company_id: z.string().uuid(),
-    financial_year: z.number().int(),
-    retrieved_at: z.number().int(),
-    complete: z.boolean(),
-    account_numbers: referenceAccountNumbers.optional(),
-    validation_verified: z.boolean(),
-    year: z
-      .object({ id: z.number().int(), from: z.string(), to: z.string() })
-      .strict(),
-    locked_through: z.string().nullable(),
-    accounts: z.array(
-      z
-        .object({
-          number: z.number().int(),
-          active: z.boolean(),
-          cost_center: dimensionRule,
-          project: dimensionRule,
-          information: dimensionRule,
-        })
-        .strict(),
-    ),
-    series: z.array(
-      z.object({ code: z.string(), manual: z.boolean() }).strict(),
-    ),
-    cost_centers: z.array(
-      z.object({ code: z.string(), active: z.boolean() }).strict(),
-    ),
-    projects: z.array(
-      z.object({ code: z.string(), active: z.boolean() }).strict(),
-    ),
-  })
-  .strict();
+
+export { referencesRead as referencesOutput } from "@fortnox-mcp/core";
+
 const publicProposal = z
   .object({
     company_id: z.string().uuid(),
