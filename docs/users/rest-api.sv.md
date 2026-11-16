@@ -11,7 +11,8 @@ används för både MCP- och REST-klienter. Utvecklaren följer den
 
 Du loggar in på din egen installation, granskar applikationens begärda åtkomst
 och väljer uttryckligen vilka företag den får läsa. Nya företag läggs inte till
-automatiskt; ändrat urval kräver ny klientregistrering och nytt medgivande.
+automatiskt; ändrat urval kräver nytt medgivande. Använd en egen klientregistrering för REST,
+eftersom ett nytt medgivande ersätter klientens tidigare tokenfamilj.
 Applikationen får egna token, aldrig dina Fortnox-token eller installationshemligheter.
 Ägarinloggning, Fortnox-anslutning och applikationsmedgivande är separata.
 

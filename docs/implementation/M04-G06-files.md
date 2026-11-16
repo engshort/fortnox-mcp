@@ -1,5 +1,12 @@
 # File-specific G06 — milestone 4 provider verification packet
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Scope: #94, preserving the file-operation requirements split from #75/#36.
 The implementation and local verification exist; **actual provider/client
 acceptance is not run**. All four operations remain `implemented_unverified`,
@@ -136,8 +143,8 @@ Attach redacted evidence to the exact operation's ledger entry only after review
 Enable verified operations/formats individually, keeping unknown siblings off.
 Do not close #94 merely because source/contracts or synthetic cases pass. Full
 #36, source-rights #35, host/files #32/#33, recovery #38 and financial #76/#92/#93
-retain their own requirements. Human verification is excluded from autonomous
-implementation completion, not asserted as performed.
+retain their own requirements. AI-operated verification now follows the separate
+reviewer procedure above; no pending actual test is asserted as performed.
 
 ## Local packet validation
 

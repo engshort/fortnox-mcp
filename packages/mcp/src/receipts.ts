@@ -8,6 +8,7 @@ import {
   receiptBatchReference,
   receiptFileReference,
   receiptItemReference,
+  receiptProviderErrorCode,
   receiptResumeInput,
   receiptReviewInput,
   voucherInput,
@@ -32,6 +33,19 @@ const step = z.union([
     .object({
       state: z.literal("outcome_unknown"),
       reference: z.string().optional(),
+      diagnostic: z
+        .object({
+          stage: z.enum([
+            "dispatch",
+            "http_response",
+            "response_parse",
+            "authorization",
+          ]),
+          http_status: z.number().int().min(100).max(599).optional(),
+          provider_code: receiptProviderErrorCode.optional(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
 ]);

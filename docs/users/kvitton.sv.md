@@ -1,10 +1,24 @@
 # Kvitton och återhämtning
 
-Milestone 4 är under implementation. Produktens filverktyg och bokföringsflöde är
-avstängda tills respektive klient- och providerprov är godkänt. Ett tidigare
-syntetiskt granskningsprov aktiverar inte bokföring.
+För en osäker uppladdning finns `reconcile_receipt_upload`: ange originalets
+företag, batch-ID/hash och item-ID. Verktyget läser providerbevis och kan bara
+stämma av uppladdningssteget. Det laddar inte upp igen, bokför inte och ändrar
+ingen historisk policy eller granskning. Saknad eller tvetydig fil innebär
+fortsatt osäkert utfall. Gamla utgångna förslag får inte köras efter avstämning;
+fortsatt bokföring kräver ett separat stött flöde och aktuell granskning.
 
-I den separata testbuilden kan `open_receipt_file_picker` öppna en filväljare för
+Testacceptans från 11 november 2026: i projektets godkända sandlådor kan en AI
+utföra de interaktiva proven och en separat AI granska originalunderlag och
+faktiska resultat. Se [beslut och teststeg](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Det ändrar inte företagets policy. Varje förslag ska fortfarande granskas via
+rätt klientflöde; samma AI:s självgodkännande räcker inte som oberoende granskning.
+
+Produktens implementerade filverktyg och kvittoflöde är aktiverade från
+11 november 2026. Filtransport och godkända HTTPS-källor behöver konfigureras.
+Företagets skrivskydd och verifikationspolicy gäller.
+[Funktioner och åtkomst](funktioner.sv.md) beskriver nuvarande förutsättningar.
+
+I den vanliga installationen kan `open_receipt_file_picker` öppna en filväljare för
 ett uttryckligen valt företag. Välj uppladdade filer, eller filer från datorn om
 klientens filbibliotek saknas. Urvalet lagrar inget hos installationen. Välj sedan
 **Lagra tillfälligt** först när testoperatören har förberett filtransporten.
@@ -15,7 +29,7 @@ Efter lagring väljer du **Hämta och kontrollera original** och därefter
 länken skapas, men den faktiskt nedladdade filen måste också jämföras i klientprovet.
 Omladdning skickar aldrig om lagringen. Sparade referenser ger ingen behörighet i
 sig, och ett misslyckat eller saknat svar räknas inte som ett godkänt prov.
-Denna nya vy väntar på faktisk klientacceptans; bokföring och Fortnox-filer är avstängda.
+Faktisk klientacceptans återstår att dokumentera; aktivering är inget bevis på genomförd verifiering.
 
 I det avsedda flödet väljer du företag uttryckligen och bifogar upp till två filer
 i klienten. Stödet börjar med PNG, JPEG och vanliga okrypterade PDF-filer utan
@@ -87,6 +101,9 @@ betyder att verifikationen redan finns och endast bilagans länk ska repareras.
 Skicka inte verifikationen igen. `outcome_unknown` betyder att ett anrop kan ha
 lyckats trots att svaret saknas; kontrollera Fortnox och sparad status innan något
 försök görs. Omladdning eller omstart gör inte ett okänt utfall säkert att skicka om.
+Diagnostiken kan visa felsteg, HTTP-status och en numerisk `provider_code`.
+Rå feltext sparas inte. Även ett HTTP-fel med felkod kan lämna utfallet okänt;
+felkoden ensam ger inte rätt att skicka igen.
 Produktens filoperationer är fortsatt avstängda tills de separata proven är klara.
 
 ## Efter ett avbrott

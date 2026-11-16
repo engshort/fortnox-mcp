@@ -72,3 +72,19 @@ bind loopback; the successful runtime checks used local process permissions and
 only synthetic services. Dependencies were installed from the local npm cache
 using the repository's required Node 24.19.0 runtime. No live credentials were
 used.
+
+## Integration with current main — 2026-11-16
+
+The delivery branch integrates `ea718be` before PR validation. Existing program
+selection, installation-wide MCP consent, external onboarding, immutable approval
+revisions, optional backend offline access, financial analysis and write recovery
+remain in place. New API consent uses the current revision/family mechanism with
+an explicit resource binding and selected-company versions. A dedicated client
+per transport avoids replacing another transport's token family on reapproval.
+The optional MCP scope migration is `0008_financial_read_scope.sql`, following
+the existing analysis-context migration. Current source hashes are refreshed in
+all affected ledgers without promoting historical provider evidence.
+
+The local verification table above records the pre-integration implementation.
+Integrated Node/Worker/build checks and GitHub CI are recorded separately in the
+PR; no earlier count is represented as a test of the integrated candidate.

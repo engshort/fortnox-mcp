@@ -5,14 +5,22 @@ import {
   productSettings,
 } from "../../shared/product.js";
 import { d1State } from "./product-storage.js";
-import { d1ReceiptFiles } from "./receipt-storage.js";
+import { d1AnalysisStore, d1ReceiptFiles } from "./receipt-storage.js";
 export interface ProductEnv extends Partial<ProductBindings> {
   ASSETS?: Fetcher;
   PUBLIC_ORIGIN?: string;
+  FINANCIAL_ANALYSIS_CONTEXTS_ENABLED?: string;
+  FINANCIAL_LARGE_READS_ENABLED?: string;
   AUTH_SECRET?: string;
+  RESEND_ENABLED?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM?: string;
   CREDENTIAL_KEYS?: string;
   CREDENTIAL_ACTIVE_KEY?: string;
   MCP_REDIRECT_URIS?: string;
+  EXTERNAL_APP_ONBOARDING_ENABLED?: string;
+  EXTERNAL_APP_ONBOARDING_CLIENT_IDS?: string;
+  MCP_OFFLINE_CLIENT_IDS?: string;
   FORTNOX_CLIENT_ID?: string;
   FORTNOX_CLIENT_SECRET?: string;
   FORTNOX_TEST_TENANTS?: string;
@@ -28,15 +36,16 @@ export interface ProductEnv extends Partial<ProductBindings> {
 }
 export default {
   async scheduled(_event: ScheduledController, env: ProductEnv): Promise<void> {
-    if (env.DB && env.PRODUCT_ENABLED === "true")
+    if (env.DB)
       await Promise.all([
         cleanupProduct(d1State(env.DB)),
         d1ReceiptFiles(env.DB).cleanup(Date.now()),
+        d1AnalysisStore(env.DB).cleanup(Date.now()),
       ]);
   },
   async fetch(request: Request, env: ProductEnv): Promise<Response> {
-    if (env.PRODUCT_ENABLED !== "true" || !env.DB)
-      return new Response("Product disabled", { status: 503 });
+    if (!env.DB)
+      return new Response("Product database unavailable", { status: 503 });
     try {
       const settings = productSettings({
         ...env,
@@ -60,6 +69,7 @@ export default {
             }
           : {}),
         receiptFiles: d1ReceiptFiles(env.DB),
+        analysisStore: d1AnalysisStore(env.DB),
         fileSource: receiptFileSource(
           settings.receiptSource ?? receiptSourceSettings({}, false),
           "worker",

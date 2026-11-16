@@ -1,5 +1,7 @@
 # Receipts, files and batch recovery
 
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 The [milestone 4 product adapter](../implementation/M04-receipts-evidence.md) is in progress. Bounded encrypted staging/readback is implemented behind a default-off gate; this does not establish actual client or Fortnox file support.
 
 Actual client evidence may be collected with the [separate M14 file-test
@@ -60,7 +62,25 @@ uncertain steps are never automatically repeated; a restart leaves an unfinished
 claim uncertain. Exact positive relationship evidence may resolve an uncertain
 link. A missing record is insufficient proof to resend an uncertain write.
 
+Uncertain file writes may expose a fixed diagnostic stage, HTTP status and an
+optional numeric `provider_code` (1–12 ASCII digits). The provider error body is
+read within 4 KiB and the existing total write deadline; messages and raw content
+are never retained. Missing or invalid codes leave status-only uncertainty.
+Neither an HTTP error nor a numeric code authorizes resend by itself.
+
 ## Per-item state machine
+
+Issue #134 adds a separate [positive upload-reconciliation path](../implementation/receipt-upload-recovery-2026-11-12.md).
+Current authentication and the original connection generation/client remain
+required for model-callable recovery. The separate same-origin owner metadata
+recovery route may use a retained tenant-bound batch across generations, without
+rewriting its originating client/generation. Legacy batches without tenant
+provenance remain confined to the original generation. Exact original upload/hash
+or voucher/file relationship proof and CAS are required; missing evidence remains
+unknown. See [access and recovery](../implementation/access-renewal-2026-11-13.md).
+Historical policy/byte expiry may differ only for non-dispatching
+upload metadata reconciliation. This does not reauthorize historical execution
+or restore expired proposals. Missing evidence never proves non-application.
 
 ```mermaid
 stateDiagram-v2

@@ -1,6 +1,8 @@
 import {
   type Actor,
   accountingDate,
+  assertFeature,
+  assertScopeProgram,
   type Connections,
   DomainError,
   decimalText,
@@ -283,7 +285,7 @@ const mappings: Partial<Record<ReadOperation, Mapping>> = {
     }),
   ),
 };
-export class FortnoxFinancialReads implements FinancialReadProvider {
+export class FortnoxRawFinancialReads implements FinancialReadProvider {
   readonly http: FortnoxHttp;
   constructor(
     readonly connections: Connections,
@@ -310,9 +312,12 @@ export class FortnoxFinancialReads implements FinancialReadProvider {
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const c = await this.connections.authorizeActor(actor, input.company_id);
-    if (!this.provider.config.testTenants.includes(c.tenant))
+    if (!this.provider.config.testTenants?.includes(c.tenant))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const upstream = providerOperations[spec.operation];
+    assertScopeProgram(c, upstream.scope);
+    if (["accounts", "vouchers"].includes(spec.module))
+      assertFeature(c, "references");
     if (!c.scopes.includes(upstream.scope))
       throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
     const context: ProviderContext = {
@@ -324,6 +329,9 @@ export class FortnoxFinancialReads implements FinancialReadProvider {
       token: (force) => this.provider.token(actor.ownerId, c, force),
       assertActive: async () => {
         const current = await this.connections.authorizeActor(actor, c.id);
+        assertScopeProgram(current, upstream.scope);
+        if (["accounts", "vouchers"].includes(spec.module))
+          assertFeature(current, "references");
         if (
           current.generation !== c.generation ||
           !current.scopes.includes(upstream.scope)

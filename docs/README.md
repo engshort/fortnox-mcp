@@ -4,6 +4,59 @@ Opt-in [REST integration](rest-api.md): [API contract](contracts/rest.md),
 [Swedish guide](users/rest-api.sv.md), [implementation/evidence](implementation/REST-read-api.md)
 and [financial read classifications](reference/read-api-operations.json).
 
+External applications: [natural login return and optional 30-day offline access](implementation/onboarding-continuity.md), with retained-attempt recovery, separate server policy and bounded local evidence.
+
+Account email: [optional Resend setup and evidence](implementation/account-email.md)
+and [Swedish ENV instructions](users/env.sv.md#appens-e-post). Disabled by default.
+
+Company access: [installation-wide client approval and owner-side migration](implementation/installation-company-access.md) includes future connected companies without reconnecting the AI client. External application onboarding remains company-specific; actual hosted-client acceptance stays separate.
+
+S08/#143: [optional pinned analysis contexts, larger SIE inputs and performance evidence](implementation/S08-performance.md). Both extensions default off; provider/hosted-client acceptance remains separate.
+
+Company access: [same-registration approval renewal, safe local read additions
+and owner receipt recovery](implementation/access-renewal-2026-11-13.md).
+Unknown writes remain retained; activation and actual acceptance stay separate.
+
+S08 follow-up: [dated balances, cross-year transactions and historical
+reskontra](implementation/S08-dated-reads.md). Available in the ordinary product;
+unverified source semantics still produce unknown values and incomplete results.
+
+S10/#27: [documentation and diagnosis acceptance](implementation/S10-acceptance-2026-11-12.md)
+maps the existing criteria to local Node/workerd, actual CLI and separately
+verified product-diagnosis evidence. External-source redistribution #35 remains
+open; this adds no provider or hosted-client capability.
+
+Issue #134: [bounded positive upload recovery](implementation/receipt-upload-recovery-2026-11-12.md)
+is under verification; original provider-outcome recovery remains pending.
+
+Current actual acceptance: [the 2026-11-11 implemented-function audit](implementation/acceptance-audit-2026-11-11.md)
+records independently AI-reviewed provider/client results and their limits;
+[remaining Swedish test steps](users/acceptansprov.sv.md) identify concrete prerequisites.
+
+Acceptance operator: the owner permits [AI execution with independent AI review](implementation/ai-reviewed-acceptance-2026-11-11.md)
+for all sandbox tests formerly requiring a human operator. Actual execution and
+evidence requirements remain; historical records are not promoted.
+
+Current activation: the owner removed ordinary product test/verification
+activation restrictions on 2026-11-11. See [the activation decision and runtime
+boundaries](implementation/product-activation-2026-11-11.md). Dated milestone
+records below retain their original evidence; activation does not promote it.
+
+Operations: [Nova merge-to-main deployment and recovery](deployment-nova.md).
+
+Milestone 7: [financial analysis/payroll delivery and remaining evidence](implementation/M07-analysis-payroll.md) and [Swedish user guidance](users/analys-och-loneunderlag.sv.md). Implementation in progress; no new operation activated.
+
+S11/#117: [company/program administration, consent evidence and S04/S05 handoff](implementation/S11-company-programs.md).
+Implementation and local verification are complete; the owner excluded actual
+Fortnox acceptance from this delivery, without changing operation activation gates.
+
+S04/S05: [business write foundation](implementation/S04-S05-business-writes.md)
+and [Swedish register/document status](users/register-och-fakturor.sv.md).
+No new provider capability is enabled by the foundation.
+The [register implementation/evidence](implementation/S04-register-evidence.md)
+and [operation matrix](reference/s04-register-operations.json) describe the
+separate bounded test profile; actual acceptance remains pending.
+
 Milestone 5: [Docker delivery/evidence](implementation/M05-delivery.md),
 [English Linux guide](deployment-linux.md), [Swedish guide](users/docker.sv.md)
 and [pending actual acceptance](implementation/M05-actual-acceptance.md).
@@ -53,6 +106,7 @@ Baseline approved by the project owner on **2026-10-18**. This is an implementat
 | Product/review | [Product](product.md) → [decisions](decisions.md) → [release gates](releases.md) |
 | First usable prerelease | [MVP delivery plan](implementation/MVP.md) → [MVP tracker #54](https://github.com/alex-engvall/fortnox-mcp/issues/54) |
 | First contributor | [English developer README](../README.en.md) → [CONTRIBUTING](../CONTRIBUTING.md) → [CLA](../CLA.md) → [development](development.md) → [architecture](architecture.md) → [implementation queue](implementation/README.md) |
+| Coding agent / optional Labstride | [Agent guide](AGENT-GUIDE.md) → [English workflow](development.md#optional-labstride-issue-to-review-workflow) → [Swedish owner guide](users/labstride.sv.md) |
 | API integration | [Sources](reference/sources.md) → [coverage](reference/coverage.md) → [authentication](contracts/authentication.md) → [tools](contracts/tools.md) |
 | Local documentation tools | [Developer setup](developer-tools.md) → [Swedish usage](users/dokumentation.sv.md) → [S10 evidence](implementation/S10-docs-evidence.md) |
 | Financial correctness | [Validation](contracts/validation.md) → [analytics](contracts/analytics.md) → [tests](testing.md) |
@@ -98,3 +152,5 @@ restrictive-CSP and remount/replay checks remain open. It is off by default and
 enables no financial operation.
 
 The [first S11 slice](implementation/S11-cloudflare-first-installation.md) adds an active Cloudflare test-installation button and public Worker/D1 status page. It adds no provider coverage or remote MCP access. [Evidence](implementation/S11-cloudflare-evidence.md) separates local verification from one successful hosted installation in an existing account and the remaining fresh-account/lifecycle checks. [Deployment troubleshooting](deployment.md#github-connection-fails-before-the-build) covers the observed Cloudflare identity/role and incomplete GitHub connection failure.
+
+Issue #146: [external application company onboarding](implementation/external-company-onboarding.md) and [versioned integration contract](contracts/company-onboarding-v1.md). Opt-in, under verification; existing standalone/public-client flows remain supported.

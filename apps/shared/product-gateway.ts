@@ -3,8 +3,13 @@ import {
   verifyOAuthQueryParams,
 } from "@better-auth/oauth-provider";
 import {
+  type CompanyOnboarding,
   type Connections,
   DomainError,
+  featureLabels,
+  type OnboardingAttempt,
+  OnboardingError,
+  programSelection,
   type ReadServices,
   requestActor,
 } from "@fortnox-mcp/core";
@@ -22,6 +27,11 @@ import {
   privateHeaders,
   safeResponse,
 } from "./admin.js";
+import { connectionPage, escapeHtml } from "./connection-page.js";
+import {
+  onboardingFailure,
+  onboardingGuideRedirect,
+} from "./onboarding-http.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
 export interface McpIdentity {
   ownerId: string;
@@ -53,6 +63,7 @@ export function createProductGateway(
   config: AuthConfig & {
     redirects: readonly string[];
     connections: Connections;
+    onboarding?: CompanyOnboarding;
   },
   server: (identity: McpIdentity | null) => McpServer,
   reads: ReadServices,
@@ -150,11 +161,21 @@ export function createProductGateway(
       ].includes(url.pathname)
     )
       return oauthProviderAuthServerMetadata(auth)(request);
+    if (
+      request.method === "GET" &&
+      url.pathname === "/auth/error" &&
+      request.headers.get("accept")?.includes("text/html")
+    )
+      return onboardingFailure(
+        new OnboardingError("INVALID_REQUEST", 400),
+        request,
+      );
     if (request.method === "GET" && url.pathname === "/consent") {
-      let companies = "";
-      let finance = false;
+      let ownerId: string;
+      let resource: "mcp" | "api";
       try {
-        const session = await requireOwner(auth, config.state, request.headers);
+        ownerId = (await requireOwner(auth, config.state, request.headers)).user
+          .id;
         if (
           !(await verifyOAuthQueryParams(
             url.search.slice(1),
@@ -164,39 +185,198 @@ export function createProductGateway(
           ))
         )
           throw new Error();
-        const resource = consentResource(url.searchParams);
-        finance = (url.searchParams.get("scope") ?? "")
-          .split(" ")
-          .some((scope) =>
-            ["api:finance:read", "mcp:finance:read"].includes(scope),
-          );
-        if (resource === "api") {
-          companies = `<fieldset><legend>Välj företag för applikationens läsåtkomst</legend>${(
-            await config.connections.list(session.user.id)
-          )
-            .filter((c) => c.state === "active")
-            .map(
-              (c) =>
-                `<label><input type="checkbox" name="company" value="${escapeMarkup(c.id)}">${escapeMarkup(c.name)} (${escapeMarkup(c.id)})</label>`,
-            )
-            .join("")}</fieldset>`;
-        }
+        resource = consentResource(url.searchParams);
       } catch {
+        const continuation = onboardingGuideRedirect(request);
+        if (continuation) return continuation;
+        if (request.headers.get("accept")?.includes("text/html"))
+          return new Response(null, {
+            status: 303,
+            headers: { ...privateHeaders, location: `/sign-in${url.search}` },
+          });
         return challenge();
       }
+      let onboarding: OnboardingAttempt | undefined;
+      if (url.searchParams.has("onboarding_attempt")) {
+        try {
+          if (resource === "api" || !config.onboarding) throw new Error();
+          const session = await requireOwner(
+            auth,
+            config.state,
+            request.headers,
+          );
+          const a = await config.onboarding.validateQuery(
+            ownerId,
+            session.session.id,
+            url.searchParams,
+          );
+          const client = await auth.api.getOnboardingClient({
+            body: { client: a.client },
+          });
+          if (
+            !client.redirects.includes(
+              url.searchParams.get("redirect_uri") ?? "",
+            ) ||
+            !config.redirects.includes(
+              url.searchParams.get("redirect_uri") ?? "",
+            )
+          )
+            throw new Error();
+          onboarding = await config.onboarding.prepareApproval(
+            ownerId,
+            a.id,
+            a.revision,
+            session.session.id,
+            url.search.slice(1),
+          );
+        } catch (e) {
+          return (
+            onboardingGuideRedirect(request) ?? onboardingFailure(e, request)
+          );
+        }
+      }
+      const companies = (await config.connections.list(ownerId)).filter(
+        (c) =>
+          c.state === "active" &&
+          (!onboarding ||
+            onboarding.approval?.selection.some((s) => s.id === c.id)),
+      );
+      const companyChoices = companies
+        .map(
+          (c) => `<label class="consent-company">
+          <input type="checkbox" name="company" checked ${onboarding || resource === "api" ? "" : "disabled"} value="${escapeHtml(JSON.stringify({ id: c.id, generation: c.generation, access_revision: c.accessRevision ?? 0 }))}">
+          <span><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(
+            programSelection(c)
+              .features.map((id) => featureLabels[id].sv)
+              .join(", ") || "Företagsuppgifter",
+          )}</small></span>
+        </label>`,
+        )
+        .join("");
+      const scopes = (url.searchParams.get("scope") ?? "").split(" ");
+      const offline =
+        scopes.includes("offline_access") &&
+        config.offlineClientIds?.includes(
+          url.searchParams.get("client_id") ?? "",
+        ) &&
+        (await auth.api
+          .getOnboardingClient({
+            body: { client: url.searchParams.get("client_id") ?? "" },
+          })
+          .catch(() => null));
+      const permissions = [
+        scopes.some((s) => ["mcp:finance:read", "api:finance:read"].includes(s))
+          ? `<li><strong>Läsa ekonomiska rådata</strong><p>Kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Ger ingen skrivbehörighet.</p></li>`
+          : "",
+        scopes.includes("mcp:read") || scopes.includes("api:read")
+          ? `<li><strong>Läsa företagsuppgifter</strong><p>Klienten begär läsåtkomst till anslutna företag.</p></li>`
+          : "",
+        scopes.includes("mcp:write")
+          ? `<li><strong>Skriva i Fortnox</strong><p>Bokföring följer företagets aktuella policy, skrivskydd och krav på granskning.</p></li>`
+          : "",
+        scopes.includes("mcp:files")
+          ? `<li><strong>Hantera valda filer</strong><p>Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst följer företagets behörigheter och policy.</p></li>`
+          : "",
+        scopes.includes("offline_access")
+          ? `<li><strong>Behålla anslutningen</strong><p>${offline ? "Appens backend får förnya åtkomsten även när du är utloggad. Förnyelsetoken gäller i 30 dagar från senaste lyckade förnyelse. Installationsägaren kan återkalla åtkomsten." : "Klienten kan förnya anslutningen så länge godkännandet är giltigt."}</p></li>`
+          : "",
+      ].join("");
       return safeResponse(
-        `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Godkänn klient</title><h1>Godkänn klient</h1><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:files") ? "Klienten begär även filåtkomst. Valda filer kan hämtas, tillfälligt lagras krypterade och återläsas inom 55 minuter för uttryckligen behöriga företag. Normal rensning sker inom en timme när installationens schemalagda jobb körs; driftavbrott kan fördröja fysisk radering. Filåtkomst bokför inte och aktiverar inga overifierade operationer." : ""}</p><p>${(url.searchParams.get("scope") ?? "").split(" ").includes("mcp:write") ? "Klienten begär även skrivbehörighet. Bokföring kräver separat aktiverad operation, företagets aktuella policy och granskning där den krävs." : "Klienten begär läsåtkomst till företagsuppgifter och referenser. Befintliga behörigheter utökas inte automatiskt."}</p>${finance ? "<p>Ekonomiläsning omfattar kund- och leverantörsfakturor, verifikationer och konton med Fortnox rapporterade årssaldon. Det ger ingen skrivbehörighet.</p>" : ""}${companies}<button id="accept">Godkänn begärda behörigheter till aktuella företag</button><p id="status" role="status"></p><script src="/consent.js"></script></html>`,
+        connectionPage({
+          title: "Godkänn klient",
+          back: "/admin/ai-clients",
+          script: "/consent.js",
+          content: `    <div class="consent-heading"><h1>Godkänn klient</h1><p class="intro muted">Granska åtkomsten innan du ansluter din AI-klient.</p></div>
+    <div class="consent-layout">
+      <div class="consent-details">
+        <section class="consent-access" aria-labelledby="access-heading">
+          <h2 id="access-heading">${onboarding || resource === "api" ? "Åtkomst till valda företag" : "Nuvarande och framtida företag"}</h2>
+          ${
+            onboarding
+              ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>`
+              : resource === "api"
+                ? `<p>Välj vilka anslutna företag applikationen får läsa. Detta samtycke omfattar endast de valda företagen och ger ingen skrivbehörighet.</p>`
+                : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
+          }
+        </section>
+        <section class="consent-permissions" aria-labelledby="permissions-heading">
+          <h2 id="permissions-heading">Begärda behörigheter</h2>
+          <ul>${permissions}</ul>
+        </section>
+      </div>
+      <fieldset class="consent-companies">
+        <legend>${onboarding || resource === "api" ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
+        <div class="consent-company-list">${companyChoices || `<p class="muted">${onboarding ? "Inga aktiva företag finns i detta godkännande. Gå tillbaka till anslutningsflödet." : "Inga företag är anslutna ännu. Företag som du ansluter senare blir tillgängliga via detta godkännande."}</p>`}</div>
+      </fieldset>
+    </div>
+    <footer class="consent-actions">
+      <button id="accept" ${onboarding || resource === "api" ? "" : 'data-company-access="owner_connections"'}>${onboarding || resource === "api" ? "Godkänn begärda behörigheter till valda företag" : "Godkänn åtkomst till nuvarande och framtida företag"}</button>
+      ${onboarding ? `<a href="/connect/company/${onboarding.id}?revision=${onboarding.revision}">Tillbaka eller avbryt</a>` : ""}
+      <p id="status" class="status" role="status" tabindex="-1"></p>
+    </footer>
+`,
+        }),
         200,
         "text/html; charset=utf-8",
       );
     }
     if (request.method === "GET" && url.pathname === "/consent.js")
       return safeResponse(
-        `document.querySelector('#accept').onclick=async()=>{const fields=document.querySelectorAll('input[name="company"]');const selected=[...fields].filter(e=>e.checked).map(e=>e.value);if(document.querySelector('fieldset')&&!selected.length){document.querySelector('#status').textContent='Välj minst ett företag.';return;}const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(document.querySelector('fieldset')?{company_ids:selected}:{})})});const d=await r.json();if(r.ok&&d.url)location.assign(d.url);else document.querySelector('#status').textContent='Godkännandet misslyckades. Ny registrering kan krävas.';};`,
+        `const accept=document.querySelector('#accept');
+const status=document.querySelector('#status');
+accept.onclick=async()=>{
+  if(accept.disabled)return;
+  const companies=[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value));
+  const choices=[...document.querySelectorAll('input[name=company]:not(:disabled)')];
+  accept.disabled=true;
+  choices.forEach(c=>c.disabled=true);
+  accept.setAttribute('aria-busy','true');
+  status.textContent='Godkännandet skickas…';
+  try{
+    const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(accept.dataset.companyAccess?{company_access:accept.dataset.companyAccess}:{}),companies})});
+    const d=await r.json();
+    if(r.ok&&d.url){location.assign(d.url);return;}
+    status.textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';
+    accept.disabled=false;
+    choices.forEach(c=>c.disabled=false);
+  }catch{
+    status.textContent='Svaret saknas. Öppna anslutningen från applikationen eller klienten för att kontrollera utfallet innan du försöker igen.';
+  }finally{
+    accept.removeAttribute('aria-busy');
+    status.focus();
+  }
+};`,
         200,
         "text/javascript",
       );
     if (authRoutes.has(`${request.method} ${url.pathname}`)) {
+      if (
+        request.method === "GET" &&
+        url.pathname === "/auth/oauth2/authorize"
+      ) {
+        if (url.searchParams.has("onboarding_attempt")) {
+          try {
+            if (!config.onboarding) throw new Error();
+            const session = await requireOwner(
+              auth,
+              config.state,
+              request.headers,
+            );
+            await config.onboarding.validateQuery(
+              session.user.id,
+              session.session.id,
+              url.searchParams,
+            );
+          } catch (e) {
+            return (
+              onboardingGuideRedirect(request) ?? onboardingFailure(e, request)
+            );
+          }
+        }
+        // Every approval must display its company access and current companies.
+        url.searchParams.set("prompt", "consent");
+        request = new Request(url, request);
+      }
       let parsed: unknown;
       if (request.method === "POST") {
         const browser = [
@@ -252,8 +432,19 @@ export function createProductGateway(
           const body = z
             .object({
               accept: z.boolean(),
+              company_access: z.literal("owner_connections").optional(),
               oauth_query: z.string().max(12000),
-              company_ids: z.array(z.string().uuid()).min(1).max(64).optional(),
+              companies: z
+                .array(
+                  z
+                    .object({
+                      id: z.string().uuid(),
+                      generation: z.number().int().nonnegative(),
+                      access_revision: z.number().int().nonnegative(),
+                    })
+                    .strict(),
+                )
+                .max(50),
             })
             .safeParse(parsed);
           if (
@@ -281,9 +472,10 @@ export function createProductGateway(
           if (
             resource === "api" &&
             body.data.accept &&
-            (!body.data.company_ids ||
-              new Set(body.data.company_ids).size !==
-                body.data.company_ids.length)
+            (body.data.company_access ||
+              !body.data.companies.length ||
+              new Set(body.data.companies.map((c) => c.id)).size !==
+                body.data.companies.length)
           )
             return safeResponse('{"error":"CONSENT_DENIED"}', 400);
           if (body.data.accept) {
@@ -293,21 +485,88 @@ export function createProductGateway(
               request.headers,
             );
             try {
-              await config.connections.grant(
+              let onboarding: OnboardingAttempt | undefined;
+              const query = new URLSearchParams(body.data.oauth_query);
+              if (query.has("onboarding_attempt")) {
+                if (resource === "api" || body.data.company_access)
+                  throw new Error();
+                if (!config.onboarding) throw new Error();
+                const a = await config.onboarding.validateQuery(
+                  session.user.id,
+                  session.session.id,
+                  query,
+                );
+                onboarding = await config.onboarding.approval(
+                  session.user.id,
+                  a.id,
+                  a.revision,
+                  session.session.id,
+                  body.data.oauth_query,
+                );
+                const canonical = (s: typeof body.data.companies) =>
+                  JSON.stringify(
+                    [...s].sort((a, b) => a.id.localeCompare(b.id)),
+                  );
+                if (
+                  canonical(body.data.companies) !==
+                  canonical(onboarding.approval?.selection ?? [])
+                )
+                  throw new Error();
+              }
+              // Let the maintained OAuth implementation validate/consume the
+              // signed consent first. No grant is changed for denied consent.
+              const response = await auth.handler(request);
+              if (!response.ok) return response;
+              const result = (await response.clone().json()) as {
+                url?: string;
+              };
+              const code = result.url
+                ? new URL(result.url).searchParams.get("code")
+                : null;
+              if (!code) return safeResponse('{"error":"CONSENT_DENIED"}', 400);
+              const grant = await config.connections.renewGrant(
                 session.user.id,
                 client,
-                resource === "api"
-                  ? (body.data.company_ids ?? [])
-                  : (await config.connections.list(session.user.id))
-                      .filter((c) => c.state === "active")
-                      .map((c) => c.id),
+                body.data.companies,
+                onboarding
+                  ? {
+                      expectedRevision: onboarding.approval?.grantRevision ?? 0,
+                      onboarding: {
+                        id: onboarding.id,
+                        revision: onboarding.revision,
+                        companyId: onboarding.company?.id as string,
+                        completedAt: Date.now(),
+                      },
+                    }
+                  : undefined,
+                body.data.company_access,
                 resource,
               );
+              await auth.api.bindProductCode({
+                body: {
+                  code,
+                  owner: session.user.id,
+                  client,
+                  revision: grant.revision as number,
+                  ...(onboarding
+                    ? {
+                        onboarding: {
+                          id: onboarding.id,
+                          revision: onboarding.revision,
+                        },
+                      }
+                    : {}),
+                },
+              });
+              if (onboarding)
+                await config.onboarding?.authorized(
+                  session.user.id,
+                  onboarding,
+                  grant,
+                );
+              return response;
             } catch {
-              return safeResponse(
-                '{"error":"NEW_CLIENT_REGISTRATION_REQUIRED"}',
-                409,
-              );
+              return safeResponse('{"error":"CONSENT_CONFLICT"}', 409);
             }
           }
           request = new Request(request.url, {
@@ -322,8 +581,84 @@ export function createProductGateway(
             }),
           });
         }
+        if (url.pathname === "/auth/oauth2/token") {
+          const body = z
+            .object({
+              client_id: z.string().optional(),
+              grant_type: z.enum(["authorization_code", "refresh_token"]),
+              code: z.string().optional(),
+              refresh_token: z.string().optional(),
+              resource: z.string().optional(),
+            })
+            .safeParse(parsed);
+          if (!body.success)
+            return safeResponse('{"error":"invalid_grant"}', 400);
+          let client = body.data.client_id;
+          if (
+            !client &&
+            /^Basic /i.test(request.headers.get("authorization") ?? "")
+          ) {
+            try {
+              client = decodeURIComponent(
+                atob(
+                  (request.headers.get("authorization") ?? "").slice(6),
+                ).split(":")[0] ?? "",
+              );
+            } catch {
+              return safeResponse('{"error":"invalid_client"}', 400);
+            }
+          }
+          if (!client) return safeResponse('{"error":"invalid_client"}', 400);
+          let resource: "mcp" | "api";
+          try {
+            resource = consentResource(
+              new URLSearchParams(
+                body.data.resource ? { resource: body.data.resource } : {},
+              ),
+            );
+            await auth.api.verifyProductExchange({
+              body: {
+                client,
+                type: body.data.grant_type,
+                resource,
+                token:
+                  (body.data.grant_type === "authorization_code"
+                    ? body.data.code
+                    : body.data.refresh_token) ?? "",
+              },
+            });
+          } catch {
+            return safeResponse('{"error":"invalid_grant"}', 400);
+          }
+          const response = await auth.handler(request);
+          if (!response.ok) return response;
+          try {
+            const tokens = (await response.clone().json()) as {
+              access_token: string;
+            };
+            await auth.api.retainProductTokens({
+              body: { token: tokens.access_token },
+            });
+            await auth.api.verifyProductToken({
+              body: { token: tokens.access_token, resource },
+            });
+            return response;
+          } catch {
+            return safeResponse('{"error":"invalid_grant"}', 400);
+          }
+        }
       }
-      return auth.handler(request);
+      const response = await auth.handler(request);
+      if (
+        request.method === "GET" &&
+        response.status >= 400 &&
+        request.headers.get("accept")?.includes("text/html")
+      )
+        return onboardingFailure(
+          new OnboardingError("INVALID_REQUEST", response.status),
+          request,
+        );
+      return response;
     }
     if (url.pathname !== "/mcp") return admin.fetch(request);
     if (url.search) return challenge();
@@ -348,6 +683,7 @@ export function createProductGateway(
         identity = await auth.api.verifyProductToken({
           body: { token: authorization.slice(7) },
         });
+        if (identity.clientId.startsWith("owner-recovery:")) throw new Error();
       } catch {
         return challenge();
       }
@@ -414,11 +750,4 @@ async function boundedText(request: Request) {
     offset += c.length;
   }
   return new TextDecoder().decode(out);
-}
-function escapeMarkup(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }

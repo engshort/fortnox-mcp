@@ -9,7 +9,8 @@ operations. C bindings and a CLI are outside this version.
 Use the existing Node/Worker installation. Set `REST_API_ENABLED=true` and include
 the application's exact HTTPS callback in `MCP_REDIRECT_URIS`, the shared client
 redirect allowlist. Leave `FINANCIAL_READ_MODULES` empty for metadata only.
-Provider reads retain existing test gates. For an authorized test run, select
+Existing metadata/reference reads retain current company/program policy. New raw
+financial reads require the separate test-only activation. For an authorized test run, select
 financial modules and reconnect to Fortnox if required scopes are absent.
 
 Fetch `/.well-known/oauth-authorization-server` and
@@ -44,8 +45,10 @@ The owner signs in and selects companies on the installation's consent page.
 Exchange the code with form-encoded `POST /auth/oauth2/token`, using
 `grant_type=authorization_code`, client ID, exact redirect, the same resource and
 original `code_verifier`. Store tokens privately. Access tokens currently last
-five minutes. Refresh rotates with the existing one-day maximum lifetime, so
-renewed owner authorization is eventually required. Serialize refresh and save
+five minutes. Refresh rotates with the ordinary one-day policy. An explicitly
+allowlisted confidential backend with offline consent can use the existing
+30-day rolling policy; see the authentication contract. Renewed owner
+authorization is required after expiry, revocation or an uncertain rotation. Serialize refresh and save
 its replacement atomically. Never send these tokens to Fortnox or use an owner
 cookie as API authorization.
 

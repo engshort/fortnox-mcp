@@ -11,6 +11,7 @@ import {
 import { dirname, join } from "node:path";
 import { backup, DatabaseSync } from "node:sqlite";
 import {
+  type ConnectionSet,
   Connections,
   type CredentialVault,
   receiptFileBinding,
@@ -65,6 +66,14 @@ async function privateWrite(path: string, bytes: Uint8Array | string) {
     await file.close();
   }
 }
+function clearAnalysisCache(db: DatabaseSync) {
+  if (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE name='analysis_contexts'")
+      .get()
+  )
+    db.exec("DELETE FROM analysis_parts; DELETE FROM analysis_contexts;");
+}
 export async function backupDatabase(
   db: DatabaseSync,
   backupKey: string,
@@ -79,6 +88,13 @@ export async function backupDatabase(
   try {
     await privateWrite(temporary, "");
     await backup(db, temporary);
+    const snapshot = new DatabaseSync(temporary);
+    try {
+      clearAnalysisCache(snapshot);
+      snapshot.exec("VACUUM");
+    } finally {
+      snapshot.close();
+    }
     if ((await stat(temporary)).size > maxBytes)
       throw new Error("Backup exceeds bounded state limit");
     const input = Buffer.from(
@@ -166,6 +182,12 @@ export async function restoreDatabase(options: {
             c.generation++;
             c.policyVersion++;
             delete c.renewal;
+            if (c.business) {
+              c.business.proposals = [];
+              for (const execution of c.business.executions)
+                if (execution.state === "submitting")
+                  execution.state = "outcome_unknown";
+            }
             if (c.bookkeeping) {
               c.bookkeeping.proposals = [];
               for (const execution of c.bookkeeping.executions)
@@ -193,10 +215,27 @@ export async function restoreDatabase(options: {
         db.prepare(
           "DELETE FROM product_state WHERE space='installation' AND id='owner'",
         ).run();
+      clearAnalysisCache(db);
       // Library-validated owner identity/password remain; all old access paths are revoked.
       db.exec(`DELETE FROM oauthAccessToken; DELETE FROM oauthRefreshToken; DELETE FROM oauthConsent;
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
         DELETE FROM product_state WHERE space IN ('company-grants','fortnox-flows','continuations');`);
+      const restoredOwner = installation?.value.ownerId;
+      const restored = restoredOwner
+        ? await state.get<ConnectionSet>("connections", restoredOwner)
+        : null;
+      if (restored && restoredOwner) {
+        restored.value.onboarding = [];
+        if (
+          !(await state.put(
+            "connections",
+            restoredOwner,
+            restored.value,
+            restored.version,
+          ))
+        )
+          throw new Error("Restore conflict");
+      }
       const previous = await state.get("installation", "restore");
       if (
         !(await state.put(
@@ -250,6 +289,7 @@ export async function rotateCredentials(
   const connections = new Connections(state, vault);
   db.exec("BEGIN IMMEDIATE");
   try {
+    clearAnalysisCache(db);
     await connections.rotateKey(owner);
     await new IntegrationSettings(state, vault, {
       clientId: "",
@@ -271,6 +311,19 @@ export async function rotateCredentials(
           "UPDATE receipt_chunks SET key=?,iv=?,data=? WHERE file_id=? AND idx=?",
         ).run(next.key, next.iv, next.data, file.record.id, chunk.index);
       }
+    }
+    const attempts = await state.get<ConnectionSet>("connections", owner);
+    if (attempts) {
+      attempts.value.onboarding = [];
+      if (
+        !(await state.put(
+          "connections",
+          owner,
+          attempts.value,
+          attempts.version,
+        ))
+      )
+        throw new Error("Rotation conflict");
     }
     db.prepare("DELETE FROM product_state WHERE space='fortnox-flows'").run();
     db.exec("COMMIT");

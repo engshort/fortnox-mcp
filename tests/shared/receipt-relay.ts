@@ -108,10 +108,14 @@ export function receiptRelayContract(fixture: () => Promise<ReceiptFixture>) {
     ).rejects.toThrow("FILE_TRANSPORT_UNAVAILABLE");
     expect({ direct, sent }).toEqual({ direct: 0, sent: 0 });
     expect(receiptSourceSettings({}, false).transport).toBe("none");
-    for (const value of ["node-direct", "node-relay", "unknown"])
-      expect(() =>
-        receiptSourceSettings({ RECEIPT_FILE_TRANSPORT: value }, false),
-      ).toThrow("FILE_TRANSPORT_UNAVAILABLE");
+    for (const value of ["node-direct", "node-relay"])
+      expect(
+        receiptSourceSettings({ RECEIPT_FILE_TRANSPORT: value }, false)
+          .transport,
+      ).toBe(value);
+    expect(() =>
+      receiptSourceSettings({ RECEIPT_FILE_TRANSPORT: "unknown" }, false),
+    ).toThrow("FILE_TRANSPORT_UNAVAILABLE");
     expect(() =>
       receiptSourceSettings(
         { RECEIPT_FILE_ORIGINS: "https://*.example.com" },

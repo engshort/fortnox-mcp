@@ -10,12 +10,17 @@ it("creates private operator configuration without stdout secrets and refuses to
   const run = promisify(execFile);
   try {
     const args = [
-      "deploy/docker/initialize.mjs",
+      "--input-type=module",
+      "--eval",
+      'process.umask(0o077); await import("./deploy/docker/initialize.mjs");',
+      "initializer",
       dir,
       "https://installation.example.invalid",
     ];
     const result = await run(process.execPath, args);
     expect((await stat(dir)).mode & 0o777).toBe(0o700);
+    for (const name of ["auth-secret", "credential-keys.json", "backup-key"])
+      expect((await stat(join(dir, name))).mode & 0o777).toBe(0o444);
     const secret = await readFile(join(dir, "auth-secret"), "utf8");
     expect(secret.trim().length).toBeGreaterThan(32);
     expect(result.stdout + result.stderr).not.toContain(secret.trim());

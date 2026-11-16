@@ -7,6 +7,126 @@ import { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { expect, it } from "vitest";
 import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
+  it("serializes consent per browser session while preserving independent sessions and cancellation recovery", async () => {
+    const state = await fixture();
+    let now = Date.now();
+    let providerCalls = 0;
+    const connections = new Connections(
+      state,
+      new CredentialVault({ a: keyA }, "a"),
+    );
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections,
+      now: () => now,
+      fetch: async () => {
+        providerCalls++;
+        throw new Error("Consent start must not call Fortnox");
+      },
+    });
+    const input = {
+      mode: "service" as const,
+      clientId: "synthetic-client",
+      clientSecret: "synthetic-private-secret",
+    };
+    const results = await Promise.allSettled([
+      provider.start("owner", "browser-A", input),
+      provider.start("owner", "browser-A", input),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const failed = results.find((result) => result.status === "rejected");
+    expect(failed?.status === "rejected" && failed.reason.message).toBe(
+      "CONSENT_IN_PROGRESS",
+    );
+    await provider.start("owner", "browser-B", input);
+    await provider.start("other-owner", "browser-A", input);
+    await provider.cancelPending("owner", "browser-A");
+    await provider.start("owner", "browser-A", input);
+    await expect(provider.start("owner", "browser-B", input)).rejects.toThrow(
+      "CONSENT_IN_PROGRESS",
+    );
+    now += 600001;
+    await provider.start("owner", "browser-A", input);
+    for (const session of ["browser-C", "browser-D", "browser-E"])
+      await provider.start("owner", session, input);
+    await expect(provider.start("owner", "browser-F", input)).rejects.toThrow(
+      "RATE_LIMITED",
+    );
+    expect(providerCalls).toBe(0);
+    expect(await connections.list("owner")).toEqual([]);
+  });
+  it("cancels only unclaimed consent flows of the same owner and browser session", async () => {
+    const state = await fixture();
+    const connections = new Connections(
+      state,
+      new CredentialVault({ a: keyA }, "a"),
+    );
+    const provider = new FortnoxConnections({
+      origin: "https://product.example.invalid",
+      connections,
+      testTenants: ["100001", "100002"],
+      fetch: async () => {
+        throw new Error("Cancellation must not contact Fortnox");
+      },
+    });
+    const input = {
+      mode: "service" as const,
+      clientId: "synthetic-client",
+      clientSecret: "synthetic-private-secret",
+    };
+    const cancelled = new URL(
+      await provider.start("owner", "session-A", input),
+    );
+    await provider.start("owner", "session-B", input);
+    await provider.start("other-owner", "session-A", input);
+    const snapshot = await state.get<{ session: string; claimed: boolean }[]>(
+      "fortnox-flows",
+      "owner",
+    );
+    if (!snapshot) throw new Error("Missing synthetic flows");
+    snapshot.value.push({
+      ...snapshot.value[0],
+      session: "session-A",
+      claimed: true,
+    } as { session: string; claimed: boolean });
+    await state.put("fortnox-flows", "owner", snapshot.value, snapshot.version);
+    await provider.cancelPending("owner", "session-A");
+    const remaining = await state.get<{ session: string; claimed: boolean }[]>(
+      "fortnox-flows",
+      "owner",
+    );
+    expect(remaining?.value.map((f) => [f.session, f.claimed])).toEqual([
+      ["session-B", false],
+      ["session-A", true],
+    ]);
+    expect(
+      (await state.get<unknown[]>("fortnox-flows", "other-owner"))?.value,
+    ).toHaveLength(1);
+    const callback = new URL(
+      "https://product.example.invalid/admin/fortnox/callback",
+    );
+    callback.search = new URLSearchParams({
+      state: cancelled.searchParams.get("state") ?? "",
+      code: "synthetic-code",
+    }).toString();
+    await expect(
+      provider.finish("owner", "session-A", callback),
+    ).rejects.toThrow("AUTH_REQUIRED");
+    await provider.cancelPending("owner", null);
+    expect(
+      (
+        await state.get<{ claimed: boolean }[]>("fortnox-flows", "owner")
+      )?.value.map((f) => f.claimed),
+    ).toEqual([true]);
+    await expect(provider.start("owner", "session-A", input)).rejects.toThrow(
+      "CONSENT_IN_PROGRESS",
+    );
+    expect(
+      (await state.get<unknown[]>("fortnox-flows", "other-owner"))?.value,
+    ).toHaveLength(1);
+  });
   it("requests receipt scopes only through fresh consent and retains stored scope sets through both token lifecycles", async () => {
     const connections = new Connections(
       await fixture(),
@@ -72,6 +192,7 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
       connections,
       testTenants: ["100001", "100002"],
       scopes,
+      programGates: { references: true, receiptConsent: true },
       fetch: transport,
     });
     await provider.token("owner", old, true);
@@ -94,6 +215,13 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
             clientSecret: "synthetic-client-secret",
           },
           reconnectId,
+          reconnectId
+            ? {
+                program: "bookkeeping",
+                features: ["references", "receipt-files"],
+                expected_revision: 0,
+              }
+            : undefined,
         ),
       );
       expect(url.searchParams.get("scope")).toBe(scopes.join(" "));
@@ -118,7 +246,6 @@ export function fortnoxConnectionContract(fixture: () => Promise<StateStore>) {
     await expect(
       connections.authorize("owner", "old-client", b?.id ?? ""),
     ).rejects.toThrow("COMPANY_FORBIDDEN");
-    await connections.disconnect("owner", old.id);
     await finish("service", "service-code", old.id);
     const a = (await connections.list("owner")).find((c) => c.id === old.id);
     if (!a) throw new Error("fixture");

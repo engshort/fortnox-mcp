@@ -2,8 +2,9 @@
 
 The opt-in [REST resource](rest.md) uses `/api/v1`, separate read scopes and
 explicitly selected company grants. MCP and REST tokens are not interchangeable.
-New financial MCP reads require fresh `mcp:finance:read` consent; migration 0007
+New financial MCP reads require fresh `mcp:finance:read` consent; migration 0008
 advertises that scope without updating existing clients or tokens.
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
 
 The protected owner application uses same-origin Hono routes and built React/Vite
 assets. `/admin/state` requires an owner session; MCP bearer tokens cannot
@@ -14,9 +15,41 @@ existing vault, bound to the installation owner. Status returns only
 overwritten through the UI. New consent uses these settings; existing connections
 retain their original encrypted credentials until explicitly reconnected.
 
-The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup and password-reset requests are not exposed. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
+The product integration uses Better Auth 1.7.10, a ten-minute one-time operator bootstrap and subsequent owner email/password login. Public signup is not exposed. Password-reset requests remain unavailable unless the operator explicitly enables account email. Sessions are database-validated and admin browser POSTs require the exact installation Origin. See [implementation and remaining acceptance](../implementation/M02-connections-evidence.md).
 
-Reset issuance requires installation access. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form only redeems that private code through the maintained auth component, with exact Origin checks and admin-session revocation.
+## Optional account email
+
+Resend account email is disabled by default (`RESEND_ENABLED=false`). Explicit
+activation requires `RESEND_API_KEY` and a bare verified sender address in
+`RESEND_FROM`. Node also supports the mutually exclusive `RESEND_API_KEY_FILE`.
+The key is server-only and is never returned through admin state or MCP.
+
+The [account-email adapter](../implementation/account-email.md) sends a welcome
+message only after a successful owner bootstrap, a reset code issued by the
+maintained auth component, and a notification after a successful password reset.
+The product still has one installation owner; this adds no public signup or
+multi-user management. Recipients come from the registered account, never an
+arbitrary model-supplied delivery target. No email-sending MCP tool is exposed.
+
+When configured, `POST /auth/request-password-reset` accepts only an email address,
+requires the exact installation Origin and checks a durable installation-wide
+limit of three attempts per hour before account lookup. This authentication
+recovery endpoint intentionally works without an existing session. Only the
+active owner's account can receive a reset code. The endpoint returns the same
+generic acknowledgement for unknown addresses, non-owner accounts and uncertain
+delivery; it does not assert that mail arrived. Tokens last ten minutes, are
+single-use and revoke existing sessions on successful redemption. Redirect
+destinations and caller-supplied message content are rejected.
+
+Each email attempt has a ten-second timeout and a Resend idempotency key. Unknown
+delivery is not retried automatically or promoted to confirmed delivery. Welcome
+or password-change notification failure cannot roll back completed account
+creation/password reset. Operator recovery remains available. Provider errors,
+tokens and message contents are never logged; SDK debug mode is rejected. No
+durable outbound queue, bounce webhook or inbox-delivery guarantee is added.
+
+Operator reset issuance requires installation access and remains available with
+email disabled. The D1 [operator recovery bridge](../implementation/M02-owner-recovery.md) imports a library-issued ten-minute verification record only when the existing owner ID/email match; it never replaces the owner. The public fixed `/reset-password` form redeems operator- or email-issued codes through the maintained auth component, with exact Origin checks and admin-session revocation.
 
 Sources: [F01–F04, F06 in sources](../reference/sources.md). OAuth between the AI client and this server is separate from OAuth between this server and Fortnox.
 
@@ -44,6 +77,14 @@ Implement the authorization requirements of each supported MCP protocol revision
 Restrict each MCP grant to the installation owner and authorized capabilities. Do not implement transparent token passthrough. A valid token for one audience or installation must fail on another. Record the actual supported discovery and refresh behavior in the client matrix.
 
 ## MCP server → Fortnox
+
+Only one unexpired Fortnox consent may be pending per authenticated admin
+session. A second start returns `CONSENT_IN_PROGRESS` before provider navigation;
+finish the first flow or explicitly cancel it in Operations, then start fresh.
+Claimed exchanges remain protected from cancellation. Independent sessions
+retain the four-flow owner-wide bound. This prevents overlapping starts from
+the same admin session without weakening callback binding. Actual provider
+continuation and post-deployment recovery remain separately verified.
 
 Each installation registers its own integration and redirect URI in the Fortnox developer portal. Client ID is public; Client Secret is stored as a secret and never delivered to a widget or model. Request scopes for enabled modules and require reauthorization when adding scope.
 
@@ -73,3 +114,86 @@ Node/SQLite and workerd/D1. It uses only a synthetic owner and read-only fixture
 ChatGPT owner consent, an authenticated synthetic tool call and remote refresh
 rotation. It distinguishes these results from pending lifecycle checks and the
 S02 production implementation.
+
+## Company program consent (S11 / #117)
+
+The [2026-11-13 access renewal](../implementation/access-renewal-2026-11-13.md)
+classifies program changes as no-op, local selection or provider consent. Local
+selection with existing scopes advances a separate access revision, leaving
+provider credentials/generation and voucher policy intact. Safe additive reads
+can coexist with unknown writes; in-flight writes still block them. Selected-company
+approvals become stale; installation-wide approvals follow the owner-managed
+connections and their current program selections.
+
+Ordinary OAuth consent explicitly authorizes all current and future connections
+of the installation owner (`companyAccess: owner_connections`). The consent page
+names the current companies and explains future access. Its focused responsive
+layout reuses the administration's brand, CSS tokens and controls; requested
+read/write/file/refresh capabilities are listed separately. File-retention and
+policy disclosures remain visible. The server resolves
+company membership on each request; neither a supplied company ID nor the mere
+existence of an OAuth registration grants access. An empty installation may be
+approved before the first company is connected. Owner-authorized program changes
+and verified reconnects are available through the existing client authorization.
+Disconnection immediately blocks that company. OAuth read/write/file scopes,
+provider scopes, program availability, read-only and voucher policy still apply.
+This does not revalidate proposals, approvals, files or intents bound to older
+company/generation/access/policy versions.
+
+Older approvals retain their selected companies and exact connection/access
+versions until the owner explicitly chooses **Allow all current and future
+companies** in AI clients. The owner-session-only, exact-Origin endpoint
+`POST /admin/clients/company-access` binds the observed registration, approval
+identity and revision. It changes company membership for that authorization
+without replacing tokens, extending expiry or adding OAuth capability scopes.
+The model's bearer token cannot perform this upgrade. Legacy unversioned grants
+use CAS on their existing row; versioned grants update their bounded, expiring
+approval record. Expired approvals cannot be revived. External application
+onboarding approvals remain selected-company grants and cannot be upgraded by
+this endpoint or by adding the installation-wide flag to onboarding consent.
+
+A new explicit OAuth approval can still renew the same registration and replaces
+the authorization identity/revision. Tokens, refresh families and unspent codes
+from older approvals cannot acquire the replacement's rights. Installation-wide
+domain authorization checks the current registration as well, fencing in-flight
+requests after replacement. Successful refresh retains company access mode for
+the actual library token lifetime. Hosted-client acceptance remains separate;
+see [implementation and evidence](../implementation/installation-company-access.md).
+
+Initial product consent requests `companyinformation profile` only. Additional
+access uses the existing company connection, not a separate service account for
+each program. The shared program/function manifest derives the per-company union
+from existing scopes and explicitly selected, currently allowed features. Owner
+APIs accept program IDs and a revision, never arbitrary scopes or credentials.
+Every private deep link and program/grant API requires the owner session; browser
+POSTs require the exact installation Origin. MCP bearer tokens cannot administer
+programs.
+
+An extension binds owner/session/company/generation/policy/program revision and
+requested scopes. The authenticated provider tenant must match before replacement;
+partial scope responses fail closed. Replacement advances generation and invalidates
+old proposals and selected-company grants while retaining the stable company ID and current policy.
+Cancellation/failure does not delete the working local credential. Actual upstream
+invalidation remains subject to provider acceptance and normal reconnect handling.
+Local disable retains provider scopes but blocks current domain/provider calls;
+shared scopes remain usable by other enabled programs. Reactivation requires a new
+explicit consent flow. Uncertain writes block changes to affected programs and all local disable operations. A narrowly additive payroll consent may proceed with an older tenant-bound register/document outcome, preserving that outcome and its write block. In-flight, unbound, bookkeeping, receipt and payroll uncertainty still block it. Owner-only same-origin reconciliation uses a temporary read-only internal identity; recovery does not widen MCP grants or change intent identities.
+See [implementation and acceptance boundaries](../implementation/S11-company-programs.md).
+
+## External application company onboarding (#146)
+
+The opt-in [company-onboarding-v1 contract](company-onboarding-v1.md) composes confidential-client initiation, protected owner connection actions and explicit OAuth company consent. The backend-only requirement applies only to this new API. Existing public MCP clients and standalone onboarding retain their existing boundaries.
+
+
+### Optional confidential-backend offline policy
+
+`MCP_OFFLINE_CLIENT_IDS` defaults to an empty JSON list. Active pre-registered
+`client_secret_basic` backends with explicit `offline_access` consent may receive
+30-day rolling refresh tokens; their pair is independent of owner web sessions
+and retained onboarding attempts. Access tokens still last five minutes.
+Successful issuance/rotation persists the actual library row expiry/session
+binding and matching immutable approval/family expiry before returning the pair.
+No scope/company right is added; revoked or superseded families cannot be renewed.
+Policy removal fences detached families immediately. Existing pairs are not
+rewritten at boot; expired or uncertain pairs need fresh explicit app consent.
+See [migration, recovery and bounded verification](../implementation/onboarding-continuity.md).

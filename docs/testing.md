@@ -8,6 +8,78 @@ The product OAuth test performs PKCE, explicit company selection, API access,
 MCP/admin denial, refresh rotation and revocation using synthetic data only.
 These checks establish no live provider or hosted external-client acceptance;
 see [REST evidence and limits](implementation/REST-read-api.md).
+[Onboarding continuity](implementation/onboarding-continuity.md) adds shared
+`onboarding-continuity.ts` cases through the actual maintained OAuth library on
+Node/SQLite and local workerd/D1: 73-hour simulated idle, logout/purge, repeated
+rotation, actual row/family/approval expiry, scope/company isolation, revocation,
+policy removal and explicit consent after a lost response. `offline-restart`
+closes/reopens SQLite and actually restarts workerd/D1 before renewing the stored
+pair. The existing owner browser harness covers expiry before/during login,
+validated `interaction_required`, revision renewal and the same company, on
+desktop/mobile. These synthetic checks do not replace actual M2X scheduler,
+provider, hosted-runtime or 72-wall-clock-hour acceptance.
+
+Optional [account-email tests](implementation/account-email.md) run through the
+shared owner contract on Node/SQLite and actual local workerd/D1. They use
+synthetic accounts and intercepted email transport, checking default-off setup,
+active-owner delivery, issuance limits, single-use reset/session revocation,
+welcome replay and uncertain notification failures. They prove no real inbox
+delivery. Run the existing `test:node` / `test:worker` commands with
+`tests/node/product.test.ts` / `tests/worker/product.test.ts` and
+`-t 'product owner boundary'` for the focused contract.
+
+The external-app owner browser suite exercises new connection as the primary
+action, existing-company rows, retained login continuation, keyboard selection,
+long escaped names, competing submissions, cancellation, lost-response readback,
+pending consent, session recovery and expired/missing HTML error pages on desktop
+and Pixel 7 Chromium. Retained unknown state is seeded explicitly for UI coverage;
+actual synthetic exchange uncertainty and session fencing are exercised separately
+in the Node/SQLite and workerd/D1 contracts. API/POST errors retain JSON even when
+HTML is requested. See the [connection guide design evidence](implementation/external-company-onboarding.md#connection-guide-design-follow-up).
+
+The shared company-access regressions in `product-oauth`, `connections` and
+`onboarding` exercise installation-wide consent before connecting a company,
+existing-token owner upgrades, refresh, current membership, foreign owners,
+disconnection/reconnect, stale/expired grants and preservation of external app
+consent. The owner browser suite checks the actual consent script, program
+addition, future-company listing and owner upgrade UI on desktop/mobile. It also
+checks read-only/all-scope consent layouts, explicit file-retention disclosures,
+the shared brand and horizontal overflow. See
+[scope and bounded evidence](implementation/installation-company-access.md).
+
+The dated S08 contracts (`financial-dates.ts` and `invoice-history.ts` under
+`tests/shared`) run through Node/SQLite and actual local workerd/D1. They cover
+inclusive dates, multiple/non-calendar fiscal years, source-bound continuations,
+historical paid/partial/credit/write-off cases, complete-collection versus page
+totals, control-account signs/differences, strict MCP schemas and ordinary
+ordinary activation, read-only and feature boundaries. The product OAuth test
+also discovers the dated tools without test mode or a lease and rejects missing
+bookkeeping scope before provider access. Synthetic financial profiles remain
+distinct from actual source evidence; see the [dated-read record](implementation/S08-dated-reads.md).
+
+Operator/reviewer update (2026-11-11): all acceptance tests may use an AI operator
+and a separate AI reviewer under the [owner-approved procedure](implementation/ai-reviewed-acceptance-2026-11-11.md).
+Real client/provider/runtime and evidence requirements remain. Historical human
+observations are preserved; new runs must be labeled as AI-executed and
+independently AI-reviewed.
+
+The [2026-11-11 activation change](implementation/product-activation-2026-11-11.md)
+adds shared Node/SQLite and workerd/D1 coverage for ordinary product consent to
+a third company with test flags off, the implemented tool catalog and continued
+company-grant isolation. Profile-free hourly payroll creation/deletion uses
+current synthetic employee wages and rejects inconsistent amounts. Historical
+acceptance flags are tested as evidence rather than runtime activation gates;
+the existing policy, exact-decimal, concurrency and uncertain-outcome tests remain.
+
+Owner UI CI installs the existing pinned OAuth-package Playwright harness and
+runs `playwright.owner.config.ts` against the built product on desktop/mobile.
+The synthetic loopback fixture uses no Fortnox credentials or external writes.
+
+Nova deployment input tests cover exact SSH command restrictions, checksum,
+upload bounds and refusing file replacement. `scripts/nova-smoke.ts` checks the
+actual public HTTPS origin, exact revision, OAuth issuer and private-route denial
+without provider calls. Deployment remains unverified until its exact-main
+Actions run and public smoke pass; see [the Nova runbook](deployment-nova.md).
 
 The M05 Node runtime cases exercise secret-file conflicts/redaction, proxy
 authority and unchanged browser Origin, then bootstrap the actual Node process
@@ -219,3 +291,24 @@ bytes, then saves the image with runtime/OS notices and a package inventory.
 Verify every generated regular file with the packet's `SHA256SUMS`; inspect the
 source archive for prohibited private/external material. This is draft artifact
 verification, not actual client/provider acceptance or distribution authorization.
+
+The [access-renewal follow-up](implementation/access-renewal-2026-11-13.md)
+adds shared authorization/retention/recovery regressions for T01/T02/T09/T10/T20.
+The owner browser suite also covers local read activation with retained unknown
+writes and a same-registration OAuth/MCP round trip with an intercepted synthetic
+client callback. These local provider/library/browser fixtures do not establish
+actual Fortnox or hosted ChatGPT acceptance.
+
+## S08 analysis context regressions
+
+Shared `analysis-contexts` and `large-sie` contracts run in Node/SQLite and
+actual local workerd/D1. They distinguish optional pinned observations from
+live reads, verify selective drill-down and exact large-input arithmetic, and
+exercise retention, source/access changes, concurrency and failure cleanup.
+`analysis-restart` additionally reopens an actual SQLite file.
+`npm run benchmark:analysis -- 30` uses synthetic inputs only; see
+[S08 measurements and remaining actual acceptance](implementation/S08-performance.md).
+
+## External application onboarding regressions
+
+Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). The separate actual M2X-backend browser run against the synthetic provider is recorded in that evidence document; actual Fortnox acceptance remains unverified.

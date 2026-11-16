@@ -22,13 +22,17 @@ expired/revoked tokens and inactive owners fail. Admin cookies are not API
 authorization. Cross-origin browser requests are not enabled in this version.
 
 REST consent names data categories and lists active companies for explicit
-selection. Grants use `api-company-grants-v1`, separately from existing
-`company-grants`, and record company generations. New companies are not added
-automatically; changing selection requires new client registration and consent,
-matching the existing immutable-grant behavior. Reconnection invalidates the old
-generation. Revocation denies a token even while its company grant remains stored.
+selection. OAuth approvals reuse the current immutable `oauth-approval-grants`
+and token-family revisions, with an explicit `resource` binding (missing means
+legacy MCP). Reapproval replaces the client's previous family; a dedicated client
+registration per transport is recommended. API approvals retain selected company
+generations and access revisions; they cannot request installation-wide or
+onboarding consent. New companies require fresh explicit consent, without a new
+registration. Internal legacy API grants use `api-company-grants-v1`, separate
+from legacy MCP. Reconnection/access changes invalidate the selected version.
+Revoked tokens fail even while a retained grant remains stored.
 
-New financial MCP tools require `mcp:read` and `mcp:finance:read`. Migration 0007
+New financial MCP tools require `mcp:read` and `mcp:finance:read`. Migration 0008
 advertises the optional scope only on known MCP resource policies. It changes
 no client, consent, access-token or refresh-token scopes. Custom policies remain
 unchanged. Adapters convert verified OAuth into owner/client/resource/domain

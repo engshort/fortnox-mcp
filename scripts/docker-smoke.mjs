@@ -193,10 +193,18 @@ try {
     "Secure cookie missing",
   );
   const cookie = cookies.map((c) => c.split(";")[0]).join("; ");
-  assert.equal(
-    (await call("/admin", "GET", undefined, { cookie })).status,
-    200,
-  );
+  const companyNavigation = async () => {
+    const entry = await call("/admin", "GET", undefined, { cookie });
+    assert.equal(entry.status, 303);
+    assert.equal(entry.headers.location, "/admin/companies");
+    const page = await call(entry.headers.location, "GET", undefined, {
+      cookie,
+    });
+    assert.equal(page.status, 200);
+    assert.match(page.headers["content-type"], /text\/html/);
+    assert.match(page.text, /id="root"/);
+  };
+  await companyNavigation();
   const metadata = JSON.parse(
     (await call("/.well-known/oauth-protected-resource/mcp")).text,
   );
@@ -230,10 +238,7 @@ try {
     if ((await call("/health")).status === 200) break;
     await delay(500);
   }
-  assert.equal(
-    (await call("/admin", "GET", undefined, { cookie })).status,
-    200,
-  );
+  await companyNavigation();
   assert.equal(
     (await call("/admin/bootstrap", "POST", bootstrap, { origin })).status,
     403,

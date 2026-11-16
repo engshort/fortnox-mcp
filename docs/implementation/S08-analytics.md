@@ -1,6 +1,6 @@
 # S08 — Full financial data basis
 
-Status: not started. Depends on S04, document/accounting read contracts and G07.
+Status: implementation in progress; see [milestone 7 delivery and evidence](M07-analysis-payroll.md). Original full acceptance below remains required. Depends on S04, document/accounting read contracts and G07.
 
 ## Deliver
 
@@ -13,6 +13,8 @@ Provide deterministic balance/result groupings, receivable/payable lists, liquid
 Verify T15/T16 against synthetic reconciliation fixtures and a Fortnox test-company export. Include all/zero/inactive accounts, custom charts, non-calendar years, multi-year boundaries, partial exports and concurrent source changes. Check that year-end fields are not misused for arbitrary-date balances.
 
 A report based on partial pagination/export must not say complete. Outputs include retrieval window, source references, definitions, currency, mapping version and limitations. Large work remains bounded and resumable.
+
+See also [#143 bounded analysis contexts and performance](S08-performance.md).
 
 ## Handoff
 

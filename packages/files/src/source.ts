@@ -16,13 +16,10 @@ export interface ReceiptSourceSettings {
 }
 export function receiptSourceSettings(
   env: Record<string, string | undefined>,
-  testMode: boolean,
+  _testMode?: boolean,
 ): ReceiptSourceSettings {
   const transport = env.RECEIPT_FILE_TRANSPORT ?? "none";
-  if (
-    !["none", "node-direct", "node-relay"].includes(transport) ||
-    (!testMode && transport !== "none")
-  )
+  if (!["none", "node-direct", "node-relay"].includes(transport))
     throw new ReceiptFileError("FILE_TRANSPORT_UNAVAILABLE");
   return {
     transport: transport as ReceiptSourceSettings["transport"],

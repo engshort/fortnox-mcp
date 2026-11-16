@@ -16,8 +16,6 @@ export class FortnoxCompanyReads implements CompanyReadProvider {
   async profile(actor: Actor, company: string) {
     requirePermission(actor, "read");
     const c = await this.connections.authorizeActor(actor, company);
-    if (!this.provider.config.testTenants.includes(c.tenant))
-      throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (!c.scopes.includes("companyinformation"))
       throw new ProviderError("CAPABILITY_UNAVAILABLE", "missing_scope");
     const active = async () => {

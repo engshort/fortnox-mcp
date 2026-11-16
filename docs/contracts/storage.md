@@ -1,10 +1,17 @@
 # Operational storage and retention
 
-REST company grants use `api-company-grants-v1` separately from legacy MCP
-grants. `read-continuations-v1` retains at most 32 live opaque financial paging
+REST OAuth approvals share the immutable approval/family stores and bind their
+resource explicitly. Internal legacy API grants use `api-company-grants-v1`,
+separately from legacy MCP grants. `read-continuations-v1` retains at most 32 live opaque financial paging
 records per owner for ten minutes, bound to client/resource/company/generation/
 query. It stores no invoice or ledger payload. Maintenance removes expired
 records; interrupted reads can resume only with current authorization.
+Client approval renewal keeps two owner-partitioned maps of at most 128 live
+authorization snapshots/code-family bindings each. Unused entries expire in ten
+minutes; successful OAuth exchange/refresh retains the same rights through the
+actual library token expiry. Existing scheduled cleanup removes expired entries.
+These maps contain company revisions and library code hashes, never raw tokens
+or financial records. See [access renewal](../implementation/access-renewal-2026-11-13.md).
 
 Milestone 4 adds separate encrypted temporary file manifests/chunks through migration `0006_receipt_files.sql`. Owner capacity is atomically bounded; references expire in 55 minutes and Node/Worker cleanup physically deletes bytes. Old encryption key versions must remain until file cleanup completes. See [receipt evidence](../implementation/M04-receipts-evidence.md).
 
@@ -97,3 +104,39 @@ settings and receipt chunks in one transaction. It invalidates unfinished consen
 flows and preserves execution history. Keep old keys separately for old backups;
 remove them from the active installation only after a new-key-only validation.
 Upgrade creates encrypted pre-migration backup before opening versioned migrations.
+
+## S04 register recovery metadata
+
+Register intents add the originating tenant, a trusted target identity when
+known, submitted field names and a normalized content digest. Field values are
+removed with the consumed encrypted proposal. These minimal records inherit the
+business retention, encryption-key checks, restore and unresolved-capacity rules.
+They support exact-identity readback; they do not reconstruct a local register or
+prove authorship of another actor's matching changes. Unknown generated IDs are
+not guessed from names, dates or amounts.
+
+Known `applied_different` business results retain the original proposal/evidence
+hashes, exact provider reference, observed hash and at most 64 changed field
+names. No observed or expected payroll values are added to execution metadata.
+They use the existing 32-record bound and ordinary 30-day terminal retention;
+unknown and in-flight results still survive that expiry. Encryption/key checks,
+backup/restore, disconnect and authorization rules are unchanged. Retained
+discrepancy metadata is shown by owner administration and cannot authorize a
+new provider call or replay an old intent.
+
+## Optional analytical contexts
+
+The default-off S08 context store uses separate `analysis_contexts` and
+`analysis_parts` tables in SQLite/D1. AES-GCM encrypts manifests, build state,
+aggregates, row pointers and compact source rows, binding identity/context/part
+and ordinal. Fixed capacity reservations are 64 MiB/context, 128 MiB/owner and
+256 MiB/installation, including staging; TTL is ten minutes while building and
+five minutes from readiness, without sliding renewal. Temporary inputs are not
+part of connection CAS records. Expiry and failure remove active SQL rows.
+
+Node operator backups exclude these tables' contents and vacuum the copy;
+restore and key rotation discard contexts. D1 backup/Time Travel retention is
+platform-managed and distinct from active cache TTL. A D1 restore procedure must
+clear both analysis tables before accepting traffic. See [S08 retention and
+verification](../implementation/S08-performance.md); no permanent financial
+replica or immediate deletion from managed backups is claimed.

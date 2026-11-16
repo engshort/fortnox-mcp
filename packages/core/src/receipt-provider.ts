@@ -3,11 +3,13 @@ import { hasPermission } from "./actor.js";
 import type { AccountingActor } from "./bookkeeping.js";
 import { voucherReference } from "./bookkeeping.js";
 import { DomainError } from "./errors.js";
+import { assertFeature, assertProgram } from "./programs.js";
 import { fileDigest, type ReceiptFileRecord } from "./receipt-files.js";
 import {
   type ReceiptItemReference,
   type ReceiptStep,
   type Receipts,
+  type ReceiptWriteDiagnostic,
   receiptItemReference,
 } from "./receipts.js";
 export const providerFileId = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
@@ -22,8 +24,17 @@ export type AttachmentReference = z.infer<typeof attachmentReference>;
 export type ReceiptWriteResult =
   | { state: "succeeded"; reference: string }
   | { state: "failed"; code: string }
-  | { state: "outcome_unknown"; reference?: string };
+  | {
+      state: "outcome_unknown";
+      reference?: string;
+      diagnostic?: ReceiptWriteDiagnostic;
+    };
 export interface ReceiptProvider {
+  inspectUpload?(
+    actor: AccountingActor,
+    company: string,
+    expected: { fileId: string; sha256: string },
+  ): Promise<{ reference: string; sha256: string } | null>;
   upload(
     actor: AccountingActor,
     company: string,
@@ -58,6 +69,200 @@ export class ReceiptAttachments {
     readonly gates: AttachmentGates,
     readonly now = Date.now,
   ) {}
+  // Same-origin owner route only. Reads provider evidence; never dispatches a
+  // financial/file write, changes an intent identity or restores execution rights.
+  async reconcileOwner(
+    owner: string,
+    company: string,
+    id: string,
+  ): Promise<ReceiptStep> {
+    const { c, batch, item } = await this.receipts.ownerRecoveryItem(
+      owner,
+      company,
+      id,
+    );
+    const kind = ["outcome_unknown", "submitting"].includes(
+      item.steps.link.state,
+    )
+      ? "link"
+      : "upload";
+    const step = item.steps[kind];
+    if (
+      !this.gates[kind] ||
+      !["outcome_unknown", "submitting"].includes(step.state)
+    )
+      return { state: "outcome_unknown" };
+    if (step.state === "submitting" && step.created + 120000 > this.now())
+      return { state: "outcome_unknown" };
+    const original = JSON.stringify(item.steps);
+    const result = await this.receipts.connections.ownerRecoveryRead(
+      owner,
+      company,
+      async (actor) => {
+        if (kind === "upload") {
+          if (
+            !this.provider.inspectUpload ||
+            item.steps.voucher.state !== "pending" ||
+            item.steps.link.state !== "pending"
+          )
+            return null;
+          const proof = await this.provider.inspectUpload(actor, company, {
+            fileId: item.file.file_id,
+            sha256: item.fileHash as string,
+          });
+          if (
+            !proof ||
+            proof.sha256 !== item.fileHash ||
+            (step.state === "outcome_unknown" &&
+              step.reference &&
+              step.reference !== proof.reference)
+          )
+            return null;
+          return providerFileId.parse(proof.reference);
+        }
+        const execution = c.bookkeeping?.executions.find(
+          (e) =>
+            e.id === item.proposal?.proposal_id &&
+            e.hash === item.proposal?.proposal_hash,
+        );
+        if (
+          item.steps.upload.state !== "succeeded" ||
+          execution?.state !== "succeeded" ||
+          !execution.reference
+        )
+          return null;
+        const fileId = item.steps.upload.reference;
+        return (await this.provider.connection(actor, {
+          company_id: company,
+          file_id: fileId,
+          voucher: execution.reference,
+        }))
+          ? fileId
+          : null;
+      },
+      true,
+    );
+    const after = await this.receipts.ownerRecoveryItem(owner, company, id);
+    if (!result)
+      return step.state === "outcome_unknown"
+        ? step
+        : { state: "outcome_unknown" };
+    if (
+      after.c.generation !== c.generation ||
+      after.c.policyVersion !== c.policyVersion ||
+      after.batch.client !== batch.client
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    await this.receipts.connections.mutate(owner, company, (current) => {
+      const saved = current.receiptBatches?.find(
+        (b) => b.id === batch.id && b.hash === batch.hash,
+      );
+      const target = saved?.items.find((i) => i.id === id);
+      if (
+        current.state !== "active" ||
+        current.generation !== c.generation ||
+        current.policyVersion !== c.policyVersion ||
+        current.tenant !== c.tenant ||
+        saved?.client !== batch.client ||
+        !target ||
+        JSON.stringify(target.steps) !== original ||
+        target.fileHash !== item.fileHash ||
+        target.proposal?.proposal_hash !== item.proposal?.proposal_hash ||
+        current.receiptBatches?.some((b) =>
+          b.items.some(
+            (i) =>
+              i.id !== id &&
+              (i.file.file_id === item.file.file_id ||
+                i.fileHash === item.fileHash) &&
+              i.steps.upload.state !== "pending",
+          ),
+        )
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      if (kind === "link") {
+        const originalExecution = c.bookkeeping?.executions.find(
+          (e) =>
+            e.id === item.proposal?.proposal_id &&
+            e.hash === item.proposal?.proposal_hash,
+        );
+        const execution = current.bookkeeping?.executions.find(
+          (e) =>
+            e.id === target.proposal?.proposal_id &&
+            e.hash === target.proposal?.proposal_hash,
+        );
+        if (
+          execution?.state !== "succeeded" ||
+          !execution.reference ||
+          JSON.stringify(execution.reference) !==
+            JSON.stringify(originalExecution?.reference)
+        )
+          throw new DomainError("INTENT_CONFLICT");
+        execution.attachmentComplete = true;
+      }
+      target.steps[kind] = { state: "succeeded", reference: result };
+    });
+    return { state: "succeeded", reference: result };
+  }
+  async reconcileUpload(
+    actor: AccountingActor,
+    input: ReceiptItemReference,
+  ): Promise<ReceiptStep> {
+    const ref = receiptItemReference.parse(input);
+    const { c, batch, item } = await this.receipts.uploadRecoveryItem(
+      actor,
+      ref,
+    );
+    await this.authorize(actor, c.id, false);
+    if (!this.gates.upload || !this.provider.inspectUpload)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    if (item.steps.upload.state === "succeeded") return item.steps.upload;
+    const original = JSON.stringify(item.steps.upload);
+    const proof = await this.provider.inspectUpload(actor, c.id, {
+      fileId: item.file.file_id,
+      sha256: item.fileHash as string,
+    });
+    await this.receipts.uploadRecoveryItem(actor, ref);
+    if (!proof || proof.sha256 !== item.fileHash) return item.steps.upload;
+    const reference = providerFileId.parse(proof.reference);
+    if (
+      item.steps.upload.state === "outcome_unknown" &&
+      item.steps.upload.reference &&
+      item.steps.upload.reference !== reference
+    )
+      return item.steps.upload;
+    await this.receipts.connections.mutate(actor.ownerId, c.id, (current) => {
+      const saved = current.receiptBatches?.find(
+        (b) => b.id === batch.id && b.hash === batch.hash,
+      );
+      const selected = saved?.items.find((i) => i.id === item.id);
+      if (
+        current.generation !== c.generation ||
+        current.policyVersion !== c.policyVersion ||
+        saved?.client !== actor.clientId ||
+        !selected ||
+        JSON.stringify(selected.steps.upload) !== original ||
+        selected.fileHash !== item.fileHash ||
+        selected.proposal?.proposal_hash !== item.proposal?.proposal_hash ||
+        selected.steps.voucher.state !== "pending" ||
+        selected.steps.link.state !== "pending"
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      if (
+        current.receiptBatches?.some((b) =>
+          b.items.some(
+            (i) =>
+              i.id !== item.id &&
+              (i.file.file_id === item.file.file_id ||
+                i.fileHash === item.fileHash) &&
+              i.steps.upload.state !== "pending",
+          ),
+        )
+      )
+        throw new DomainError("INTENT_CONFLICT");
+      selected.steps.upload = { state: "succeeded", reference };
+    });
+    return { state: "succeeded", reference };
+  }
   private async authorize(
     actor: AccountingActor,
     company: string,
@@ -70,6 +275,8 @@ export class ReceiptAttachments {
     )
       throw new DomainError("AUTH_REQUIRED");
     const c = await this.receipts.connections.authorizeActor(actor, company);
+    assertProgram(c, "bookkeeping");
+    assertFeature(c, "receipt-files");
     if (write && c.readOnly) throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.receipts.connections.assertWritesAllowed();
     return c;
@@ -104,6 +311,12 @@ export class ReceiptAttachments {
       if (!saved || !["pending", "failed"].includes(saved.steps[kind].state))
         throw new DomainError("INTENT_CONFLICT");
       saved.steps[kind] = { state: "submitting", attempt, created: this.now() };
+      saved.attempts ??= {};
+      saved.attempts[kind] = {
+        attempt,
+        created: this.now(),
+        dispatched: false,
+      };
     });
     let dispatched = false;
     let result: ReceiptWriteResult;
@@ -121,6 +334,24 @@ export class ReceiptAttachments {
           throw new DomainError("INTENT_CONFLICT");
         if (kind === "upload") await this.receipts.guard(actor, ref);
         // The claim cannot be reclaimed after a crash, even before dispatch.
+        await this.receipts.connections.mutate(
+          actor.ownerId,
+          c.id,
+          (current) => {
+            const selected = current.receiptBatches
+              ?.find((b) => b.id === batch.id && b.hash === batch.hash)
+              ?.items.find((i) => i.id === item.id);
+            if (
+              current.generation !== batch.generation ||
+              current.policyVersion !== batch.policy ||
+              current.readOnly ||
+              selected?.steps[kind].state !== "submitting" ||
+              selected.attempts?.[kind]?.attempt !== attempt
+            )
+              throw new DomainError("INTENT_CONFLICT");
+            selected.attempts[kind].dispatched = true;
+          },
+        );
         dispatched = true;
       });
       if (!dispatched && result.state !== "failed")
@@ -153,6 +384,12 @@ export class ReceiptAttachments {
         )
           throw new DomainError("INTENT_CONFLICT");
         // A late response records only minimal evidence; no generation/policy/secret is restored.
+        if (
+          result.state === "outcome_unknown" &&
+          result.diagnostic &&
+          saved.attempts?.[kind]
+        )
+          saved.attempts[kind].diagnostic = result.diagnostic;
         saved.steps[kind] = result;
       });
     } catch {

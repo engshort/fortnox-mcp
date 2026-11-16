@@ -3,13 +3,19 @@ import {
   CompanyReads,
   type Connections,
   DomainError,
+  type FinancialAnalysis,
+  type LiquidityAnalysis,
+  type OpenItems,
+  type PayrollInputs,
   type ReadServices,
   type ReceiptAttachments,
   type ReceiptFiles,
   type Receipts,
   type ReceiptWorkflow,
+  type Registers,
   requestActor,
   requirePermission,
+  type SalesDocuments,
 } from "@fortnox-mcp/core";
 import {
   diagnoseConnection,
@@ -17,16 +23,23 @@ import {
   diagnosisOutput,
   FortnoxCompanyReads,
   type FortnoxConnections,
+  type FortnoxFinancialReads,
   ProviderError,
 } from "@fortnox-mcp/fortnox";
 import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { z } from "zod";
 import { registerAccounting } from "./accounting.js";
+import { registerFinancialReads } from "./analytics.js";
+import { registerLiquidity } from "./liquidity.js";
+import { registerOpenItems } from "./open-items.js";
+import { registerPayrollTools } from "./payroll.js";
 import { registerReads } from "./reads.js";
 import { registerReceiptAttachments } from "./receipt-attachments.js";
 import { registerReceiptFiles } from "./receipt-files.js";
 import { registerReceipts } from "./receipts.js";
+import { registerRegisters } from "./registers.js";
+import { registerSalesDocuments } from "./sales-documents.js";
 export interface CompanyIdentity {
   ownerId: string;
   clientId: string;
@@ -116,6 +129,12 @@ export function companyServer(context: {
   receipts?: Receipts;
   receiptAttachments?: ReceiptAttachments;
   receiptWorkflow?: ReceiptWorkflow;
+  registers?: Registers;
+  payroll?: PayrollInputs;
+  openItems?: OpenItems;
+  liquidity?: LiquidityAnalysis;
+  financial?: { service: FinancialAnalysis; provider: FortnoxFinancialReads };
+  salesDocuments?: SalesDocuments;
 }) {
   const server = new McpServer(
     { name: "fortnox-mcp-product", version: "0.0.0-experimental" },
@@ -125,14 +144,14 @@ export function companyServer(context: {
     retrieved_at: new Date().toISOString(),
     complete: true as const,
     sources: [] as string[],
-    warnings: ["Product live acceptance pending; test installation only."],
+    warnings: [],
   });
   const companyReads =
     context.companyReads ??
     new CompanyReads(
       context.connections,
       new FortnoxCompanyReads(context.connections, context.provider),
-      context.testMode,
+      true,
     );
   const actor = context.identity ? requestActor(context.identity, "mcp") : null;
   const identity = () => {
@@ -190,9 +209,9 @@ export function companyServer(context: {
     "list_companies",
     {
       ...common,
-      title: "List authorized test companies",
+      title: "List authorized companies",
       description:
-        "List only companies in this client's durable grant. Product live acceptance is pending.",
+        "List companies authorized for this client. Installation-wide approval includes newly connected companies automatically; selected-company grants remain limited to their approved versions.",
       inputSchema: z.object({}).strict(),
       outputSchema: listOutput,
     },
@@ -203,7 +222,14 @@ export function companyServer(context: {
         return {
           status: "ok",
           data,
-          evidence: proof(),
+          evidence: {
+            ...proof(),
+            warnings: data.companies.length
+              ? []
+              : [
+                  "No companies are currently authorized for this client. The installation owner can connect a company or check this client's access under AI clients.",
+                ],
+          },
           continuation: null,
         };
       }),
@@ -261,35 +287,51 @@ export function companyServer(context: {
           );
         }),
     );
-  if (context.testMode)
-    server.registerTool(
-      "get_company_profile",
-      {
-        ...common,
-        title: "Read test company profile",
-        description:
-          "Read a verified tenant's Company Information in an explicitly enabled test installation. No financial operation.",
-        inputSchema: companyInput,
-        outputSchema: profileOutput,
-      },
-      (input) =>
-        reply(profileOutput, async () => {
-          const who = identity();
-          const data = await companyReads.profile(who, input.company_id);
-          return {
-            status: "ok",
-            company_id: input.company_id,
-            data,
-            evidence: {
-              ...proof(),
-              sources: ["Fortnox GET /3/companyinformation"],
-            },
-            continuation: null,
-          };
-        }),
-    );
+  server.registerTool(
+    "get_company_profile",
+    {
+      ...common,
+      title: "Read company profile",
+      description:
+        "Read Company Information with an authenticated company-bound grant and verified provider identity.",
+      inputSchema: companyInput,
+      outputSchema: profileOutput,
+    },
+    (input) =>
+      reply(profileOutput, async () => {
+        const who = identity();
+        const data = await companyReads.profile(who, input.company_id);
+        return {
+          status: "ok",
+          company_id: input.company_id,
+          data,
+          evidence: {
+            ...proof(),
+            sources: ["Fortnox GET /3/companyinformation"],
+          },
+          continuation: null,
+        };
+      }),
+  );
   if (context.bookkeeping?.gates.references)
-    registerAccounting(server, context.bookkeeping, actor);
+    registerAccounting(server, context.bookkeeping, context.identity);
+  if (context.registers)
+    registerRegisters(server, context.registers, context.identity);
+  if (context.financial)
+    registerFinancialReads(
+      server,
+      context.financial.service,
+      context.financial.provider,
+      context.identity,
+    );
+  if (context.payroll)
+    registerPayrollTools(server, context.payroll, context.identity);
+  if (context.openItems)
+    registerOpenItems(server, context.openItems, context.identity);
+  if (context.liquidity)
+    registerLiquidity(server, context.liquidity, context.identity);
+  if (context.salesDocuments)
+    registerSalesDocuments(server, context.salesDocuments, context.identity);
   if (context.receiptFiles)
     registerReceiptFiles(server, context.receiptFiles, actor);
   if (context.receipts)

@@ -7,6 +7,84 @@ to explicitly allowlisted test runs; see the [read ledger](read-api-operations.j
 Existing MCP grants are not widened. This establishes no new verified provider
 coverage, arbitrary-date balances, financial writes or file capabilities.
 
+[Onboarding continuity](../implementation/onboarding-continuity.md) adds validated browser return and opt-in 30-day confidential-backend authorization. Local synthetic OAuth/runtime/browser checks remain separate from actual M2X/Fortnox 72-hour acceptance. No provider-operation support classification changes.
+
+Optional [account email](../implementation/account-email.md) uses Resend for
+owner welcome, password-reset codes and password-change notifications. It is
+disabled by default; local synthetic Node/workerd evidence is separate from real
+provider delivery. No Fortnox capability or general mail tool is added.
+
+The [external application connection guide](../implementation/external-company-onboarding.md#connection-guide-design-follow-up)
+shares the administration design across company selection, new connection,
+client consent and recovery. This is a presentation and browser-feedback change;
+provider operation coverage, company authorization and policy are unchanged.
+
+Company authorization: [installation-wide access](../implementation/installation-company-access.md) supports current/future owner connections and explicit owner-side upgrades without replacing client tokens. Local synthetic OAuth/runtime/browser verification is separate from actual Fortnox/hosted-client acceptance. The consent page reuses the administration design and groups requested capabilities without changing grants. Provider operation classifications are unchanged.
+
+Access/recovery follow-up: [the 2026-11-13 implementation](../implementation/access-renewal-2026-11-13.md)
+adds safe local read selection, explicitly renewed company approvals on the same
+OAuth registration and owner-only positive receipt upload/link reconciliation.
+It changes no provider-operation support classification and supplies no actual
+Fortnox/hosted-client acceptance. Unknown outcomes remain unknown without proof.
+
+S10/#27: [bounded documentation and diagnosis acceptance](../implementation/S10-acceptance-2026-11-12.md)
+is documented against the original synthetic criteria. Windows actual-CLI tests
+now use a portable ESM loader URL. This changes no provider-operation coverage,
+does not distribute the external specification and does not resolve #35/#36.
+
+Receipt upload recovery #134: a bounded positive metadata reconciliation path
+and fixed post-dispatch diagnostics are implemented in the
+[2026-11-12 scope](../implementation/receipt-upload-recovery-2026-11-12.md).
+The actual native original reconciliation returned `outcome_unknown` without a
+reference after same-client tool-catalog refresh. Original recovery and full
+provider acceptance remain pending; no uncertain upload is resent or promoted
+by missing evidence. The owner completed BankID login; a separately reviewed
+native provider-UI search found no original candidate or correlating event.
+Provider-owned historical evidence is still needed; another login is not the
+current prerequisite.
+
+An owner-directed, separately reviewed upload-only attempt of the same synthetic
+bytes in Test 2 returned HTTP 400 with `outcome_unknown`; no voucher or link was
+dispatched. Both companies are read-only again. The original Test 1 uncertainty
+is unchanged. Future errors may retain only a bounded numeric provider code;
+this cannot recover the discarded body or establish either actual outcome.
+No support request was sent; the owner handles any necessary provider contact.
+
+Sales recovery #131: explicit provider null CC/BCC now use the existing empty
+copy-recipient representation during reads and content reconciliation. Raw
+source versions, strict recipient/write checks and unknown-intent retention are
+preserved. See the [contract](../contracts/tools.md#s05-focused-sales-tools-default-off-service)
+and [bounded evidence](../implementation/S05-documents.md#empty-copy-recipient-recovery--2026-11-11).
+This changes no operation's verification classification; recipient-free drafts
+in #130 and broader lifecycle/provider acceptance remain separate.
+
+Actual acceptance update (2026-11-11): [the implemented-function audit](../implementation/acceptance-audit-2026-11-11.md)
+records native ChatGPT review, bounded register writes/readback/cleanup,
+selected references, explicit validation failures and partial financial reads.
+The consent-overlap defect #127 and bounded empty-copy recovery defect #131 are
+resolved with actual reviewed cleanup. Stale-generation native reconnect is
+tracked in #129 and remaining sales editability in #130. Actual two-PNG staging
+and authenticated UI readback passed, while disk output remains incomplete.
+The first reviewed receipt upload is retained as unknown before voucher creation;
+#134 tracks its missing positive reconciliation. Broader provider, financial and
+recovery gates retain their missing evidence. No operation is promoted to fully
+verified support by this bounded audit.
+
+Browser-consent recovery: one Fortnox flow per authenticated admin session is
+reserved atomically before provider navigation. Independent sessions retain
+bounded concurrency. This changes connection UX, not provider-operation
+verification; see the [authentication contract](../contracts/authentication.md).
+
+Current activation: the owner removed ordinary product test/verification
+activation restrictions on 2026-11-11. See [the activation decision and runtime
+boundaries](../implementation/product-activation-2026-11-11.md). Dated milestone
+records below retain their original evidence; activation does not promote it.
+
+Nova merge-to-main deployment adds infrastructure automation only; it changes no
+provider coverage or activation gates. Public deployment acceptance is recorded
+separately from Fortnox and client acceptance in the
+[Nova runbook](../deployment-nova.md).
+
 The [owner's 2026-11-09 MVP acceptance and release authorization](../implementation/M05-release-authorization-2026-11-09.md)
 permits a bounded prerelease after green CI. This decision changes no operation
 classification or default activation gate; actual scenario evidence remains scoped.
@@ -250,3 +328,126 @@ codes are implemented; this is no additional verified provider-operation claim.
 M05 offline maintenance adds encrypted snapshot/candidate restore, session/grant/
 review revocation, interval write blocking and transactional credential/file-key
 rotation. No provider operation is added or promoted by restore or reconciliation.
+
+## S04/S05 business write foundation
+
+The [S05 sales domain](../implementation/S05-documents.md) is in progress and
+default-off. Shared synthetic Node/workerd tests cover explicit row replacement,
+exact mixed VAT, immutable prepared content and separate lifecycle intents.
+The internal fixed-route provider adapter has shared Node/workerd HTTP tests;
+Focused MCP contracts and an explicitly selected isolated read-only product
+profile are implemented. Product write activation, supplier invoices/payments and actual acceptance remain
+pending; this does not classify any document provider operation as supported.
+
+The shared [business write foundation](../implementation/S04-S05-business-writes.md)
+adds bounded encrypted proposals, domain authorization, atomic claims and
+conservative uncertain outcomes. It enables zero provider operations and changes
+no existing verification gate or default activation setting.
+
+### S04 bounded register profile
+
+The [32-operation ledger](s04-register-operations.json) covers customers,
+suppliers, service-article creation/common maintenance and ten reference
+collections. Independently written source, strict schemas and shared SQLite/D1
+behavior are implemented; actual provider/client acceptance is pending.
+All entries remain `implemented_unverified`, unsupported and disabled by default.
+Only a separate one-hour, two-tenant, isolated-database test entry exposes the
+explicitly selected operations. Stock changes, bank instructions, field clearing
+and all document operations remain outside this register slice. See the
+[implementation boundary](../implementation/S04-register-evidence.md).
+
+S11/#117 completes the company/program administration structure on PR #118, a shared
+manifest and explicit company-bound scope extension with Node/workerd and browser
+regressions. The owner excluded actual Fortnox acceptance from this delivery;
+no live result is claimed. This enables zero new provider operations. Register availability
+retains the isolated test profile and expiry; invoice/order/payment provider
+lifecycles and payroll remain unavailable. Existing operation ledgers retain their
+classification and missing acceptance. See [implementation/evidence and S04/S05
+handoff](../implementation/S11-company-programs.md).
+
+## Milestone 7 work in progress
+
+The SIE compatibility follow-up accepts adjacent correction pairs differing only
+in optional author signature, counts their posting once, and retains undeclared
+comparison-year account references with null names and exact balances. These
+cases expose explicit limitations and do not close financial coverage gates.
+Current-year account declarations, matching posting fields and known fiscal
+years remain mandatory. Shared parser/provider regressions run in both Node
+and workerd; actual report-read observations are recorded separately in
+[the delivery evidence](../implementation/S08-sie-compatibility.md).
+
+The [date-driven S08 extension](../implementation/S08-dated-reads.md) implements
+fiscal-year discovery, account balances by date, paginated cross-year ledger
+transactions and historical invoice reads using dated payment evidence.
+SIE period balances are validated separately from transactions. These reads are
+enabled in the ordinary product under the owner's activation decision. Provider
+and client evidence remains pending; unverified financial values stay unknown.
+The separate financial-analysis program feature requests bookkeeping access;
+existing sales-invoice/supplier-invoice features cover the relevant reskontra.
+
+The [M07 delivery record](../implementation/M07-analysis-payroll.md) tracks S08/S09 and G07/G10. Exact request-local ledger calculations and a bounded independent SIE4 parser have synthetic tests; authenticated analysis defaults off. The isolated consent build can request salary access without activating payroll. Full financial breadth and actual G07/ChatGPT evidence remain pending; a narrow hourly create/update/delete lifecycle has passed product MCP/domain and actual provider readback. No full financial correctness or payroll gate is closed.
+
+The M07 known-effect follow-up distinguishes `applied_different` from intended
+success and uncertain delivery. Only an acknowledged exact provider identity
+plus verified stable-field readback can establish it; original hashes and
+bounded field-name/hash evidence remain. Owner Operations shows discrepancies
+separately. This recovery classification activates no provider capability and
+provides no payroll correctness or client-acceptance claim.
+
+M7 adds a bounded explicit-account period/company comparison through the same
+financial source contracts. Both companies are authorized before reads and after
+completion; each report retains its own coverage, currency and reconciliation.
+The local operation remains unverified/default-off pending actual acceptance.
+Prepared payroll inputs also bind their verified reference profile so changed
+operation evidence cannot silently authorize an earlier preparation.
+
+M7 current receivable/payable observations use two fixed unfiltered list
+operations, explicit company ownership, bounded pages and source-bound
+continuation. Unknown fields remain visible. Provider credit/currency semantics
+are still unverified, so expected cash-flow sums remain unavailable. Historical
+reskontra is not inferred from current invoice status. Ordinary activation is off.
+
+The bounded M7 liquidity input tool combines selected booked accounts and current
+invoice pages with an explicit due-date assumption. Private company/year mappings
+are source-bound; missing mapping or sign/currency/source evidence prevents a
+complete result. No live bank state, currency conversion or payment initiation
+is introduced. Actual positive ledger/reskontra reconciliation remains pending.
+
+At f89d3d8, actual public OAuth MCP checks confirmed partial liquidity results in
+both sandboxes, historical/foreign-company rejection and read-only denial of all
+three payroll write preparations without a provider write. The known employee
+remained readable and a missing employee returned not-found. CI passed 353 Node
+and 290 actual local workerd/D1 cases. These observations extend the
+[dated delivery evidence](../implementation/M07-analysis-payroll.md#latest-isolated-build-verification);
+zero-state balance matches do not establish positive SIE reconciliation or close
+G07/G10. Actual ChatGPT acceptance remains separate.
+
+A subsequent owner-booked voucher passed independent public OAuth MCP
+reconciliation: its three ordinary rows matched SIE references and exact signed
+movements, and opening plus movements matched all three account-detail closing
+balances. Before/day/after queries selected movements correctly with unchanged
+sources. This bounded positive observation does not establish complete report
+coverage: missing openings, closing-source disagreement, unsupported SIE period
+records and unverified semantics remain explicit. G07/G10 and ChatGPT acceptance
+remain open; no provider write or capability promotion occurred in this check.
+
+Conflicting account-list/SIE opening or closing values are now withheld in the
+combined report, with their source-disagreement limitation preserved. Independent
+detail reads retain their provider label and do not promote report coverage.
+Nine financial transport cases passed in each of Node/SQLite and actual local
+workerd/D1; ordinary activation remains off.
+
+## #143 — optional analysis contexts and larger SIE inputs
+
+A default-off preparation tool and encrypted SQLite/D1 analysis store reuse a
+pinned, source-versioned fiscal-year basis across follow-up questions. Existing
+ledger tools accept an optional context ID; ordinary live reads remain available.
+A separately opt-in parser/transport profile supports larger bounded exports.
+Read-only aggregation, paging, exact source references and financial completeness
+limits remain enforced. See [implementation and evidence](../implementation/S08-performance.md).
+No actual hosted Worker/provider/ChatGPT acceptance or complete G07/G09 gate is
+established by the synthetic fixtures or local runtime tests.
+
+## External application onboarding — issue #146
+
+The optional [v1 contract](../contracts/company-onboarding-v1.md) reuses existing company consent/profile/status operations. Shared OAuth/MCP and full regression tests passed Node and actual local workerd/D1, with restart, owner-session recovery and desktop/mobile browser coverage independently reviewed; [implementation evidence](../implementation/external-company-onboarding.md) records exact limits and actual M2X-backend acceptance with a synthetic provider and pending actual Fortnox acceptance. No new provider or financial operation is claimed.

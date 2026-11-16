@@ -6,32 +6,33 @@
   "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
   "sourceHashes": {
     "packages/core/src/receipt-files.ts": "faca3f8b0fa8a72c6313e6c862b02215c267015597d0277dce19293f9d8ba3c7",
-    "packages/core/src/receipts.ts": "68379fab0354d5635bcc6a84972c3ea3a1eac5b4a286eb1b6a3ab9a805a434e1",
-    "packages/core/src/receipt-provider.ts": "107c103ea6adad714455e9625887c35a0ce8de5c9b2b4da7ca1c4b6862933149",
-    "packages/fortnox/src/receipt-files.ts": "60ac244015a2ac4a587c67ab8bc5a4b3f5175bc7219c879863fc8b9560e8e3b1",
-    "packages/fortnox/src/http.ts": "2ad97304af11770b9487aa29e7fcb1efba65cd89252c5856b0c94944037b0b56",
-    "packages/mcp/src/receipt-attachments.ts": "a07e8e9efdfb2d1049a70f3e86aaf2c7531fb604f6ca19bf57dde7f621b68bc4",
+    "packages/core/src/receipts.ts": "6206cc2e43c3740f7376f974c7809f51d743f83455c1454d6808b5b84b56a465",
+    "packages/core/src/receipt-provider.ts": "753d6b62e3a86632c87f1f429c1694afe64c026a7567aa8a5dce937701cfd38c",
+    "packages/fortnox/src/receipt-files.ts": "fd322b6d4c9a60c2307c87ceea3e5acc60435366b3cd64a7552de2549e7a2be1",
+    "packages/fortnox/src/http.ts": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
+    "packages/mcp/src/receipt-attachments.ts": "5f7ecc4876ab4b8640578e37de2edf1a44d3fad24ecb39d56281844c0278b052",
     "packages/core/src/receipt-workflow.ts": "e4a1ceb3bf882ae6398683f0e093ca1af3bb77bbb0b9e2080b0e8133ee9233ac",
-    "packages/core/src/bookkeeping.ts": "d958c90ed55bbacd2e53f9324def0bd63bf39514c1bcb38d2c239b68fcc19437",
-    "packages/mcp/src/receipts.ts": "2627e71a5a2e0880d947a08f09cd0fdb042320d3c5554ec480c673488a07a2ee",
+    "packages/core/src/bookkeeping.ts": "772153476624f2b63049babd68f2867bc2be7c2da3c92c07714a82078a6ebb0c",
+    "packages/mcp/src/receipts.ts": "0642b7bddfc92f32886c02021da0c6efb7109a322f0b43b28ac3a75a3971f8d5",
     "packages/ui/src/receipt-review.ts": "6b813f8ab1f12557a62343a4c698bba3c209a889e4768c3ddc97cb8035929134",
     "packages/files/src/transport.ts": "e424a64656aee5d26c6cdf439c8f6085b588d3a74905d5778c5902d53c136821",
     "packages/files/src/node.ts": "e4a5b0d209ac0defb73b34eb57284921d453577de565381eeadf7f960e3b8b87",
     "packages/files/src/relay-transport.ts": "080ea22c9b26a47d5c6432a56eee302953f27294984196d5b2934e658707f316",
     "packages/files/src/relay-node.ts": "08ff01b501e873eef18d94fe70c02c22c5fe2ac8cd85cd6cfd885f5df9e4d26f",
-    "packages/files/src/source.ts": "a199c6ce5cbdaecc0ad118b9e83c788aa0fad9e556ce84df265dbb89aa6a1456",
-    "apps/worker/src/product.ts": "f3b5c2aaceb1bb0826b5ffcdf961f19b0150deaa31825ff2bf916a784353e510",
+    "packages/files/src/source.ts": "af1e6ae2a9cdd53779152b344688e19a9cd8559d140c245e72fad3ad59b89c16",
+    "apps/worker/src/product.ts": "895407d3695343656d1430aa3e2d5c513f1e660021b3fca71bcac7d434fc118a",
     "apps/node/src/product-main.ts": "0a252a9d4aa20f8dfc2c37490b0e7c7dca996cb95a8d03ffa237c05cd9b67d30",
     "scripts/serve-receipt-relay.ts": "e6a08b1e4e3a571b152b622bd7d1fd21863015ff50eaf66a1ded2ea74ce8f136",
     "scripts/prepare-receipt-relay.ts": "982e8e92b375657f4867e6eee9daa704e4619991b13a7d7a826005dab25f6078",
-    "apps/shared/product.ts": "2dbfdd52a97b833639f04d0d4257a6ca14cfdb1405773522b3e253820c67f751",
-    "packages/fortnox/src/connections.ts": "ff1e0ee7759f0a42b5505ef17f1d95ef5ebe00daf1647901c95cd274bdc3ff1d",
+    "apps/shared/product.ts": "05ec8f1a83be6c8b5f5f49573029f5398241f7b51153a41baa9b953b0b41968c",
+    "packages/fortnox/src/connections.ts": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
     "apps/worker/src/receipt-test.ts": "18a078cd5741e78e9a8420e32adb5332f27e43fba48f411ead2460ea442f6f91",
-    "scripts/build.mjs": "10294ca64b6ec8cb707fbdff2e46873dd8ea88ae8c9bd83d4aad758ce966b7fa",
+    "scripts/build.mjs": "cf1ad4effc560fe92ed0fa4bdef3544fcb3c4fea6ac2559107b5953de76a9902",
     "packages/mcp/src/receipt-files.ts": "f81286c1821cffcf81f4d19989fb38733ef6ece8ae7c4b840e1e7473188ca739",
     "packages/ui/src/receipt-picker.ts": "e23ac2469de78630b5465a0e714963f01e6fa46c4b73a32dede0aee377d0a873",
-    "apps/node/src/product-runtime.ts": "3925f2662f17e5de484cf7498f2041625c996ec2ecb725ce128029209ef7ab64",
-    "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784"
+    "apps/node/src/product-runtime.ts": "f9793bc64b0974f3e5f54bd380ed9b0e1dc5a2216fc1cbcb7a105da60e78a13b",
+    "apps/node/src/receipt-test-main.ts": "bca058c50b2de2a354a746c35b77dc924e536b1d2b885c5141ec724b73ac7784",
+    "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3"
   },
   "gates": {
     "provider": "#94",
@@ -52,7 +53,7 @@
       "effect": "file_write",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "fixed Inbox_v, multipart file, generated name, File.Id; locally bounded 1 MiB, provider limits/formats unverified",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
@@ -83,11 +84,11 @@
       "effect": "attachment_write",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "saved upload ID and successful voucher; exact financialyear and FileId/VoucherSeries/VoucherNumber/VoucherYear; owning-record read before link",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -114,11 +115,11 @@
       "effect": "read",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "typed FileId and financialyear; exact returned file/year/series/number, no provider URL",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
-      "licenseAndRights": "Endpoint scope connectfile with Bokf\u00f6ring or Anl\u00e4ggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
+      "licenseAndRights": "Endpoint scope connectfile with Bokföring or Anläggning or Arkivplats per official scope table; this product link/readback workflow also checks the owning voucher using bookkeeping. Actual applicable combined rights/license evidence unverified.",
       "primaryReferences": [
         "https://apps.fortnox.se/apidocs#tag/Voucher-File-Connections",
         "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
@@ -145,7 +146,7 @@
       "effect": "read",
       "status": "implemented_unverified",
       "supported": false,
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "context": "current owner/client/company generation; file scope; writes require mcp:write and read-only enforcement; exact voucher/year for linking and retrieval",
       "contract": "owning voucher plus exact connection before and after bounded binary read; content validation, authenticated MCP resource",
       "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
@@ -166,6 +167,38 @@
         "applicable actual client/host evidence and fault recovery on exact server source"
       ],
       "activation": "all product provider flags false; formats and verified rejection classifications empty; no ENV activation shortcut"
+    },
+    {
+      "localId": "inbox_list",
+      "upstreamOperationId": null,
+      "method": "GET",
+      "path": "/3/inbox",
+      "providerScope": "inbox",
+      "effect": "read",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "context": "Current authenticated owner/client/company, original generation and retained immutable upload binding; historical policy expiry permits reconciliation metadata only.",
+      "contract": "Fixed root GET; explicit flat Inbox_v leaf; unique generated filename; bounded candidate bytes with exact original digest and repeated metadata read. Missing or ambiguous evidence retains unknown.",
+      "retry": "No automatic POST retry. Dispatched errors remain unknown unless operation evidence explicitly proves rejection without effect. Read GET uses bounded authentication/retry where implemented; no redirects.",
+      "licenseAndRights": "inbox scope and ordinary authorized bookkeeping/file capability; no owning voucher is required solely for original upload reconciliation. General attachment retrieval retains its relationship checks. Actual provider rights/license evidence remains unverified.",
+      "primaryReferences": [
+        "https://apps.fortnox.se/apidocs#tag/Inbox",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/best-practices/vouchers"
+      ],
+      "syntheticTests": [
+        "tests/shared/receipt-provider.ts",
+        "tests/node/receipt-restart.test.ts"
+      ],
+      "liveEvidence": null,
+      "missingEvidence": [
+        "Actual complete flat Inbox_v discovery and original unique-byte evidence remain unverified."
+      ],
+      "activation": "Classified as provider read and local reconciliation metadata, using existing product file capabilities. No upload, voucher, link or review activation follows.",
+      "description": "Bounded fixed-root Inbox discovery solely for positive upload reconciliation; no arbitrary URL, recursive fallback or absence-to-failure inference.",
+      "reference": "https://api.fortnox.se/apidocs",
+      "referenceCheckedAt": "2026-11-12"
     }
   ],
   "consentPreparation": {
@@ -199,8 +232,9 @@
     "normalProductEnvActivation": false,
     "liveEvidence": null
   },
-  "sourceRecheck": {
-    "date": "2026-11-16",
-    "reason": "Shared transport-independent authorization and read adapters; existing live observations remain bound to their original commits. No provider support promotion."
+  "activation": {
+    "decision": "docs/implementation/product-activation-2026-11-11.md",
+    "date": "2026-11-11",
+    "evidencePromoted": false
   }
 }

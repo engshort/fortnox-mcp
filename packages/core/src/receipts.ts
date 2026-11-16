@@ -21,13 +21,40 @@ import {
   receiptFileReference,
 } from "./receipt-files.js";
 
+// Fixed post-dispatch observations only; never raw responses or retry permission.
+// Absolute end assertion also rejects a final newline, unlike JavaScript's `$`.
+export const receiptProviderErrorCode = z
+  .string()
+  .regex(/^[0-9]{1,12}(?![\s\S])/);
+export interface ReceiptWriteDiagnostic {
+  stage: "dispatch" | "http_response" | "response_parse" | "authorization";
+  http_status?: number;
+  provider_code?: string;
+}
 export type ReceiptStep =
   | { state: "pending" }
   | { state: "submitting"; attempt: string; created: number }
   | { state: "succeeded"; reference: string }
   | { state: "failed"; code: string }
-  | { state: "outcome_unknown"; reference?: string };
+  | {
+      state: "outcome_unknown";
+      reference?: string;
+      diagnostic?: ReceiptWriteDiagnostic;
+    };
 export interface ReceiptItem {
+  // Operational provenance is independent of final result replacement. Legacy
+  // records may lack it; never reconstruct dispatch facts for those records.
+  attempts?: Partial<
+    Record<
+      "upload" | "link",
+      {
+        attempt: string;
+        created: number;
+        dispatched: boolean;
+        diagnostic?: ReceiptWriteDiagnostic;
+      }
+    >
+  >;
   id: string;
   file: ReceiptFileReference;
   fileHash: string | null;
@@ -42,6 +69,7 @@ export interface ReceiptBatch {
   id: string;
   client: string;
   generation: number;
+  tenant?: string;
   policy: number;
   created: number;
   expires: number;
@@ -147,6 +175,7 @@ export class Receipts {
       id: crypto.randomUUID(),
       client: actor.clientId,
       generation: c.generation,
+      tenant: c.tenant,
       policy: c.policyVersion,
       created: this.now(),
       expires: this.now() + 86400000,
@@ -322,6 +351,72 @@ export class Receipts {
     });
     const item = batch.items.find((i) => i.id === ref.item_id);
     if (!item) throw new DomainError("INTENT_CONFLICT");
+    return { c, batch, item };
+  }
+  // Historical upload evidence is readable across policy/byte expiry, never
+  // across connection generations or clients. Ordinary execution stays strict.
+  async uploadRecoveryItem(
+    actor: AccountingActor,
+    input: ReceiptItemReference,
+  ) {
+    const ref = receiptItemReference.parse(input);
+    const c = await this.authorize(actor, ref.company_id);
+    const batch = c.receiptBatches?.find((b) => b.id === ref.batch_id);
+    const item = batch?.items.find((i) => i.id === ref.item_id);
+    if (
+      !batch ||
+      !item ||
+      batch.hash !== ref.batch_hash ||
+      batch.client !== actor.clientId ||
+      batch.generation !== c.generation ||
+      (await manifestHash(batch.items)) !== batch.hash ||
+      !item.proposal ||
+      !item.fileHash ||
+      item.file.company_id !== c.id ||
+      !["outcome_unknown", "succeeded"].includes(item.steps.upload.state) ||
+      item.steps.voucher.state !== "pending" ||
+      item.steps.link.state !== "pending"
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    if (
+      c.receiptBatches?.some((b) =>
+        b.items.some(
+          (i) =>
+            i.id !== item.id &&
+            (i.file.file_id === item.file.file_id ||
+              i.fileHash === item.fileHash) &&
+            i.steps.upload.state !== "pending",
+        ),
+      )
+    )
+      throw new DomainError("INTENT_CONFLICT");
+    return { c, batch, item };
+  }
+  // Owner-only metadata recovery. Legacy batches can only use their original
+  // generation; never manufacture historical tenant provenance.
+  async ownerRecoveryItem(owner: string, company: string, id: string) {
+    z.string().uuid().parse(company);
+    z.string().uuid().parse(id);
+    const c = (await this.connections.list(owner)).find(
+      (c) => c.id === company,
+    );
+    const batch = c?.receiptBatches?.find((b) =>
+      b.items.some((i) => i.id === id),
+    );
+    const item = batch?.items.find((i) => i.id === id);
+    if (
+      c?.state !== "active" ||
+      !batch ||
+      !item ||
+      (batch.tenant
+        ? batch.tenant !== c.tenant
+        : batch.generation !== c.generation) ||
+      item.file.company_id !== c.id ||
+      !item.fileHash ||
+      !item.proposal ||
+      (await manifestHash(batch.items)) !== batch.hash
+    )
+      throw new DomainError("INTENT_CONFLICT");
     return { c, batch, item };
   }
   async view(actor: AccountingActor, input: ReceiptBatchReference) {

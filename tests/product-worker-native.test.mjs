@@ -313,7 +313,7 @@ test("built product Worker uses native fetch for consent against an isolated syn
     .join("; ");
   assert.equal(
     (
-      await runtime.dispatchFetch(`${origin}/admin`, {
+      await runtime.dispatchFetch(`${origin}/admin/companies`, {
         headers: { cookie: newCookie },
       })
     ).status,

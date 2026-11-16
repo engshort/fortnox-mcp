@@ -6,6 +6,7 @@ import {
 } from "./actor.js";
 import type { Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
+import { assertFeature, assertScopeProgram } from "./programs.js";
 import {
   type FinancialReadQuery,
   financialReadQuery,
@@ -61,6 +62,9 @@ export class FinancialReads {
       actor,
       parsed.company_id,
     );
+    assertScopeProgram(before, definition.scope ?? "");
+    if (["accounts", "vouchers"].includes(definition.module ?? ""))
+      assertFeature(before, "references");
     if (!before.scopes.includes(definition.scope ?? ""))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const started = this.now();

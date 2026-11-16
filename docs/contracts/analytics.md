@@ -36,7 +36,61 @@ Return: company identity, fiscal-year ID and dates, requested/as-of interval, cu
 
 Fortnox reads across multiple endpoints may not form an atomic snapshot. Record the retrieval window; if concurrent changes can materially invalidate reconciliation, flag it or repeat the necessary bounded read. Do not guarantee snapshot consistency without provider support.
 
+When account-list and SIE balances disagree, retain both source references and
+report the affected opening/closing field as unknown with the corresponding
+source-disagreement limitation. Do not choose a source merely because it was read
+first. Independent account-detail reads remain provider observations, not proof
+that the combined report has reconciled.
+
 ## Large-data behavior
+
+### SIE compatibility and incomplete comparison metadata
+
+An adjacent `#RTRANS`/`#TRANS` pair must match through the quantity field.
+The optional final author signature may differ or be omitted; the parser counts
+only `#TRANS` and exposes `correction_signature_differs` for that variation.
+Changed posting fields, a missing counterpart and malformed structure still fail.
+This compatibility rule does not establish general correction-row acceptance.
+
+Balances and period balances for a declared comparison year may reference an
+account without `#KONTO`. Preserve its number and exact source balances with
+`name=null` in the parsed export and report
+`historical_account_metadata_missing`. Such a reference is not a current-year
+chart account or evidence for an omitted zero opening. Current-year postings,
+current-year balances and unknown years still require their declarations.
+The authenticated report can return available current-year data with explicit
+limitations; it must not promote completeness or invent historical metadata.
+
+### Date-driven reads
+
+`get_account_balances({ company_id, as_of, account_numbers?, page_size?,
+continuation? })` resolves a complete, unambiguous fiscal-year index. Missing
+years are unavailable, never zero balances. Cursors also bind index version and
+connection generation. Existing year-based interfaces remain compatible.
+
+`list_financial_transactions({ company_id, from, to, account_numbers?, page_size?,
+continuation? })` selects all intersecting actual fiscal years with inclusive
+boundaries. Omitted account selection means all accounts. Each page contains at
+most 50 effective rows from one year, sorted by date/source ID. Missing years,
+unknown rows and export limitations are explicit. Continuations recheck every
+traversed year. Returned-page totals do not imply whole-period totals.
+
+`list_receivables`/`list_payables` accept optional `as_of`. Historical output uses
+`observation_point=computed_as_of`, `balance_as_of` and separate
+`current_provider_balance`; `balance` remains the current provider value.
+Include older and currently paid invoices. Historical calculations require
+verified dated invoice/settlement evidence, including credits/write-offs.
+Current cancellation or due-date fields alone do not prove historical state.
+Undated calls retain the current output. Historical unbooked/future queries are
+rejected. Historical liquidity uses matching observation dates and retains the
+selected-accounts/page-only scope and explicit maximum 90-day assumption.
+
+These results describe current records by effective date, including later
+backdated corrections. Financial verification profiles are trusted installation
+inputs, never model assertions. The ordinary product advertises these reads
+without a test lease; availability does not verify source financial semantics.
+Unknown financial values and completeness limitations remain explicit. See the
+[implementation and acceptance boundary](../implementation/S08-dated-reads.md).
 
 Paginate or stream with explicit limits. Return partial status and continuation rather than dumping an entire ledger into model context. Support focused account/range/date queries and drill-down. Temporary analytical results expire under storage policy; source records remain in Fortnox.
 
@@ -50,3 +104,22 @@ Paginate or stream with explicit limits. Return partial status and continuation 
 - A booked bank account is never described as a live bank balance.
 
 Sources: [F09–F11](../reference/sources.md). See [verification gates](../reference/verification-gates.md).
+
+## Optional pinned analysis contexts
+
+When explicitly enabled, `prepare_financial_analysis` prepares a bounded,
+short-lived encrypted observation for up to five actual fiscal years. Repeated
+calls with its ID advance preparation; no totals are returned until ready.
+The existing ledger analysis, date-driven balances, movements and transactions
+accept optional `analysis_context_id`; comparison selections accept one per side.
+Without it they retain live source reads.
+
+Pinned output includes `analysis_context` and the original `retrieved` interval.
+Five-minute TTL limits retention, not source freshness. Provider-access checks
+are separate observations. External changes require a new preparation; local
+financial dispatch, access/program/generation and evidence-version changes
+invalidate the old context. Its ID participates in continuations. Coverage,
+source disagreements, exact amounts, unknown balances and reconciliation limits
+remain unchanged. The source voucher detail tool still reads live data.
+
+See [implementation, quotas and verification limits](../implementation/S08-performance.md).

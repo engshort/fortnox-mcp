@@ -8,6 +8,306 @@ import type { AuthConfig, Owner } from "../../apps/shared/product-auth.js";
 import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 
 export function oauthContract(fixture: () => Promise<AuthConfig>) {
+  it.each(["new", "upgrade"])(
+    "%s client access includes future owner connections without replacing tokens",
+    async (mode) => {
+      const config = await fixture();
+      const callback = "https://client.example.invalid/callback";
+      const app = createProductApplication(
+        {
+          origin: config.origin,
+          secret: config.secret,
+          keys: { a: keyA },
+          activeKey: "a",
+          redirects: [callback],
+          testMode: false,
+          restApi: true,
+          clientId: "",
+          clientSecret: "",
+          testTenants: [],
+        },
+        config,
+        async () => {
+          throw new Error("No provider request expected");
+        },
+      );
+      const seeded = await app.auth.api.signUpEmail({
+        body: {
+          email: "access@example.invalid",
+          name: "Synthetic owner",
+          password: "Synthetic-password-123456",
+        },
+        returnHeaders: true,
+      });
+      const owner = seeded.response.user.id;
+      await config.state.put<Owner>(
+        "installation",
+        "owner",
+        { phase: "active", ownerId: owner, tokenHash: "", expiresAt: 0 },
+        null,
+      );
+      const cookie = seeded.headers
+        .getSetCookie()
+        .map((c) => c.split(";")[0])
+        .join("; ");
+      const req = (
+        path: string,
+        body?: unknown,
+        headers: Record<string, string> = {},
+      ) =>
+        app.fetch(
+          new Request(`${config.origin}${path}`, {
+            method: body === undefined ? "GET" : "POST",
+            headers: {
+              "content-type":
+                body instanceof URLSearchParams
+                  ? "application/x-www-form-urlencoded"
+                  : "application/json",
+              ...headers,
+            },
+            ...(body === undefined
+              ? {}
+              : {
+                  body:
+                    body instanceof URLSearchParams
+                      ? body
+                      : JSON.stringify(body),
+                }),
+          }),
+        );
+      const browser = { cookie, origin: config.origin };
+      const registered = await req("/auth/oauth2/register", {
+        client_name: "Synthetic company access client",
+        redirect_uris: [callback],
+        token_endpoint_auth_method: "none",
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        scope: "mcp:read offline_access",
+      });
+      expect(registered.status).toBe(201);
+      const { client_id: client } = (await registered.json()) as {
+        client_id: string;
+      };
+      const verifier =
+        "synthetic-access-verifier-abcdefghijklmnopqrstuvwxyz0123456789";
+      const challenge = btoa(
+        String.fromCharCode(
+          ...new Uint8Array(
+            await crypto.subtle.digest(
+              "SHA-256",
+              new TextEncoder().encode(verifier),
+            ),
+          ),
+        ),
+      )
+        .replaceAll("+", "-")
+        .replaceAll("/", "_")
+        .replaceAll("=", "");
+      const authorization = await req(
+        `/auth/oauth2/authorize?${new URLSearchParams({ response_type: "code", client_id: client, redirect_uri: callback, scope: "mcp:read offline_access", code_challenge: challenge, code_challenge_method: "S256", resource: `${config.origin}/mcp`, state: "synthetic-state" })}`,
+        undefined,
+        browser,
+      );
+      const consent = new URL(
+        authorization.headers.get("location") ??
+          ((await authorization.json()) as { url: string }).url,
+        config.origin,
+      );
+      const page = await req(
+        `${consent.pathname}${consent.search}`,
+        undefined,
+        browser,
+      );
+      expect(await page.text()).toContain("nuvarande och framtida företag");
+      const approved = await req(
+        "/auth/oauth2/consent",
+        {
+          accept: true,
+          oauth_query: consent.search.slice(1),
+          companies: [],
+          ...(mode === "new" ? { company_access: "owner_connections" } : {}),
+        },
+        browser,
+      );
+      expect(approved.status).toBe(200);
+      const code =
+        new URL(
+          ((await approved.json()) as { url: string }).url,
+        ).searchParams.get("code") ?? "";
+      const exchange = await req(
+        "/auth/oauth2/token",
+        new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: client,
+          redirect_uri: callback,
+          code,
+          code_verifier: verifier,
+          resource: `${config.origin}/mcp`,
+        }),
+      );
+      expect(exchange.status).toBe(200);
+      const tokens = (await exchange.json()) as {
+        access_token: string;
+        refresh_token: string;
+      };
+      const identity = await app.auth.api.verifyProductToken({
+        body: { token: tokens.access_token },
+      });
+      const list = async (token = tokens.access_token) => {
+        const response = await req(
+          "/mcp",
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "list_companies", arguments: {} },
+          },
+          {
+            authorization: `Bearer ${token}`,
+            accept: "application/json, text/event-stream",
+            "mcp-protocol-version": "2025-11-25",
+          },
+        );
+        expect(response.status).toBe(200);
+        return (
+          (await response.json()) as {
+            result: {
+              structuredContent: {
+                data: { companies: { company_id: string }[] };
+              };
+            };
+          }
+        ).result.structuredContent.data.companies.map((c) => c.company_id);
+      };
+      expect(await list()).toEqual([]);
+      const a = await app.connections.add(
+        owner,
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      if (mode === "upgrade") {
+        expect(await list()).toEqual([]);
+        const grant = await app.connections.clientGrant(owner, client);
+        const input = {
+          client_id: client,
+          grant_id: grant.grantId ?? null,
+          revision: grant.revision ?? 0,
+        };
+        const path = "/admin/clients/company-access";
+        expect(
+          (
+            await req(path, input, {
+              authorization: `Bearer ${tokens.access_token}`,
+              origin: config.origin,
+            })
+          ).status,
+        ).toBe(401);
+        expect((await req(path, input, { cookie })).status).toBe(403);
+        expect(
+          (
+            await req(path, input, {
+              cookie,
+              origin: "https://foreign.invalid",
+            })
+          ).status,
+        ).toBe(403);
+        expect(
+          (await req(path, { ...input, revision: input.revision + 1 }, browser))
+            .status,
+        ).toBe(409);
+        expect((await req(path, input, browser)).status).toBe(200);
+        expect((await req(path, input, browser)).status).toBe(200);
+      }
+      expect(await list()).toEqual([a.id]);
+      const b = await app.connections.add(
+        owner,
+        { ...syntheticCompany, tenant: "100002", name: "Synthetic B" },
+        syntheticCredentials,
+      );
+      const foreign = await app.connections.add(
+        "foreign-owner",
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      expect(await list()).toEqual([a.id, b.id]);
+      await expect(
+        app.connections.authorize(owner, identity.clientId, foreign.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await expect(
+        app.connections.authorize(
+          "foreign-owner",
+          identity.clientId,
+          foreign.id,
+        ),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await app.connections.mutate(owner, a.id, (c) => {
+        c.accessRevision = 1;
+      });
+      expect(await list()).toEqual([a.id, b.id]);
+      const stopped = await app.connections.disconnect(owner, a.id);
+      expect(await list()).toEqual([b.id]);
+      await expect(
+        app.connections.authorize(owner, identity.clientId, a.id),
+      ).rejects.toThrow("CONNECTION_DISCONNECTED");
+      await app.connections.reconnect(
+        owner,
+        a.id,
+        stopped.generation,
+        syntheticCompany,
+        syntheticCredentials,
+      );
+      const current = await app.connections.authorize(
+        owner,
+        identity.clientId,
+        a.id,
+      );
+      expect(current.readOnly).toBe(true);
+      expect(current.review).toBe("review_required");
+      expect(await list()).toEqual([a.id, b.id]);
+      const refreshed = await req(
+        "/auth/oauth2/token",
+        new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: client,
+          refresh_token: tokens.refresh_token,
+          resource: `${config.origin}/mcp`,
+        }),
+      );
+      expect(refreshed.status).toBe(200);
+      const replacement = (await refreshed.json()) as typeof tokens;
+      expect(await list(replacement.access_token)).toEqual([a.id, b.id]);
+      const claims = await app.auth.api.verifyProductToken({
+        body: { token: replacement.access_token },
+      });
+      expect(claims.clientId).toBe(identity.clientId);
+      expect(claims.scopes).not.toContain("mcp:write");
+      expect(claims.scopes).not.toContain("mcp:files");
+      const clients = (await (
+        await req("/admin/clients", undefined, browser)
+      ).json()) as {
+        clients: { company_access: string; companies: unknown[] }[];
+      };
+      expect(clients.clients[0]?.company_access).toBe("owner_connections");
+      expect(clients.clients[0]?.companies).toHaveLength(2);
+      // A later OAuth approval replaces the authorization identity. An older
+      // installation-wide identity cannot cross into that new approval in flight.
+      await app.connections.renewGrant(owner, client, [
+        {
+          id: current.id,
+          generation: current.generation,
+          access_revision: current.accessRevision ?? 0,
+        },
+      ]);
+      await expect(
+        app.connections.authorize(owner, identity.clientId, b.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await expect(
+        app.auth.api.verifyProductToken({
+          body: { token: replacement.access_token },
+        }),
+      ).rejects.toThrow();
+    },
+  );
   it("product OAuth validates PKCE/resource/redirect, rotates refresh and revokes access", async () => {
     const config = await fixture();
     const callback = "https://client.example.invalid/callback";
@@ -19,11 +319,10 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         keys: { a: keyA },
         activeKey: "a",
         redirects: [callback],
-        testMode: true,
-        restApi: true,
+        testMode: false,
         clientId: "synthetic-client",
         clientSecret: "synthetic-client-secret",
-        testTenants: ["100001", "100002"],
+        testTenants: [],
       },
       config,
       async (input) => {
@@ -72,6 +371,14 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       .getSetCookie()
       .map((c) => c.split(";")[0])
       .join("; ");
+    const selection = async () =>
+      (await app.connections.list(seeded.response.user.id))
+        .filter((c) => c.state === "active")
+        .map((c) => ({
+          id: c.id,
+          generation: c.generation,
+          access_revision: c.accessRevision ?? 0,
+        }));
     const req = (
       path: string,
       body?: unknown,
@@ -138,7 +445,11 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     const consent = new URL(location, config.origin);
     const accepted = await req(
       "/auth/oauth2/consent",
-      { accept: true, oauth_query: consent.search.slice(1) },
+      {
+        accept: true,
+        oauth_query: consent.search.slice(1),
+        companies: await selection(),
+      },
       { cookie, origin: config.origin },
     );
     expect(accepted.status).toBe(200);
@@ -173,7 +484,11 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       ? null
       : await req(
           "/auth/oauth2/consent",
-          { accept: true, oauth_query: nextUrl.search.slice(1) },
+          {
+            accept: true,
+            oauth_query: nextUrl.search.slice(1),
+            companies: await selection(),
+          },
           { cookie, origin: config.origin },
         );
     if (second) expect(second.status).toBe(200);
@@ -195,7 +510,27 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
       body: { token: tokens.access_token },
     });
     expect(claims.ownerId).toBe(seeded.response.user.id);
-    expect(claims.clientId).toBe(client);
+    expect(claims.oauthClientId).toBe(client);
+    expect(claims.clientId).toMatch(/^oauth-grant:/);
+    // Simulate retention nearing expiry. A successful library refresh must
+    // extend the same immutable rights to the replacement tokens' actual expiry.
+    for (const space of ["oauth-grant-families", "oauth-approval-grants"]) {
+      const row = await config.state.get<Record<string, { expiresAt: number }>>(
+        space,
+        seeded.response.user.id,
+      );
+      if (!row) throw new Error("Fixture missing");
+      for (const record of Object.values(row.value))
+        record.expiresAt = Date.now() + 30000;
+      expect(
+        await config.state.put(
+          space,
+          seeded.response.user.id,
+          row.value,
+          row.version,
+        ),
+      ).toBe(true);
+    }
     expect(claims.scopes).not.toContain("mcp:write");
     expect(
       (
@@ -339,9 +674,29 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         }),
       );
       expect(modern.getProtocolEra()).toBe("modern");
-      expect((await modern.listTools()).tools.map((t) => t.name)).toContain(
+      const tools = (await modern.listTools()).tools;
+      for (const name of [
         "list_companies",
-      );
+        "get_account_balances",
+        "list_financial_transactions",
+        "list_receivables",
+        "list_payables",
+        "get_liquidity_basis",
+      ])
+        expect(tools.map((t) => t.name)).toContain(name);
+      const beforeDeniedRead = providerCalls;
+      expect(
+        (
+          await modern.callTool({
+            name: "get_account_balances",
+            arguments: { company_id: companyB.id, as_of: "2025-12-31" },
+          })
+        ).structuredContent,
+      ).toMatchObject({
+        status: "error",
+        error: { code: "CAPABILITY_UNAVAILABLE" },
+      });
+      expect(providerCalls).toBe(beforeDeniedRead);
       const modernResult = await modern.callTool({
         name: "get_connection_status",
         arguments: { company_id: companyB.id },
@@ -387,6 +742,15 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     );
     expect(refreshed.status).toBe(200);
     const replacement = (await refreshed.json()) as typeof tokens;
+    for (const space of ["oauth-grant-families", "oauth-approval-grants"]) {
+      const row = await config.state.get<Record<string, { expiresAt: number }>>(
+        space,
+        seeded.response.user.id,
+      );
+      expect(
+        Math.max(...Object.values(row?.value ?? {}).map((r) => r.expiresAt)),
+      ).toBeGreaterThan(Date.now() + 23 * 3600000);
+    }
     expect(replacement.refresh_token).not.toBe(tokens.refresh_token);
     expect(
       (
@@ -441,6 +805,132 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
     ).toBe(401);
     expect(
       (await req("/.well-known/oauth-protected-resource/mcp")).status,
+    ).toBe(200);
+    // A later explicit approval renews this registration. Old access, refresh
+    // and unspent authorization codes cannot acquire the new company grant.
+    const approve = async () => {
+      const start = await authorize();
+      const target = new URL(
+        start.headers.get("location") ??
+          ((await start.json()) as { url: string }).url,
+        config.origin,
+      );
+      const approved = await req(
+        "/auth/oauth2/consent",
+        {
+          accept: true,
+          oauth_query: target.search.slice(1),
+          companies: await selection(),
+        },
+        { cookie, origin: config.origin },
+      );
+      expect(approved.status).toBe(200);
+      return (
+        new URL(
+          ((await approved.json()) as { url: string }).url,
+        ).searchParams.get("code") ?? ""
+      );
+    };
+    const obsoleteCode = await approve();
+    const freshCode = await approve();
+    await expect(
+      app.auth.api.verifyProductToken({ body: { token: tokens.access_token } }),
+    ).rejects.toThrow();
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({ ...exchange, code: obsoleteCode }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({
+            grant_type: "refresh_token",
+            client_id: client,
+            resource: `${config.origin}/mcp`,
+            refresh_token: replacement.refresh_token,
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    const freshResponse = await req(
+      "/auth/oauth2/token",
+      new URLSearchParams({ ...exchange, code: freshCode }),
+    );
+    expect(freshResponse.status).toBe(200);
+    const fresh = (await freshResponse.json()) as typeof tokens;
+    const freshIdentity = await app.auth.api.verifyProductToken({
+      body: { token: fresh.access_token },
+    });
+    expect(freshIdentity.oauthClientId).toBe(client);
+    expect(freshIdentity.clientId).not.toBe(claims.clientId);
+    expect(
+      (
+        await app.connections.authorize(
+          freshIdentity.ownerId,
+          freshIdentity.clientId,
+          companyB.id,
+        )
+      ).id,
+    ).toBe(companyB.id);
+    // The former authorization identity stays immutable even in a request which
+    // started immediately before renewal.
+    await app.connections.mutate(seeded.response.user.id, companyB.id, (c) => {
+      c.accessRevision = 1;
+    });
+    await expect(
+      app.connections.authorize(claims.ownerId, claims.clientId, companyB.id),
+    ).rejects.toThrow("COMPANY_FORBIDDEN");
+    // Preserve the library's confidential-client Basic authentication path;
+    // those token requests need not repeat client_id in the form body.
+    const basicRegistration = await req("/auth/oauth2/register", {
+      client_name: "Synthetic confidential client",
+      redirect_uris: [callback],
+      token_endpoint_auth_method: "client_secret_basic",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      scope: "mcp:read offline_access",
+    });
+    expect(basicRegistration.status).toBe(201);
+    const basicClient = (await basicRegistration.json()) as {
+      client_id: string;
+      client_secret: string;
+    };
+    const basicStart = await authorize({ client_id: basicClient.client_id });
+    const basicConsentUrl = new URL(
+      basicStart.headers.get("location") ??
+        ((await basicStart.json()) as { url: string }).url,
+      config.origin,
+    );
+    const basicConsent = await req(
+      "/auth/oauth2/consent",
+      {
+        accept: true,
+        oauth_query: basicConsentUrl.search.slice(1),
+        companies: await selection(),
+      },
+      { cookie, origin: config.origin },
+    );
+    expect(basicConsent.status).toBe(200);
+    const basicCode =
+      new URL(
+        ((await basicConsent.json()) as { url: string }).url,
+      ).searchParams.get("code") ?? "";
+    const { client_id: _publicClient, ...basicExchange } = exchange;
+    expect(
+      (
+        await req(
+          "/auth/oauth2/token",
+          new URLSearchParams({ ...basicExchange, code: basicCode }),
+          {
+            authorization: `Basic ${btoa(`${basicClient.client_id}:${basicClient.client_secret}`)}`,
+          },
+        )
+      ).status,
     ).toBe(200);
   }, 20000);
 }

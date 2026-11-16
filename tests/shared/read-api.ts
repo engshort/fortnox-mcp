@@ -6,7 +6,7 @@ import {
   readOutput,
   requestActor,
 } from "@fortnox-mcp/core";
-import { FortnoxFinancialReads } from "@fortnox-mcp/fortnox";
+import { FortnoxRawFinancialReads } from "@fortnox-mcp/fortnox";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { createProductApplication } from "../../apps/shared/product.js";
@@ -267,7 +267,7 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
       ).rejects.toThrow("AUTH_REQUIRED");
       const disabled = new FinancialReads(
         f.app.connections,
-        new FortnoxFinancialReads(f.app.connections, f.app.provider, []),
+        new FortnoxRawFinancialReads(f.app.connections, f.app.provider, []),
         [],
       );
       await expect(
@@ -276,6 +276,83 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
           financial_year: 7,
         }),
       ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      expect(f.calls()).toBe(0);
+    });
+    it("binds current immutable OAuth approvals to their resource and current company features", async () => {
+      const f = await setup(await fixture());
+      const grant = await f.app.connections.renewGrant(
+        f.actor.ownerId,
+        "dedicated-api-client",
+        [
+          {
+            id: f.a.id,
+            generation: f.a.generation,
+            access_revision: f.a.accessRevision ?? 0,
+          },
+        ],
+        undefined,
+        undefined,
+        "api",
+      );
+      const actor = { ...f.actor, clientId: grant.grantId as string };
+      await expect(
+        f.app.connections.authorizeActor(actor, f.a.id),
+      ).resolves.toMatchObject({ id: f.a.id });
+      await expect(
+        f.app.connections.authorizeActor({ ...actor, resource: "mcp" }, f.a.id),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await expect(
+        f.app.connections.renewGrant(
+          f.actor.ownerId,
+          "dedicated-api-client",
+          [],
+          undefined,
+          "owner_connections",
+          "api",
+        ),
+      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      await f.app.connections.selectProgram(
+        f.actor.ownerId,
+        f.a.id,
+        {
+          program: "invoicing",
+          features: ["customer-registers"],
+          expected_revision: 0,
+        },
+        { references: true, receiptConsent: true },
+      );
+      // Fresh owner consent cannot restore a feature removed from the company.
+      const current = (await f.app.connections.list(f.actor.ownerId)).find(
+        (c) => c.id === f.a.id,
+      );
+      if (!current) throw new Error("Synthetic company missing");
+      const renewed = await f.app.connections.renewGrant(
+        f.actor.ownerId,
+        "dedicated-api-client",
+        [
+          {
+            id: current.id,
+            generation: current.generation,
+            access_revision: current.accessRevision ?? 0,
+          },
+        ],
+        undefined,
+        undefined,
+        "api",
+      );
+      await expect(
+        f.app.reads.execute(
+          { ...actor, clientId: renewed.grantId as string },
+          "get_invoice",
+          { company_id: f.a.id, number: "12" },
+        ),
+      ).rejects.toThrow("CAPABILITY_UNAVAILABLE");
+      expect(
+        await f.app.reads.available({
+          ...actor,
+          clientId: renewed.grantId as string,
+        }),
+      ).not.toContain("get_invoice");
       expect(f.calls()).toBe(0);
     });
     it("returns exact provider money, explicit missing balances and inactive/custom accounts for a non-calendar year", async () => {
@@ -393,7 +470,11 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
       expect(f.calls()).toBe(calls);
       const recreated = new FinancialReads(
         f.app.connections,
-        new FortnoxFinancialReads(f.app.connections, f.app.provider, modules),
+        new FortnoxRawFinancialReads(
+          f.app.connections,
+          f.app.provider,
+          modules,
+        ),
         modules,
       );
       const second = await recreated.read(f.actor, "list_invoices", query);
@@ -666,7 +747,13 @@ export function readOAuthContract(fixture: () => Promise<AuthConfig>) {
       {
         accept: true,
         oauth_query: consent.search.slice(1),
-        company_ids: [a.id],
+        companies: [
+          {
+            id: a.id,
+            generation: a.generation,
+            access_revision: a.accessRevision ?? 0,
+          },
+        ],
       },
       { cookie, origin: config.origin },
     );

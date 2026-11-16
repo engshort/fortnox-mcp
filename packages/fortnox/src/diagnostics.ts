@@ -2,6 +2,8 @@ import {
   type Connection,
   type Connections,
   DomainError,
+  programId,
+  programStatus,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import { companyInformation, type FortnoxConnections } from "./connections.js";
@@ -33,9 +35,29 @@ export const diagnosisOutput = z
       "verification_pending",
       "bounded_read_verified",
       "feature_not_implemented",
+      "provider_access_not_checked",
     ]),
     correlation_id: z.string().uuid(),
     checked_at: z.string().datetime(),
+    programs: z.array(
+      z
+        .object({
+          id: programId,
+          selected: z.boolean(),
+          connection: z.enum([
+            "connected",
+            "not_connected",
+            "disconnected",
+            "reconnect_required",
+          ]),
+          availability: z.enum([
+            "available",
+            "planned",
+            "verification_pending",
+          ]),
+        })
+        .strict(),
+    ),
     capabilities: z.array(
       z
         .object({
@@ -50,6 +72,7 @@ export const diagnosisOutput = z
             "bounded_read_verified",
             "verification_pending",
             "feature_not_implemented",
+            "provider_access_not_checked",
           ]),
         })
         .strict(),
@@ -77,6 +100,7 @@ export async function diagnoseConnection(
     reason: "verification_pending",
     correlation_id: crypto.randomUUID(),
     checked_at: new Date().toISOString(),
+    programs: [],
     capabilities: [
       {
         id: "company_information",
@@ -85,23 +109,43 @@ export async function diagnoseConnection(
       },
       {
         id: "manual_vouchers",
-        status: "verification_blocked",
-        reason: "verification_pending",
+        status: "unknown",
+        reason: "provider_access_not_checked",
       },
       {
         id: "provider_files",
-        status: "verification_blocked",
-        reason: "verification_pending",
+        status: "unknown",
+        reason: "provider_access_not_checked",
       },
       {
         id: "payroll",
-        status: "not_implemented",
-        reason: "feature_not_implemented",
+        status: "unknown",
+        reason: "provider_access_not_checked",
       },
     ],
   };
   try {
     const c = await context.authorize(company);
+    result.programs = programStatus(c, {
+      references: true,
+      receiptConsent: true,
+      payrollConsent: true,
+      registerScopes: [
+        "customer",
+        "article",
+        "supplier",
+        "settings",
+        "currency",
+        "price",
+        "costcenter",
+        "project",
+      ],
+    }).programs.map(({ id, selected, connection, availability }) => ({
+      id,
+      selected,
+      connection,
+      availability,
+    }));
     if (c.state !== "active") {
       result.status = "disconnected";
       result.reason =
@@ -111,7 +155,7 @@ export async function diagnoseConnection(
     } else if (!c.scopes.includes("companyinformation")) {
       result.status = "missing_permission";
       result.reason = "missing_scope";
-    } else if (context.testMode) {
+    } else {
       const assertActive = async () => {
         const current = await context.authorize(company);
         if (current.state !== "active" || current.generation !== c.generation)

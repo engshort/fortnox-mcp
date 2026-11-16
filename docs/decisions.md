@@ -27,6 +27,57 @@ Approved baseline: 2026-10-18. Product owner: alex-engvall. Details below consol
 | D21 | Fortnox test environment available through owner | Owner has developer access and can create a test company; no credentials have been supplied or live tests run for this baseline. |
 | D22 | Protected web application: Hono for HTTP routing, React + Vite for owner-facing UI | Reuse the existing portable TypeScript domain/MCP services across Cloudflare Workers and Node.js. Serve built admin assets from the same installation; keep embedded MCP Apps separate and subject to client/CSP/review gates. The public GitHub Pages site remains static. |
 
+## Owner-directed ordinary activation (2026-11-11)
+
+The owner explicitly requested removal of test/activation restrictions and a
+pull request followed by squash merge after green CI. The implemented finite
+capabilities in S02–S09/S11 are available in the ordinary product without test
+tenant lists, separate acceptance builds or operation leases. Historical
+verification gates remain evidence requirements and no longer gate ordinary
+runtime activation. This refines D07/D12/D20; it does not promote acceptance,
+change D10/D11/D13/D15 or approve a stable release. The existing conforming-host
+MCP Apps trust boundary is documented, including its limits. See the
+[scope, migration and acceptance record](implementation/product-activation-2026-11-11.md).
+
+## Owner-directed independent AI acceptance (2026-11-11)
+
+The owner explicitly replaced required human execution/review in project test
+acceptance with AI execution and a separate AI review. This applies to all
+authorized sandbox acceptance, including actual client file selection and
+per-item review. Real client/provider/runtime execution and complete evidence
+remain required; self-review, mocks and a `confirmed` argument do not suffice.
+The decision changes the acceptance operator, not company policy or ordinary
+model access to app-only approval capabilities. Record new results as
+AI-executed and independently AI-reviewed, without claiming human presence.
+See the [procedure and retained boundaries](implementation/ai-reviewed-acceptance-2026-11-11.md).
+
+## Owner-directed installation company access (2026-11-15)
+
+The owner requested that connecting a company to Fortnox MCP also makes it
+available to the authorized AI client without reconnecting that client for each
+company. This refines D06/D10 from the next build containing this change. Ordinary
+client consent explicitly covers the owner's current and future connections.
+Existing selected-company approvals require one explicit owner-side upgrade in
+AI clients, using the current token family without client reconnection. External
+application onboarding retains its bounded selected-company contract. No database
+schema migration is required. Capability scopes, company disconnection, program
+checks, read-only, review policy and immutable financial intent bindings remain
+mandatory. See [the authentication contract](contracts/authentication.md) and
+[implementation/evidence](implementation/installation-company-access.md).
+
+## Owner-directed server continuity (2026-11-15)
+
+The owner requested implementation of natural login return and persistent,
+revocable backend authorization from the supplied continuity brief. Effective in
+the next build containing this change, an operator may explicitly opt registered
+confidential backends into a 30-day rolling refresh policy with
+`MCP_OFFLINE_CLIENT_IDS` (default empty). This refines D05/D10 without changing
+company selection, capability scopes or manual-voucher policy. Existing pairs
+are not rewritten at startup; valid rotations can adopt the policy, while
+expired/revoked/uncertain pairs need fresh explicit consent. No SQL migration,
+deployment or production activation is authorized by this implementation.
+See [the policy and evidence](implementation/onboarding-continuity.md).
+
 ## CLA and commercial-rights decision (2026-10-20)
 
 The owner approved a **Contributor License Agreement with Easy Today AB as the legal rights recipient**. The public code and documentation remain AGPL-3.0-only; the company's additional license is non-exclusive, contributors retain copyright, and separately licensed commercial products may be built only from material for which the company has the necessary rights. The change does not alter the open-source release scope, licensing of historic third-party material, or the D03 self-hosting-first launch decision.

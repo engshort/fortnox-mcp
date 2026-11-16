@@ -7,6 +7,7 @@ import { safeResponse } from "../../shared/admin.js";
 import { cleanupProduct } from "../../shared/maintenance.js";
 import {
   createProductApplication,
+  type ProductBusinessTest,
   type ProductFileTest,
   productSettings,
 } from "../../shared/product.js";
@@ -14,17 +15,28 @@ import { hashToken, type Owner } from "../../shared/product-auth.js";
 import { installationLock } from "./installation-lock.js";
 import { openProductDatabase } from "./product-database.js";
 import { sqliteState } from "./product-storage.js";
-import { sqliteReceiptFiles } from "./receipt-storage.js";
+import { sqliteAnalysisStore, sqliteReceiptFiles } from "./receipt-storage.js";
 import {
   nodeEnvironment,
   nodeRuntimeSettings,
   proxyRequest,
 } from "./runtime-config.js";
 
-export async function startProduct(fileTest?: ProductFileTest) {
+export async function startProduct(
+  fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
+) {
   const env = await nodeEnvironment(process.env);
-  if (env.PRODUCT_ENABLED !== "true")
-    throw new Error("Product disabled; see .env.example");
+  if (businessTest) {
+    const isolated = env.REGISTER_TEST_DATABASE;
+    if (
+      !isolated ||
+      resolve(isolated) ===
+        resolve(env.PRODUCT_DATABASE ?? ".data/product.sqlite")
+    )
+      throw new Error("Separate REGISTER_TEST_DATABASE required");
+    env.PRODUCT_DATABASE = isolated;
+  }
   const settings = productSettings(env);
   if (fileTest && settings.receiptSource?.transport !== "node-direct")
     throw new Error("Direct Node file transport required");
@@ -34,12 +46,15 @@ export async function startProduct(fileTest?: ProductFileTest) {
   const db = await openProductDatabase(path, runtime.migrations);
   const state = sqliteState(db);
   const receiptFiles = sqliteReceiptFiles(db);
+  const analysisStore = sqliteAnalysisStore(db);
+  await analysisStore.cleanup(Date.now());
   await receiptFiles.cleanup(Date.now());
   await cleanupProduct(state);
   const cleanup = setInterval(() => {
     void Promise.all([
       cleanupProduct(state),
       receiptFiles.cleanup(Date.now()),
+      analysisStore.cleanup(Date.now()),
     ]).catch(() => console.error("product_cleanup_failed"));
   }, 300000);
   cleanup.unref();
@@ -69,6 +84,7 @@ export async function startProduct(fileTest?: ProductFileTest) {
       database: db,
       state,
       receiptFiles,
+      analysisStore,
       assets: async (name) => {
         try {
           return safeResponse(
@@ -91,6 +107,7 @@ export async function startProduct(fileTest?: ProductFileTest) {
     },
     undefined,
     fileTest,
+    businessTest,
   );
   let stopping = false;
   const server = createAdaptorServer({

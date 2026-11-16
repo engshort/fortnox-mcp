@@ -1,5 +1,12 @@
 # G08 — milestone 4 recovery verification packet
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Scope: #38, M11/M13 and M14–M17. Local behavior is verified; actual authorized
 test-company recovery and applicable host/file/financial evidence remain pending.
 This packet does not close G08, G06/#36, G07/#37 or G02/G03. No exactly-once
@@ -135,8 +142,8 @@ explicitly grants no acceptance. No report promotes a gate or operation by itsel
 Publish only redacted evidence summaries with exact commit/deployment and scope.
 Keep #38 open/Verification until actual exit evidence is reviewed. Then document
 and close only the fulfilled scope; #24, #36, #37, #32, #33 and #94 retain their
-own criteria. Human evidence is excluded from the autonomous implementation goal,
-not fabricated or silently converted into a gate pass.
+own criteria. AI-operated evidence follows the separate reviewer procedure above;
+it is never fabricated or silently converted into a gate pass.
 
 ## Packet validation
 

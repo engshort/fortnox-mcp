@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { createProductApplication } from "../../apps/shared/product.js";
 import type { AuthConfig, Owner } from "../../apps/shared/product-auth.js";
-import { keyA } from "./connections.js";
+import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 
 export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
   async function seed(operator = false) {
@@ -87,8 +87,15 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
     const f = await seed();
     expect((await f.request("/setup", undefined, {})).status).toBe(200);
     expect((await f.request("/admin", undefined, {})).status).toBe(401);
+    expect(
+      (await f.request("/admin/fortnox/api-credentials", undefined, {})).status,
+    ).toBe(401);
+    expect((await f.request("/admin/fortnox/api-credentials")).status).toBe(
+      200,
+    );
     expect((await f.request("/admin/state", undefined, {})).status).toBe(401);
-    const shell = await f.request("/admin");
+    expect((await f.request("/admin")).status).toBe(303);
+    const shell = await f.request("/admin/companies");
     expect(shell.status).toBe(200);
     expect(await shell.text()).toContain("/admin-assets/admin.js");
     expect(shell.headers.get("content-security-policy")).toContain(
@@ -107,6 +114,27 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
     ).toBe(403);
     expect(f.calls()).toBe(0);
   });
+  it("requires the owner session and same Origin to cancel pending consent", async () => {
+    const f = await seed();
+    const path = "/admin/fortnox/cancel-consent";
+    expect((await f.request(path, {}, {})).status).toBe(401);
+    expect(
+      (await f.request(path, {}, { authorization: "Bearer synthetic-token" }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await f.request(
+          path,
+          {},
+          { cookie: f.cookie, origin: "https://foreign.invalid" },
+        )
+      ).status,
+    ).toBe(403);
+    expect((await f.request(path, { owner: "other-owner" })).status).toBe(400);
+    expect((await f.request(path, {})).status).toBe(200);
+    expect(f.calls()).toBe(0);
+  });
   it("encrypts write-only owner credentials and never exports secrets in status", async () => {
     const f = await seed();
     const credentials = {
@@ -123,6 +151,8 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
     const text = await state.text();
     expect(JSON.parse(text).integration).toEqual({
       configured: true,
+      verified: false,
+      revision: 1,
       source: "owner",
     });
     expect(text).not.toContain(credentials.client_secret);
@@ -159,8 +189,89 @@ export function ownerSetupContract(fixture: () => Promise<AuthConfig>) {
     };
     expect(status.integration).toEqual({
       configured: true,
+      verified: false,
+      revision: null,
       source: "operator",
     });
     expect(f.calls()).toBe(0);
+  });
+  it("forgets only the observed owner API configuration and preserves connected companies and grants", async () => {
+    const f = await seed();
+    const credentials = {
+      client_id: syntheticCredentials.clientId,
+      client_secret: syntheticCredentials.clientSecret,
+    };
+    await f.request("/admin/fortnox/configuration", credentials);
+    const company = await f.app.connections.add(
+      f.owner,
+      syntheticCompany,
+      syntheticCredentials,
+    );
+    await f.app.connections.grant(f.owner, "synthetic-client", [company.id]);
+    const before = await f.app.connections.snapshot(f.owner);
+    const state = (await (await f.request("/admin/state")).json()) as {
+      integration: { verified: boolean; revision: number };
+    };
+    expect(state.integration.verified).toBe(true);
+    const path = "/admin/fortnox/forget-configuration",
+      body = { revision: state.integration.revision };
+    expect((await f.request(path, body, {})).status).toBe(401);
+    expect(
+      (await f.request(path, body, { authorization: "Bearer synthetic-token" }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await f.request(path, body, {
+          cookie: f.cookie,
+          origin: "https://foreign.invalid",
+        })
+      ).status,
+    ).toBe(403);
+    await f.request("/admin/fortnox/configuration", credentials);
+    expect((await f.request(path, body)).status).toBe(400);
+    const current = (await (await f.request("/admin/state")).json()) as {
+      integration: { revision: number };
+    };
+    expect(
+      (await f.request(path, { revision: current.integration.revision }))
+        .status,
+    ).toBe(200);
+    expect(
+      (await f.config.state.get("integration-config", f.owner))?.value,
+    ).toBeNull();
+    const after = (await (await f.request("/admin/state")).json()) as {
+      integration: { configured: boolean; verified: boolean };
+    };
+    expect(after.integration).toMatchObject({
+      configured: false,
+      verified: false,
+    });
+    expect(await f.app.connections.snapshot(f.owner)).toEqual(before);
+    expect(
+      (
+        await f.app.connections.authorize(
+          f.owner,
+          "synthetic-client",
+          company.id,
+        )
+      ).state,
+    ).toBe("active");
+    await f.request("/admin/fortnox/configuration", credentials);
+    expect(
+      (
+        (await (await f.request("/admin/state")).json()) as {
+          integration: { verified: boolean };
+        }
+      ).integration.verified,
+    ).toBe(true);
+    expect(f.calls()).toBe(0);
+  });
+  it("cannot forget operator-managed configuration", async () => {
+    const f = await seed(true);
+    expect(
+      (await f.request("/admin/fortnox/forget-configuration", { revision: 1 }))
+        .status,
+    ).toBe(400);
   });
 }

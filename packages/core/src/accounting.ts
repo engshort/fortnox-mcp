@@ -54,7 +54,7 @@ export interface AccountingReferences {
   account_numbers?: number[];
   year: { id: number; from: string; to: string };
   locked_through: string | null;
-  // Unproven boundary/precision/row semantics may be shown, never used for booking.
+  // Historical acceptance evidence, independent of current reference validation.
   validation_verified: boolean;
   accounts: Array<{
     number: number;
@@ -99,11 +99,10 @@ export function validateVoucher(
     fail("references", "account_selection_mismatch");
   if (
     !refs.complete ||
-    !refs.validation_verified ||
     refs.retrieved_at > now ||
     now - refs.retrieved_at > 60000
   )
-    fail("references", "incomplete_unverified_or_stale");
+    fail("references", "incomplete_or_stale");
   if (
     refs.financial_year !== value.financial_year ||
     refs.year.id !== value.financial_year ||

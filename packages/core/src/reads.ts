@@ -3,6 +3,7 @@ import type { Bookkeeping } from "./bookkeeping.js";
 import type { Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
 import type { FinancialReads } from "./financial-reads.js";
+import { assertFeature, assertScopeProgram } from "./programs.js";
 import {
   type ReadDefinition,
   type ReadOperation,
@@ -111,7 +112,26 @@ export class ReadServices {
             : [];
       return (
         scopes.length === 0 ||
-        granted.some((c) => scopes.every((scope) => c.scopes.includes(scope)))
+        granted.some((c) => {
+          try {
+            for (const scope of scopes) assertScopeProgram(c, scope);
+            if (
+              ["accounts", "vouchers"].includes(d.module ?? "") ||
+              ["list_financial_years", "get_accounting_references"].includes(
+                operation,
+              )
+            )
+              assertFeature(c, "references");
+            return scopes.every((scope) => c.scopes.includes(scope));
+          } catch (error) {
+            if (
+              error instanceof DomainError &&
+              error.code === "CAPABILITY_UNAVAILABLE"
+            )
+              return false;
+            throw error;
+          }
+        })
       );
     });
   }

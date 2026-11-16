@@ -56,5 +56,25 @@ productFileTestContract(async () => {
     ).first())
   )
     await env.DB.exec(authSchema.replace(/\n/g, " "));
+  const tables = await env.DB.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+  ).all<{ name: string }>();
+  // Each fixture models a separate installation, including auth rate limits.
+  // Preserve the production limiter; do not share its counters between cases.
+  for (const name of [
+    "oauthAccessToken",
+    "oauthRefreshToken",
+    "oauthConsent",
+    "oauthClient",
+    "oauthResource",
+    "oauthAuthorizationCode",
+    "session",
+    "account",
+    "verification",
+    "rateLimit",
+    "user",
+  ])
+    if (tables.results.some((table) => table.name === name))
+      await env.DB.prepare(`DELETE FROM "${name}"`).run();
   return { ...f, receiptFiles: f.files };
 });

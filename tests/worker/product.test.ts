@@ -3,24 +3,53 @@ import stateSchema from "../../apps/worker/migrations/0002_product_state.sql?raw
 import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import scopeSchema from "../../apps/worker/migrations/0005_accounting_scope.sql?raw";
-import readScopeSchema from "../../apps/worker/migrations/0007_financial_read_scope.sql?raw";
+import readScopeSchema from "../../apps/worker/migrations/0008_financial_read_scope.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
 import { accountingSelectionContract } from "../shared/accounting-selection.js";
 import { accountingTransportContract } from "../shared/accounting-transport.js";
+import {
+  analyticsAuthorizationContract,
+  analyticsCalculationContract,
+} from "../shared/analytics.js";
+import { businessWritesContract } from "../shared/business-writes.js";
 import { connectionContract } from "../shared/connections.js";
 import { consentHttpContract } from "../shared/consent-http.js";
 import { diagnosticsContract } from "../shared/diagnostics.js";
 import { disconnectContract } from "../shared/disconnect.js";
+import { documentRowsContract } from "../shared/document-rows.js";
+import { datedFinancialContract } from "../shared/financial-dates.js";
+import { financialReadContract } from "../shared/financial-reads.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
+import { invoiceHistoryContract } from "../shared/invoice-history.js";
+import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
+import { onboardingContract } from "../shared/onboarding.js";
+import { onboardingContinuityContract } from "../shared/onboarding-continuity.js";
+import { openItemsContract } from "../shared/open-items.js";
 import { ownerSetupContract } from "../shared/owner-setup.js";
+import { payrollContract } from "../shared/payroll.js";
+import {
+  payrollReadContract,
+  payrollReadProfileContract,
+} from "../shared/payroll-reads.js";
+import { payrollWriteContract } from "../shared/payroll-writes.js";
 import { ownerContract } from "../shared/product-auth.js";
 import { oauthContract } from "../shared/product-oauth.js";
+import { programContract, programHttpContract } from "../shared/programs.js";
 import { providerContract } from "../shared/provider.js";
 import { readApiContract, readOAuthContract } from "../shared/read-api.js";
+import { registersContract } from "../shared/registers.js";
+import { salesDocumentsContract } from "../shared/sales-documents.js";
+import {
+  documentReadProfileContract,
+  salesMcpContract,
+} from "../shared/sales-mcp.js";
+import { salesTransportContract } from "../shared/sales-transport.js";
 import { userTokenContract } from "../shared/user-tokens.js";
+
+documentRowsContract();
 
 async function fixture() {
   await env.DB.exec(stateSchema.replace(/\n/g, " "));
@@ -84,22 +113,61 @@ maintenanceContract(async () => (await fixture()).state);
 accountingContract(async () => (await fixture()).state);
 accountingTransportContract(async () => (await fixture()).state);
 accountingSelectionContract(async () => (await fixture()).state);
-for (const [migration, addedScope] of [
-  [scopeSchema, "mcp:write"],
-  [readScopeSchema, "mcp:finance:read"],
-] as const) {
-  accountingMigrationContract(async () => {
-    await fixture();
-    return {
-      execute: async (sql) => env.DB.exec(sql),
-      all: async (sql) => (await env.DB.prepare(sql).all()).results,
-      migrate: async () =>
-        env.DB.exec(
-          migration.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "),
-        ),
-    };
-  }, addedScope);
-}
+accountingMigrationContract(async () => {
+  await fixture();
+  return {
+    execute: async (sql) => env.DB.exec(sql),
+    all: async (sql) => (await env.DB.prepare(sql).all()).results,
+    migrate: async () =>
+      env.DB.exec(
+        scopeSchema.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "),
+      ),
+  };
+});
+
+businessWritesContract(async () => (await fixture()).state);
+registersContract(async () => (await fixture()).state);
+salesDocumentsContract(async () => (await fixture()).state);
+
+programContract(async () => (await fixture()).state);
+programHttpContract(fixture);
+salesTransportContract(async () => (await fixture()).state);
+
+salesMcpContract(async () => (await fixture()).state);
+
+documentReadProfileContract(fixture);
+analyticsCalculationContract();
+analyticsAuthorizationContract(async () => (await fixture()).state);
+
+payrollContract(async () => (await fixture()).state);
+payrollWriteContract(async () => (await fixture()).state);
+
+payrollReadContract(async () => (await fixture()).state);
+payrollReadProfileContract(fixture);
+
+financialReadContract(async () => (await fixture()).state);
+datedFinancialContract(async () => (await fixture()).state);
+invoiceHistoryContract(async () => (await fixture()).state);
+
+openItemsContract(async () => (await fixture()).state);
+
+liquidityContract(async () => (await fixture()).state);
+
+onboardingContract(fixture);
+
+onboardingContinuityContract(fixture);
 
 readApiContract(fixture);
 readOAuthContract(fixture);
+
+accountingMigrationContract(async () => {
+  await fixture();
+  return {
+    execute: async (sql) => env.DB.exec(sql),
+    all: async (sql) => (await env.DB.prepare(sql).all()).results,
+    migrate: async () =>
+      env.DB.exec(
+        readScopeSchema.replace(/--[^\n]*(?:\n|$)/g, "").replace(/\n/g, " "),
+      ),
+  };
+}, "mcp:finance:read");

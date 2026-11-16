@@ -69,19 +69,19 @@ export function diagnosticsContract(fixture: () => Promise<StateStore>) {
           f.company.id,
         )
       ).status,
-    ).toBe("verification_blocked");
-    expect(f.calls()).toBe(0);
+    ).toBe("available");
+    expect(f.calls()).toBe(1);
     const result = await diagnoseConnection(f.context, f.company.id);
     expect(result.status).toBe("available");
     expect(result.capabilities).toContainEqual({
       id: "manual_vouchers",
-      status: "verification_blocked",
-      reason: "verification_pending",
+      status: "unknown",
+      reason: "provider_access_not_checked",
     });
     expect(result.capabilities).toContainEqual({
       id: "payroll",
-      status: "not_implemented",
-      reason: "feature_not_implemented",
+      status: "unknown",
+      reason: "provider_access_not_checked",
     });
     expect(JSON.stringify(result)).not.toContain("Synthetic private name");
     expect(JSON.stringify(result)).not.toContain(

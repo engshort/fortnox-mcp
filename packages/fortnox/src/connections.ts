@@ -1,9 +1,17 @@
 import {
   type Ciphertext,
   type Connection,
+  type ConnectionSet,
   type Connections,
   type Credentials,
   DomainError,
+  type OnboardingAttempt,
+  type OnboardingBinding,
+  type ProgramChange,
+  type ProgramGates,
+  type ProgramSelection,
+  previewProgram,
+  programSelection,
 } from "@fortnox-mcp/core";
 import * as oauth from "oauth4webapi";
 import { z } from "zod";
@@ -76,6 +84,14 @@ interface Flow {
   claimed: boolean;
   reconnectId?: string;
   reconnectGeneration?: number;
+  onboarding?: OnboardingBinding;
+  extension?: {
+    generation: number;
+    revision: number;
+    policy: number;
+    selection: Omit<ProgramSelection, "revision">;
+    change: ProgramChange;
+  };
 }
 const flowSecret = z
   .object({
@@ -89,9 +105,12 @@ export interface FortnoxConfig {
   origin: string;
   connections: Connections;
   fetch: typeof fetch;
-  testTenants: readonly string[];
+  // Optional restriction for isolated acceptance harnesses. Normal installations
+  // authorize companies through owner consent and verified provider identity.
+  testTenants?: readonly string[];
   now?: () => number;
   scopes?: readonly string[];
+  programGates?: ProgramGates | (() => ProgramGates);
 }
 export const companyInformation = z.object({
   CompanyInformation: z.object({
@@ -103,6 +122,9 @@ export const companyInformation = z.object({
 
 export class FortnoxConnections {
   readonly now: () => number;
+  allowsTenant(tenant: string) {
+    return !this.config.testTenants || this.config.testTenants.includes(tenant);
+  }
   constructor(readonly config: FortnoxConfig) {
     this.now = config.now ?? Date.now;
     if (
@@ -120,12 +142,29 @@ export class FortnoxConnections {
               "project",
               "inbox",
               "connectfile",
+              "customer",
+              "supplier",
+              "article",
+              "currency",
+              "price",
+              "offer",
+              "order",
               "invoice",
               "supplierinvoice",
+              "payment",
+              "salary",
             ].includes(s),
         ))
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
+  }
+  private gates() {
+    return typeof this.config.programGates === "function"
+      ? this.config.programGates()
+      : (this.config.programGates ?? {
+          references: false,
+          receiptConsent: false,
+        });
   }
   private redirect() {
     return `${this.config.origin}/admin/fortnox/callback`;
@@ -135,6 +174,8 @@ export class FortnoxConnections {
     session: string,
     input: z.infer<typeof consentInput>,
     reconnectId?: string,
+    extension?: ProgramChange,
+    onboarding?: OnboardingBinding,
   ) {
     consentInput.parse(input);
     const target = reconnectId
@@ -142,9 +183,20 @@ export class FortnoxConnections {
           (c) => c.id === reconnectId,
         )
       : undefined;
-    if (reconnectId && (!target || target.state === "active"))
+    if (reconnectId && (!target || (!extension && target.state === "active")))
       throw new DomainError("CONNECTION_CONFLICT");
-    const id = crypto.randomUUID();
+    if (extension && (!target || target.mode !== input.mode))
+      throw new DomainError("COMPANY_FORBIDDEN");
+    const preview =
+      extension && target
+        ? previewProgram(target, extension, this.gates())
+        : undefined;
+    const scopes =
+      preview?.scopes ??
+      (target
+        ? target.scopes
+        : (this.config.scopes ?? ["companyinformation", "profile"]));
+    const id = onboarding?.flowId ?? crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
     const secret = await this.config.connections.vault.sealData(
@@ -152,7 +204,7 @@ export class FortnoxConnections {
         clientId: input.clientId,
         clientSecret: input.clientSecret,
         verifier,
-        scopes: this.config.scopes ?? ["companyinformation", "profile"],
+        scopes,
       },
       JSON.stringify([owner, id, session]),
     );
@@ -164,8 +216,23 @@ export class FortnoxConnections {
       expiresAt: this.now() + 600000,
       secret,
       claimed: false,
+      ...(onboarding ? { onboarding } : {}),
       ...(target
         ? { reconnectId: target.id, reconnectGeneration: target.generation }
+        : {}),
+      ...(preview && target && extension
+        ? {
+            extension: {
+              generation: target.generation,
+              revision: preview.expected_revision,
+              policy: target.policyVersion,
+              selection: {
+                enabled: preview.enabled,
+                features: preview.features,
+              },
+              change: extension,
+            },
+          }
         : {}),
     };
     for (let n = 0; n < 8; n++) {
@@ -174,6 +241,11 @@ export class FortnoxConnections {
         owner,
       );
       const flows = (row?.value ?? []).filter((f) => f.expiresAt > this.now());
+      // Avoid overlapping provider-login continuations in one browser session.
+      // Reserve one flow per authenticated admin session before redirecting;
+      // independent sessions retain the owner-wide bounded concurrency.
+      if (flows.some((existing) => existing.session === session))
+        throw new DomainError("CONSENT_IN_PROGRESS");
       if (flows.length >= 4) throw new DomainError("RATE_LIMITED");
       if (
         await this.config.connections.state.put(
@@ -188,9 +260,7 @@ export class FortnoxConnections {
           client_id: input.clientId,
           response_type: "code",
           redirect_uri: this.redirect(),
-          scope: (this.config.scopes ?? ["companyinformation", "profile"]).join(
-            " ",
-          ),
+          scope: scopes.join(" "),
           access_type: "offline",
           ...(input.mode === "service" ? { account_type: "service" } : {}),
           state,
@@ -199,6 +269,32 @@ export class FortnoxConnections {
         }).toString();
         return url.href;
       }
+    }
+    throw new DomainError("RATE_LIMITED");
+  }
+  // A session cancels its own pending flows. Null is reserved for the owner's
+  // forget-configuration action, which clears all unused owner flows. Claimed
+  // exchanges remain untouched; cancellation cannot interrupt token storage.
+  async cancelPending(owner: string, session: string | null) {
+    for (let n = 0; n < 8; n++) {
+      const row = await this.config.connections.state.get<Flow[]>(
+        "fortnox-flows",
+        owner,
+      );
+      if (!row) return;
+      const flows = row.value.filter(
+        (f) => (session !== null && f.session !== session) || f.claimed,
+      );
+      if (
+        flows.length === row.value.length ||
+        (await this.config.connections.state.put(
+          "fortnox-flows",
+          owner,
+          flows,
+          row.version,
+        ))
+      )
+        return;
     }
     throw new DomainError("RATE_LIMITED");
   }
@@ -232,6 +328,15 @@ export class FortnoxConnections {
         throw new DomainError("RECONNECT_REQUIRED");
       }
     };
+  }
+  async pending(owner: string) {
+    const rows = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    return (rows?.value ?? [])
+      .filter((f) => !f.claimed && f.expiresAt > this.now())
+      .flatMap((f) => (f.reconnectId ? [f.reconnectId] : []));
   }
   private credentials(
     input: Pick<Credentials, "clientId" | "clientSecret">,
@@ -288,7 +393,8 @@ export class FortnoxConnections {
     const identity = parsed.data.CompanyInformation;
     const actual = String(identity.DatabaseNumber);
     if (
-      !this.config.testTenants.includes(actual) ||
+      !/^\d{1,15}$/.test(actual) ||
+      !this.allowsTenant(actual) ||
       (tenant !== undefined && tenant !== actual)
     )
       throw new DomainError("COMPANY_FORBIDDEN");
@@ -298,6 +404,87 @@ export class FortnoxConnections {
       organizationNumber: identity.OrganizationNumber ?? "",
       scopes: [...scopes],
     };
+  }
+  async onboardingFlow(owner: string, id: string, revision: number) {
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    const f = row?.value.find(
+      (f) => f.onboarding?.id === id && f.onboarding.revision === revision,
+    );
+    return f ? { claimed: f.claimed, expiresAt: f.expiresAt } : null;
+  }
+  async cancelOnboardingPending(
+    owner: string,
+    session: string,
+    id: string,
+    revision: number,
+  ) {
+    for (let n = 0; n < 8; n++) {
+      const row = await this.config.connections.state.get<Flow[]>(
+        "fortnox-flows",
+        owner,
+      );
+      const flow = row?.value.find(
+        (f) =>
+          f.onboarding?.id === id &&
+          f.onboarding.revision === revision &&
+          f.session === session,
+      );
+      if (flow?.claimed) throw new DomainError("OUTCOME_UNKNOWN");
+      if (
+        row &&
+        flow &&
+        !(await this.config.connections.state.put(
+          "fortnox-flows",
+          owner,
+          row.value.filter((f) => f.id !== flow.id),
+          row.version,
+        ))
+      )
+        continue;
+      await this.config.connections.updateSet(owner, (set) => {
+        const a = set.onboarding?.find(
+          (a) =>
+            a.id === id && a.revision === revision && a.session === session,
+        );
+        if (a?.phase !== "provider_pending")
+          throw new DomainError("CONNECTION_CONFLICT");
+        // An absent flow can mean a dispatch already happened. Do not infer safety.
+        a.phase = flow ? "failed" : "provider_outcome_unknown";
+      });
+      return;
+    }
+    throw new DomainError("CONNECTION_CONFLICT");
+  }
+  async onboardingCallback(owner: string, session: string, callback: URL) {
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    return row?.value.find(
+      (f) =>
+        f.session === session && f.state === callback.searchParams.get("state"),
+    )?.onboarding;
+  }
+  // Navigation only: recover the local guide after login loss. Never exchange
+  // the callback code, rebind its session or grant access through this lookup.
+  async onboardingReturn(owner: string, callback: URL) {
+    if (
+      callback.origin + callback.pathname !== this.redirect() ||
+      callback.searchParams.getAll("state").length !== 1 ||
+      callback.hash
+    )
+      return null;
+    const row = await this.config.connections.state.get<Flow[]>(
+      "fortnox-flows",
+      owner,
+    );
+    const binding = row?.value.find(
+      (f) => f.state === callback.searchParams.get("state"),
+    )?.onboarding;
+    return binding ? { id: binding.id, revision: binding.revision } : null;
   }
   async finish(owner: string, session: string, callback: URL) {
     if (
@@ -335,6 +522,40 @@ export class FortnoxConnections {
     if (!flow) throw new DomainError("AUTH_REQUIRED");
     let stage: ConsentStage = "flow_decryption";
     try {
+      const target = flow.reconnectId
+        ? (await this.config.connections.list(owner)).find(
+            (c) => c.id === flow.reconnectId,
+          )
+        : undefined;
+      if (
+        flow.reconnectId &&
+        (!target || target.generation !== flow.reconnectGeneration)
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      if (flow.extension && target) {
+        if (
+          target.state !== "active" ||
+          target.policyVersion !== flow.extension.policy ||
+          programSelection(target).revision !== flow.extension.revision
+        )
+          throw new DomainError("CONNECTION_CONFLICT");
+        previewProgram(target, flow.extension.change, this.gates());
+      }
+      if (flow.onboarding) {
+        const b = flow.onboarding;
+        const a = (
+          await this.config.connections.snapshot(owner)
+        )?.value.onboarding?.find((a) => a.id === b.id);
+        if (
+          !a ||
+          a.revision !== b.revision ||
+          a.session !== session ||
+          a.flowId !== flow.id ||
+          a.phase !== "provider_pending" ||
+          a.expiresAt <= this.now()
+        )
+          throw new DomainError("AUTH_REQUIRED");
+      }
       const input = flowSecret.parse(
         await this.config.connections.vault.openData(
           flow.secret,
@@ -377,7 +598,12 @@ export class FortnoxConnections {
         requested,
       );
       stage = "tenant_verification";
-      const identity = await this.verify(owner, initial, undefined, requested);
+      const identity = await this.verify(
+        owner,
+        initial,
+        target?.tenant,
+        requested,
+      );
       let credentials = initial;
       if (flow.mode === "user" && !initial.refreshToken)
         throw new DomainError("RECONNECT_REQUIRED");
@@ -417,24 +643,59 @@ export class FortnoxConnections {
         if (
           !previous ||
           previous.generation !== flow.reconnectGeneration ||
-          previous.state === "active"
+          (!flow.extension && previous.state === "active")
         )
           throw new DomainError("CONNECTION_CONFLICT");
-        if (previous.tenant === identity.tenant)
-          return await this.config.connections.reconnect(
+        if (previous.tenant !== identity.tenant)
+          throw new DomainError("COMPANY_FORBIDDEN");
+        if (flow.extension) {
+          if (programSelection(previous).revision !== flow.extension.revision)
+            throw new DomainError("CONNECTION_CONFLICT");
+          previewProgram(previous, flow.extension.change, this.gates());
+          return await this.config.connections.extendPrograms(
             owner,
             previous.id,
-            previous.generation,
+            flow.extension,
             { ...identity, mode: flow.mode },
+            flow.extension.selection,
             credentials,
+            flow.extension.change,
           );
+        }
+        return await this.config.connections.reconnect(
+          owner,
+          previous.id,
+          previous.generation,
+          { ...identity, mode: flow.mode },
+          credentials,
+          flow.onboarding,
+        );
       }
       return await this.config.connections.add(
         owner,
         { ...identity, mode: flow.mode },
         credentials,
+        flow.onboarding,
       );
     } catch (error) {
+      if (flow.onboarding) {
+        const b = flow.onboarding;
+        await this.config.connections.updateSet(owner, (set: ConnectionSet) => {
+          const a: OnboardingAttempt | undefined = set.onboarding?.find(
+            (a) => a.id === b.id,
+          );
+          if (
+            a?.revision === b.revision &&
+            a.flowId === flow.id &&
+            a.phase === "provider_pending"
+          )
+            a.phase = ["flow_decryption", "authorization_response"].includes(
+              stage,
+            )
+              ? "failed"
+              : "provider_outcome_unknown";
+        });
+      }
       throw new FortnoxConsentError(stage, error);
     } finally {
       for (let n = 0; n < 8; n++) {

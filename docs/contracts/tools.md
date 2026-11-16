@@ -6,6 +6,16 @@ tools require `mcp:read` plus `mcp:finance:read`, share services/schemas with RE
 and remain limited to explicitly configured test companies. Existing tool formats
 and financial write/file gates are preserved.
 
+Date-driven analysis adds `get_account_balances` and
+`list_financial_transactions`, plus optional historical `as_of` input on
+`list_receivables`/`list_payables`. These are read-only tools with strict inputs,
+source-bound pagination and explicit incomplete results. Historical output keeps
+current provider balances separate from computed rest amounts. Historical
+liquidity uses the same dated inputs. See the [analytics contract](analytics.md)
+and [activation/evidence boundary](../implementation/S08-dated-reads.md).
+
+Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
+
 Milestone 2 adds implemented experimental `list_companies`, `get_connection_status` and test-only `get_company_profile` with strict schemas, durable authorization and structured errors. Profile execution remains disabled outside explicit two-tenant acceptance mode. See [evidence](../implementation/M02-connections-evidence.md).
 
 Most names below are proposed public contracts to finalize in S03. The opt-in
@@ -89,6 +99,7 @@ Continuation handles are owner/company/query-bound, bounded and expiring. A hand
 | `AUTH_REQUIRED`, `RECONNECT_REQUIRED` | Authenticate/reconnect through the trusted flow |
 | `COMPANY_FORBIDDEN` | Caller is not authorized for the company; no provider call |
 | `CONNECTION_DISCONNECTED` | A previously authorized connection was explicitly disconnected; no profile or provider call. The old generation stays invalid after reconnection. |
+| `CONSENT_IN_PROGRESS` | An owner-admin browser session already has a pending Fortnox consent. Complete it or cancel its unclaimed flow before starting fresh; no second provider redirect is issued. |
 | `CAPABILITY_UNAVAILABLE` | Missing implementation, scope, license or provider rights; distinguish these causes |
 | `VALIDATION_FAILED` | Structured field/domain violations and remediation |
 | `REVIEW_REQUIRED`, `CLIENT_UNSUPPORTED` | Required approval cannot yet be completed |
@@ -155,3 +166,169 @@ Authorization is rechecked after I/O. Successful diagnosis verifies that bounded
 read only; it activates no financial/file operation. The fixed M14 file-only
 experiment catalog is unchanged. Existing local documentation tools remain local
 and do not acquire a provider proxy or activate operations from OpenAPI content.
+
+### S04/S05 business write preparation
+
+The internal business dispatcher accepts only registered domain operations and
+never exposes an HTTP method/path/body proxy. Future focused tools use strict
+`company_id`, `proposal_id` and `proposal_hash` references. Prepared bodies bind
+the initiating client, current company generation/policy and operation; execution
+revalidates source state. Standard client approvals do not authorize manual
+vouchers or override read-only, restore, provider or ownership checks.
+See [the foundation evidence](../implementation/S04-S05-business-writes.md).
+
+`applied_different` is a terminal known-effect result, distinct from intended
+success and from uncertain delivery. It requires a retained exact provider-response
+reference, exact-ID readback, and operation-specific evidence that stable identity
+fields match. The expected digest must equal the immutable execution evidence;
+the observed digest must differ. Store only the two hashes and bounded changed
+field names. Reconciliation may not introduce a different or previously unknown
+reference to establish this result. Only explicitly implemented adapters can
+classify it; generic mismatches remain unknown. The original intent is never
+resent and its hash is never replaced. Show the discrepancy to the owner and
+prepare any correction as a separate validated intent. This status establishes
+neither successful intended content nor a cause for the observed difference.
+
+### S04 register tools (isolated test profile only)
+
+`list_customers`/`list_suppliers`/`list_articles` accept only their resource's
+modeled query filters and bounded `start_page`. Detail tools require company and
+exact `id`; price reads also require explicit price-list/article selection.
+Reference collections have separate tools; missing permissions never become an
+empty successful list. Paged reads without valid metadata remain incomplete.
+
+`prepare_customer_create`/`prepare_customer_update` (and supplier/article
+counterparts) accept strict resource fields. Execution tools take only the
+immutable business reference. Updates display modeled before/after/diff and
+revalidate the whole provider source version. Omission retains register fields;
+empty values and `API_BLANK` do not provide an unverified clearing shortcut.
+
+`reconcile_customer_create`/`reconcile_customer_update` and counterparts perform
+only authenticated reads against trusted IDs. Exact field digests can establish
+matching current state. Unknown identity, unproven mismatch or absence stays unknown;
+no reconciliation tool resends. `get_register_write_status` reads only the
+initiating client's durable proposal/execution. No tool supplies manual-voucher
+approval, a provider URL, arbitrary method/body or bank instructions.
+
+## Program selection and diagnostics (#117)
+
+A company's local program/function selection is an additional authorization check
+for accounting and register/file provider paths, including pre-dispatch rechecks.
+Retained provider scopes cannot bypass local disable, read-only mode, restore
+blocks, operation gates or client/company grants. Existing tool names and approval
+boundaries are unchanged. `diagnose_connection` adds manifest-derived `programs`
+summaries; OAuth connection, operation verification and unknown license/permission
+causes remain separate. No model-callable program administration tool is added.
+
+### S05 focused sales tools (default-off service)
+
+`list_offers`/`list_orders`/`list_invoices` use resource-specific filters and bounded
+pagination. `get_offer`/`get_order`/`get_invoice` require an exact company-bound
+ID and return the whole-source version, projected rows, nullable observed states,
+exact reported amounts and explicit completeness/editability. A summary is never
+an editable full document or a source of invented defaults.
+
+Sales read projection canonicalizes an explicitly present `null` in
+`EmailInformation.EmailAddressCC` or `EmailAddressBCC` to `""`, the supported
+empty-copy representation. Actual sandbox readback established this transport
+difference. Missing fields, the To recipient, nonempty copy recipients and
+templates are preserved; write/send schemas remain strict. Whole-source versions
+still hash the raw provider record. This lets an existing trusted-reference
+intent reconcile by its unchanged content digest without resending creation.
+Recipient-free To values remain outside the editable profile (#130).
+
+`prepare_<resource>_<action>` stores immutable content and full row diffs.
+`create`/`update`/`email`/`bookkeep`/`credit`/`cancel` and supported `to_order`/
+`to_invoice` executions take only the business reference. Reconciliation updates
+local execution metadata from exact readback and is annotated as a local
+mutation. Email is an external effect; its uncertain result cannot be resolved
+from a Sent flag alone. No eprint, e-invoice, reminder or bank-initiation tool is
+registered.
+
+The ordinary product registers none of these tools. The separately selected
+S04/S05 test entry permits at most six document read operations and refuses write
+activation. Contracts, evidence and outstanding acceptance are in the
+[S05 record](../implementation/S05-documents.md) and
+[operation ledger](../reference/s05-sales-operations.json).
+
+### Bounded payroll-input writes (disabled by default)
+
+`prepare_salary_transaction_create`, `_update` and `_delete` accept strict
+resource-specific fields/version selections. They return an encrypted immutable
+business reference and complete modeled before/after/diff. Corresponding
+`create_salary_transaction`, `update_salary_transaction` and
+`delete_salary_transaction` tools take only that reference. Each effect and its
+`reconcile_salary_transaction_*` tool is registered only when independently
+enabled. `get_salary_transaction_write_status` performs an authorized local read.
+Preparation mutates bounded local state; execution consumes a single intent.
+No payroll calculation, payslip, tax calculation or payout is exposed.
+
+The first provider write adapter accepts only trusted company/employee/date/code-11
+profiles with separate action evidence, a verified unit amount and quantity
+precision. It rechecks active employment and applicable dated hourly pay before
+execution. Missing evidence, changed wages, dimensions/expenses/nonzero VAT or
+unmodeled source fields prevent editing. Exact response identity and readback
+are required; known numeric discrepancies remain distinct from success. Delete
+requires the verified acknowledged final response and exact-ID not-found
+readback. A lost delete acknowledgement cannot be resolved by absence alone.
+The ordinary product and existing leased read-only profile enable none of these
+write operations; operator probes and SDK evidence are separate from ChatGPT
+acceptance.
+
+The salary DELETE contract does not declare a response-body schema. A verified
+final status with bounded empty or valid JSON content is an acknowledgement;
+recognized ErrorInformation, malformed JSON, 202 or a lost response remains
+unknown. It still requires exact not-found readback. An operator's already
+captured final-200 receipt may reconcile its original intent/hash by a later
+exact read; no tool accepts status assertions or a replacement row identity.
+
+`list_financial_accounts` returns at most 100 chart records with company/year
+and first-page-anchor-bound continuation. A continued page rechecks that anchor
+and reauthorizes the connection generation. Missing balances remain null. Page
+exhaustion is separate from whole-collection completeness, and chart completeness
+never asserts verified balance units or financial reconciliation.
+
+`compare_financial_periods` takes explicit left/right company/year/date
+selections and 1–50 shared accounts. It performs both authorized reads and
+returns separate reports plus exact right-minus-left period differences when
+currency, mapping, calculation version and returned account identities match.
+It accepts no caller-supplied reports or completeness assertions. Both companies
+must remain authorized through completion; no currency conversion or statutory
+consolidation is performed.
+
+A payroll preparation binds the validated employee/code reference profile and
+its operation evidence. A changed verification profile requires preparation
+again, including when the intended amounts remain valid under the new profile.
+
+The isolated test entry may advertise individually verified salary-input writes
+from a private source-bound profile, within its existing tenant allowlist and
+operation lease. Ordinary product ENV cannot activate them. The profile is never
+an MCP argument or a tool result and contains no client approval override.
+
+`list_receivables` and `list_payables` are separate read-only tools for current
+invoice observations. They require an explicit company and default to booked
+items; unbooked inclusion is explicit. They scan at most 100 unfiltered source
+records, preserve unknown status/amounts, and locally exclude known paid/cancelled
+items. Continuation binds company/resource/selection/source. Totals are per
+currency and page; unknown credit/currency semantics prevent signed cash flow.
+Current status never proves a historical unpaid balance. Due dates are not
+promises of payment or bank payment instructions.
+
+`get_liquidity_basis` requires an explicit company/year, today's Stockholm date,
+1–20 selected cash/bank account numbers and an explicit `due_date_only` interval
+of at most 90 days. It authorizes ledger/invoice/supplier-invoice scopes before
+reads. Source windows, classifications, page continuations and excluded foreign
+currencies remain visible. Unknown monetary/sign/reference data prevents a
+complete projection. Scope is selected accounts and returned invoice pages,
+not all future cash movements, a live bank balance or a payment instruction.
+
+### Optional financial analysis preparation
+
+`prepare_financial_analysis` is a fixed read-only provider workflow with temporary
+local operational state. It is advertised only when the operator enables the
+analysis-context module and supplies its SQLite/D1 adapter. Its structured result
+contains building/ready progress, an opaque `analysis_context_id`, expiry and the
+next action; building results contain no financial totals. Ready IDs are optional
+inputs to the existing ledger analysis/balance/movement/transaction tools and to
+each period-comparison side. Pinned responses explicitly disclose their original
+source observation. Context IDs are references, never authorization or approval.

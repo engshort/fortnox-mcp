@@ -7,7 +7,7 @@ import type { AuthConfig } from "../../apps/shared/product-auth.js";
 import { keyA } from "./connections.js";
 
 export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
-  it("prepares receipt consent only in the explicit accounting test configuration without enabling file or financial operations", async () => {
+  it("allows receipt consent outside test mode and keeps initial company consent minimal", async () => {
     const config = await fixture();
     for (const settings of [
       {
@@ -21,9 +21,7 @@ export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
         receiptProviderConsent: true,
       },
     ])
-      expect(() => requestedFortnoxScopes(settings)).toThrow(
-        "CAPABILITY_UNAVAILABLE",
-      );
+      expect(requestedFortnoxScopes(settings)).toContain("connectfile");
     expect(requestedFortnoxScopes({ testMode: true })).toEqual([
       "companyinformation",
       "profile",
@@ -83,11 +81,41 @@ export function consentHttpContract(fixture: () => Promise<AuthConfig>) {
     );
     expect(response.status).toBe(200);
     const url = new URL(((await response.json()) as { url: string }).url);
-    expect(url.searchParams.get("scope")).toBe(
-      "companyinformation profile bookkeeping settings costcenter project inbox connectfile",
+    expect(url.searchParams.get("scope")).toBe("companyinformation profile");
+    const startAgain = () =>
+      app.fetch(
+        new Request(`${config.origin}/admin/fortnox/start`, {
+          method: "POST",
+          headers: {
+            origin: config.origin,
+            cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ mode: "service" }),
+        }),
+      );
+    const blocked = await startAgain();
+    expect(blocked.status).toBe(400);
+    expect(await blocked.json()).toEqual({
+      error: "CONNECTION_REQUEST_FAILED",
+      reason: "CONSENT_IN_PROGRESS",
+      stage: "consent_start",
+    });
+    const cancelled = await app.fetch(
+      new Request(`${config.origin}/admin/fortnox/cancel-consent`, {
+        method: "POST",
+        headers: {
+          origin: config.origin,
+          cookie,
+          "content-type": "application/json",
+        },
+        body: "{}",
+      }),
     );
-    expect(app.bookkeeping.gates.writes).toBe(false);
-    expect(app.bookkeeping.gates.reviewHost).toBe(false);
+    expect(cancelled.status).toBe(200);
+    expect((await startAgain()).status).toBe(200);
+    expect(app.bookkeeping.gates.writes).toBe(true);
+    expect(app.bookkeeping.gates.reviewHost).toBe(true);
     expect(await app.connections.list(owner.response.user.id)).toEqual([]);
   });
   it("reports bounded consent stages without leaking provider errors or replaying code exchanges", async () => {

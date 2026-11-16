@@ -39,7 +39,7 @@ export const invoiceSummary = z
     credit: z.boolean().nullable(),
   })
   .strict();
-export const invoiceRow = z
+export const readInvoiceRow = z
   .object({
     account: z.number().int().safe().nullable(),
     description: nullableText,
@@ -54,7 +54,7 @@ export const invoiceRow = z
   })
   .strict();
 export const invoiceDetails = invoiceSummary
-  .extend({ rows: z.array(invoiceRow).max(10000) })
+  .extend({ rows: z.array(readInvoiceRow).max(10000) })
   .strict();
 export const voucherSummary = z
   .object({

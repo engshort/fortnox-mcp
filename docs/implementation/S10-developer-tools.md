@@ -1,10 +1,11 @@
 # S10 — Documentation and developer assistance
 
-Status: early local documentation slice implemented; validation is recorded in
-[S10 evidence](S10-docs-evidence.md). Search/read can precede S02/S03 because
-they expose only reference data on loopback. The second PR adds detailed
-operation descriptions and reviewed hash-bound supplements. Connection diagnostics still depend on S03;
-redistribution remains subject to source provenance decisions.
+Status: the bounded documentation and product-diagnosis deliverables have
+[criterion-by-criterion acceptance evidence](S10-acceptance-2026-11-12.md).
+The [earlier evidence](S10-docs-evidence.md) retains its dated scope. Documentation
+lookup remains a separate loopback service with original guides and private
+operator-selected input; product diagnosis was delivered through S03/#73.
+External-source redistribution remains a separate #35 decision.
 
 ## Deliver
 

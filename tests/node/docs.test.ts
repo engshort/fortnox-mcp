@@ -3,6 +3,7 @@ import { once } from "node:events";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describeOutput } from "@fortnox-mcp/docs";
 import { expect, it } from "vitest";
 import { loadDocsCatalog } from "../../apps/node/src/docs.js";
@@ -16,7 +17,7 @@ it("serves a privately loaded operation through the actual Node docs entry", asy
     process.execPath,
     [
       "--import",
-      resolve("node_modules/tsx/dist/loader.mjs"),
+      pathToFileURL(resolve("node_modules/tsx/dist/loader.mjs")).href,
       resolve("apps/node/src/docs-main.ts"),
     ],
     {
@@ -93,7 +94,7 @@ it("loads a privately selected file and rejects explicit missing/invalid paths w
 it("the actual local docs entry starts without a spec and fails closed for an explicitly invalid file", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fortnox-docs-cli-"));
   const entry = resolve("apps/node/src/docs-main.ts");
-  const tsx = resolve("node_modules/tsx/dist/loader.mjs");
+  const tsx = pathToFileURL(resolve("node_modules/tsx/dist/loader.mjs")).href;
   try {
     const environment: NodeJS.ProcessEnv = { ...process.env, PORT: "0" };
     delete environment.FORTNOX_OPENAPI_PATH;

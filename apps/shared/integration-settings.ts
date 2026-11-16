@@ -1,5 +1,6 @@
 import {
   type Ciphertext,
+  type Connections,
   type CredentialVault,
   DomainError,
   type StateStore,
@@ -22,9 +23,27 @@ export class IntegrationSettings {
   private binding(owner: string) {
     return JSON.stringify(["installation-fortnox-v1", owner]);
   }
-  async status(owner: string) {
+  async status(owner: string, connections?: Connections) {
+    const snapshot = await this.snapshot(owner);
+    const credentials = snapshot.credentials;
+    let verified = false;
+    if (credentials && connections) {
+      for (const c of await connections.list(owner)) {
+        if (c.state !== "active") continue;
+        const saved = await connections.credentials(owner, c);
+        if (
+          saved.clientId === credentials.clientId &&
+          saved.clientSecret === credentials.clientSecret
+        ) {
+          verified = true;
+          break;
+        }
+      }
+    }
     return {
-      configured: !!(await this.credentials(owner)),
+      configured: !!credentials,
+      verified,
+      revision: snapshot.revision,
       source:
         this.operator.clientId || this.operator.clientSecret
           ? "operator"
@@ -32,19 +51,38 @@ export class IntegrationSettings {
     } as const;
   }
   async credentials(owner: string) {
+    return (await this.snapshot(owner)).credentials;
+  }
+  private async snapshot(owner: string) {
     if (this.operator.clientId || this.operator.clientSecret) {
       const input = integrationInput.parse({
         client_id: this.operator.clientId,
         client_secret: this.operator.clientSecret,
       });
-      return { clientId: input.client_id, clientSecret: input.client_secret };
+      return {
+        credentials: {
+          clientId: input.client_id,
+          clientSecret: input.client_secret,
+        },
+        revision: null,
+      };
     }
-    const row = await this.state.get<Ciphertext>("integration-config", owner);
-    if (!row) return null;
+    const row = await this.state.get<Ciphertext | null>(
+      "integration-config",
+      owner,
+    );
+    if (!row?.value)
+      return { credentials: null, revision: row?.version ?? null };
     const input = integrationInput.parse(
       await this.vault.openData(row.value, this.binding(owner)),
     );
-    return { clientId: input.client_id, clientSecret: input.client_secret };
+    return {
+      credentials: {
+        clientId: input.client_id,
+        clientSecret: input.client_secret,
+      },
+      revision: row.version,
+    };
   }
   async save(owner: string, value: IntegrationInput) {
     if (this.operator.clientId || this.operator.clientSecret)
@@ -62,8 +100,11 @@ export class IntegrationSettings {
       throw new DomainError("INTENT_CONFLICT");
   }
   async rotate(owner: string) {
-    const row = await this.state.get<Ciphertext>("integration-config", owner);
-    if (!row) return;
+    const row = await this.state.get<Ciphertext | null>(
+      "integration-config",
+      owner,
+    );
+    if (!row?.value) return;
     if (
       !(await this.state.put(
         "integration-config",
@@ -75,6 +116,17 @@ export class IntegrationSettings {
         row.version,
       ))
     )
+      throw new DomainError("INTENT_CONFLICT");
+  }
+  async forget(owner: string, revision: number) {
+    z.number().int().positive().safe().parse(revision);
+    if (this.operator.clientId || this.operator.clientSecret)
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
+    const row = await this.state.get("integration-config", owner);
+    if (!row?.value || row.version !== revision)
+      throw new DomainError("INTENT_CONFLICT");
+    // Preserve the CAS revision without retaining a ciphertext or its key/IV.
+    if (!(await this.state.put("integration-config", owner, null, revision)))
       throw new DomainError("INTENT_CONFLICT");
   }
 }

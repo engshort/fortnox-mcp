@@ -1,5 +1,12 @@
 # M14 explicit host file picker
 
+Acceptance operator update (2026-11-11): an AI operator and a separate AI reviewer
+may execute and assess all previously human-operated test steps under the
+[owner-approved procedure](../implementation/ai-reviewed-acceptance-2026-11-11.md).
+Actual client/provider/runtime execution, original evidence, proposal binding and
+all policy/validation/recovery requirements remain mandatory. Historical results
+are preserved; a rewritten criterion does not pass a pending test.
+
 Scope: #68, with related #24/#33 evidence in shared PR #105. Provider/file,
 financial and review-host gates remain unchanged. Actual client acceptance
 is incomplete.

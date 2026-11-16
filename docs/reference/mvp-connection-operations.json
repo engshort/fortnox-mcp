@@ -8,42 +8,47 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "2ad97304af11770b9487aa29e7fcb1efba65cd89252c5856b0c94944037b0b56",
+      "sha256": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "ff1e0ee7759f0a42b5505ef17f1d95ef5ebe00daf1647901c95cd274bdc3ff1d",
+      "sha256": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/mcp/src/companies.ts",
-      "sha256": "87fba02a633a314b4f204d071f71a3009721ca3c25d841b2cd339650feec9245",
+      "sha256": "9d5349fd3cc8ad24e33d52d4fffd4deaf6e97c687b08829ca457aa18d7c16a4b",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "2dbfdd52a97b833639f04d0d4257a6ca14cfdb1405773522b3e253820c67f751",
+      "sha256": "05ec8f1a83be6c8b5f5f49573029f5398241f7b51153a41baa9b953b0b41968c",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "8d9cfd09e8fa8f3977a15354be815be43281903a9d43dd26d412ffc6f5150faf",
+      "sha256": "a1f2fa21737d512b7676f16830ffd68bd717ae04a78f12dd557546d945e28dc3",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "08f4499ce491228a988935f6f17c89393eb1e1d087b01760937021697dde7b4b",
+      "sha256": "daa74ed1d36c3381de598234abf722442009f3b31af10b50e6f565c032d89b2f",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/shared/admin.ts",
-      "sha256": "92fa572eb43deb6c263670ee0be8883ccb5ee46d220fbb4ace4e926c52c83ca3",
+      "sha256": "fdeb77091bdc683e5cb1da5f452f20733f86de868ce67cb5526fe77a1f48d706",
       "kind": "independently_written_project_source"
     },
     {
       "path": "apps/node/src/product-recovery.ts",
       "sha256": "2a7b4a20cb3ee9e38444c24e51f6b0999c72e0b8c76b17be4214960b874169db",
+      "kind": "independently_written_project_source"
+    },
+    {
+      "path": "packages/core/src/programs.ts",
+      "sha256": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3",
       "kind": "independently_written_project_source"
     }
   ],
@@ -292,6 +297,6 @@
   "defaultEnabledProviderOperations": [],
   "sourceRecheck": {
     "date": "2026-11-16",
-    "reason": "Shared transport-independent authorization and read adapters; existing live observations remain bound to their original commits. No provider support promotion."
+    "reason": "Integrate opt-in REST and resource-bound immutable OAuth grants with current main. Current source pins only; historical provider evidence and operation support remain unchanged."
   }
 }

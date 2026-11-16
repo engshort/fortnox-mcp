@@ -1,0 +1,1080 @@
+{
+  "schemaVersion": 1,
+  "scope": "S04 bounded register profile",
+  "reviewedAt": "2026-11-10",
+  "sourceStrategy": "Independent schemas/mappings; no copied specification or generated provider code",
+  "privateReferenceSha256": "10600267abe8addf88b240337317d666fedc7d469a419e18443d3cf63c4d10e7",
+  "sourceHashes": {
+    "packages/core/src/business-writes.ts": "4ab2b4ff35bd8c57977a090a3def99e3653ca0a68f3e9b11c090793d94502f03",
+    "packages/core/src/registers.ts": "a35dce2a9f1f20898750992cc5215ec9a829d9064c4e267f1c3e9f7807249765",
+    "packages/fortnox/src/registers.ts": "cd07245016e6e131600e344b1389ab86a98d8863582d52e4bdb800bae149e19e",
+    "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
+    "apps/shared/product.ts": "05ec8f1a83be6c8b5f5f49573029f5398241f7b51153a41baa9b953b0b41968c",
+    "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
+    "packages/fortnox/src/connections.ts": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
+    "packages/core/src/programs.ts": "985cbf0b813297d86d8fcffd1b67416a4151e40841d5a623bfde44fa02e73ce3"
+  },
+  "operations": [
+    {
+      "localId": "customer.list",
+      "method": "GET",
+      "path": "/3/customers",
+      "providerScope": "customer",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "customer.get",
+      "method": "GET",
+      "path": "/3/customers/{CustomerNumber}",
+      "providerScope": "customer",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "customer.create",
+      "method": "POST",
+      "path": "/3/customers",
+      "providerScope": "customer",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "customer.update",
+      "method": "PUT",
+      "path": "/3/customers/{CustomerNumber}",
+      "providerScope": "customer",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "supplier.list",
+      "method": "GET",
+      "path": "/3/suppliers",
+      "providerScope": "supplier",
+      "license": "Bookkeeping",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "supplier.get",
+      "method": "GET",
+      "path": "/3/suppliers/{SupplierNumber}",
+      "providerScope": "supplier",
+      "license": "Bookkeeping",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "supplier.create",
+      "method": "POST",
+      "path": "/3/suppliers",
+      "providerScope": "supplier",
+      "license": "Bookkeeping",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "supplier.update",
+      "method": "PUT",
+      "path": "/3/suppliers/{SupplierNumber}",
+      "providerScope": "supplier",
+      "license": "Bookkeeping",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "article.list",
+      "method": "GET",
+      "path": "/3/articles",
+      "providerScope": "article",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "article.get",
+      "method": "GET",
+      "path": "/3/articles/{ArticleNumber}",
+      "providerScope": "article",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "article.create",
+      "method": "POST",
+      "path": "/3/articles",
+      "providerScope": "article",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "article.update",
+      "method": "PUT",
+      "path": "/3/articles/{ArticleNumber}",
+      "providerScope": "article",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "register_write",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "One durable dispatch; any unverified dispatched rejection/lost answer stays unknown. Exact trusted identity plus field digest may reconcile; absence never authorizes resend.",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "terms_of_payment.list",
+      "method": "GET",
+      "path": "/3/termsofpayments",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "terms_of_payment.get",
+      "method": "GET",
+      "path": "/3/termsofpayments/{Code}",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "terms_of_delivery.list",
+      "method": "GET",
+      "path": "/3/termsofdeliveries",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "terms_of_delivery.get",
+      "method": "GET",
+      "path": "/3/termsofdeliveries/{Code}",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "way_of_delivery.list",
+      "method": "GET",
+      "path": "/3/wayofdeliveries",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "way_of_delivery.get",
+      "method": "GET",
+      "path": "/3/wayofdeliveries/{Code}",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "currency.list",
+      "method": "GET",
+      "path": "/3/currencies",
+      "providerScope": "currency",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "currency.get",
+      "method": "GET",
+      "path": "/3/currencies/{Code}",
+      "providerScope": "currency",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "unit.list",
+      "method": "GET",
+      "path": "/3/units",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "unit.get",
+      "method": "GET",
+      "path": "/3/units/{Code}",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "cost_center.list",
+      "method": "GET",
+      "path": "/3/costcenters",
+      "providerScope": "costcenter",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "cost_center.get",
+      "method": "GET",
+      "path": "/3/costcenters/{Code}",
+      "providerScope": "costcenter",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "project.list",
+      "method": "GET",
+      "path": "/3/projects",
+      "providerScope": "project",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "project.get",
+      "method": "GET",
+      "path": "/3/projects/{ProjectNumber}",
+      "providerScope": "project",
+      "license": "Bookkeeping, Order or Invoice",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "price_list.list",
+      "method": "GET",
+      "path": "/3/pricelists",
+      "providerScope": "price",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "price_list.get",
+      "method": "GET",
+      "path": "/3/pricelists/{Code}",
+      "providerScope": "price",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "price.list",
+      "method": "GET",
+      "path": "/3/prices/sublist/{PriceList}/{ArticleNumber}",
+      "providerScope": "price",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "5 pages / 500 records / 256 KiB / 15 s; incomplete without valid metadata",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "price.get",
+      "method": "GET",
+      "path": "/3/prices/{PriceList}/{ArticleNumber}?fromquantity=0",
+      "providerScope": "price",
+      "license": "Invoice or Order",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "mode_of_payment.list",
+      "method": "GET",
+      "path": "/3/modesofpayments",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "documented non-paged reference collection, bounded at 500 records and 256 KiB",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    },
+    {
+      "localId": "mode_of_payment.get",
+      "method": "GET",
+      "path": "/3/modesofpayments/{Code}",
+      "providerScope": "settings",
+      "license": "Any",
+      "userRights": "Actual resource rights and negative scope/license cases remain unverified",
+      "effect": "read",
+      "precision": "Exact decimal text; bounded service-article prices/VAT allow up to six fractional digits; actual accepted precision pending",
+      "pagination": "not applicable",
+      "retry": "Shared durable pacing; at most three bounded attempts; token renewal once on 401",
+      "status": "implemented_unverified",
+      "supported": false,
+      "enabledByDefault": true,
+      "testBuild": "Separate Node entry, explicit operation allowlist, two allowlisted tenants, isolated database, maximum one hour",
+      "syntheticTests": [
+        "tests/shared/registers.ts",
+        "tests/shared/business-writes.ts",
+        "tests/build.test.mjs"
+      ],
+      "liveEvidence": null,
+      "clientEvidence": null,
+      "missingEvidence": [
+        "Individual actual test-company lifecycle/readback and precision",
+        "Actual negative provider scope/license/user rights",
+        "Actual product ChatGPT acceptance"
+      ],
+      "sources": [
+        "https://api.fortnox.se/apidocs",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/scopes",
+        "https://www.fortnox.se/developer/guides-and-good-to-know/delete-values"
+      ]
+    }
+  ],
+  "activation": {
+    "decision": "docs/implementation/product-activation-2026-11-11.md",
+    "date": "2026-11-11",
+    "evidencePromoted": false
+  }
+}

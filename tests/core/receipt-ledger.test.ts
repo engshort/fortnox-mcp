@@ -30,7 +30,7 @@ it("pins the receipt operation evidence without promoting synthetic support", ()
     const bytes = readFileSync(new URL(`../../${path}`, import.meta.url));
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(hash);
   }
-  expect(new Set(ledger.operations.map((o) => o.localId)).size).toBe(4);
+  expect(new Set(ledger.operations.map((o) => o.localId)).size).toBe(5);
   for (const operation of ledger.operations) {
     expect(receiptProviderOperations[operation.localId]).toMatchObject({
       method: operation.method,
@@ -39,7 +39,7 @@ it("pins the receipt operation evidence without promoting synthetic support", ()
     });
     expect(operation.status).toBe("implemented_unverified");
     expect(operation.supported).toBe(false);
-    expect(operation.enabledByDefault).toBe(false);
+    expect(operation.enabledByDefault).toBe(true);
     expect(operation.liveEvidence).toBeNull();
     expect(operation.missingEvidence.length).toBeGreaterThan(0);
   }

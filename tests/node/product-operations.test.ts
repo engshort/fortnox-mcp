@@ -1,8 +1,10 @@
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import type { DatabaseSync } from "node:sqlite";
 import {
   Bookkeeping,
+  BusinessWrites,
   Connections,
   CredentialVault,
   ReceiptFiles,
@@ -28,6 +30,26 @@ import { fileFixture } from "../shared/receipt-files.js";
 const migrations = resolve("apps/worker/migrations");
 const backupKey = Buffer.alloc(32, 9).toString("base64");
 const vault = new CredentialVault({ a: keyA }, "a");
+function seedAnalysisCache(db: DatabaseSync) {
+  db.prepare(
+    "INSERT INTO analysis_contexts(id,namespace,owner,company,expires,ready,manifest) VALUES(?,?,?,?,?,1,?)",
+  ).run(
+    "synthetic-analysis",
+    "synthetic-namespace",
+    "synthetic-owner",
+    "synthetic-company",
+    Date.now() + 300000,
+    "{}",
+  );
+  db.prepare(
+    "INSERT INTO analysis_parts(context_id,name,ordinal,ciphertext,bytes) VALUES(?,?,0,?,?)",
+  ).run(
+    "synthetic-analysis",
+    "synthetic-part",
+    "synthetic-encrypted-cache-marker",
+    32,
+  );
+}
 it("excludes runtime/operator concurrency and releases its lock for a subsequent process", async () => {
   const dir = await mkdtemp(join(tmpdir(), "m5-lock-"));
   try {
@@ -65,6 +87,38 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
         null,
       );
       const proposal = await f.service.prepare(f.actor, f.voucher);
+      const business = new BusinessWrites(f.connections, {
+        create: {
+          enabled: true,
+          scope: "bookkeeping",
+          prepare: async () => ({ input: {}, baseline: null, preview: {} }),
+          validate: async () => {},
+          dispatch: async (_a, _c, _p, authorizeDispatch) => {
+            await authorizeDispatch();
+            return stage === "outcome_unknown"
+              ? { state: "outcome_unknown" }
+              : { state: "succeeded", reference: "synthetic-record" };
+          },
+        },
+      });
+      const businessProposal = await business.prepare(
+        f.actor,
+        f.a.id,
+        "create",
+        {},
+      );
+      if (stage !== "prepared") {
+        await business.execute(f.actor, "create", {
+          company_id: businessProposal.company_id,
+          proposal_id: businessProposal.proposal_id,
+          proposal_hash: businessProposal.proposal_hash,
+        });
+        if (stage === "outcome_unknown")
+          await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+            const e = c.business?.executions[0];
+            if (e) e.state = "submitting";
+          });
+      }
       db.prepare(
         "INSERT INTO user(id,name,email,emailVerified,createdAt,updatedAt) VALUES(?,?,?,?,?,?)",
       ).run(f.actor.ownerId, "Synthetic owner", "ops@example.invalid", 0, 1, 1);
@@ -108,7 +162,11 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
           },
           "review",
         );
+      seedAnalysisCache(db);
       await backupDatabase(db, backupKey, output);
+      expect(
+        db.prepare("SELECT count(*) AS n FROM analysis_contexts").get()?.n,
+      ).toBe(1);
       if (stage === "prepared") {
         // This later write is absent from the older snapshot being restored.
         await f.service.commit(
@@ -149,11 +207,16 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
         vault,
       });
       db = await openProductDatabase(path, migrations);
+      expect(
+        db.prepare("SELECT count(*) AS n FROM analysis_contexts").get()?.n,
+      ).toBe(0);
       closed = false;
       const after = new Connections(sqliteState(db), vault);
       const companies = await after.list(f.actor.ownerId),
         company = companies.find((c) => c.id === f.a.id);
       expect(company?.bookkeeping?.proposals).toEqual([]);
+      expect(company?.business?.proposals).toEqual([]);
+      expect(company?.business?.executions[0]?.state ?? "prepared").toBe(stage);
       expect(company?.secret).toBeNull();
       expect(await sqliteState(db).list("company-grants", 100)).toEqual([]);
       expect(db.prepare("SELECT count(*) AS n FROM session").get()?.n).toBe(0);
@@ -294,7 +357,11 @@ it("rotates connection/configuration/proposal/file ciphertext transactionally an
     });
     const staged = await f.service.ingest(f.actor, f.a.id, f.files);
     const newVault = new CredentialVault({ a: keyA, b: keyB }, "b");
+    seedAnalysisCache(db);
     await rotateCredentials(db, newVault);
+    expect(
+      db.prepare("SELECT count(*) AS n FROM analysis_contexts").get()?.n,
+    ).toBe(0);
     const onlyNew = new CredentialVault({ b: keyB }, "b");
     expect(
       (await new Connections(state, onlyNew).list(f.actor.ownerId)).length,

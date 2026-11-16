@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 import { expect, it } from "vitest";
 import { registerReceiptAttachments } from "../../packages/mcp/src/receipt-attachments.js";
+import { receiptBatchOutput } from "../../packages/mcp/src/receipts.js";
 import { batchFixture, batchRef } from "./receipt-batches.js";
 import type { ReceiptFixture } from "./receipt-files.js";
 import { pngFixture } from "./receipt-fixtures.js";
@@ -31,11 +32,14 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
     binaries = 0;
   let uploadStatus = 201,
     linkStatus = 201;
+  let uploadResponse: (() => Response) | undefined;
+  let linkResponse: (() => Response) | undefined;
   let loseUpload = false,
     loseLink = false,
     wrongConnection = false,
     redirect = false;
   const files = new Map<string, Uint8Array>(),
+    names = new Map<string, string>(),
     connections = new Map<
       string,
       {
@@ -86,13 +90,34 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         expect(bytes).toEqual(pngFixture());
         const id = `provider-file-${uploads}`;
         files.set(id, bytes);
+        names.set(id, file.name);
         if (disconnectUpload)
           await f.connections.disconnect(f.actor.ownerId, f.a.id);
         if (loseUpload) throw new Error("synthetic lost upload answer");
+        if (uploadResponse) return uploadResponse();
         return Response.json(
           { File: { Id: id, Size: bytes.length } },
           { status: uploadStatus },
         );
+      }
+      if (request.method === "GET" && url.pathname === "/3/inbox") {
+        return Response.json({
+          Folder: {
+            Name: "root",
+            Files: [],
+            Folders: [
+              {
+                Name: "Inbox_v",
+                Folders: [],
+                Files: [...files].map(([Id, bytes]) => ({
+                  Id,
+                  Name: names.get(Id),
+                  Size: bytes.length,
+                })),
+              },
+            ],
+          },
+        });
       }
       if (
         request.method === "POST" &&
@@ -130,6 +155,7 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
         if (linkStatus === 201)
           connections.set(body.VoucherFileConnection.FileId, value);
         if (loseLink) throw new Error("synthetic lost link answer");
+        if (linkResponse) return linkResponse();
         return Response.json(value, { status: linkStatus });
       }
       if (url.pathname.startsWith("/3/voucherfileconnections/")) {
@@ -201,6 +227,8 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
     attachments,
     gates,
     requests,
+    providerFiles: files,
+    names,
     book,
     counts: () => ({ uploads, links, binaries }),
     mode: (input: {
@@ -212,6 +240,8 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
       redirect?: boolean;
       binaryStatuses?: number[];
       disconnectUpload?: boolean;
+      uploadResponse?: () => Response;
+      linkResponse?: () => Response;
     }) => {
       uploadStatus = input.uploadStatus ?? 201;
       linkStatus = input.linkStatus ?? 201;
@@ -221,12 +251,357 @@ export async function attachmentFixture(fixture: ReceiptFixture) {
       redirect = input.redirect ?? false;
       binaryStatuses = [...(input.binaryStatuses ?? [])];
       disconnectUpload = input.disconnectUpload ?? false;
+      uploadResponse = input.uploadResponse;
+      linkResponse = input.linkResponse;
     },
   };
 }
 export function receiptProviderContract(
   fixture: () => Promise<ReceiptFixture>,
 ) {
+  it("lets the owner reconcile an original upload after client and generation changes without another dispatch", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    expect((await f.attachments.upload(f.actor, f.ref)).state).toBe(
+      "outcome_unknown",
+    );
+    const before = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!before) throw new Error("Fixture missing");
+    const credentials = await f.connections.credentials(
+      f.actor.ownerId,
+      before,
+    );
+    await f.connections.disconnect(f.actor.ownerId, f.a.id);
+    const disconnected = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!disconnected) throw new Error("Fixture missing");
+    await f.connections.reconnect(
+      f.actor.ownerId,
+      f.a.id,
+      disconnected.generation,
+      before,
+      { ...credentials, expiresAt: Date.now() + 3600000 },
+    );
+    await expect(
+      f.attachments.reconcileUpload(f.actor, f.ref),
+    ).rejects.toThrow();
+    expect(
+      await f.attachments.reconcileOwner(
+        f.actor.ownerId,
+        f.a.id,
+        f.ref.item_id,
+      ),
+    ).toEqual({ state: "succeeded", reference: "provider-file-1" });
+    expect(f.counts()).toEqual({ uploads: 1, links: 0, binaries: 1 });
+    const after = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!after) throw new Error("Fixture missing");
+    expect(after.receiptBatches?.[0]?.client).toBe(
+      before.receiptBatches?.[0]?.client,
+    );
+    expect(after.receiptBatches?.[0]?.generation).toBe(
+      before.receiptBatches?.[0]?.generation,
+    );
+    expect(after.receiptBatches?.[0]?.items[0]?.steps.voucher.state).toBe(
+      "pending",
+    );
+    expect(after.readOnly).toBe(true);
+  });
+  it("reconciles only the exact original link across generations without uploading or booking again", async () => {
+    const f = await attachmentFixture(await fixture());
+    await f.attachments.upload(f.actor, f.ref);
+    await f.book();
+    f.mode({ loseLink: true });
+    expect((await f.attachments.link(f.actor, f.ref)).state).toBe(
+      "outcome_unknown",
+    );
+    const before = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!before) throw new Error("Fixture missing");
+    const credentials = await f.connections.credentials(
+      f.actor.ownerId,
+      before,
+    );
+    await f.connections.disconnect(f.actor.ownerId, f.a.id);
+    const disconnected = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    if (!disconnected) throw new Error("Fixture missing");
+    await f.connections.reconnect(
+      f.actor.ownerId,
+      f.a.id,
+      disconnected.generation,
+      before,
+      credentials,
+    );
+    expect(
+      await f.attachments.reconcileOwner(
+        f.actor.ownerId,
+        f.a.id,
+        f.ref.item_id,
+      ),
+    ).toEqual({ state: "succeeded", reference: "provider-file-1" });
+    expect(f.counts()).toEqual({ uploads: 1, links: 1, binaries: 0 });
+    const after = (await f.connections.list(f.actor.ownerId)).find(
+      (c) => c.id === f.a.id,
+    );
+    expect(
+      after?.bookkeeping?.executions.find(
+        (e) => e.id === f.first.proposal?.proposal_id,
+      )?.attachmentComplete,
+    ).toBe(true);
+  });
+  it("keeps legacy cross-generation uploads and missing provider evidence unresolved", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    await f.attachments.upload(f.actor, f.ref);
+    f.providerFiles.clear();
+    expect(
+      (
+        await f.attachments.reconcileOwner(
+          f.actor.ownerId,
+          f.a.id,
+          f.ref.item_id,
+        )
+      ).state,
+    ).toBe("outcome_unknown");
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      const batch = c.receiptBatches?.[0];
+      if (!batch) throw new Error("Fixture missing");
+      delete batch.tenant;
+      batch.generation--;
+    });
+    await expect(
+      f.attachments.reconcileOwner(f.actor.ownerId, f.a.id, f.ref.item_id),
+    ).rejects.toThrow("INTENT_CONFLICT");
+    await expect(
+      f.attachments.reconcileOwner("foreign-owner", f.a.id, f.ref.item_id),
+    ).rejects.toThrow();
+    expect(f.counts()).toEqual({ uploads: 1, links: 0, binaries: 0 });
+  });
+  for (const mode of ["json_body", "binary_body", "cancel"] as const) {
+    it(`bounds uncooperative ${mode} while preserving the original upload`, async () => {
+      const f = await attachmentFixture(await fixture());
+      f.mode({ loseUpload: true });
+      await f.attachments.upload(f.actor, f.ref);
+      const fetch = f.adapter.provider.config.fetch;
+      f.adapter.provider.config.fetch = async (input) => {
+        const request = input as Request;
+        const url = new URL(request.url);
+        const root = url.pathname === "/3/inbox";
+        if (
+          request.method === "GET" &&
+          ((mode === "json_body" && root) || (mode !== "json_body" && !root))
+        ) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                if (mode === "cancel") controller.enqueue(pngFixture());
+              },
+              cancel() {
+                return new Promise<void>(() => {});
+              },
+            }),
+            {
+              headers: {
+                "content-type": root ? "application/json" : "image/png",
+              },
+            },
+          );
+        }
+        return fetch(input);
+      };
+      await expect(
+        f.attachments.reconcileUpload(f.actor, f.ref),
+      ).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+      const c = await f.connections.authorize(
+        f.actor.ownerId,
+        f.actor.clientId,
+        f.a.id,
+      );
+      expect(c.receiptBatches?.[0]?.items[0]?.steps.upload.state).toBe(
+        "outcome_unknown",
+      );
+      expect(f.counts().uploads).toBe(1);
+    }, 20000);
+  }
+  it("does not start a discovery GET after a permit consumes its deadline", async () => {
+    const f = await attachmentFixture(await fixture());
+    let clock = Date.now();
+    const inspector = new FortnoxReceiptFiles(
+      f.connections,
+      f.adapter.provider,
+      f.adapter.accounting,
+      f.gates,
+      () => clock,
+    );
+    inspector.http.permit = async () => {
+      clock += 15001;
+    };
+    await expect(
+      inspector.inspectUpload(f.actor, f.a.id, {
+        fileId: f.first.file.file_id,
+        sha256: f.first.sha256 as string,
+      }),
+    ).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    expect(
+      f.requests.filter((r) => r.method === "GET" && r.path === "/3/inbox"),
+    ).toHaveLength(0);
+  });
+  it("bounds an uncooperative discovery fetch without retry or state promotion", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    await f.attachments.upload(f.actor, f.ref);
+    f.adapter.provider.config.fetch = async () =>
+      new Promise<Response>(() => {});
+    await expect(f.attachments.reconcileUpload(f.actor, f.ref)).rejects.toThrow(
+      "UPSTREAM_UNAVAILABLE",
+    );
+    const c = await f.connections.authorize(
+      f.actor.ownerId,
+      f.actor.clientId,
+      f.a.id,
+    );
+    expect(c.receiptBatches?.[0]?.items[0]?.steps.upload.state).toBe(
+      "outcome_unknown",
+    );
+    expect(f.counts().uploads).toBe(1);
+  }, 20000);
+  it("never replaces an existing trusted reference with another matching file", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    await f.attachments.upload(f.actor, f.ref);
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      const item = c.receiptBatches?.[0]?.items[0];
+      if (item)
+        item.steps.upload = {
+          state: "outcome_unknown",
+          reference: "original-reference",
+        };
+    });
+    expect(await f.attachments.reconcileUpload(f.actor, f.ref)).toEqual({
+      state: "outcome_unknown",
+      reference: "original-reference",
+    });
+    expect(f.counts().uploads).toBe(1);
+  });
+  it("positively reconciles the original upload across a policy change without restoring review or dispatching", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({ loseUpload: true });
+    await f.attachments.upload(f.actor, f.ref);
+    await f.connections.mutate(f.actor.ownerId, f.a.id, (c) => {
+      c.policyVersion++;
+      c.readOnly = true;
+      if (c.bookkeeping) c.bookkeeping.proposals = [];
+    });
+    await expect(f.receipts.item(f.actor, f.ref)).rejects.toThrow(
+      "INTENT_CONFLICT",
+    );
+    expect(await f.attachments.reconcileUpload(f.actor, f.ref)).toEqual({
+      state: "succeeded",
+      reference: "provider-file-1",
+    });
+    expect(await f.attachments.reconcileUpload(f.actor, f.ref)).toEqual({
+      state: "succeeded",
+      reference: "provider-file-1",
+    });
+    const c = await f.connections.authorize(
+      f.actor.ownerId,
+      f.actor.clientId,
+      f.a.id,
+    );
+    expect(c.receiptBatches?.[0]?.policy).not.toBe(c.policyVersion);
+    expect(c.receiptBatches?.[0]?.items[0]?.steps.voucher.state).toBe(
+      "pending",
+    );
+    expect(c.bookkeeping?.proposals).toHaveLength(0);
+    expect(f.counts()).toEqual({ uploads: 1, links: 0, binaries: 1 });
+    expect(f.bookings()).toBe(0);
+  });
+  it("rejects changed content, incomplete discovery and generation changes without changing the unknown upload", async () => {
+    for (const mode of [
+      "digest",
+      "incomplete",
+      "folder_page",
+      "generation",
+    ] as const) {
+      const f = await attachmentFixture(await fixture());
+      f.mode({ loseUpload: true });
+      await f.attachments.upload(f.actor, f.ref);
+      if (mode === "digest") {
+        expect(
+          await f.adapter.inspectUpload(f.actor, f.a.id, {
+            fileId: f.first.file.file_id,
+            sha256: "0".repeat(64),
+          }),
+        ).toBeNull();
+      } else {
+        const fetch = f.adapter.provider.config.fetch;
+        f.adapter.provider.config.fetch = async (input) => {
+          const request = input as Request;
+          if (
+            request.method === "GET" &&
+            new URL(request.url).pathname === "/3/inbox"
+          ) {
+            if (mode === "incomplete")
+              return Response.json({
+                Folder: { Files: [], Folders: [] },
+                MetaInformation: { TotalPages: 2 },
+              });
+            if (mode === "folder_page")
+              return Response.json({
+                Folder: { Files: [], Folders: [], NextPage: "hidden" },
+              });
+            await f.connections.disconnect(f.actor.ownerId, f.a.id);
+          }
+          return fetch(input);
+        };
+        await expect(
+          f.attachments.reconcileUpload(f.actor, f.ref),
+        ).rejects.toThrow();
+      }
+      const c = (await f.connections.list(f.actor.ownerId)).find(
+        (c) => c.id === f.a.id,
+      );
+      expect(c?.receiptBatches?.[0]?.items[0]?.steps.upload.state).toBe(
+        "outcome_unknown",
+      );
+      expect(c?.receiptBatches?.[0]?.items[0]?.attempts?.upload).toMatchObject({
+        dispatched: true,
+      });
+      expect(f.counts().uploads).toBe(1);
+      expect(f.bookings()).toBe(0);
+    }
+  });
+  it("retains unknown for missing, ambiguous or changed candidate evidence and denies foreign clients", async () => {
+    for (const mode of ["missing", "ambiguous", "renamed"] as const) {
+      const f = await attachmentFixture(await fixture());
+      f.mode({ loseUpload: true });
+      await f.attachments.upload(f.actor, f.ref);
+      if (mode === "missing") f.providerFiles.clear();
+      if (mode === "renamed") f.names.set("provider-file-1", "unrelated.png");
+      if (mode === "ambiguous") {
+        f.providerFiles.set("copy", pngFixture());
+        f.names.set("copy", f.names.get("provider-file-1") as string);
+      }
+      expect((await f.attachments.reconcileUpload(f.actor, f.ref)).state).toBe(
+        "outcome_unknown",
+      );
+      await expect(
+        f.attachments.reconcileUpload(
+          { ...f.actor, clientId: "foreign" },
+          f.ref,
+        ),
+      ).rejects.toThrow();
+      expect(f.counts().uploads).toBe(1);
+      expect(f.bookings()).toBe(0);
+    }
+  });
   it("performs one read-auth renewal and bounded GET retries without retrying a POST", async () => {
     const f = await attachmentFixture(await fixture());
     await f.attachments.upload(f.actor, f.ref);
@@ -262,6 +637,7 @@ export function receiptProviderContract(
     expect(current?.receiptBatches?.[0]?.items[0]?.steps.upload).toEqual({
       state: "outcome_unknown",
       reference: "provider-file-1",
+      diagnostic: { stage: "authorization", http_status: 201 },
     });
     expect(f.counts().uploads).toBe(1);
   });
@@ -340,9 +716,10 @@ export function receiptProviderContract(
     for (const status of [400, 403, 429, 500]) {
       const f = await attachmentFixture(await fixture());
       f.mode({ uploadStatus: status });
-      expect((await f.attachments.upload(f.actor, f.ref)).state).toBe(
-        "outcome_unknown",
-      );
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: { stage: "http_response", http_status: status },
+      });
       f.mode({});
       expect((await f.attachments.upload(f.actor, f.ref)).state).toBe(
         "outcome_unknown",
@@ -350,6 +727,226 @@ export function receiptProviderContract(
       expect(f.counts().uploads).toBe(1);
     }
   });
+
+  it("retains a safe link error code without replaying upload, voucher or unknown link", async () => {
+    const f = await attachmentFixture(await fixture());
+    await f.attachments.upload(f.actor, f.ref);
+    await f.book();
+    f.mode({
+      linkStatus: 500,
+      linkResponse: () =>
+        Response.json(
+          {
+            ErrorInformation: {
+              code: "2001392",
+              message: "synthetic-private-link-message",
+            },
+          },
+          { status: 500 },
+        ),
+    });
+    const expected = {
+      state: "outcome_unknown",
+      diagnostic: {
+        stage: "http_response",
+        http_status: 500,
+        provider_code: "2001392",
+      },
+    };
+    expect(await f.attachments.link(f.actor, f.ref)).toEqual(expected);
+    const view = receiptBatchOutput.parse(
+      await f.receipts.view(f.actor, batchRef(f.p)),
+    );
+    expect(view.items[0]?.steps.link).toEqual(expected);
+    expect(view.items[0]?.steps.voucher.state).toBe("succeeded");
+    expect(JSON.stringify(view)).not.toContain(
+      "synthetic-private-link-message",
+    );
+    expect(await f.attachments.link(f.actor, f.ref)).toEqual(expected);
+    expect(f.counts()).toEqual({ uploads: 1, links: 1, binaries: 0 });
+    expect(f.bookings()).toBe(1);
+  });
+
+  for (const code of [2001392, "002001392"]) {
+    it(`delivers only a safe provider code ${code} through MCP and retained intent without replay`, async () => {
+      const f = await attachmentFixture(await fixture());
+      const privateMessage = "synthetic-private-error-message-not-for-output";
+      f.mode({
+        uploadResponse: () =>
+          Response.json(
+            {
+              ErrorInformation: {
+                code,
+                message: privateMessage,
+                detail: privateMessage,
+              },
+            },
+            { status: 400 },
+          ),
+      });
+      const server = new McpServer(
+        { name: "synthetic-error-client", version: "0" },
+        { jsonSchemaValidator: new CfWorkerJsonSchemaValidator() },
+      );
+      registerReceiptAttachments(server, f.attachments, f.actor);
+      const client = new Client({ name: "synthetic-client", version: "0" });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await server.connect(a);
+      await client.connect(b);
+      const expected = {
+        state: "outcome_unknown",
+        diagnostic: {
+          stage: "http_response",
+          http_status: 400,
+          provider_code: String(code),
+        },
+      };
+      try {
+        const result = await client.callTool({
+          name: "upload_receipt_file",
+          arguments: f.ref,
+        });
+        expect(result.isError).not.toBe(true);
+        expect(result.structuredContent).toEqual({
+          status: "ok",
+          data: expected,
+        });
+        expect(JSON.stringify(result)).not.toContain(privateMessage);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+      const { item } = await f.receipts.item(f.actor, f.ref);
+      expect(item.steps.upload).toEqual(expected);
+      expect(item.attempts?.upload).toMatchObject({
+        dispatched: true,
+        diagnostic: expected.diagnostic,
+      });
+      const view = receiptBatchOutput.parse(
+        await f.receipts.view(f.actor, batchRef(f.p)),
+      );
+      expect(view.items[0]?.steps.upload).toEqual(expected);
+      expect(JSON.stringify(view)).not.toContain(privateMessage);
+      expect(await f.raw()).not.toContain(privateMessage);
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual(expected);
+      expect(f.counts().uploads).toBe(1);
+      expect(f.bookings()).toBe(0);
+    });
+  }
+
+  for (const code of [
+    null,
+    true,
+    {},
+    "",
+    "2001392\n",
+    "secret-code",
+    "1234567890123",
+    -1,
+    1.5,
+    1000000000000,
+    9007199254740992,
+  ]) {
+    it(`omits invalid provider error code ${JSON.stringify(code)} without changing uncertainty`, async () => {
+      const f = await attachmentFixture(await fixture());
+      f.mode({
+        uploadResponse: () =>
+          Response.json({ ErrorInformation: { code } }, { status: 400 }),
+      });
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: { stage: "http_response", http_status: 400 },
+      });
+      expect(f.counts().uploads).toBe(1);
+    });
+  }
+
+  for (const length of [4096, 4097]) {
+    it(`bounds the complete provider error body at ${length} bytes`, async () => {
+      const f = await attachmentFixture(await fixture());
+      const empty = JSON.stringify({
+        ErrorInformation: { code: 2001392, message: "" },
+      });
+      const body = JSON.stringify({
+        ErrorInformation: {
+          code: 2001392,
+          message: "x".repeat(length - empty.length),
+        },
+      });
+      expect(new TextEncoder().encode(body)).toHaveLength(length);
+      f.mode({ uploadResponse: () => new Response(body, { status: 400 }) });
+      expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: {
+          stage: "http_response",
+          http_status: 400,
+          ...(length === 4096 ? { provider_code: "2001392" } : {}),
+        },
+      });
+    });
+  }
+  it("does not extract a code from malformed provider JSON", async () => {
+    const f = await attachmentFixture(await fixture());
+    f.mode({
+      uploadResponse: () =>
+        new Response('{"ErrorInformation":{"code":2001392}', { status: 400 }),
+    });
+    expect(await f.attachments.upload(f.actor, f.ref)).toEqual({
+      state: "outcome_unknown",
+      diagnostic: { stage: "http_response", http_status: 400 },
+    });
+  });
+  for (const mode of ["read", "cancel"] as const) {
+    it(`bounds uncooperative error-body ${mode} within the remaining write deadline`, async () => {
+      const f = await attachmentFixture(await fixture());
+      let clock = Date.now();
+      let cancelled = false;
+      let requests = 0;
+      const adapter = new FortnoxReceiptFiles(
+        f.connections,
+        f.adapter.provider,
+        f.adapter.accounting,
+        f.gates,
+        () => clock,
+      );
+      adapter.http.permit = async () => {
+        clock += 14900;
+      };
+      f.adapter.provider.config.fetch = async (input) => {
+        expect((input as Request).method).toBe("POST");
+        requests++;
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              if (mode === "cancel") controller.enqueue(new Uint8Array(4097));
+            },
+            cancel() {
+              cancelled = true;
+              return mode === "cancel"
+                ? new Promise<void>(() => {})
+                : undefined;
+            },
+          }),
+          { status: 400 },
+        );
+      };
+      const attachments = new ReceiptAttachments(f.receipts, adapter, {
+        upload: true,
+        link: true,
+        retrieve: true,
+      });
+      expect(await attachments.upload(f.actor, f.ref)).toEqual({
+        state: "outcome_unknown",
+        diagnostic: { stage: "http_response", http_status: 400 },
+      });
+      expect(cancelled).toBe(true);
+      expect(requests).toBe(1);
+      expect((await attachments.upload(f.actor, f.ref)).state).toBe(
+        "outcome_unknown",
+      );
+      expect(requests).toBe(1);
+    });
+  }
 
   it("uploads the exact multipart bytes, books once, links the saved references and retrieves only the owning voucher's attachment", async () => {
     const f = await attachmentFixture(await fixture());

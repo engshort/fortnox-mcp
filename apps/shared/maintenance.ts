@@ -1,5 +1,6 @@
 import {
   type ConnectionSet,
+  retainBusinessExecution,
   retainVoucherExecution,
   type StateStore,
 } from "@fortnox-mcp/core";
@@ -12,7 +13,18 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
   for (let attempt = 0; attempt < 8; attempt++) {
     const row = await state.get<ConnectionSet>("connections", owner);
     if (!row) break;
+    row.value.onboarding = (row.value.onboarding ?? []).filter(
+      (a) => a.retainUntil > now,
+    );
     for (const c of row.value.connections) {
+      if (c.business) {
+        c.business.proposals = c.business.proposals.filter(
+          (p) => p.expires > now,
+        );
+        c.business.executions = c.business.executions.filter((e) =>
+          retainBusinessExecution(e, now),
+        );
+      }
       if (!c.bookkeeping) continue;
       c.bookkeeping.proposals = c.bookkeeping.proposals.filter(
         (p) => p.expires > now,
@@ -27,6 +39,8 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
     "fortnox-flows",
     "continuations",
     "read-continuations-v1",
+    "oauth-grant-families",
+    "oauth-approval-grants",
   ]) {
     for (let n = 0; n < 8; n++) {
       const row = await state.get<unknown>(space, owner);

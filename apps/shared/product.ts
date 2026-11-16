@@ -1,11 +1,26 @@
 import {
+  type AnalysisStore,
   Bookkeeping,
+  baseScopes,
   type ClientFile,
+  type CompanyGrant,
+  CompanyOnboarding,
   CompanyReads,
   Connections,
   CredentialVault,
   DomainError,
+  FinancialAnalysis,
+  FinancialContexts,
   FinancialReads,
+  LiquidityAnalysis,
+  OnboardingError,
+  OpenItems,
+  PayrollInputs,
+  type PayrollOperation,
+  payrollOperationIds,
+  previewProgram,
+  programChange,
+  programStatus,
   proposalReference,
   type ReadModule,
   ReadServices,
@@ -15,6 +30,16 @@ import {
   ReceiptFiles,
   Receipts,
   ReceiptWorkflow,
+  type RegisterOperation,
+  type RegisterResource,
+  Registers,
+  reconcileOpenItemLedger,
+  registerOperationIds,
+  registerScope,
+  SalesDocuments,
+  salesOperationIds,
+  sumAmounts,
+  unavailableOpenItemReconciliation,
   voucherReference,
 } from "@fortnox-mcp/core";
 import {
@@ -25,12 +50,26 @@ import {
 import {
   diagnoseConnection,
   diagnosisInput,
+  type FinancialMapping,
+  type FinancialReadEvidence,
+  type FinancialReadOperation,
   FortnoxAccounting,
   FortnoxCompanyReads,
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxFinancialReads,
+  FortnoxOpenItems,
+  FortnoxPayrollReads,
+  FortnoxPayrollWrites,
+  FortnoxRawFinancialReads,
   FortnoxReceiptFiles,
+  FortnoxRegisters,
+  FortnoxSalesDocuments,
+  financialReadOperations,
+  type OpenItemReadOperation,
+  openItemReadOperations,
+  type PayrollWriteProfile,
+  payrollReadOperationIds,
 } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
@@ -39,11 +78,21 @@ import {
   IntegrationSettings,
   integrationInput,
 } from "./integration-settings.js";
+import { onboardingFailure, onboardingRoutes } from "./onboarding-http.js";
 import { type AdminAssets, ownerWeb } from "./owner-web.js";
 import { type AuthConfig, requireOwner } from "./product-auth.js";
+import {
+  type EmailSettings,
+  emailSettings,
+  resendAccountEmails,
+} from "./product-email.js";
 import { createProductGateway } from "./product-gateway.js";
 
 export interface ProductSettings {
+  offlineClientIds?: string[];
+  email?: EmailSettings;
+  externalAppOnboarding?: boolean;
+  onboardingClients?: string[];
   origin: string;
   secret: string;
   keys: Record<string, string>;
@@ -58,12 +107,37 @@ export interface ProductSettings {
   receiptSource?: ReceiptSourceSettings;
   restApi?: boolean;
   financialReadModules?: readonly ReadModule[];
+  financialAnalysisContexts?: boolean;
+  financialLargeReads?: boolean;
 }
 // Supplied only by the separately built M14 experiment entry, never read from
 // normal product ENV. This permits client evidence collection, not activation.
 export interface ProductFileTest {
   sourceCommit: string;
   until: number;
+  now?: () => number;
+}
+// A separately built, one-hour test entry supplies this profile. Ordinary ENV
+// cannot enable unverified register writes or broaden provider consent.
+export interface ProductBusinessTest {
+  sourceCommit: string;
+  until: number;
+  operations: readonly RegisterOperation[];
+  documentReads?: readonly string[];
+  consentScopes?: readonly string[];
+  payrollReads?: readonly PayrollOperation[];
+  payrollWrites?: {
+    operations: readonly PayrollOperation[];
+    profiles: readonly PayrollWriteProfile[];
+  };
+  financialReads?: readonly FinancialReadOperation[];
+  financialMappings?: readonly {
+    company_id: string;
+    financial_year: number;
+    mapping: FinancialMapping;
+    cash_account_numbers: readonly number[];
+  }[];
+  openItemReads?: readonly OpenItemReadOperation[];
   now?: () => number;
 }
 export function requestedFortnoxScopes(
@@ -75,13 +149,6 @@ export function requestedFortnoxScopes(
     | "financialReadModules"
   >,
 ) {
-  if (settings.financialReadModules?.length && !settings.testMode)
-    throw new DomainError("CAPABILITY_UNAVAILABLE");
-  if (
-    settings.receiptProviderConsent &&
-    (!settings.testMode || !settings.accountingReferences)
-  )
-    throw new DomainError("CAPABILITY_UNAVAILABLE");
   return [
     "companyinformation",
     "profile",
@@ -131,18 +198,6 @@ export function productSettings(
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
-  if (
-    testMode &&
-    (new Set(testTenants).size !== 2 ||
-      testTenants.some((t) => !/^\d{1,15}$/.test(t)) ||
-      !!env.FORTNOX_CLIENT_ID !== !!env.FORTNOX_CLIENT_SECRET)
-  )
-    throw new Error(
-      "Two distinct test tenants and private integration configuration required",
-    );
-  const accountingReferences =
-    testMode && env.ACCOUNTING_REFERENCES_ENABLED === "true";
-  const receiptProviderConsent = env.FORTNOX_RECEIPT_CONSENT === "true";
   const financialReadModules = z
     .array(
       z.enum([
@@ -159,13 +214,31 @@ export function productSettings(
         .map((v) => v.trim())
         .filter(Boolean),
     );
+  if (financialReadModules.length && !testMode)
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const accountingReferences = true;
+  const receiptProviderConsent = true;
   requestedFortnoxScopes({
     testMode,
     accountingReferences,
     receiptProviderConsent,
     financialReadModules,
   });
+  const email = emailSettings(env);
   return {
+    ...(email ? { email } : {}),
+    financialAnalysisContexts:
+      env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
+    financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
+    externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
+    onboardingClients: z
+      .array(z.string().min(1).max(256))
+      .max(16)
+      .parse(JSON.parse(env.EXTERNAL_APP_ONBOARDING_CLIENT_IDS ?? "[]")),
+    offlineClientIds: z
+      .array(z.string().min(1).max(256))
+      .max(16)
+      .parse(JSON.parse(env.MCP_OFFLINE_CLIENT_IDS ?? "[]")),
     origin: origin.origin,
     secret,
     keys,
@@ -214,14 +287,123 @@ export function createProductApplication(
   runtime: Pick<AuthConfig, "database" | "state"> & {
     assets?: AdminAssets;
     receiptFiles?: ReceiptFileStore;
+    analysisStore?: AnalysisStore;
     fileSource?: (
       input: ClientFile,
     ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
   },
   fetcher: typeof fetch = (input, init) => fetch(input, init),
   fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
+  readEvidence: FinancialReadEvidence = {},
 ) {
-  const now = fileTest?.now ?? Date.now;
+  const now = fileTest?.now ?? businessTest?.now ?? Date.now;
+  // All finite implemented operations are available in the ordinary product.
+  // Separate acceptance entries retain their explicit operation selections.
+  const profile = businessTest ?? {
+    operations: registerOperationIds,
+    documentReads: salesOperationIds,
+    payrollReads: payrollReadOperationIds,
+    payrollWrites: {
+      operations: payrollOperationIds.filter((id) =>
+        /\.(create|update|delete)$/.test(id),
+      ),
+      profiles: [],
+    },
+    financialReads: financialReadOperations,
+    openItemReads: openItemReadOperations,
+  };
+  const profileActive = () => !businessTest || now() < businessTest.until;
+  const financialReads = profile.financialReads ?? [];
+  const openItemReads = profile.openItemReads ?? [];
+  const financialMappings =
+    businessTest?.financialMappings ?? readEvidence.financialMappings;
+  if (
+    new Set(openItemReads).size !== openItemReads.length ||
+    openItemReads.some((id) => !openItemReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    new Set(financialReads).size !== financialReads.length ||
+    financialReads.some((id) => !financialReadOperations.includes(id))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const payrollReads = profile.payrollReads ?? [];
+  if (
+    payrollReads.length > 4 ||
+    new Set(payrollReads).size !== payrollReads.length ||
+    payrollReads.some(
+      (id) => !(payrollReadOperationIds as readonly string[]).includes(id),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const documentReads = profile.documentReads ?? [];
+  const payrollWriteOperations = profile.payrollWrites?.operations ?? [];
+  if (
+    new Set(payrollWriteOperations).size !== payrollWriteOperations.length ||
+    payrollWriteOperations.some(
+      (op) =>
+        ![
+          "salary_transaction.create",
+          "salary_transaction.update",
+          "salary_transaction.delete",
+        ].includes(op),
+    ) ||
+    (businessTest?.payrollWrites &&
+      (payrollWriteOperations.length === 0 ||
+        businessTest.payrollWrites.profiles.length === 0 ||
+        !payrollReads.includes("payroll_employee.get") ||
+        !payrollReads.includes("salary_transaction.get")))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  const payrollOperations = [...payrollReads, ...payrollWriteOperations];
+  if (
+    businessTest &&
+    (fileTest ||
+      !settings.testMode ||
+      settings.testTenants.length !== 2 ||
+      new Set(settings.testTenants).size !== 2 ||
+      !/^[a-f0-9]{40}$/.test(businessTest.sourceCommit) ||
+      /^0+$/.test(businessTest.sourceCommit) ||
+      !Number.isSafeInteger(businessTest.until) ||
+      businessTest.until <= now() ||
+      businessTest.until > now() + 3600000 ||
+      businessTest.operations.some((id) => !registerOperationIds.includes(id)))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    businessTest &&
+    (documentReads.length > 6 ||
+      new Set(documentReads).size !== documentReads.length ||
+      documentReads.some(
+        (id) =>
+          ![
+            "offer.list",
+            "offer.get",
+            "order.list",
+            "order.get",
+            "invoice.list",
+            "invoice.get",
+          ].includes(id),
+      ))
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
+  if (
+    businessTest?.consentScopes?.some(
+      (scope) =>
+        ![
+          "offer",
+          "order",
+          "invoice",
+          "supplierinvoice",
+          "payment",
+          "connectfile",
+          "inbox",
+          "salary",
+        ].includes(scope),
+    )
+  )
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   if (
     fileTest &&
     (!settings.testMode ||
@@ -241,32 +423,63 @@ export function createProductApplication(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
   );
+  const programGates = () => ({
+    payrollConsent:
+      !businessTest ||
+      (now() < businessTest.until &&
+        businessTest.consentScopes?.includes("salary") === true),
+    references: true,
+    receiptConsent: true,
+    registerScopes: profileActive()
+      ? [
+          ...new Set(
+            profile.operations.map((id) =>
+              registerScope(id.split(".")[0] as RegisterResource),
+            ),
+          ),
+        ]
+      : [],
+  });
   const provider = new FortnoxConnections({
     origin: settings.origin,
     connections,
     fetch: fetcher,
-    testTenants: settings.testTenants,
-    scopes: requestedFortnoxScopes(settings),
+    ...(businessTest || fileTest ? { testTenants: settings.testTenants } : {}),
+    scopes: baseScopes,
+    programGates,
   });
   const integration = new IntegrationSettings(
     runtime.state,
     connections.vault,
     settings,
   );
+  const onboarding = settings.externalAppOnboarding
+    ? new CompanyOnboarding(
+        connections,
+        settings.origin,
+        settings.onboardingClients ?? [],
+        now,
+      )
+    : undefined;
   const config = {
+    ...(settings.email
+      ? { emails: resendAccountEmails(settings.email, settings.origin) }
+      : {}),
+    ...(onboarding ? { onboarding } : {}),
     ...runtime,
+    offlineClientIds: settings.offlineClientIds ?? [],
     origin: settings.origin,
     secret: settings.secret,
     redirects: settings.redirects,
     connections,
     restApi: settings.restApi === true && !fileTest,
   };
-  // G02/#32 and G06/G07 require current, operation-specific evidence. An ENV flag
-  // must not be able to turn an unverified host or provider into an approved one.
+  // Owner-authorized activation is separate from acceptance evidence. Review
+  // still requires the UI-only capability in a conforming MCP Apps host.
   const accountingGates = {
-    references: settings.accountingReferences === true && settings.testMode,
-    writes: false,
-    reviewHost: false,
+    references: true,
+    writes: !fileTest && !businessTest,
+    reviewHost: !fileTest && !businessTest,
   };
   const accountingProvider = new FortnoxAccounting(
     connections,
@@ -278,19 +491,219 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
+  if (settings.financialReadModules?.length && !settings.testMode)
+    throw new DomainError("CAPABILITY_UNAVAILABLE");
   const readModules =
     !fileTest && settings.testMode ? (settings.financialReadModules ?? []) : [];
   const companyReads = new CompanyReads(
     connections,
     new FortnoxCompanyReads(connections, provider),
-    settings.testMode,
+    true,
   );
-  const financialReads = new FinancialReads(
+  const rawFinancialReads = new FinancialReads(
     connections,
-    new FortnoxFinancialReads(connections, provider, readModules),
+    new FortnoxRawFinancialReads(connections, provider, readModules),
     readModules,
   );
-  const reads = new ReadServices(companyReads, bookkeeping, financialReads);
+  const reads = new ReadServices(companyReads, bookkeeping, rawFinancialReads);
+  const registers = !fileTest
+    ? new Registers(
+        connections,
+        new FortnoxRegisters(
+          connections,
+          provider,
+          profile.operations,
+          now,
+          profileActive,
+        ),
+        profile.operations,
+      )
+    : undefined;
+  const financialProvider =
+    !fileTest && financialReads.length
+      ? new FortnoxFinancialReads(
+          connections,
+          provider,
+          financialReads,
+          profileActive,
+          now,
+          (company, year) =>
+            financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            )?.mapping,
+          readEvidence.financialVerification,
+          { large: settings.financialLargeReads === true },
+        )
+      : undefined;
+  const financial = financialProvider
+    ? {
+        provider: financialProvider,
+        service: new FinancialAnalysis(
+          connections,
+          financialProvider,
+          true,
+          runtime.analysisStore && settings.financialAnalysisContexts
+            ? new FinancialContexts(
+                connections,
+                financialProvider,
+                runtime.analysisStore,
+                true,
+                now,
+              )
+            : undefined,
+        ),
+      }
+    : undefined;
+  const openItems =
+    !fileTest && openItemReads.length
+      ? new OpenItems(
+          connections,
+          new FortnoxOpenItems(
+            connections,
+            provider,
+            openItemReads,
+            profileActive,
+            now,
+            readEvidence.invoiceVerification,
+          ),
+          (["receivable", "payable"] as const).filter((kind) =>
+            openItemReads.includes(
+              kind === "receivable"
+                ? "open_receivable.list"
+                : "open_payable.list",
+            ),
+          ),
+          now,
+          financial
+            ? async (actor, company, kind, asOf, totals) => {
+                const mapping = readEvidence.controlAccountMapping?.(
+                  company,
+                  kind,
+                  asOf,
+                );
+                if (
+                  !mapping ||
+                  !/^[a-f0-9]{64}$/.test(mapping.sha256) ||
+                  !mapping.version ||
+                  mapping.version.length > 128 ||
+                  !/^[A-Z]{3}$/.test(mapping.currency) ||
+                  !mapping.account_numbers.length ||
+                  mapping.account_numbers.length > 50 ||
+                  new Set(mapping.account_numbers).size !==
+                    mapping.account_numbers.length ||
+                  totals.length !== 1 ||
+                  totals[0]?.currency !== mapping.currency ||
+                  totals[0].amount === null
+                )
+                  return unavailableOpenItemReconciliation();
+                const report = await financial.service.report(actor, {
+                  company_id: company,
+                  financial_year: mapping.financial_year,
+                  from: asOf,
+                  to: asOf,
+                  account_numbers: [...mapping.account_numbers],
+                  page_size: 50,
+                });
+                if (
+                  !report.data_complete ||
+                  report.currency !== mapping.currency ||
+                  report.accounts.length !== mapping.account_numbers.length ||
+                  report.accounts.some((a) => a.balance_as_of === null)
+                )
+                  return unavailableOpenItemReconciliation();
+                const ledger = sumAmounts(
+                  report.accounts.map((a) => a.balance_as_of as string),
+                  2,
+                );
+                return reconcileOpenItemLedger(
+                  kind,
+                  mapping.currency,
+                  ledger,
+                  totals[0].amount,
+                  [...mapping.account_numbers],
+                  [
+                    ...report.sources,
+                    {
+                      operation: "control_account_mapping",
+                      record_id: mapping.version,
+                      sha256: mapping.sha256,
+                    },
+                  ],
+                );
+              }
+            : undefined,
+        )
+      : undefined;
+  const liquidity =
+    financial &&
+    openItems &&
+    openItems.enabled.length === 2 &&
+    (["financial.accounts", "financial.year", "financial.sie4"] as const).every(
+      (op) => financialReads.includes(op),
+    )
+      ? new LiquidityAnalysis(
+          connections,
+          financial.service,
+          openItems,
+          true,
+          now,
+          (company, year) => {
+            const profile = financialMappings?.find(
+              (m) => m.company_id === company && m.financial_year === year,
+            );
+            return profile
+              ? {
+                  account_numbers: profile.cash_account_numbers,
+                  version: profile.mapping.version,
+                  sha256: profile.mapping.sha256,
+                }
+              : undefined;
+          },
+        )
+      : undefined;
+  const payroll =
+    !fileTest && payrollReads.length
+      ? new PayrollInputs(
+          connections,
+          profile.payrollWrites
+            ? new FortnoxPayrollWrites(
+                connections,
+                provider,
+                profile.payrollWrites.profiles,
+                payrollOperations,
+                profileActive,
+                now,
+                !businessTest,
+              )
+            : new FortnoxPayrollReads(
+                connections,
+                provider,
+                payrollReads,
+                profileActive,
+                now,
+              ),
+          payrollOperations,
+          now,
+        )
+      : undefined;
+  const salesDocuments =
+    documentReads.length && registers
+      ? new SalesDocuments(
+          connections,
+          new FortnoxSalesDocuments(
+            connections,
+            provider,
+            documentReads,
+            profileActive,
+            now,
+          ),
+          registers,
+          accountingProvider,
+          documentReads,
+          null,
+          now,
+        )
+      : undefined;
   const receiptFiles = runtime.receiptFiles
     ? new ReceiptFiles(
         connections,
@@ -308,29 +721,32 @@ export function createProductApplication(
           return result;
         },
         fileValidator,
-        // G03/#33 and product file acceptance are not established by an ENV flag.
-        !!fileTest,
+        !businessTest,
       )
     : undefined;
   const receipts = receiptFiles
-    ? new Receipts(bookkeeping, receiptFiles, false)
+    ? new Receipts(bookkeeping, receiptFiles, !fileTest && !businessTest)
     : undefined;
   const receiptAttachments = receipts
     ? new ReceiptAttachments(
         receipts,
         new FortnoxReceiptFiles(connections, provider, accountingProvider, {
-          upload: false,
-          link: false,
-          connectionRead: false,
-          inboxRead: false,
-          formats: [],
+          upload: !fileTest && !businessTest,
+          link: !fileTest && !businessTest,
+          connectionRead: !fileTest && !businessTest,
+          inboxRead: !fileTest && !businessTest,
+          formats: ["application/pdf", "image/png", "image/jpeg"],
           rejectedWithoutEffect: { inbox_upload: [], voucher_file_link: [] },
         }),
-        { upload: false, link: false, retrieve: false },
+        {
+          upload: !fileTest && !businessTest,
+          link: !fileTest && !businessTest,
+          retrieve: !fileTest && !businessTest,
+        },
       )
     : undefined;
   const receiptWorkflow = receiptAttachments
-    ? new ReceiptWorkflow(receiptAttachments, false)
+    ? new ReceiptWorkflow(receiptAttachments, !fileTest && !businessTest)
     : undefined;
   const gateway = createProductGateway(
     config,
@@ -339,11 +755,17 @@ export function createProductApplication(
         identity,
         connections,
         provider,
+        testMode: true,
         companyReads,
         ...(!fileTest ? { reads } : {}),
-        testMode: settings.testMode,
         diagnostics: !fileTest,
         ...(!fileTest ? { bookkeeping } : {}),
+        ...(registers ? { registers } : {}),
+        ...(payroll ? { payroll } : {}),
+        ...(openItems ? { openItems } : {}),
+        ...(liquidity ? { liquidity } : {}),
+        ...(financial ? { financial } : {}),
+        ...(salesDocuments ? { salesDocuments } : {}),
         ...(receiptFiles ? { receiptFiles } : {}),
         ...(receipts ? { receipts } : {}),
         ...(receiptAttachments ? { receiptAttachments } : {}),
@@ -351,18 +773,64 @@ export function createProductApplication(
       }),
     reads,
   );
+  const onboardingHttp = onboarding
+    ? onboardingRoutes({
+        onboarding,
+        auth: gateway.auth,
+        provider,
+        integration,
+        redirects: settings.redirects,
+      })
+    : undefined;
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (
+      url.pathname.startsWith("/api/company-onboarding/") ||
+      url.pathname.startsWith("/connect/company")
+    ) {
+      if (!onboardingHttp)
+        return onboardingFailure(
+          new OnboardingError("ATTEMPT_NOT_FOUND", 404),
+          url.pathname.startsWith("/connect/company") ? request : undefined,
+        );
+      const response = await onboardingHttp.fetch(request);
+      return (
+        response ??
+        (url.pathname.startsWith("/connect/company")
+          ? onboardingFailure(
+              new OnboardingError("ATTEMPT_NOT_FOUND", 404),
+              request,
+            )
+          : safeResponse('{"error":"NOT_FOUND"}', 404))
+      );
+    }
     if (url.pathname === "/mcp" && fileTest && !fileTestActive())
       return safeResponse('{"error":"FILE_TEST_EXPIRED"}', 503);
+    if (url.pathname === "/mcp" && businessTest && now() >= businessTest.until)
+      return safeResponse('{"error":"BUSINESS_TEST_EXPIRED"}', 503);
     if (url.pathname === "/health" && request.method === "GET")
       return safeResponse(
         JSON.stringify({
           ok: true,
           product: "experimental",
-          provider: settings.testMode ? "test_only" : "disabled",
+          provider: businessTest || fileTest ? "test_only" : "enabled",
+          ...(businessTest
+            ? {
+                register_test: {
+                  source_commit: businessTest.sourceCommit,
+                  expires_at: new Date(businessTest.until).toISOString(),
+                  active: now() < businessTest.until,
+                  operations: businessTest.operations,
+                  document_operations: businessTest.documentReads ?? [],
+                  payroll_operations: payrollOperations,
+                  financial_read_operations: financialReads,
+                  open_item_read_operations: openItemReads,
+                  financial_writes: false,
+                },
+              }
+            : {}),
           ...(fileTest
             ? {
                 file_test: {
@@ -387,6 +855,9 @@ export function createProductApplication(
     if (
       url.pathname === "/admin" ||
       url.pathname === "/admin/state" ||
+      url.pathname === "/admin/clients" ||
+      url.pathname === "/admin/clients/company-access" ||
+      url.pathname.startsWith("/admin/companies/") ||
       url.pathname.startsWith("/admin/fortnox/")
     ) {
       let session: Awaited<ReturnType<typeof requireOwner>>;
@@ -397,25 +868,307 @@ export function createProductApplication(
           request.headers,
         );
       } catch {
+        if (
+          request.method === "GET" &&
+          request.headers.get("accept")?.includes("text/html") &&
+          url.pathname === "/admin/fortnox/callback"
+        ) {
+          const owner = await runtime.state.get<{ ownerId: string }>(
+            "installation",
+            "owner",
+          );
+          const binding =
+            owner &&
+            (await provider.onboardingReturn(owner.value.ownerId, url));
+          return new Response(null, {
+            status: 303,
+            headers: {
+              "cache-control": "no-store",
+              "referrer-policy": "no-referrer",
+              location: binding
+                ? `/connect/company/${binding.id}?revision=${binding.revision}`
+                : "/sign-in",
+            },
+          });
+        }
         return safeResponse('{"error":"AUTH_REQUIRED"}', 401);
+      }
+      if (url.pathname === "/admin/clients" && request.method === "GET") {
+        const rows = await runtime.state.list<CompanyGrant>(
+          "company-grants",
+          101,
+        );
+        const companies = await connections.list(session.user.id);
+        const clients = await Promise.all(
+          rows
+            .slice(0, 100)
+            .filter(
+              (r) =>
+                r.value.ownerId === session.user.id &&
+                !r.id.startsWith("owner-recovery:"),
+            )
+            .map(async (r) => {
+              const grant = await connections.clientGrant(
+                session.user.id,
+                r.id,
+              );
+              const all = grant.companyAccess === "owner_connections";
+              return {
+                client_id: r.id,
+                grant_id: grant.grantId ?? null,
+                revision: grant.revision ?? 0,
+                company_access: all
+                  ? "owner_connections"
+                  : "selected_companies",
+                can_allow_owner_connections: !grant.onboarding && !all,
+                companies: (all
+                  ? companies
+                      .filter((c) => c.state !== "disconnected")
+                      .map((c) => [c.id, c.generation] as const)
+                  : Object.entries(grant.companies)
+                ).map(([id, generation]) => ({
+                  company_id: id,
+                  name: companies.find((c) => c.id === id)?.name ?? id,
+                  current: companies.some(
+                    (c) =>
+                      c.id === id &&
+                      c.state === "active" &&
+                      (all ||
+                        (c.generation === generation &&
+                          (grant.accessRevisions?.[id] ?? 0) ===
+                            (c.accessRevision ?? 0))),
+                  ),
+                })),
+              };
+            }),
+        );
+        return safeResponse(
+          JSON.stringify({ clients, partial: rows.length > 100 }),
+        );
+      }
+      if (
+        url.pathname === "/admin/clients/company-access" &&
+        request.method === "POST"
+      ) {
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          const body = z
+            .object({
+              client_id: z.string().min(1).max(256),
+              grant_id: z.string().nullable(),
+              revision: z.number().int().nonnegative(),
+            })
+            .strict()
+            .parse(await boundedJson(request));
+          await connections.allowOwnerConnections(
+            session.user.id,
+            body.client_id,
+            body.grant_id,
+            body.revision,
+          );
+          return safeResponse('{"ok":true}');
+        } catch (error) {
+          return safeResponse(
+            JSON.stringify({
+              error:
+                error instanceof DomainError ? error.code : "VALIDATION_FAILED",
+            }),
+            error instanceof DomainError && error.code === "CONNECTION_CONFLICT"
+              ? 409
+              : 400,
+          );
+        }
+      }
+      const businessReconcile =
+        /^\/admin\/companies\/([^/]+)\/business\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (businessReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          if (!profileActive()) throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const companyId = z.string().uuid().parse(businessReconcile[1]);
+          const executionId = z.string().uuid().parse(businessReconcile[2]);
+          const company = (await connections.list(session.user.id)).find(
+            (c) => c.id === companyId,
+          );
+          if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+          const execution = company.business?.executions.find(
+            (e) => e.id === executionId,
+          );
+          const service =
+            execution &&
+            [registers?.writes, salesDocuments?.writes, payroll?.writes].find(
+              (s) => s?.operations[execution.operation],
+            );
+          if (!service) throw new DomainError("CAPABILITY_UNAVAILABLE");
+          const result = await service.reconcileOwner(
+            session.user.id,
+            companyId,
+            executionId,
+          );
+          return safeResponse(JSON.stringify(result));
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
+      }
+      const receiptReconcile =
+        /^\/admin\/companies\/([^/]+)\/receipts\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (receiptReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          if (!receiptAttachments)
+            throw new DomainError("CAPABILITY_UNAVAILABLE");
+          return safeResponse(
+            JSON.stringify(
+              await receiptAttachments.reconcileOwner(
+                session.user.id,
+                z.string().uuid().parse(receiptReconcile[1]),
+                z.string().uuid().parse(receiptReconcile[2]),
+              ),
+            ),
+          );
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
+      }
+      const voucherReconcile =
+        /^\/admin\/companies\/([^/]+)\/vouchers\/([^/]+)\/reconcile$/.exec(
+          url.pathname,
+        );
+      if (voucherReconcile) {
+        if (request.method !== "POST")
+          return safeResponse('{"error":"METHOD_NOT_ALLOWED"}', 405);
+        if (request.headers.get("origin") !== settings.origin)
+          return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+        try {
+          z.object({})
+            .strict()
+            .parse(await boundedJson(request));
+          return safeResponse(
+            JSON.stringify(
+              await bookkeeping.reconcileOwner(
+                session.user.id,
+                z.string().uuid().parse(voucherReconcile[1]),
+                z.string().uuid().parse(voucherReconcile[2]),
+              ),
+            ),
+          );
+        } catch (error) {
+          return connectionFailure(error, "owner_reconciliation");
+        }
+      }
+      const programRoute =
+        /^\/admin\/companies\/([^/]+)\/programs(?:\/(preview|start|disable))?$/.exec(
+          url.pathname,
+        );
+      if (programRoute) {
+        try {
+          const companyId = z.string().uuid().parse(programRoute[1]);
+          const company = (await connections.list(session.user.id)).find(
+            (c) => c.id === companyId,
+          );
+          if (!company) throw new DomainError("COMPANY_FORBIDDEN");
+          const gates = programGates();
+          if (!programRoute[2] && request.method === "GET")
+            return safeResponse(
+              JSON.stringify({
+                ...programStatus(company, gates),
+                pending: (await provider.pending(session.user.id)).includes(
+                  companyId,
+                ),
+              }),
+            );
+          if (request.method !== "POST" || !programRoute[2])
+            return safeResponse('{"error":"NOT_FOUND"}', 404);
+          if (request.headers.get("origin") !== settings.origin)
+            return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+          const body = await boundedJson(request);
+          if (programRoute[2] === "disable") {
+            const input = programChange.omit({ features: true }).parse(body);
+            await connections.disableProgram(
+              session.user.id,
+              companyId,
+              input.program,
+              input.expected_revision,
+            );
+            return safeResponse('{"ok":true}');
+          }
+          const input = programChange.parse(body);
+          const preview = previewProgram(company, input, gates);
+          if (programRoute[2] === "preview")
+            return safeResponse(JSON.stringify(preview));
+          if (preview.action === "none") return safeResponse('{"ok":true}');
+          if (preview.action === "local_selection") {
+            await connections.selectProgram(
+              session.user.id,
+              companyId,
+              input,
+              gates,
+            );
+            return safeResponse('{"ok":true}');
+          }
+          const credentials = await connections.credentials(
+            session.user.id,
+            company,
+          );
+          return safeResponse(
+            JSON.stringify({
+              url: await provider.start(
+                session.user.id,
+                session.session.id,
+                {
+                  mode: company.mode,
+                  clientId: credentials.clientId,
+                  clientSecret: credentials.clientSecret,
+                },
+                companyId,
+                input,
+              ),
+            }),
+          );
+        } catch (error) {
+          return connectionFailure(error, "program_connection");
+        }
       }
       if (request.method === "GET" && url.pathname === "/admin/state") {
         const companies = await connections.list(session.user.id);
+        const pending = await provider.pending(session.user.id);
         return safeResponse(
           JSON.stringify({
             owner: { email: session.user.email },
-            integration: await integration.status(session.user.id),
+            integration: await integration.status(session.user.id, connections),
             callback: `${settings.origin}/admin/fortnox/callback`,
             mcp_url: `${settings.origin}/mcp`,
-            test_mode: settings.testMode,
+            test_mode: !!businessTest || !!fileTest,
             restore:
               (await runtime.state.get("installation", "restore"))?.value ??
               null,
             capabilities: {
-              writes: false,
-              provider_files: false,
-              review_host: false,
-              files: fileTestActive(),
+              business_reconciliation: !!registers && profileActive(),
+              receipt_reconciliation: !!receiptAttachments?.gates.upload,
+              voucher_reconciliation: accountingGates.references,
+              writes: accountingGates.writes,
+              provider_files: receiptAttachments?.gates.upload === true,
+              review_host: accountingGates.reviewHost,
+              files:
+                receiptFiles?.enabled === true &&
+                (!fileTest || fileTestActive()),
             },
             companies: companies.map((c) => ({
               company_id: c.id,
@@ -425,7 +1178,77 @@ export function createProductApplication(
               review: c.review,
               read_only: c.readOnly,
               policy_version: c.policyVersion,
+              organization_number: c.organizationNumber,
+              programs: {
+                ...programStatus(c, programGates()),
+                pending: pending.includes(c.id),
+              },
             })),
+            uncertain_outcomes: companies.flatMap((c) => [
+              ...(c.bookkeeping?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "bookkeeping",
+                  recovery_available:
+                    e.generation === c.generation && !!e.reference,
+                  id: e.id,
+                })),
+              ...(c.business?.executions ?? [])
+                .filter((e) =>
+                  ["submitting", "outcome_unknown"].includes(e.state),
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  kind: "business",
+                  id: e.id,
+                })),
+              ...(c.receiptBatches ?? []).flatMap((b) =>
+                b.items
+                  .filter((item) =>
+                    Object.values(item.steps).some((step) =>
+                      ["submitting", "outcome_unknown"].includes(step.state),
+                    ),
+                  )
+                  .map((item) => ({
+                    company_id: c.id,
+                    company_name: c.name,
+                    kind: "receipt",
+                    stage: Object.entries(item.steps).find(([, step]) =>
+                      ["submitting", "outcome_unknown"].includes(step.state),
+                    )?.[0],
+                    recovery_available:
+                      (b.tenant
+                        ? b.tenant === c.tenant
+                        : b.generation === c.generation) &&
+                      [item.steps.upload, item.steps.link].some((step) =>
+                        ["submitting", "outcome_unknown"].includes(step.state),
+                      ),
+                    id: item.id,
+                  })),
+              ),
+            ]),
+            observed_differences: companies.flatMap((c) =>
+              (c.business?.executions ?? [])
+                .filter(
+                  (e) =>
+                    e.state === "applied_different" &&
+                    e.difference &&
+                    e.reference,
+                )
+                .map((e) => ({
+                  company_id: c.id,
+                  company_name: c.name,
+                  id: e.id,
+                  operation: e.operation,
+                  reference: e.reference,
+                  difference: e.difference,
+                })),
+            ),
             investigations: companies.flatMap((c) =>
               (c.bookkeeping?.executions ?? [])
                 .filter(
@@ -461,11 +1284,11 @@ export function createProductApplication(
         const rows = companies
           .map(
             (c) =>
-              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : `<form data-action="/admin/fortnox/policy"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="policy_version" value="${c.policyVersion}"><label>Manuella verifikationer <select name="review"><option value="review_required" ${c.review === "review_required" ? "selected" : ""}>Mänsklig granskning krävs</option><option value="client_managed" ${c.review === "client_managed" ? "selected" : ""}>Klientens godkännanden</option></select></label><label>Åtkomst <select name="read_only"><option value="true" ${c.readOnly ? "selected" : ""}>Skrivskyddad</option><option value="false" ${!c.readOnly ? "selected" : ""}>Tillåt verifierade skrivoperationer</option></select></label><button>Spara policy och ogiltigförklara gamla förslag</button></form>`}<p>Policyversion ${c.policyVersion}. Ändring aktiverar ingen overifierad operation.</p></li>`,
+              `<li><strong>${escapeHtml(c.name)}</strong> – ${escapeHtml(c.state)} (${escapeHtml(c.mode)})<form data-action="/admin/fortnox/disconnect"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><button>Koppla från</button></form>${c.state !== "active" ? `<form data-action="/admin/fortnox/start"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="mode" value="${c.mode}"><button>Återanslut</button></form>` : `<form data-action="/admin/fortnox/policy"><input type="hidden" name="company_id" value="${escapeHtml(c.id)}"><input type="hidden" name="policy_version" value="${c.policyVersion}"><label>Manuella verifikationer <select name="review"><option value="review_required" ${c.review === "review_required" ? "selected" : ""}>Mänsklig granskning krävs</option><option value="client_managed" ${c.review === "client_managed" ? "selected" : ""}>Klientens godkännanden</option></select></label><label>Åtkomst <select name="read_only"><option value="true" ${c.readOnly ? "selected" : ""}>Skrivskyddad</option><option value="false" ${!c.readOnly ? "selected" : ""}>Tillåt skrivoperationer</option></select></label><button>Spara policy och ogiltigförklara gamla förslag</button></form>`}<p>Policyversion ${c.policyVersion}. Nya skrivningar följer den sparade policyn.</p></li>`,
           )
           .join("");
         return safeResponse(
-          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>${fileTest ? `M14-filprov till ${escapeHtml(new Date(fileTest.until).toISOString())}. Endast tillfällig filstaging och originalhämtning kan provas. Bokföring, Fortnox-filer och granskningskörning är avstängda.` : "Testinstallation. Bokföring och filer är avstängda."} Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button ${settings.testMode ? "" : "disabled"}>Anslut testföretag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
+          `<!doctype html><html lang="sv"><meta charset="utf-8"><title>Företagsanslutningar</title><h1>Företagsanslutningar</h1><p>${fileTest ? `M14-filprov till ${escapeHtml(new Date(fileTest.until).toISOString())}. Endast tillfällig filstaging och originalhämtning kan provas. Bokföring, Fortnox-filer och granskningskörning är avstängda.` : "Funktioner använder företagets Fortnox-behörigheter och sparade policy."} Nya eller återanslutna företag kräver nytt MCP-klientgodkännande.</p><ul>${rows}</ul><form data-action="/admin/fortnox/start"><label>Anslutningstyp <select name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select></label><button>Anslut företag</button></form>${investigations ? `<h2>Utred okända utfall</h2>${investigations}` : ""}<p id="status" role="status"></p><p>Fortnox callback: ${escapeHtml(settings.origin)}/admin/fortnox/callback</p><script src="/admin/connections.js"></script></html>`,
           200,
           "text/html; charset=utf-8",
         );
@@ -475,6 +1298,20 @@ export function createProductApplication(
           return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
         try {
           const body = await boundedJson(request);
+          if (url.pathname === "/admin/fortnox/forget-configuration") {
+            const input = z
+              .object({ revision: z.number().int().positive().safe() })
+              .strict()
+              .parse(body);
+            await integration.forget(session.user.id, input.revision);
+            await provider.cancelPending(session.user.id, null);
+            return safeResponse('{"ok":true}');
+          }
+          if (url.pathname === "/admin/fortnox/cancel-consent") {
+            z.object({}).strict().parse(body);
+            await provider.cancelPending(session.user.id, session.session.id);
+            return safeResponse('{"ok":true}');
+          }
           if (url.pathname === "/admin/fortnox/configuration") {
             await integration.save(
               session.user.id,
@@ -533,7 +1370,7 @@ export function createProductApplication(
                     owner: session.user.id,
                     connections,
                     provider,
-                    testMode: settings.testMode,
+                    testMode: true,
                     authorize: async (id) => {
                       const company = (
                         await connections.list(session.user.id)
@@ -548,8 +1385,6 @@ export function createProductApplication(
             );
           }
           if (url.pathname === "/admin/fortnox/start") {
-            if (!settings.testMode)
-              return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
             const input = z
               .object({
                 mode: z.enum(["service", "user"]),
@@ -582,19 +1417,63 @@ export function createProductApplication(
         request.method === "GET" &&
         url.pathname === "/admin/fortnox/callback"
       ) {
-        if (!settings.testMode)
-          return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 403);
-        try {
-          await provider.finish(session.user.id, session.session.id, url);
+        const retained = await provider.onboardingReturn(session.user.id, url);
+        const binding = await provider.onboardingCallback(
+          session.user.id,
+          session.session.id,
+          url,
+        );
+        if (
+          retained &&
+          !binding &&
+          request.headers.get("accept")?.includes("text/html")
+        )
           return new Response(null, {
             status: 303,
             headers: {
-              location: `${settings.origin}/admin`,
+              location: `/connect/company/${retained.id}?revision=${retained.revision}`,
+              "cache-control": "no-store",
+              "referrer-policy": "no-referrer",
+            },
+          });
+        try {
+          const company = await provider.finish(
+            session.user.id,
+            session.session.id,
+            url,
+          );
+          return new Response(null, {
+            status: 303,
+            headers: {
+              location: binding
+                ? `${settings.origin}/connect/company/${binding.id}?revision=${binding.revision}`
+                : `${settings.origin}/admin/companies/${company.id}`,
               "cache-control": "no-store",
               "referrer-policy": "no-referrer",
             },
           });
         } catch (error) {
+          if (binding) {
+            if (request.headers.get("accept")?.includes("text/html"))
+              return new Response(null, {
+                status: 303,
+                headers: {
+                  location: `${settings.origin}/connect/company/${binding.id}?revision=${binding.revision}`,
+                  "cache-control": "no-store",
+                  "referrer-policy": "no-referrer",
+                },
+              });
+            return onboardingFailure(error);
+          }
+          if (request.headers.get("accept")?.includes("text/html"))
+            return new Response(null, {
+              status: 303,
+              headers: {
+                location: `${settings.origin}/admin/companies?connection_error=failed`,
+                "cache-control": "no-store",
+                "referrer-policy": "no-referrer",
+              },
+            });
           return connectionFailure(error, "flow_validation");
         }
       }
@@ -636,6 +1515,7 @@ export function createProductApplication(
     },
     connections,
     provider,
+    onboarding,
     bookkeeping,
     reads,
     auth: gateway.auth,
