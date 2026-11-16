@@ -75,6 +75,15 @@ function clearAnalysisCache(db: DatabaseSync) {
   )
     db.exec("DELETE FROM analysis_parts; DELETE FROM analysis_contexts;");
 }
+function clearSyncJournal(db: DatabaseSync) {
+  if (
+    db.prepare("SELECT name FROM sqlite_master WHERE name='sync_heads'").get()
+  ) {
+    db.exec(
+      "DELETE FROM sync_events; DELETE FROM sync_offsets; UPDATE sync_heads SET epoch=lower(hex(randomblob(16))),floor=tail;",
+    );
+  }
+}
 export async function backupDatabase(
   db: DatabaseSync,
   backupKey: string,
@@ -92,6 +101,7 @@ export async function backupDatabase(
     const snapshot = new DatabaseSync(temporary);
     try {
       clearAnalysisCache(snapshot);
+      clearSyncJournal(snapshot);
       snapshot.exec("VACUUM");
     } finally {
       snapshot.close();
@@ -221,6 +231,7 @@ export async function restoreDatabase(options: {
           "DELETE FROM product_state WHERE space='installation' AND id='owner'",
         ).run();
       clearAnalysisCache(db);
+      clearSyncJournal(db);
       // Library-validated owner identity/password remain; all old access paths are revoked.
       db.exec(`DELETE FROM oauthAccessToken; DELETE FROM oauthRefreshToken; DELETE FROM oauthConsent;
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
@@ -300,6 +311,7 @@ export async function rotateCredentials(
   db.exec("BEGIN IMMEDIATE");
   try {
     clearAnalysisCache(db);
+    clearSyncJournal(db);
     await connections.rotateKey(owner);
     await new Memberships(state, true).maintenance(owner, "rotation");
     await new IntegrationSettings(state, vault, {

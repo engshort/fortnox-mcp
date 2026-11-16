@@ -6,6 +6,7 @@ import {
   bridgeSafePath,
   DomainError,
   type StateStore,
+  syncResources,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import {
@@ -95,7 +96,7 @@ export async function compileBridgeCatalog(
         entry.effect !== "write") ||
       (/\/(?:email|einvoice|eprint|print|printreminder)$/.test(entry.path) &&
         entry.effect !== "write") ||
-      (/^\/3\/(?:invoices(?:-v2)?|supplierinvoices|vouchers|accounts|sie|salarytransactions|employees)(?:\/|$)/.test(
+      (/^\/3\/(?:invoices(?:-v2)?|supplierinvoices|invoicepayments|supplierinvoicepayments|vouchers|accounts|sie|salarytransactions|employees)(?:\/|$)/.test(
         entry.path,
       ) &&
         !entry.finance) ||
@@ -146,6 +147,37 @@ export async function compileBridgeCatalog(
         ...(typeof p.style === "string" ? { style: p.style } : {}),
         ...(typeof p.explode === "boolean" ? { explode: p.explode } : {}),
       });
+    }
+    // Reviewed global read parameters, absent from some provider snapshots.
+    // Never apply these overlays to arbitrary paths or effectful GETs.
+    const syncProfile = syncResources.find(
+      (r) =>
+        entry.path === r.path ||
+        (r.yearly && entry.path.startsWith(`${r.path}/`)),
+    );
+    if (entry.method === "GET" && entry.effect === "read" && syncProfile) {
+      if (entry.path === syncProfile.path) {
+        for (const name of ["page", "limit"]) {
+          if (!parameterMap.has(`query:${name}`))
+            parameterMap.set(`query:${name}`, {
+              name,
+              in: "query",
+              required: false,
+              schema: {
+                type: "integer",
+                minimum: 1,
+                maximum: name === "limit" ? 100 : 1000000,
+              },
+            });
+        }
+      }
+      if (syncProfile.yearly)
+        parameterMap.set("query:financialyear", {
+          name: "financialyear",
+          in: "query",
+          required: true,
+          schema: { type: "integer", minimum: 1, maximum: 2147483647 },
+        });
     }
     const body = sourceOp.raw.requestBody
       ? resolveObject(source.root, sourceOp.raw.requestBody)

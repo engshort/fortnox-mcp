@@ -1,5 +1,9 @@
 # Read API contract
 
+Optional [company synchronization](company-sync-v1.md) adds resource discovery
+and bounded change signals using separately consented API bridge/finance reads.
+It keeps the existing MCP onboarding registration separate.
+
 The separately enabled [native REST bridge](bridge.md) adds catalogue-bound
 actions and files with explicit `api:bridge` plus `api:write`/`api:files` consent
 where applicable. Statements below

@@ -1,5 +1,9 @@
 # Catalogue-driven Fortnox REST bridge
 
+The optional [company sync contract](company-sync-v1.md) describes reviewed
+read profiles and change signals for consumer-owned latest-state mirrors. Its
+global paging/year overlays apply only to known pure-read resource paths.
+
 Wire version: `fortnox-bridge-catalog-v1`. Scope: S03 REST transport, shared
 S04–S09 policy/validation and S11 installation. This is a generic execution
 interface, not a claim of verified provider coverage for every catalogue entry.
@@ -115,7 +119,7 @@ an incomplete summary. Source changes return conflict.
 
 Manual voucher creation additionally requires explicit `financialyear` and
 `X-Fortnox-Currency: SEK`, since the existing domain profile requires a currency.
-Account, voucher and SIE requests require an explicit positive `financialyear`;
+Account, voucher, voucher-series and SIE requests require an explicit positive `financialyear`;
 the bridge never silently selects the provider's current fiscal year.
 The supported bounded row shape maps to the same `Bookkeeping.validate` path as
 MCP, including current company/year/account/series/lock/dimension rules and exact

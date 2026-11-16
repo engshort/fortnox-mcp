@@ -1,5 +1,10 @@
 # Documentation map
 
+Optional [external latest-state sync](contracts/company-sync-v1.md):
+[implementation/evidence](implementation/company-sync.md) and
+[Swedish setup](users/synk.sv.md). Uses the existing native read bridge;
+Node realtime is separate from hourly consumer fallback polling. Defaults off.
+
 Optional [catalogue-driven REST bridge](contracts/bridge.md):
 [implementation/evidence](implementation/REST-bridge.md) and
 [Swedish integration guide](users/rest-brygga.sv.md). Native methods/paths/bodies

@@ -4,6 +4,7 @@ import {
 } from "@better-auth/oauth-provider";
 import {
   type CompanyOnboarding,
+  type CompanySync,
   type Connections,
   DomainError,
   type FortnoxBridge,
@@ -74,6 +75,7 @@ export function createProductGateway(
   server: (identity: McpIdentity | null) => McpServer,
   reads: ReadServices,
   bridge?: FortnoxBridge,
+  sync?: CompanySync,
 ) {
   const admin = createAdmin(config);
   const auth = admin.auth;
@@ -82,6 +84,7 @@ export function createProductGateway(
     enabled: config.restApi === true,
     services: reads,
     ...(bridge ? { bridge } : {}),
+    ...(sync ? { sync } : {}),
     authenticate: async (request) => {
       const header = request.headers.get("authorization");
       if (!header || !/^Bearer [^\s]+$/i.test(header))

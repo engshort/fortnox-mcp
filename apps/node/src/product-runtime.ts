@@ -12,6 +12,7 @@ import {
   productSettings,
 } from "../../shared/product.js";
 import { hashToken, type Owner } from "../../shared/product-auth.js";
+import { FortnoxEvents } from "./fortnox-events.js";
 import { installationLock } from "./installation-lock.js";
 import { openProductDatabase } from "./product-database.js";
 import { sqliteState } from "./product-storage.js";
@@ -21,6 +22,7 @@ import {
   nodeRuntimeSettings,
   proxyRequest,
 } from "./runtime-config.js";
+import { sqliteSyncJournal } from "./sync-storage.js";
 
 export async function startProduct(
   fileTest?: ProductFileTest,
@@ -47,6 +49,9 @@ export async function startProduct(
   const state = sqliteState(db);
   const receiptFiles = sqliteReceiptFiles(db);
   const analysisStore = sqliteAnalysisStore(db);
+  const syncJournal = sqliteSyncJournal(db);
+  await syncJournal.cleanup(Date.now());
+  let events: FortnoxEvents | undefined;
   await analysisStore.cleanup(Date.now());
   await receiptFiles.cleanup(Date.now());
   await cleanupProduct(state);
@@ -55,6 +60,7 @@ export async function startProduct(
       cleanupProduct(state),
       receiptFiles.cleanup(Date.now()),
       analysisStore.cleanup(Date.now()),
+      syncJournal.cleanup(Date.now()),
     ]).catch(() => console.error("product_cleanup_failed"));
   }, 300000);
   cleanup.unref();
@@ -85,6 +91,15 @@ export async function startProduct(
       state,
       receiptFiles,
       analysisStore,
+      ...(settings.restSync
+        ? {
+            syncJournal,
+            realtimeStatus: (company: string) =>
+              settings.fortnoxEvents
+                ? (events?.status(company) ?? "connecting")
+                : "disabled",
+          }
+        : {}),
       assets: async (name) => {
         try {
           return safeResponse(
@@ -110,6 +125,22 @@ export async function startProduct(
     businessTest,
   );
   let stopping = false;
+  if (
+    settings.restSync &&
+    settings.restApi &&
+    settings.restBridge &&
+    settings.fortnoxEvents
+  ) {
+    events = new FortnoxEvents(
+      app.connections,
+      app.provider,
+      app.bridge,
+      syncJournal,
+      async () =>
+        (await state.get<Owner>("installation", "owner"))?.value.ownerId,
+    );
+    events.start();
+  }
   const server = createAdaptorServer({
     fetch: async (request) => {
       if (stopping) return new Response("Unavailable", { status: 503 });
@@ -136,6 +167,7 @@ export async function startProduct(
       const deadline = setTimeout(() => process.exit(1), 30000);
       deadline.unref();
       server.close(async () => {
+        await events?.stop();
         db.close();
         await unlock();
         clearTimeout(deadline);
