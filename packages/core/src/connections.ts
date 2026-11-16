@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type Actor, type ApiResource, actorResource } from "./actor.js";
 import type { BookkeepingState } from "./bookkeeping.js";
+import type { BridgeExecution } from "./bridge.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
 import {
@@ -118,6 +119,7 @@ export interface Connection {
   readOnly: boolean;
   bookkeeping?: BookkeepingState;
   business?: BusinessState;
+  bridge?: { executions: BridgeExecution[] };
   receiptBatches?: ReceiptBatch[];
   state: "active" | "reconnect_required" | "disconnected";
   secret: Ciphertext | null;

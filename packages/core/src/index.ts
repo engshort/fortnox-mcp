@@ -3,6 +3,8 @@ export * from "./actor.js";
 export * from "./analysis-storage.js";
 export * from "./analytics.js";
 export * from "./bookkeeping.js";
+export * from "./bridge.js";
+export * from "./bridge-schema.js";
 export * from "./business-writes.js";
 export * from "./connections.js";
 export * from "./context.js";

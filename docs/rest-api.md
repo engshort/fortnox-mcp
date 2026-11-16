@@ -1,5 +1,9 @@
 # Integrating an application with the read API
 
+For native Fortnox methods, paths, writes and files, use the separately enabled
+[catalogue-driven REST bridge](contracts/bridge.md). Existing normalized GET
+resources retain the contract below; bridge write/file scopes need new consent.
+
 The opt-in REST API shares services with MCP. Read the [contract](contracts/rest.md)
 and [coverage/evidence](implementation/REST-read-api.md) before enabling provider
 operations. C bindings and a CLI are outside this version.

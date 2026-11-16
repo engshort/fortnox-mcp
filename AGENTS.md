@@ -15,6 +15,7 @@ Applies to human and coding-agent contributions throughout the repository.
 - Manual voucher policy is company-specific. Default is `review_required`; model-callable tools cannot change policy or produce their own approval.
 - App-only visibility and a `confirmed` argument are not proof of a human action. Scope S00 must establish and document the client trust boundary. Never silently downgrade review mode.
 - All write paths, including batch and developer tools, use the same domain policy and validation layer. Do not add an arbitrary HTTP proxy that bypasses it.
+- Owner-approved extension (2026-11-16): the native REST bridge may address reviewed Fortnox methods/paths/bodies through the shared authenticated domain service. This is not permission to bypass company policy, validation or uncertain-write recovery; see `docs/contracts/bridge.md`.
 - Use exact decimals for money. Reject invalid/non-finite amounts and unbalanced manual vouchers. Never invent accounts, tax treatment, balancing rows or missing amounts.
 - Fortnox is the system of record. Keep only bounded operational state and temporary inputs; do not build a parallel bookkeeping database.
 - An uncertain write is `outcome_unknown`, not a safe retry. Reconcile before resending. Do not claim exactly-once delivery without a proven upstream mechanism.

@@ -125,6 +125,28 @@ D19 presentation refinement, approved by the owner on 2026-10-18: replace the il
 
 Retention defaults, package boundaries and tool names in the contracts are initial engineering choices that may be refined with documented rationale. They must preserve these decisions. Unknown provider/client behavior is not resolved by optimistic wording: see [verification gates](reference/verification-gates.md).
 
+## Owner-authorized native REST bridge — 2026-11-16
+
+The owner explicitly approved implementation of a generic native-format REST
+bridge for the known Fortnox API catalogue, with catalogue updates before new
+endpoints execute and direct action requests using durable idempotency keys.
+This refines D07/D10/D13: method/path/body addressing is permitted through a
+common authenticated domain execution service, rather than an unchecked HTTP
+proxy. The MCP tool catalogue does not gain a generic proxy tool.
+
+Private source schemas require source-bound owner reviews. The bridge defaults
+off, new write/file scopes require consent and existing grants are not widened.
+Company ownership/membership, read-only, manual-voucher policy, exact validation,
+bounded state and unknown-outcome recovery remain mandatory. Missing domain or
+specialist prerequisites remain explicit unavailable capabilities. No provider
+coverage is promoted. Migration 0009 changes only known API resource policies;
+the connection snapshot gains bounded bridge execution metadata. See the
+[contract](contracts/bridge.md) and [evidence](implementation/REST-bridge.md).
+
+The owner separately authorized a PR followed by squash merge after green CI.
+This does not authorize a stable release or activating the optional bridge on an
+installation. Existing merge-to-main deployment automation remains documented.
+
 ## Superseded proposals
 
 - Mandatory external browser approval for every manual voucher: replaced by embedded client review and an owner-configurable policy.

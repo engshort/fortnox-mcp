@@ -142,6 +142,13 @@ export class Bookkeeping {
     if (write && (!this.gates.writes || c.readOnly))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (write) await this.connections.assertWritesAllowed();
+    if (
+      write &&
+      c.bridge?.executions.some((e) =>
+        ["submitting", "outcome_unknown"].includes(e.state),
+      )
+    )
+      throw new DomainError("OUTCOME_UNKNOWN");
     return c;
   }
   async years(actor: AccountingActor, company: string) {
@@ -441,6 +448,12 @@ export class Bookkeeping {
     if (p.receipt) await receiptGuard?.();
     await this.connections.mutate(actor.ownerId, c.id, (current) => {
       this.check(current, p, actor, ref.proposal_hash);
+      if (
+        current.bridge?.executions.some((e) =>
+          ["submitting", "outcome_unknown"].includes(e.state),
+        )
+      )
+        throw new DomainError("OUTCOME_UNKNOWN");
       if (mode === "review" && p.reviewExpires <= this.now())
         throw new DomainError("INTENT_CONFLICT");
       if (current.readOnly || current.review !== c.review)

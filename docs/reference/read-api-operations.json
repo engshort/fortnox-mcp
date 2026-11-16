@@ -4,8 +4,8 @@
   "reviewedAt": "2026-11-16",
   "sourceStrategy": "Independently written TypeScript/contracts and original synthetic fixtures; no redistributed provider specification. OpenAPI output describes only this project API.",
   "sourceHashes": {
-    "packages/core/src/actor.ts": "0a8ec01d2719f1cbaac209e8e6b3bfcb0922c7d57bb1268ca2a84d60962f2e51",
-    "packages/core/src/connections.ts": "0a355887c9b81d289e150503e5d94746bfcc59ab103ba309db983cdb1ff3636d",
+    "packages/core/src/actor.ts": "c8b552ea5ce4b20f78b9cf884ce473a39dba395ec166fd8594561f3120fdafd5",
+    "packages/core/src/connections.ts": "9755dca58a364d4b04910a5639a0e718cd7840fe4aa53e68fd990b7b39009b5f",
     "packages/core/src/read-contracts.ts": "991850f4a49baee0eaabeff7953f13dfd3277b10ed9e30a221768876ef200fc7",
     "packages/core/src/reads.ts": "10813d54e8eac8f1edacec92b7fee66880e5ebf3f89802abcc6d97d4a713d7a6",
     "packages/core/src/financial-reads.ts": "e699d0e68a85bcb29a7943b135ec3dab4700cc54486d1158403ff8ec8b6d90d3",
@@ -13,11 +13,11 @@
     "packages/fortnox/src/financial-reads.ts": "8dd8d18c5d1181b0c339ab01820596fddc7baba9510c2d6b1e77ab6310894cc8",
     "packages/fortnox/src/company-reads.ts": "7238b0382a825ccd9d57ba7091f89b4e0fcac60f39d1b5cc6b63712e045967b6",
     "packages/mcp/src/reads.ts": "a664330e62ac7bbd8018b1d86a9ecd0dc5db8abd9085f2c7f8e7e563ba47049e",
-    "packages/rest/src/index.ts": "b40c7547457e77a36c8fd3c676ac4faa09470b7758a8d41057ee52ccdc312957",
-    "packages/rest/src/openapi.ts": "bb18e2786c7085bc8fc334d74aa144fe0f96c9e55e3fbcf83767aa60a84909b2",
-    "apps/shared/product-auth.ts": "0e2acb0f955ef0c43c4f883ec4a5683ff575400a6eb0c9c620a09475f38b56a6",
-    "apps/shared/product-gateway.ts": "9126909552840bf747315d221ae4a6a53db5b5e6bf780aab8de9cede02be07b7",
-    "apps/shared/product.ts": "0c0513327253d035a56950116b2ad5f05ecaac7c96c31ae22d92a27aa389e8a2"
+    "packages/rest/src/index.ts": "ecdc39848a7617f8209895433994d2c237b5b9bc81e881b8eb224e07afc1f009",
+    "packages/rest/src/openapi.ts": "412a38312bb6bd312b7b440d65a895d8632c1c00556818535f01d7dca4e17f46",
+    "apps/shared/product-auth.ts": "3463a96d9707e472c3ac8e854fdc0b6299eb993b111f2b64200d9e773878491e",
+    "apps/shared/product-gateway.ts": "8a63bb452a95a7ad39832c3d86a74c6996bdf752de2ad9106ae62dfdcdb86f16",
+    "apps/shared/product.ts": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320"
   },
   "operations": [
     {

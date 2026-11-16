@@ -1,5 +1,12 @@
 # API coverage plan
 
+The optional [catalogue-driven REST bridge](../contracts/bridge.md) adds native
+HTTP addressing, reviewed private catalogue import and durable action claims.
+It defaults off and ships no active provider catalogue. Parsing all 451 entries
+of the private supplied snapshot is import evidence, not execution verification.
+Existing operation/provider classifications are unchanged; see
+[implementation and limits](../implementation/REST-bridge.md).
+
 The opt-in [REST/shared-read implementation](../implementation/REST-read-api.md)
 adds a separate API OAuth resource and common REST/MCP services. Eight new
 financial read mappings are `implemented_unverified`, default-off and limited

@@ -2,6 +2,7 @@
 export const enabledFortnoxOperations: readonly string[] = Object.freeze([]);
 export * from "./accounting.js";
 export * from "./analytics.js";
+export * from "./bridge.js";
 export * from "./company-reads.js";
 export * from "./connections.js";
 export * from "./diagnostics.js";

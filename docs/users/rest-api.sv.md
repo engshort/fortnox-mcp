@@ -1,5 +1,8 @@
 # Anslut en annan applikation
 
+För Fortnox eget anropsformat, skrivningar och filer finns en separat valbar
+[REST-brygga](rest-brygga.sv.md). Det vanliga läs-API:t nedan finns kvar.
+
 Fortnox MCP har ett valbart REST-API för applikationer som behöver läsa data med
 vanliga HTTP-anrop. MCP använder samma bakomliggande tjänster. API:t är avstängt
 från början och innebär inte verifierat produktionsstöd för nya operationer.
