@@ -311,15 +311,11 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
           "api",
         ),
       ).rejects.toThrow("COMPANY_FORBIDDEN");
-      await f.app.connections.selectProgram(
+      await f.app.connections.disableProgram(
         f.actor.ownerId,
         f.a.id,
-        {
-          program: "invoicing",
-          features: ["customer-registers"],
-          expected_revision: 0,
-        },
-        { references: true, receiptConsent: true },
+        "invoicing",
+        0,
       );
       // Fresh owner consent cannot restore a feature removed from the company.
       const current = (await f.app.connections.list(f.actor.ownerId)).find(
@@ -474,6 +470,7 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
           f.app.connections,
           f.app.provider,
           modules,
+          ["100001", "100002"],
         ),
         modules,
       );

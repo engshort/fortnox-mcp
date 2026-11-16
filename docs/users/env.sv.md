@@ -17,10 +17,9 @@ Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd l
 | `CREDENTIAL_ACTIVE_KEY` | ID för nyckeln som krypterar nya credentials, normalt `v1`. |
 | `CREDENTIAL_KEYS` | JSON-objekt med nyckel-ID och privata 32-byte-nycklar i vanlig base64. Behåll gamla nycklar under verifierad rotation. |
 | `MCP_REDIRECT_URIS` | JSON-lista över exakt tillåtna HTTPS-callbacks för AI-klienten. Mallen innehåller probens observerade ChatGPT-callback; kontrollera att den gäller avsett klientkonto. |
-| `FORTNOX_TEST_MODE` | `false` som standard. `true` tillåter en uttrycklig acceptanskörning mot de två konfigurerade testföretagen. Det innebär inte godkänt produktionsstöd. |
 | `REST_API_ENABLED` | `false` som standard. Aktiverar REST-transport med eget OAuth-medgivande; providerkrav kvarstår. Se [REST-guiden](rest-api.sv.md). |
 | `FINANCIAL_READ_MODULES` | Tom som standard. Kommaseparerade `customer_invoices,supplier_invoices,vouchers,accounts` för uttryckligen tillåtna testläsningar. Kräver testläge och nytt medgivande där scopes saknas. |
-| `FORTNOX_TEST_MODE` | Behövs bara i isolerade acceptansbyggen; påverkar inte vanliga produktbygget. |
+| `FORTNOX_TEST_MODE` | `false` som standard. Krävs för nya rådataoperationer i `FINANCIAL_READ_MODULES` och isolerade acceptansbyggen; ändrar inte befintliga MCP-funktioner. |
 | `FORTNOX_CLIENT_ID` | Client ID från installationens egen opublicerade Fortnox-testintegration. |
 | `FORTNOX_CLIENT_SECRET` | Samma integrations Client Secret. Ange endast privat här eller som Worker-secret. |
 | `FORTNOX_TEST_TENANTS` | Används bara av isolerade acceptansbyggen. Vanliga anslutningar verifierar företagets identitet efter ägarens Fortnox-medgivande. |

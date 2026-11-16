@@ -12,7 +12,7 @@
     "packages/core/src/connections.ts": "a1f2fa21737d512b7676f16830ffd68bd717ae04a78f12dd557546d945e28dc3",
     "packages/core/src/business-writes.ts": "4ab2b4ff35bd8c57977a090a3def99e3653ca0a68f3e9b11c090793d94502f03",
     "packages/fortnox/src/connections.ts": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
-    "apps/shared/product.ts": "05ec8f1a83be6c8b5f5f49573029f5398241f7b51153a41baa9b953b0b41968c",
+    "apps/shared/product.ts": "725cd0a86247a10e0fc99ee9747f9f72065c34dba18850d7affae56ff07ff2f1",
     "apps/shared/product-gateway.ts": "92013b8501a365f96e238532deb05b39c078b92187bc6c3aeb4ce43af12b9fa4",
     "apps/admin/src/company-pages.tsx": "dad452a6fc00963fcdb3507abe4dd7739560e18635575ae9513770ce13e8d521",
     "apps/admin/src/main.tsx": "8aa92cdcfc764e7196d8476fffdcc5a368226b3cd4a426fd71a81010e1e5ceea",

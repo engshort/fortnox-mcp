@@ -491,7 +491,13 @@ export function createProductApplication(
     accountingProvider,
     accountingGates,
   );
-  if (settings.financialReadModules?.length && !settings.testMode)
+  if (
+    settings.financialReadModules?.length &&
+    (!settings.testMode ||
+      settings.testTenants.length !== 2 ||
+      new Set(settings.testTenants).size !== 2 ||
+      settings.testTenants.some((t) => !/^\d{1,15}$/.test(t)))
+  )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   const readModules =
     !fileTest && settings.testMode ? (settings.financialReadModules ?? []) : [];
@@ -502,7 +508,12 @@ export function createProductApplication(
   );
   const rawFinancialReads = new FinancialReads(
     connections,
-    new FortnoxRawFinancialReads(connections, provider, readModules),
+    new FortnoxRawFinancialReads(
+      connections,
+      provider,
+      readModules,
+      settings.testTenants,
+    ),
     readModules,
   );
   const reads = new ReadServices(companyReads, bookkeeping, rawFinancialReads);

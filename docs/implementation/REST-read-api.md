@@ -88,3 +88,12 @@ all affected ledgers without promoting historical provider evidence.
 The local verification table above records the pre-integration implementation.
 Integrated Node/Worker/build checks and GitHub CI are recorded separately in the
 PR; no earlier count is represented as a test of the integrated candidate.
+
+The first integrated broad runs exposed an unforwarded raw-read tenant allowlist
+and outdated OAuth/test setup assumptions. The allowlist is now passed only to
+the new raw-read adapter, leaving ordinary provider behavior intact. A focused
+Node run of all ten REST/OAuth regressions passes after the corrections, including
+immutable resource binding and company-program denial. The initial integrated
+build/native checks passed (11 artifact checks plus 3 native Worker checks).
+Final whole-suite and browser/Docker/source-packet evidence is provided by the
+PR's CI checks on its final head; the failed initial broad runs are not passes.

@@ -320,6 +320,7 @@ export function oauthContract(fixture: () => Promise<AuthConfig>) {
         activeKey: "a",
         redirects: [callback],
         testMode: false,
+        restApi: true,
         clientId: "synthetic-client",
         clientSecret: "synthetic-client-secret",
         testTenants: [],

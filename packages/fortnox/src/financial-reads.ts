@@ -291,6 +291,7 @@ export class FortnoxRawFinancialReads implements FinancialReadProvider {
     readonly connections: Connections,
     readonly provider: FortnoxConnections,
     readonly modules: readonly ReadModule[],
+    readonly testTenants: readonly string[] = provider.config.testTenants ?? [],
   ) {
     this.http = new FortnoxHttp({
       fetch: provider.config.fetch,
@@ -312,7 +313,7 @@ export class FortnoxRawFinancialReads implements FinancialReadProvider {
     )
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const c = await this.connections.authorizeActor(actor, input.company_id);
-    if (!this.provider.config.testTenants?.includes(c.tenant))
+    if (!this.testTenants.includes(c.tenant))
       throw new DomainError("CAPABILITY_UNAVAILABLE");
     const upstream = providerOperations[spec.operation];
     assertScopeProgram(c, upstream.scope);
