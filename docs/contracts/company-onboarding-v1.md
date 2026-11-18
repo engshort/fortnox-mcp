@@ -15,7 +15,7 @@ Configure the installation, installation owner and Fortnox integration first.
 Register a dedicated OAuth client with `client_secret_basic`, authorization-code
 and refresh grants, exact HTTPS callback and `mcp:read offline_access` scopes.
 Registration uses the existing `/auth/oauth2/register` endpoint and installation
-callback allowlist (`MCP_REDIRECT_URIS`). Privately store the returned client
+callback allowlist (`MCP_REDIRECT_URIS`, one to sixteen exact HTTPS callbacks). Privately store the returned client
 credentials in the consumer backend. Set `EXTERNAL_APP_ONBOARDING_ENABLED=true`
 and `EXTERNAL_APP_ONBOARDING_CLIENT_IDS='["<registered-client-id>"]'` on the
 installation. The feature defaults off and the client list defaults empty.

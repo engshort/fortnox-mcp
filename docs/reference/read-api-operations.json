@@ -17,7 +17,7 @@
     "packages/rest/src/openapi.ts": "2fe8e2c342e064ddc0d27719094320838b53273642e8e2a8e847ef5698a1fd91",
     "apps/shared/product-auth.ts": "3ceadbe223d40522e5beaf58d24e196711a4d4647131586d23f8af964d656ff7",
     "apps/shared/product-gateway.ts": "ee281ddc885fbda3d2b48212bc3c78125178e54adcebea9b2e37db86983e5c98",
-    "apps/shared/product.ts": "91d08b5a4da4e3f8cd4ee5c3acea09f66f08e6c0d3db3d0ae86fff11b408b202"
+    "apps/shared/product.ts": "bdd476248f8e6a1970fb5248616b4d375a4240038a45aad3b837716a1943ab27"
   },
   "operations": [
     {
