@@ -14,6 +14,7 @@ import {
   type ConnectionSet,
   Connections,
   type CredentialVault,
+  InstallationSettings,
   Memberships,
   receiptFileBinding,
 } from "@fortnox-mcp/core";
@@ -184,6 +185,7 @@ export async function restoreDatabase(options: {
       const installation = await state.get<Owner>("installation", "owner");
       if (installation?.value.phase === "active") {
         const owner = installation.value.ownerId;
+        await new InstallationSettings(state, options.vault).snapshot(owner);
         const connections = new Connections(state, options.vault);
         const snapshot = await connections.snapshot(owner); // Authenticate encryption before changing anything.
         if (snapshot) {
@@ -313,6 +315,7 @@ export async function rotateCredentials(
     clearAnalysisCache(db);
     clearSyncJournal(db);
     await connections.rotateKey(owner);
+    await new InstallationSettings(state, vault).rotate(owner);
     await new Memberships(state, true).maintenance(owner, "rotation");
     await new IntegrationSettings(state, vault, {
       clientId: "",

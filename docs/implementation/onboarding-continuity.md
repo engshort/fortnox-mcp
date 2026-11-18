@@ -35,8 +35,9 @@ their own administrator/session, issuer and state before resume.
 
 ## Optional policy and migration
 
-`MCP_OFFLINE_CLIENT_IDS` is an operator-controlled JSON list (maximum 16 IDs),
+`MCP_OFFLINE_CLIENT_IDS` supplies the server-default JSON list (maximum 16 IDs),
 default `[]`. Register the dedicated backend first and then configure its ID.
+Owners/administrators can override the list through [protected installation settings](../contracts/installation-settings.md).
 Only active `client_secret_basic` registrations with explicit `offline_access`
 consent qualify. Public clients and clients outside the list retain the ordinary
 24-hour refresh policy. The consent page discloses 30 days and session independence
@@ -62,7 +63,7 @@ rewritten on startup. A still-valid pair can acquire the configured policy upon
 successful rotation; an expired/revoked/uncertain pair requires fresh explicit
 app consent. Session logout/expiry and attempt cleanup do not revoke qualifying
 pairs. Removing the ID from the policy immediately fences detached families in
-product validation and refresh; restoring the setting can re-enable still-valid families and is operator action,
+product validation and refresh; restoring the setting can re-enable still-valid families and is an explicit owner/admin policy change,
 not permanent revocation or consumer recovery. Permanently revoke a grant/token
 through the existing revocation boundary to require fresh consent. Explicit grant/token revocation, disabled registration,
 company disconnection, current company versions/scopes and restore invalidation

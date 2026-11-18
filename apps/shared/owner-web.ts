@@ -52,11 +52,15 @@ export function ownerWeb(
     "/admin/members",
     "/admin/membership-sources",
     "/app",
-    "/admin/settings",
     "/admin/operations",
     "/admin/help",
   ])
     router.get(path, (c) => protectedShell(c.req.raw));
+  router.get("/admin/settings", (c) =>
+    c.req.header("accept")?.includes("text/html")
+      ? protectedShell(c.req.raw)
+      : fallback(c.req.raw),
+  );
   for (const name of ["admin.js", "admin.css"] as const)
     router.get(`/admin-assets/${name}`, async () =>
       assets

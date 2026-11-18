@@ -9,7 +9,7 @@
     "packages/core/src/registers.ts": "a35dce2a9f1f20898750992cc5215ec9a829d9064c4e267f1c3e9f7807249765",
     "packages/fortnox/src/registers.ts": "cd07245016e6e131600e344b1389ab86a98d8863582d52e4bdb800bae149e19e",
     "packages/mcp/src/registers.ts": "0e3f8d72f603e01a13f53d5467bafe176c1b382be3a6d9877b39b3d92facf36f",
-    "apps/shared/product.ts": "d61ea756f611f24a216bdd93d5688772171854dac49471bd5a837ff4afed7383",
+    "apps/shared/product.ts": "91d08b5a4da4e3f8cd4ee5c3acea09f66f08e6c0d3db3d0ae86fff11b408b202",
     "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
     "packages/fortnox/src/connections.ts": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
     "packages/core/src/programs.ts": "d13e890fb05d704ac2962c17a18c6372ac4da61a2776853321a32db64eda831b"

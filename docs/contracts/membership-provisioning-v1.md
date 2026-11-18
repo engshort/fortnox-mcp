@@ -1,5 +1,10 @@
 # Membership provisioning v1
 
+The feature flags and client lists below are server defaults. Owners and current
+administrators can override them through [live installation settings](installation-settings.md)
+without restart. Existing consent, company policy and owner-only catalogue/delegation
+boundaries remain authoritative.
+
 Wire version: `membership-provisioning-v1`. This installation-local, generic
 REST contract implements the owner's 2026-11-16 team-access request. It has no
 dependency on M2X, a hosted control plane, SCIM or external SSO. The

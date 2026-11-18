@@ -133,9 +133,12 @@ export function createProductAuth(config: AuthConfig) {
               allowedScopes: [
                 "api:read",
                 "api:finance:read",
-                ...(config.restBridge
-                  ? ["api:bridge", "api:write", "api:files"]
-                  : []),
+                // The known resource ceiling is stable across UI activation.
+                // Registration, token validation and routes still use the
+                // current flags; existing client/grant scopes are untouched.
+                "api:bridge",
+                "api:write",
+                "api:files",
                 "offline_access",
               ],
             },
@@ -180,7 +183,7 @@ export function createProductAuth(config: AuthConfig) {
         } catch {
           return;
         }
-        await config.emails.passwordReset(user.email, token);
+        await config.emails.passwordReset(user.email, token, user.id);
       },
       onPasswordReset: async ({ user }) => {
         if (!config.emails) return;

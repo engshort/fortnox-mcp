@@ -1,5 +1,10 @@
 # Catalogue-driven Fortnox REST bridge
 
+The feature flags and client lists below are server defaults. Owners and current
+administrators can override them through [live installation settings](installation-settings.md)
+without restart. Existing consent, company policy and owner-only catalogue/delegation
+boundaries remain authoritative.
+
 The optional [company sync contract](company-sync-v1.md) describes reviewed
 read profiles and change signals for consumer-owned latest-state mirrors. Its
 global paging/year overlays apply only to known pure-read resource paths.

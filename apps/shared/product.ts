@@ -14,6 +14,9 @@ import {
   FinancialContexts,
   FinancialReads,
   FortnoxBridge,
+  type InstallationKey,
+  InstallationSettings,
+  type InstallationValues,
   LiquidityAnalysis,
   Memberships,
   OnboardingError,
@@ -81,6 +84,13 @@ import { companyServer } from "../../packages/mcp/src/companies.js";
 import { boundedJson, safeResponse } from "./admin.js";
 import { BridgeCatalogStore } from "./bridge-catalog.js";
 import {
+  applySettings,
+  settingEnvironment,
+  settingsDefaults,
+  settingsRestricted,
+  validateEmail,
+} from "./installation-settings.js";
+import {
   IntegrationSettings,
   integrationInput,
 } from "./integration-settings.js";
@@ -94,13 +104,17 @@ import {
   requireOwner,
 } from "./product-auth.js";
 import {
+  type AccountEmails,
   type EmailSettings,
-  emailSettings,
   resendAccountEmails,
 } from "./product-email.js";
 import { createProductGateway } from "./product-gateway.js";
+import { settingsRoutes } from "./settings-http.js";
 
 export interface ProductSettings {
+  installationEnvironment?: Partial<Record<InstallationKey, string>>;
+  installationDefaults?: Partial<InstallationValues>;
+  installationSources?: InstallationKey[];
   restSync?: boolean;
   fortnoxEvents?: boolean;
   offlineClientIds?: string[];
@@ -241,23 +255,28 @@ export function productSettings(
     receiptProviderConsent,
     financialReadModules,
   });
-  const email = emailSettings(env);
   return {
+    installationEnvironment: Object.fromEntries(
+      (Object.keys(settingEnvironment) as InstallationKey[]).flatMap((key) =>
+        env[settingEnvironment[key]] === undefined
+          ? []
+          : [[key, env[settingEnvironment[key]]]],
+      ),
+    ),
+    installationDefaults: {
+      emailEnabled: env.RESEND_ENABLED === "true",
+      emailApiKey: (env.RESEND_API_KEY ?? "").trim(),
+      emailFrom: (env.RESEND_FROM ?? "").trim(),
+    },
+    installationSources: (
+      Object.keys(settingEnvironment) as InstallationKey[]
+    ).filter((key) => env[settingEnvironment[key]] !== undefined),
     multiUser: env.MULTI_USER_ENABLED === "true",
     membershipProvisioning: env.MEMBERSHIP_PROVISIONING_ENABLED === "true",
-    ...(email ? { email } : {}),
     financialAnalysisContexts:
       env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
     financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
     externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
-    onboardingClients: z
-      .array(z.string().min(1).max(256))
-      .max(16)
-      .parse(JSON.parse(env.EXTERNAL_APP_ONBOARDING_CLIENT_IDS ?? "[]")),
-    offlineClientIds: z
-      .array(z.string().min(1).max(256))
-      .max(16)
-      .parse(JSON.parse(env.MCP_OFFLINE_CLIENT_IDS ?? "[]")),
     origin: origin.origin,
     secret,
     keys,
@@ -304,24 +323,156 @@ function connectionFailure(error: unknown, stage: string) {
     400,
   );
 }
+export type ProductRuntime = Pick<AuthConfig, "database" | "state"> & {
+  kind?: "node" | "worker";
+  configurationChanged?: (
+    services: Pick<ProductApplication, "connections" | "provider" | "bridge">,
+    settings: ProductSettings,
+  ) => Promise<void>;
+  assets?: AdminAssets;
+  receiptFiles?: ReceiptFileStore;
+  analysisStore?: AnalysisStore;
+  syncJournal?: import("@fortnox-mcp/core").SyncJournal;
+  realtimeStatus?: (
+    company: string,
+  ) => import("@fortnox-mcp/core").RealtimeStatus;
+  fileSource?: (
+    input: ClientFile,
+  ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
+};
+export type ProductApplication = ReturnType<typeof buildProductApplication>;
+
+// One portable configuration boundary for Node and Worker. An application uses
+// an immutable settings snapshot. New requests resolve the durable revision;
+// old requests are fenced before provider I/O and before exposing stale results.
 export function createProductApplication(
-  settings: ProductSettings,
-  runtime: Pick<AuthConfig, "database" | "state"> & {
-    assets?: AdminAssets;
-    receiptFiles?: ReceiptFileStore;
-    analysisStore?: AnalysisStore;
-    syncJournal?: import("@fortnox-mcp/core").SyncJournal;
-    realtimeStatus?: (
-      company: string,
-    ) => import("@fortnox-mcp/core").RealtimeStatus;
-    fileSource?: (
-      input: ClientFile,
-    ) => Promise<{ bytes: Uint8Array; contentType: string | undefined }>;
-  },
+  base: ProductSettings,
+  runtime: ProductRuntime,
   fetcher: typeof fetch = (input, init) => fetch(input, init),
   fileTest?: ProductFileTest,
   businessTest?: ProductBusinessTest,
   readEvidence: FinancialReadEvidence = {},
+): ProductApplication {
+  const store = new InstallationSettings(
+    runtime.state,
+    new CredentialVault(base.keys, base.activeKey),
+    (overridden) => settingsDefaults(base, overridden),
+  );
+  let active = buildProductApplication(
+    base,
+    runtime,
+    fetcher,
+    fileTest,
+    businessTest,
+    readEvidence,
+    store,
+    base,
+  );
+  let key: string | undefined;
+  let pending: Promise<ProductApplication> = Promise.resolve(active);
+  const ownerId = async () =>
+    (await runtime.state.get<{ ownerId: string }>("installation", "owner"))
+      ?.value.ownerId ?? "";
+  async function refresh() {
+    const reload = async () => {
+      const owner = await ownerId();
+      const snapshot = await store.snapshot(owner);
+      const nextKey = JSON.stringify([
+        owner,
+        snapshot.revision,
+        snapshot.values,
+      ]);
+      if (nextKey === key) return active;
+      validateEmail(snapshot.values);
+      const settings = applySettings(base, snapshot.values);
+      // Preserve injected registration lists used by embedded callers; stored
+      // overrides remain immutable snapshots and always take precedence.
+      for (const list of ["onboardingClients", "offlineClientIds"] as const)
+        if (!snapshot.overridden.includes(list) && base[list])
+          settings[list] = base[list];
+      const assertCurrent = async () => {
+        const latest = await store.snapshot(owner);
+        if (settingsRestricted(snapshot.values, latest.values))
+          throw new DomainError("CAPABILITY_UNAVAILABLE");
+      };
+      const assertEmailCurrent = async (resetSubject?: string) => {
+        const current = await store.snapshot(owner);
+        const latest = current.values;
+        if (
+          !latest.emailEnabled ||
+          latest.emailApiKey !== snapshot.values.emailApiKey ||
+          latest.emailFrom !== snapshot.values.emailFrom
+        )
+          throw new DomainError("CAPABILITY_UNAVAILABLE");
+        if (resetSubject === owner && !current.ownerEmailTrusted)
+          throw new DomainError("CAPABILITY_UNAVAILABLE");
+      };
+      const guardedFetch: typeof fetch = async (input, init) => {
+        await assertCurrent();
+        return fetcher(input, init);
+      };
+      const next = buildProductApplication(
+        settings,
+        runtime,
+        guardedFetch,
+        fileTest,
+        businessTest,
+        readEvidence,
+        store,
+        base,
+        { assertCurrent, assertEmailCurrent },
+      );
+      await runtime.configurationChanged?.(next, settings);
+      active = next;
+      key = nextKey;
+      return active;
+    };
+    const next = pending.then(reload, reload);
+    pending = next;
+    return next;
+  }
+  const fetchConfigured = async (request: Request) => {
+    if (
+      new URL(request.url).origin !== base.origin ||
+      (request.headers.has("origin") &&
+        request.headers.get("origin") !== base.origin)
+    )
+      return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    try {
+      const app = await refresh();
+      const response = await app.fetch(request);
+      if (
+        request.method === "POST" &&
+        new URL(request.url).pathname === "/admin/settings" &&
+        response.ok
+      )
+        await refresh();
+      return response;
+    } catch {
+      return safeResponse('{"error":"SETTINGS_UNAVAILABLE"}', 503);
+    }
+  };
+  return new Proxy(active, {
+    get(_target, property) {
+      if (property === "fetch") return fetchConfigured;
+      return Reflect.get(active, property);
+    },
+  });
+}
+
+function buildProductApplication(
+  settings: ProductSettings,
+  runtime: ProductRuntime,
+  fetcher: typeof fetch = (input, init) => fetch(input, init),
+  fileTest?: ProductFileTest,
+  businessTest?: ProductBusinessTest,
+  readEvidence: FinancialReadEvidence = {},
+  installation?: InstallationSettings,
+  settingsBase: ProductSettings = settings,
+  configuration?: {
+    assertCurrent: () => Promise<void>;
+    assertEmailCurrent: (resetSubject?: string) => Promise<void>;
+  },
 ) {
   const now = fileTest?.now ?? businessTest?.now ?? Date.now;
   // All finite implemented operations are available in the ordinary product.
@@ -489,10 +640,28 @@ export function createProductApplication(
         now,
       )
     : undefined;
+  const emailTransport = settings.email
+    ? resendAccountEmails(settings.email, settings.origin)
+    : undefined;
+  const emails: AccountEmails | undefined = emailTransport
+    ? {
+        welcome: async (...args) => {
+          await configuration?.assertEmailCurrent();
+          return emailTransport.welcome(...args);
+        },
+        passwordReset: async (email, token, subjectId) => {
+          if (!subjectId) throw new DomainError("CAPABILITY_UNAVAILABLE");
+          await configuration?.assertEmailCurrent(subjectId);
+          return emailTransport.passwordReset(email, token, subjectId);
+        },
+        passwordChanged: async (...args) => {
+          await configuration?.assertEmailCurrent();
+          return emailTransport.passwordChanged(...args);
+        },
+      }
+    : undefined;
   const config = {
-    ...(settings.email
-      ? { emails: resendAccountEmails(settings.email, settings.origin) }
-      : {}),
+    ...(emails ? { emails } : {}),
     ...(onboarding ? { onboarding } : {}),
     ...runtime,
     offlineClientIds: settings.offlineClientIds ?? [],
@@ -861,10 +1030,25 @@ export function createProductApplication(
     origin: settings.origin,
     provisioning: settings.membershipProvisioning === true,
   });
+  const settingsHttp = installation
+    ? settingsRoutes({
+        auth: gateway.auth,
+        settings: installation,
+        base: settingsBase,
+        ...(runtime.kind ? { runtime: runtime.kind } : {}),
+        catalog: bridgeCatalog,
+        analysisAvailable: !!runtime.analysisStore,
+      })
+    : undefined;
   async function fetchRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.origin !== settings.origin)
       return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+    if (
+      settingsHttp &&
+      ["/admin/settings", "/admin/settings/clients"].includes(url.pathname)
+    )
+      return settingsHttp(request);
     if (url.pathname === "/admin/fortnox/bridge-catalog") {
       if (!config.restApi || !config.restBridge)
         return safeResponse('{"error":"NOT_FOUND"}', 404);
@@ -1676,6 +1860,20 @@ export function createProductApplication(
       )
         return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
       const response = await web.fetch(request);
+      if (
+        configuration &&
+        response.ok &&
+        /^(?:\/mcp$|\/api\/|\/auth\/|\/admin\/fortnox\/|\/connect\/|\/consent)/.test(
+          new URL(request.url).pathname,
+        )
+      ) {
+        try {
+          await configuration.assertCurrent();
+        } catch {
+          await response.body?.cancel();
+          return safeResponse('{"error":"CAPABILITY_UNAVAILABLE"}', 503);
+        }
+      }
       if (
         fileTest &&
         new URL(request.url).pathname === "/mcp" &&

@@ -87,19 +87,36 @@ export async function startProduct(
   const app = createProductApplication(
     settings,
     {
+      kind: "node",
       database: db,
       state,
       receiptFiles,
       analysisStore,
-      ...(settings.restSync
-        ? {
+      syncJournal,
+      realtimeStatus: (company: string) =>
+        events?.status(company) ?? "disabled",
+      configurationChanged: async (services, current) => {
+        await events?.stop();
+        events = undefined;
+        if (
+          !fileTest &&
+          !businessTest &&
+          current.restSync &&
+          current.restApi &&
+          current.restBridge &&
+          current.fortnoxEvents
+        ) {
+          events = new FortnoxEvents(
+            services.connections,
+            services.provider,
+            services.bridge,
             syncJournal,
-            realtimeStatus: (company: string) =>
-              settings.fortnoxEvents
-                ? (events?.status(company) ?? "connecting")
-                : "disabled",
-          }
-        : {}),
+            async () =>
+              (await state.get<Owner>("installation", "owner"))?.value.ownerId,
+          );
+          events.start();
+        }
+      },
       assets: async (name) => {
         try {
           return safeResponse(
@@ -125,22 +142,10 @@ export async function startProduct(
     businessTest,
   );
   let stopping = false;
-  if (
-    settings.restSync &&
-    settings.restApi &&
-    settings.restBridge &&
-    settings.fortnoxEvents
-  ) {
-    events = new FortnoxEvents(
-      app.connections,
-      app.provider,
-      app.bridge,
-      syncJournal,
-      async () =>
-        (await state.get<Owner>("installation", "owner"))?.value.ownerId,
-    );
-    events.start();
-  }
+  // Apply persisted settings and resume the configured collector at startup,
+  // even when no client or external health probe has contacted the server yet.
+  if (!(await app.fetch(new Request(`${settings.origin}/health`))).ok)
+    throw new Error("Product configuration unavailable");
   const server = createAdaptorServer({
     fetch: async (request) => {
       if (stopping) return new Response("Unavailable", { status: 503 });

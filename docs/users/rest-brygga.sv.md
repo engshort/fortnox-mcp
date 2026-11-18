@@ -1,5 +1,10 @@
 # Använd Fortnox MCP som REST-brygga
 
+Ägare och administratörer kan aktivera REST-API och REST-brygga under
+**Inställningar → Integrationer**, utan omstart. Serverflaggorna nedan är
+grundvärden. Ägaren kan också installera ett granskat katalogpaket där. Se
+[installationsinställningar](installationsinstallningar.sv.md).
+
 En annan applikation kan använda Fortnox eget anropsformat genom Fortnox MCP.
 Exempelvis går ett fakturaanrop till
 `/api/v1/companies/{företags-id}/fortnox/3/invoices`. Fortnox MCP sköter

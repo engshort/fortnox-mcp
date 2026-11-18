@@ -1267,3 +1267,83 @@ summary {
     font-size: 14px;
   }
 }
+
+.settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 16px 0;
+}
+.settings-section {
+  scroll-margin-top: 20px;
+}
+.settings-section form {
+  max-width: 760px;
+}
+.settings-section fieldset {
+  min-width: 0;
+}
+.settings-field {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-field:last-of-type {
+  margin-bottom: 20px;
+}
+.settings-check,
+.settings-client-option {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+}
+.settings-check input,
+.settings-client-option input {
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.settings-client-list {
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 6px;
+}
+.settings-client-option {
+  margin: 12px 0;
+}
+.settings-client-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings-client-option small {
+  display: block;
+}
+.settings-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding-top: 6px;
+}
+.settings-hint small {
+  font-size: 13px;
+}
+.settings-error {
+  color: #942c23;
+}
+.settings-field [aria-invalid="true"] {
+  outline: 2px solid #942c23;
+  outline-offset: 2px;
+}
+.settings-message,
+.settings-links {
+  margin-top: 16px;
+}
+.settings-section code,
+.runtime-settings dd {
+  overflow-wrap: anywhere;
+}
+.runtime-settings dd {
+  margin: 4px 0 18px;
+}
+.settings-section input[type="file"] {
+  margin-bottom: 16px;
+}

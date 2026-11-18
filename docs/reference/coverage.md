@@ -1,5 +1,11 @@
 # API coverage plan
 
+[Live installation settings](../implementation/installation-settings.md) expose
+fourteen existing configuration values through protected browser administration.
+Optional defaults and all provider-operation classifications remain unchanged.
+Local Node/workerd/browser checks are distinct from actual email/Fortnox/hosted
+acceptance; the existing owner-only reviewed catalogue import remains separate.
+
 The optional [company-sync-v1 contract](../contracts/company-sync-v1.md) adds
 reviewed discovery for twelve resources and bounded change signals. Shared
 Node/D1 and synthetic WebSocket checks are recorded in

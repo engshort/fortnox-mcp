@@ -1,5 +1,17 @@
 # Test strategy and evidence
 
+The shared `installation-settings` contract runs through Node/SQLite and actual
+local workerd/D1. It covers protected read/write roles, strict validation,
+dependency failures, encrypted write-only keys, CAS conflicts, ENV fallback/reset,
+registration eligibility, immediate OAuth-family fencing and interrupted provider
+connections without replay. Migration 0011 is tested against known/custom
+resources and unchanged registration/consent/token scopes. Node operator tests
+cover encrypted backup/restore and key rotation; `settings-restart` actually
+reopens SQLite and restarts workerd/D1. The owner browser harness includes
+`settings.spec.ts` for desktop/mobile edits, sources, conflicts, defaults,
+language, runtime status and actual Node-process restart. These synthetic checks
+establish no live provider delivery or hosted-client acceptance.
+
 The shared `company-sync` contract runs on Node/SQLite and actual local workerd/D1:
 reviewed discovery, exact native reads, bootstrap/tail traversal, company and
 cursor isolation, revocation/cancellation and explicit epoch/source/retention

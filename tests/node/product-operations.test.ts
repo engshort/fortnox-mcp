@@ -7,6 +7,7 @@ import {
   BusinessWrites,
   Connections,
   CredentialVault,
+  InstallationSettings,
   ReceiptFiles,
 } from "@fortnox-mcp/core";
 import { expect, it } from "vitest";
@@ -162,6 +163,17 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
           },
           "review",
         );
+      await new InstallationSettings(state, vault).save(
+        f.actor.ownerId,
+        {
+          expected_revision: null,
+          changes: {
+            emailApiKey: "re_synthetic_backup_key",
+            financialLargeReads: true,
+          },
+        },
+        async () => {},
+      );
       seedAnalysisCache(db);
       await backupDatabase(db, backupKey, output);
       expect(
@@ -207,6 +219,14 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
         vault,
       });
       db = await openProductDatabase(path, migrations);
+      const restoredSettings = await new InstallationSettings(
+        sqliteState(db),
+        vault,
+      ).snapshot(f.actor.ownerId);
+      expect(restoredSettings.values.emailApiKey).toBe(
+        "re_synthetic_backup_key",
+      );
+      expect(restoredSettings.values.financialLargeReads).toBe(true);
       expect(
         db.prepare("SELECT count(*) AS n FROM analysis_contexts").get()?.n,
       ).toBe(0);
@@ -355,6 +375,14 @@ it("rotates connection/configuration/proposal/file ciphertext transactionally an
       client_id: "synthetic-managed-client",
       client_secret: "synthetic-managed-secret",
     });
+    await new InstallationSettings(state, vault).save(
+      f.actor.ownerId,
+      {
+        expected_revision: null,
+        changes: { emailApiKey: "re_synthetic_rotation_key" },
+      },
+      async () => {},
+    );
     const staged = await f.service.ingest(f.actor, f.a.id, f.files);
     const newVault = new CredentialVault({ a: keyA, b: keyB }, "b");
     seedAnalysisCache(db);
@@ -363,6 +391,10 @@ it("rotates connection/configuration/proposal/file ciphertext transactionally an
       db.prepare("SELECT count(*) AS n FROM analysis_contexts").get()?.n,
     ).toBe(0);
     const onlyNew = new CredentialVault({ b: keyB }, "b");
+    expect(
+      (await new InstallationSettings(state, onlyNew).snapshot(f.actor.ownerId))
+        .values.emailApiKey,
+    ).toBe("re_synthetic_rotation_key");
     expect(
       (await new Connections(state, onlyNew).list(f.actor.ownerId)).length,
     ).toBe(2);

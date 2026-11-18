@@ -11,7 +11,6 @@ import {
 } from "./company-pages.js";
 import {
   ApiCredentials,
-  Integration,
   Investigations,
   type Language,
   Login,
@@ -20,6 +19,7 @@ import {
 } from "./forms.js";
 import { AcceptInvitation, EmployeePage, MembersPage } from "./members.js";
 import { Link, usePath } from "./navigation.js";
+import { RuntimeSettings, SettingsPage } from "./settings.js";
 import { AppShell, Brand } from "./shell.js";
 import "./style.css";
 
@@ -417,6 +417,7 @@ function Operations({
           "Cancel pending consents in this session",
         )}
       </button>
+      <RuntimeSettings t={t} />
     </>
   );
 }
@@ -633,28 +634,7 @@ function App() {
           ) : path === "/admin/fortnox/api-credentials" ? (
             <ApiCredentials state={state} t={t} perform={perform} />
           ) : path === "/admin/settings" ? (
-            <>
-              <h1>{t("Inställningar", "Settings")}</h1>
-              <section className="content-section">
-                <Integration state={state} t={t} perform={perform} />
-              </section>
-              <section className="content-section">
-                <h2>{t("Installationsägare", "Installation owner")}</h2>
-                <p>{state.owner.email}</p>
-                <p>
-                  {t(
-                    "Ägaren och installationsadministratörer får ändra integrationsuppgifter och företagspolicy.",
-                    "The owner and installation administrators may change integration credentials and company policy.",
-                  )}
-                </p>
-                <a href="/reset-password">
-                  {t(
-                    "Återställ lösenord med privat operatörskod",
-                    "Reset password with a private operator code",
-                  )}
-                </a>
-              </section>
-            </>
+            <SettingsPage state={state} t={t} perform={perform} />
           ) : path === "/admin/help" ? (
             <>
               <h1>{t("Hjälp", "Help")}</h1>

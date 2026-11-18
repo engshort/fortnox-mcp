@@ -12,7 +12,10 @@ Both Node/SQLite and Worker/D1 require migration `0007_analysis_contexts.sql`.
 The flag defaults to false. Existing reads without an analysis ID retain their
 live provider-read behavior. The optional large parser/transport profile is
 separately controlled by `FINANCIAL_LARGE_READS_ENABLED=true`, also false by default.
-These are operator configuration, never model-callable settings.
+These flags are server defaults. Owners/administrators can override them through
+[protected installation settings](../contracts/installation-settings.md), without
+exposing model-callable configuration tools. Both optional features remain off
+unless explicitly enabled.
 
 Preparation returns only a context ID, building/ready state, expiry, progress
 and next action. Repeat the same selection with the returned ID to advance.

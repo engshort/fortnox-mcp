@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach } from "vitest";
+import { afterEach, describe } from "vitest";
 import { sqliteState } from "../../apps/node/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
@@ -20,6 +20,7 @@ import { documentRowsContract } from "../shared/document-rows.js";
 import { datedFinancialContract } from "../shared/financial-dates.js";
 import { financialReadContract } from "../shared/financial-reads.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
+import { installationSettingsContract } from "../shared/installation-settings.js";
 import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
@@ -76,6 +77,29 @@ async function fixture() {
   };
 }
 ownerContract(fixture);
+installationSettingsContract(fixture, "node");
+describe("installation settings resource migration", () =>
+  accountingMigrationContract(
+    async () => {
+      const { database } = await fixture();
+      return {
+        execute: async (sql: string) => database.exec(sql),
+        all: async (sql: string) => database.prepare(sql).all(),
+        migrate: async () =>
+          database.exec(
+            readFileSync(
+              new URL(
+                "../../apps/worker/migrations/0011_settings_resource_ceiling.sql",
+                import.meta.url,
+              ),
+              "utf8",
+            ),
+          ),
+      };
+    },
+    ["api:bridge", "api:write", "api:files"],
+    "api/v1",
+  ));
 bridgeContract(fixture);
 accountingMigrationContract(
   async () => {

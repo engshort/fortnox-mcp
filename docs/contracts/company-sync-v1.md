@@ -1,5 +1,10 @@
 # Company sync v1
 
+The feature flags and client lists below are server defaults. Owners and current
+administrators can override them through [live installation settings](installation-settings.md)
+without restart. Existing consent, company policy and owner-only catalogue/delegation
+boundaries remain authoritative.
+
 Wire version: `company-sync-v1`. Scope: S03/S04/S11. This is a consumer-owned
 latest-state synchronization contract, not a backup, financial replica inside
 Fortnox MCP, or an atomic provider snapshot. See [implementation/evidence](../implementation/company-sync.md)

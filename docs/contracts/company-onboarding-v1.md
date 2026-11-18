@@ -1,5 +1,10 @@
 # Company onboarding v1
 
+The feature flags and client lists below are server defaults. Owners and current
+administrators can override them through [live installation settings](installation-settings.md)
+without restart. Existing consent, company policy and owner-only catalogue/delegation
+boundaries remain authoritative.
+
 Wire version: `company-onboarding-v1`. Agreed with the M2X #11 implementation
 chat on 2026-11-15. Implementation and acceptance evidence are tracked separately;
 this document does not claim that cross-repository or real-provider tests passed.

@@ -13,6 +13,7 @@ export * from "./errors.js";
 export * from "./financial-contexts.js";
 export * from "./financial-dates.js";
 export * from "./financial-reads.js";
+export * from "./installation-settings.js";
 export * from "./intents.js";
 export * from "./invoice-history.js";
 export * from "./liquidity.js";

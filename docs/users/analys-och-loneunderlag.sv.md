@@ -1,5 +1,10 @@
 # Finansiell analys och löneunderlag
 
+Ägare och administratörer kan aktivera återanvändbara analysunderlag och större
+analysinläsningar under **Inställningar → Analys**, utan omstart. Deras
+miljövariabler är servergrundvärden. Se
+[installationsinställningar](installationsinstallningar.sv.md).
+
 De implementerade funktionerna är aktiverade i vanliga produktbygget från
 11 november 2026. [Funktioner och åtkomst](funktioner.sv.md) beskriver åtkomst
 och begränsningarna i det implementerade stödet. Faktisk Fortnox- och
