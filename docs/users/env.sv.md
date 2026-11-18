@@ -1,5 +1,15 @@
 # Konfiguration för produktens testinstallation
 
+## Funktionsinställningar i gränssnittet
+
+Ägare och administratörer kan styra e-post, fleranvändarstöd,
+medlemssynkronisering, REST/brygga/synk, externa appklienter och analys under
+**Inställningar**, utan omstart. Se [installationsinställningar](installationsinstallningar.sv.md).
+Miljövariablerna nedan är grundvärden per fält. Sparade appvärden går före även
+när de är avstängda eller tomma. Återställ överstyrningen i gränssnittet för att
+åter använda serverns värde. Infrastruktur, nycklar och filtransport hanteras
+fortfarande av operatören.
+
 Aktuellt från 11 november 2026: test- och aktiveringsspärrarna är borttagna
 i den vanliga installationen. [Funktioner och åtkomst](funktioner.sv.md)
 beskriver nuvarande beteende och kvarvarande tekniska förutsättningar. Äldre
@@ -42,8 +52,9 @@ RESEND_FROM=
 
 Skapa nyckeln i [Resend](https://resend.com/api-keys), verifiera avsändardomänen
 och fyll i avsändaradressen. En nyckel med sändningsbehörighet för den valda
-domänen räcker. Sätt `RESEND_ENABLED=true` och starta om appen när du vill
-aktivera utskicken. Aktivering med saknade eller felaktiga värden stoppas som
+domänen räcker. Aktivera utskicken under **Inställningar → E-post**, eller sätt
+`RESEND_ENABLED=true` som servergrundvärde och starta om appen.
+Aktivering med saknade eller felaktiga värden stoppas som
 ett konfigurationsfel. Enbart ifylld API-nyckel aktiverar inga utskick.
 
 Appen skickar ett välkomstmejl när en ny installationsägare skapas, en engångskod

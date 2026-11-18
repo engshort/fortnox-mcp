@@ -112,6 +112,13 @@ flows and preserves execution history. Keep old keys separately for old backups;
 remove them from the active installation only after a new-key-only validation.
 Upgrade creates encrypted pre-migration backup before opening versioned migrations.
 
+Live [installation settings](installation-settings.md) use one bounded schema-1
+CAS record in `product_state`, partitioned by installation owner. The Resend key
+is separately encrypted with owner/field binding. Credential rotation reencrypts
+it in the same transaction; restore authenticates it before modifying the
+candidate. Encrypted backups retain app overrides without weakening the existing
+session/member/grant invalidation or uncertain-write recovery boundaries.
+
 ## S04 register recovery metadata
 
 Register intents add the originating tenant, a trusted target identity when

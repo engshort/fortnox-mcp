@@ -54,12 +54,21 @@ export interface InstallationState {
     difference: BusinessDifference;
   }>;
 }
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly fields: string[] = [],
+  ) {
+    super(message);
+  }
+}
 export async function api<T = { ok?: boolean; url?: string }>(
   path: string,
   body?: unknown,
+  method: "POST" | "PUT" = "POST",
 ): Promise<T> {
   const response = await fetch(path, {
-    method: body === undefined ? "GET" : "POST",
+    method: body === undefined ? "GET" : method,
     credentials: "same-origin",
     redirect: "error",
     ...(body === undefined
@@ -131,15 +140,23 @@ export async function api<T = { ok?: boolean; url?: string }>(
       `CONNECTION_REQUEST_FAILED${details.length ? ` (${details.join(", ")})` : ""}`,
     );
   }
-  if (!response.ok)
-    throw new Error(
+  if (!response.ok) {
+    const code =
       value &&
-        typeof value === "object" &&
-        "error" in value &&
-        typeof value.error === "string" &&
-        /^[A-Z_]+$/.test(value.error)
+      typeof value === "object" &&
+      "error" in value &&
+      typeof value.error === "string" &&
+      /^[A-Z_]+$/.test(value.error)
         ? value.error
-        : "REQUEST_FAILED",
+        : "REQUEST_FAILED";
+    if (!Array.isArray(diagnostic.fields)) throw new Error(code);
+    throw new ApiError(
+      code,
+      diagnostic.fields.filter(
+        (field): field is string =>
+          typeof field === "string" && /^[A-Za-z]+$/.test(field),
+      ),
     );
+  }
   return value as T;
 }

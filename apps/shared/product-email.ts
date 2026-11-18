@@ -9,7 +9,11 @@ export interface EmailSettings {
 
 export interface AccountEmails {
   welcome(email: string, ownerId: string): Promise<void>;
-  passwordReset(email: string, token: string): Promise<void>;
+  passwordReset(
+    email: string,
+    token: string,
+    subjectId?: string,
+  ): Promise<void>;
   passwordChanged(email: string, eventId: string): Promise<void>;
 }
 

@@ -182,3 +182,21 @@ and owner client grants. Non-owner identities are added explicitly; there is no
 transfer of owner grants to members. Restore blocks team access pending review.
 Implementation authorization does not authorize deployment, publication or a
 production account operation.
+
+## D05/D06/D22 — Owner-authorized live installation settings (2026-11-18)
+
+The owner requested an inventory and approved implementation of the proposed
+settings plan. Fourteen existing optional feature values become editable through
+protected administration by the installation owner and current administrators.
+Saved per-field app values override server defaults, including false/empty
+values, and apply without restart on Node and Worker. Infrastructure, primary
+keys, file transport and callback allowlists remain operator configuration.
+
+This refines earlier operator-only configuration for email, optional team access,
+REST/sync, analysis and backend allowlists. It does not change feature defaults,
+the owner-only reviewed-catalogue/delegation boundaries, company rights, explicit
+OAuth consent or manual-voucher policy. A bounded encrypted operational record
+is added without a new SQL table. Migration 0011 aligns known API resource ceilings
+without widening any client, consent or token scopes. Effective in the next build
+containing this change; no deployment, publication or production activation is
+authorized. See [the contract](contracts/installation-settings.md).

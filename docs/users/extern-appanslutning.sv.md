@@ -1,5 +1,10 @@
 # Anslut företag från en extern applikation
 
+Extern appanslutning och listorna över tillåtna backendklienter kan hanteras av
+ägare och administratörer under **Inställningar → Integrationer**, utan omstart.
+Miljövariablerna för dessa val är grundvärden. Callback-adresser hanteras
+fortfarande av operatören. Se [installationsinställningar](installationsinstallningar.sv.md).
+
 Funktionen är avsedd för registrerade appar med egen backend, exempelvis en app
 med ett kundregister. Appen startar **Anslut företag**, du loggar vid behov in som
 installationsägare, väljer eller ansluter ett Fortnox-företag och godkänner sedan

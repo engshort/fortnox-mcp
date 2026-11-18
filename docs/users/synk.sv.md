@@ -1,5 +1,10 @@
 # Synka ekonomiska uppgifter till en extern tjänst
 
+Aktivera REST-API, REST-brygga, företagssynk och eventuell Node-realtid under
+**Inställningar → Integrationer** som ägare eller administratör. Serverflaggorna
+nedan är grundvärden. Se [installationsinställningar](installationsinstallningar.sv.md).
+Granskad katalog installeras fortfarande av ägaren.
+
 Fortnox MCP kan ge exempelvis M2X underlag för en lokal kopia av senaste läget:
 huvudbok, reskontra och relevanta register för tillgängliga räkenskapsår.
 Den externa tjänsten lagrar kopian och kör synkningen. Filer, kvitton,

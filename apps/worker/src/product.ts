@@ -60,9 +60,10 @@ export default {
         ASSETS: undefined,
       });
       return await createProductApplication(settings, {
+        kind: "worker",
         database: env.DB,
         state: d1State(env.DB),
-        ...(settings.restSync ? { syncJournal: d1SyncJournal(env.DB) } : {}),
+        syncJournal: d1SyncJournal(env.DB),
         ...(env.ASSETS
           ? {
               assets: async (name: "admin.js" | "admin.css") => {

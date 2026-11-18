@@ -1,5 +1,11 @@
 # Authentication and company authorization
 
+[Live installation settings](installation-settings.md) are readable/writable
+only by browser-authenticated owners/current administrators. Members, MCP/API
+tokens and provisioning credentials cannot administer them. Owner-only catalogue
+installation and administrator-provisioning delegation remain separate. Feature
+activation and client allowlists never grant scopes, companies or voucher approval.
+
 The opt-in [REST resource](rest.md) uses `/api/v1`, separate read scopes and
 explicitly selected company grants. MCP and REST tokens are not interchangeable.
 New financial MCP reads require fresh `mcp:finance:read` consent; migration 0008

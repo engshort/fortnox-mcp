@@ -1,5 +1,11 @@
 # Documentation map
 
+Installation feature settings: [protected configuration contract](contracts/installation-settings.md),
+[S11/S02 implementation](implementation/installation-settings.md) and
+[Swedish administration guide](users/installationsinstallningar.sv.md).
+Fourteen existing feature values can be changed by owners/administrators without
+restart. ENV remains a per-field fallback; provider evidence is unchanged.
+
 Optional [external latest-state sync](contracts/company-sync-v1.md):
 [implementation/evidence](implementation/company-sync.md) and
 [Swedish setup](users/synk.sv.md). Uses the existing native read bridge;

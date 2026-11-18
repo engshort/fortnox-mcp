@@ -1,5 +1,10 @@
 # Anslut en annan applikation
 
+Ägare och administratörer kan aktivera REST-API under **Inställningar → Integrationer**,
+utan omstart. `REST_API_ENABLED` är serverns grundvärde. Callback-adresser och
+testflaggor hanteras fortfarande av operatören. Se
+[installationsinställningar](installationsinstallningar.sv.md).
+
 För Fortnox eget anropsformat, skrivningar och filer finns en separat valbar
 [REST-brygga](rest-brygga.sv.md). Det vanliga läs-API:t nedan finns kvar.
 

@@ -1,10 +1,12 @@
 import { env } from "cloudflare:workers";
+import { describe } from "vitest";
 import stateSchema from "../../apps/worker/migrations/0002_product_state.sql?raw";
 import authSchema from "../../apps/worker/migrations/0003_product_auth.sql?raw";
 import oauthSchema from "../../apps/worker/migrations/0004_product_oauth.sql?raw";
 import scopeSchema from "../../apps/worker/migrations/0005_accounting_scope.sql?raw";
 import readScopeSchema from "../../apps/worker/migrations/0008_financial_read_scope.sql?raw";
 import bridgeScopeSchema from "../../apps/worker/migrations/0009_rest_bridge_scopes.sql?raw";
+import settingsScopeSchema from "../../apps/worker/migrations/0011_settings_resource_ceiling.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
@@ -24,6 +26,7 @@ import { documentRowsContract } from "../shared/document-rows.js";
 import { datedFinancialContract } from "../shared/financial-dates.js";
 import { financialReadContract } from "../shared/financial-reads.js";
 import { fortnoxConnectionContract } from "../shared/fortnox-connections.js";
+import { installationSettingsContract } from "../shared/installation-settings.js";
 import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
@@ -53,6 +56,25 @@ import { salesTransportContract } from "../shared/sales-transport.js";
 import { userTokenContract } from "../shared/user-tokens.js";
 
 documentRowsContract();
+installationSettingsContract(fixture, "worker");
+describe("installation settings resource migration", () =>
+  accountingMigrationContract(
+    async () => {
+      await fixture();
+      return {
+        execute: async (sql: string) => env.DB.exec(sql),
+        all: async (sql: string) => (await env.DB.prepare(sql).all()).results,
+        migrate: async () =>
+          env.DB.exec(
+            settingsScopeSchema
+              .replace(/--[^\n]*(?:\n|$)/g, "")
+              .replace(/\n/g, " "),
+          ),
+      };
+    },
+    ["api:bridge", "api:write", "api:files"],
+    "api/v1",
+  ));
 
 async function fixture() {
   await env.DB.exec(stateSchema.replace(/\n/g, " "));

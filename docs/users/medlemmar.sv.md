@@ -1,9 +1,11 @@
 # Administratörer, medarbetare och medlemssynkronisering
 
-Funktionen är valfri och avstängd från början. Operatören aktiverar
-`MULTI_USER_ENABLED=true` för flera konton. För extern medlemssynkronisering krävs
-även `MEMBERSHIP_PROVISIONING_ENABLED=true`. Inställningarna fungerar i Node/Docker
-och Cloudflare-installationer.
+Funktionen är valfri och avstängd från början. Aktivera **Fleranvändarstöd** under
+**Inställningar → Användare**. Aktivera även **Medlemssynkronisering via API** för
+extern synkronisering. Operatörens `MULTI_USER_ENABLED` och
+`MEMBERSHIP_PROVISIONING_ENABLED` är grundvärden. Se
+[installationsinställningar](installationsinstallningar.sv.md). Detta fungerar
+i både Node/Docker och Cloudflare-installationer.
 
 ## Lägg till en person
 

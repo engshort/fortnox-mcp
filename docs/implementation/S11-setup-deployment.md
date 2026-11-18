@@ -6,6 +6,11 @@ Optional team extension (2026-11-16): [role-appropriate administration, personal
 
 ## Deliver
 
+The 2026-11-18 [live settings extension](installation-settings.md) adds protected
+owner/admin control of fourteen existing feature values, per-field ENV fallback,
+immediate Node/Worker application and owner-only catalogue upload UI. It changes
+no provider support classifications; actual external acceptance remains separate.
+
 Implement the small owner wizard from [deployment](../deployment.md): bootstrap/login, own Fortnox credentials, company consent/status, policy settings and tested ChatGPT connection instructions. Add Swedish/English UI and documentation. Admin configuration is not exposed as model tools.
 
 Package Node/Docker and Worker deployments with persistent operational storage, secure secret configuration, private temporary files and cleanup. Provide backup/restore, disconnect, credential rotation and upgrade steps. The owner requested an active first-test Cloudflare button from initial publication, with explicit capability and pending-verification status. Verify and record the independent-installation path before claiming it is supported.
