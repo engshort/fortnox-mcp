@@ -220,7 +220,7 @@ export function productSettings(
   const redirects = z
     .array(z.url())
     .min(1)
-    .max(4)
+    .max(16)
     .parse(JSON.parse(env.MCP_REDIRECT_URIS ?? "[]"));
   if (redirects.some((uri) => !uri.startsWith("https://")))
     throw new Error("HTTPS client redirects required");
