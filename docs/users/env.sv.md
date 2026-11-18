@@ -26,7 +26,7 @@ Den privata filen är `.env` i repots rot. Den ignoreras av Git. En förberedd l
 | `AUTH_SECRET` | Genererad privat sessions-/OAuth-hemlighet, minst 32 tecken. Återanvänd inte probens hemlighet. |
 | `CREDENTIAL_ACTIVE_KEY` | ID för nyckeln som krypterar nya credentials, normalt `v1`. |
 | `CREDENTIAL_KEYS` | JSON-objekt med nyckel-ID och privata 32-byte-nycklar i vanlig base64. Behåll gamla nycklar under verifierad rotation. |
-| `MCP_REDIRECT_URIS` | JSON-lista över exakt tillåtna HTTPS-callbacks för AI-klienten. Mallen innehåller probens observerade ChatGPT-callback; kontrollera att den gäller avsett klientkonto. |
+| `MCP_REDIRECT_URIS` | JSON-lista med 1–16 exakt tillåtna HTTPS-callbacks för klienter. Mallen innehåller probens observerade ChatGPT-callback; kontrollera att den gäller avsett klientkonto. |
 | `REST_API_ENABLED` | `false` som standard. Aktiverar REST-transport med eget OAuth-medgivande; providerkrav kvarstår. Se [REST-guiden](rest-api.sv.md). |
 | `REST_BRIDGE_ENABLED` | `false` som standard. Kräver även `REST_API_ENABLED`, privat granskad katalog och nytt medgivande för skrivning/filer. Se [REST-bryggan](rest-brygga.sv.md). |
 | `REST_SYNC_ENABLED` | `false` som standard. Kräver REST-API och brygga. Ger synkmanifest och skyddat ändringsflöde för externa tjänster; se [synk](synk.sv.md). |
