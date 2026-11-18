@@ -14,6 +14,7 @@ import {
   type ConnectionSet,
   Connections,
   type CredentialVault,
+  InstallationAccess,
   InstallationSettings,
   Memberships,
   receiptFileBinding,
@@ -239,6 +240,21 @@ export async function restoreDatabase(options: {
         DELETE FROM verification; DELETE FROM session; DELETE FROM receipt_chunks; DELETE FROM receipt_files;
         DELETE FROM product_state WHERE space IN ('company-grants','fortnox-flows','continuations');`);
       const restoredOwner = installation?.value.ownerId;
+      if (restoredOwner) {
+        const access = new InstallationAccess(state, true);
+        for (const grant of await access.list(restoredOwner)) {
+          await access.save(
+            restoredOwner,
+            {
+              ...grant,
+              active: false,
+              writes: false,
+              revision: grant.revision + 1,
+            },
+            grant.revision,
+          );
+        }
+      }
       if (restoredOwner)
         await new Memberships(state, true).maintenance(
           restoredOwner,

@@ -299,16 +299,20 @@ export function readApiContract(fixture: () => Promise<AuthConfig>) {
       await expect(
         f.app.connections.authorizeActor({ ...actor, resource: "mcp" }, f.a.id),
       ).rejects.toThrow("COMPANY_FORBIDDEN");
+      const wide = await f.app.connections.renewGrant(
+        f.actor.ownerId,
+        "dedicated-wide-api-client",
+        [],
+        undefined,
+        "owner_connections",
+        "api",
+      );
       await expect(
-        f.app.connections.renewGrant(
-          f.actor.ownerId,
-          "dedicated-api-client",
-          [],
-          undefined,
-          "owner_connections",
-          "api",
+        f.app.connections.authorizeActor(
+          { ...f.actor, clientId: wide.grantId as string },
+          f.b.id,
         ),
-      ).rejects.toThrow("COMPANY_FORBIDDEN");
+      ).resolves.toMatchObject({ id: f.b.id });
       await f.app.connections.disableProgram(
         f.actor.ownerId,
         f.a.id,

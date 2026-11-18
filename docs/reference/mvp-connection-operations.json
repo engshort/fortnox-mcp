@@ -8,12 +8,12 @@
   "sourceHashes": [
     {
       "path": "packages/fortnox/src/http.ts",
-      "sha256": "8eb11f097eea0e5718a18aea3acf82676d2b4f3ee5105605efcf14123eae3fa1",
+      "sha256": "dca42d866de6653ed2a489f23525fb3cb678c74752347ed681a39f529405216d",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/fortnox/src/connections.ts",
-      "sha256": "bde3388b5ae5ac2cb75ae6bffcdd9d222d637b84ebf296a2475bea158eed3213",
+      "sha256": "cccf5e14c14808afc320431f9795fb3bd22ac22200d5ec2549faece6e2b9e0f7",
       "kind": "independently_written_project_source"
     },
     {
@@ -23,12 +23,12 @@
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "d171b61c94d36a3f4cba14edac60dd1c5941640d874a958160763c98fabd9320",
+      "sha256": "e3a4f2e81fd849a15386f4631a1071830b0adf074eb55aa3e8fb636999be31f2",
       "kind": "independently_written_project_source"
     },
     {
       "path": "packages/core/src/connections.ts",
-      "sha256": "9755dca58a364d4b04910a5639a0e718cd7840fe4aa53e68fd990b7b39009b5f",
+      "sha256": "0533211b96f2b49d723cb849944dbeecad016c0b80cccdf1f11465bdb0ea3d40",
       "kind": "independently_written_project_source"
     },
     {

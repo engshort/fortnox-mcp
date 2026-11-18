@@ -1,4 +1,8 @@
 import {
+  type agencyProfile,
+  agencyScopes,
+  agencySelection,
+  assertNoUncertainWrites,
   type Ciphertext,
   type Connection,
   type ConnectionSet,
@@ -15,7 +19,12 @@ import {
 } from "@fortnox-mcp/core";
 import * as oauth from "oauth4webapi";
 import { z } from "zod";
-import { boundedResponse, FortnoxHttp, type ProviderContext } from "./http.js";
+import {
+  boundedResponse,
+  FortnoxHttp,
+  type ProviderContext,
+  ProviderError,
+} from "./http.js";
 
 const server: oauth.AuthorizationServer = {
   issuer: "https://apps.fortnox.se",
@@ -82,6 +91,8 @@ interface Flow {
   expiresAt: number;
   secret: Ciphertext;
   claimed: boolean;
+  profile?: typeof agencyProfile;
+  profileExpected?: { generation: number; revision: number; policy: number };
   reconnectId?: string;
   reconnectGeneration?: number;
   onboarding?: OnboardingBinding;
@@ -176,17 +187,28 @@ export class FortnoxConnections {
     reconnectId?: string,
     extension?: ProgramChange,
     onboarding?: OnboardingBinding,
+    profile?: typeof agencyProfile,
   ) {
     consentInput.parse(input);
+    if (profile && input.mode !== "service")
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     const target = reconnectId
       ? (await this.config.connections.list(owner)).find(
           (c) => c.id === reconnectId,
         )
       : undefined;
-    if (reconnectId && (!target || (!extension && target.state === "active")))
+    if (
+      reconnectId &&
+      (!target || (!extension && !profile && target.state === "active"))
+    )
       throw new DomainError("CONNECTION_CONFLICT");
     if (extension && (!target || target.mode !== input.mode))
       throw new DomainError("COMPANY_FORBIDDEN");
+    if (profile && target) {
+      if (target.mode !== "service" || target.state === "disconnected")
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      assertNoUncertainWrites(target);
+    }
     const preview =
       extension && target
         ? previewProgram(target, extension, this.gates())
@@ -194,8 +216,12 @@ export class FortnoxConnections {
     const scopes =
       preview?.scopes ??
       (target
-        ? target.scopes
-        : (this.config.scopes ?? ["companyinformation", "profile"]));
+        ? profile
+          ? [...new Set([...target.scopes, ...agencyScopes])]
+          : target.scopes
+        : profile
+          ? agencyScopes
+          : (this.config.scopes ?? ["companyinformation", "profile"]));
     const id = onboarding?.flowId ?? crypto.randomUUID();
     const state = oauth.generateRandomState();
     const verifier = oauth.generateRandomCodeVerifier();
@@ -216,6 +242,20 @@ export class FortnoxConnections {
       expiresAt: this.now() + 600000,
       secret,
       claimed: false,
+      ...(profile
+        ? {
+            profile,
+            ...(target?.state === "active"
+              ? {
+                  profileExpected: {
+                    generation: target.generation,
+                    revision: programSelection(target).revision,
+                    policy: target.policyVersion,
+                  },
+                }
+              : {}),
+          }
+        : {}),
       ...(onboarding ? { onboarding } : {}),
       ...(target
         ? { reconnectId: target.id, reconnectGeneration: target.generation }
@@ -325,7 +365,7 @@ export class FortnoxConnections {
           headers: response.headers,
         });
       } catch {
-        throw new DomainError("RECONNECT_REQUIRED");
+        throw new DomainError("UPSTREAM_UNAVAILABLE");
       }
     };
   }
@@ -532,6 +572,14 @@ export class FortnoxConnections {
         (!target || target.generation !== flow.reconnectGeneration)
       )
         throw new DomainError("CONNECTION_CONFLICT");
+      if (
+        flow.profileExpected &&
+        target &&
+        (target.state !== "active" ||
+          target.policyVersion !== flow.profileExpected.policy ||
+          programSelection(target).revision !== flow.profileExpected.revision)
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
       if (flow.extension && target) {
         if (
           target.state !== "active" ||
@@ -643,11 +691,25 @@ export class FortnoxConnections {
         if (
           !previous ||
           previous.generation !== flow.reconnectGeneration ||
-          (!flow.extension && previous.state === "active")
+          (!flow.extension &&
+            !flow.profileExpected &&
+            previous.state === "active")
         )
           throw new DomainError("CONNECTION_CONFLICT");
         if (previous.tenant !== identity.tenant)
           throw new DomainError("COMPANY_FORBIDDEN");
+        if (flow.profileExpected) {
+          return await this.config.connections.applyAgencyProfile(
+            owner,
+            previous.id,
+            flow.profileExpected,
+            {
+              credentials,
+              scopes: identity.scopes,
+              ...(flow.onboarding ? { onboarding: flow.onboarding } : {}),
+            },
+          );
+        }
         if (flow.extension) {
           if (programSelection(previous).revision !== flow.extension.revision)
             throw new DomainError("CONNECTION_CONFLICT");
@@ -666,14 +728,40 @@ export class FortnoxConnections {
           owner,
           previous.id,
           previous.generation,
-          { ...identity, mode: flow.mode },
+          {
+            ...identity,
+            mode: flow.mode,
+            ...(flow.profile
+              ? {
+                  programs: {
+                    revision: programSelection(previous).revision + 1,
+                    enabled: [
+                      ...new Set([
+                        ...programSelection(previous).enabled,
+                        ...agencySelection.enabled,
+                      ]),
+                    ],
+                    features: [
+                      ...new Set([
+                        ...programSelection(previous).features,
+                        ...agencySelection.features,
+                      ]),
+                    ],
+                  },
+                }
+              : {}),
+          },
           credentials,
           flow.onboarding,
         );
       }
       return await this.config.connections.add(
         owner,
-        { ...identity, mode: flow.mode },
+        {
+          ...identity,
+          mode: flow.mode,
+          ...(flow.profile ? { programs: agencySelection } : {}),
+        },
         credentials,
         flow.onboarding,
       );
@@ -753,28 +841,65 @@ export class FortnoxConnections {
             await this.verify(owner, next, connection.tenant);
             return next;
           }
-          const response = await oauth.clientCredentialsGrantRequest(
-            server,
-            client,
-            oauth.ClientSecretBasic(credentials.clientSecret),
-            { scope: connection.scopes.join(" ") },
-            {
-              [oauth.customFetch]: this.upstream(),
-              headers: { TenantId: connection.tenant },
-            },
-          );
-          const next = this.credentials(
-            credentials,
-            await oauth.processClientCredentialsResponse(
+          try {
+            const response = await oauth.clientCredentialsGrantRequest(
               server,
               client,
-              response,
-            ),
-            "service",
-            connection.scopes,
-          );
-          await this.verify(owner, next, connection.tenant);
-          return next;
+              oauth.ClientSecretBasic(credentials.clientSecret),
+              { scope: connection.scopes.join(" ") },
+              {
+                [oauth.customFetch]: this.upstream(),
+                headers: { TenantId: connection.tenant },
+              },
+            );
+            const next = this.credentials(
+              credentials,
+              await oauth.processClientCredentialsResponse(
+                server,
+                client,
+                response,
+              ),
+              "service",
+              connection.scopes,
+            );
+            await this.verify(owner, next, connection.tenant);
+            return next;
+          } catch (error) {
+            if (error instanceof oauth.ResponseBodyError) {
+              if (error.status === 429)
+                throw new ProviderError("RATE_LIMITED", "provider_busy");
+              if (error.error === "invalid_client")
+                throw new ProviderError(
+                  "UPSTREAM_UNAVAILABLE",
+                  "integration_credentials",
+                  "invalid_client",
+                );
+              if (error.error === "invalid_scope")
+                throw new ProviderError(
+                  "CAPABILITY_UNAVAILABLE",
+                  "provider_scope",
+                  "invalid_scope",
+                );
+              if (
+                error.error === "invalid_grant" ||
+                error.error === "access_denied"
+              )
+                throw new ProviderError(
+                  "RECONNECT_REQUIRED",
+                  "provider_consent",
+                  error.error,
+                );
+            }
+            if (
+              error instanceof DomainError &&
+              error.code !== "RECONNECT_REQUIRED"
+            )
+              throw error;
+            throw new ProviderError(
+              "UPSTREAM_UNAVAILABLE",
+              "provider_authentication_unknown",
+            );
+          }
         },
         force,
         this.now(),

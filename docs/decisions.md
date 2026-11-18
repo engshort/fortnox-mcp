@@ -200,3 +200,19 @@ is added without a new SQL table. Migration 0011 aligns known API resource ceili
 without widening any client, consent or token scopes. Effective in the next build
 containing this change; no deployment, publication or production activation is
 authorized. See [the contract](contracts/installation-settings.md).
+
+## D06/D10 — Owner-authorized persistent backend integration (2026-11-18)
+
+The owner approved implementation of persistent Office-side installation access
+and clarified that writes are a separate active one-time approval. This extends
+REST to explicitly approved current/future companies and adds a distinct backend
+principal rather than a transferred employee grant. The initial finance profile
+includes bookkeeping, references and customer/supplier invoices. Payroll and files
+are excluded. The feature defaults off; existing grants are not migrated or widened.
+
+The owner may revoke access and rotate the dedicated backend credential. Current
+company consent, read-only, manual-voucher review, exact validation and uncertain
+write recovery remain authoritative. No production activation or provider/Office
+acceptance is implied. Effective in the next build containing the change; see the
+[contract](contracts/installation-access.md) and
+[evidence](implementation/installation-access.md).

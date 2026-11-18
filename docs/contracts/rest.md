@@ -39,10 +39,12 @@ REST consent names data categories and lists active companies for explicit
 selection. OAuth approvals reuse the current immutable `oauth-approval-grants`
 and token-family revisions, with an explicit `resource` binding (missing means
 legacy MCP). Reapproval replaces the client's previous family; a dedicated client
-registration per transport is recommended. API approvals retain selected company
-generations and access revisions; they cannot request installation-wide or
-onboarding consent. New companies require fresh explicit consent, without a new
-registration. Internal legacy API grants use `api-company-grants-v1`, separate
+registration per transport is recommended. API approvals retain selected company generations and access revisions unless
+an owner or installation administrator explicitly approves `owner_connections`.
+That mode resolves current and future owner connections on each request, including
+an initially empty installation. Ordinary members retain explicit assigned-company
+selection. External onboarding remains a distinct selected-company flow. Existing
+selected grants require explicit upgrade or reapproval, without a new registration. Internal legacy API grants use `api-company-grants-v1`, separate
 from legacy MCP. Reconnection/access changes invalidate the selected version.
 Revoked tokens fail even while a retained grant remains stored.
 
@@ -152,3 +154,12 @@ allowlist. Flags permit evidence collection, not verified production support.
 Capabilities list only enabled, permitted operations with a suitable active
 granted connection; execution-time checks remain authoritative. Financial writes
 and file activation are unchanged.
+
+## Persistent installations
+
+[Installation access](installation-access.md) adds separately approved confidential
+backend clients, five-minute client-credentials tokens, the finance profile and
+optional writes through the common reviewed bridge. The opt-in installation
+feature enables the implemented normalized finance modules without the historical
+test-tenant restriction; actual provider acceptance remains separately tracked.
+The legacy `FINANCIAL_READ_MODULES` test profile retains its own tenant restrictions.

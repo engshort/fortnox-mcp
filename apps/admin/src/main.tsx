@@ -17,6 +17,7 @@ import {
   Message,
   type Translate,
 } from "./forms.js";
+import { IntegrationsPage } from "./integrations.js";
 import { AcceptInvitation, EmployeePage, MembersPage } from "./members.js";
 import { Link, usePath } from "./navigation.js";
 import { RuntimeSettings, SettingsPage } from "./settings.js";
@@ -61,6 +62,11 @@ function ClientPage({ state, t }: { state: InstallationState; t: Translate }) {
   return (
     <>
       <h1>{t("AI-klienter", "AI clients")}</h1>
+      {state.principal?.role !== "admin" ? (
+        <Link href="/admin/integrations">
+          {t("Hantera serverintegrationer", "Manage backend integrations")}
+        </Link>
+      ) : null}
       <p className="intro">
         {t(
           "Anslut din AI-klient och se vilka företag den fått tillgång till.",
@@ -619,6 +625,8 @@ function App() {
                 </Link>
               </>
             )
+          ) : path === "/admin/integrations" ? (
+            <IntegrationsPage t={t} />
           ) : path === "/admin/ai-clients" ? (
             <ClientPage state={state} t={t} />
           ) : path === "/admin/members" ||

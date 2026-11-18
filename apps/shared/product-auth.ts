@@ -6,6 +6,8 @@ import {
 import {
   type CompanyGrant,
   type ConnectionSet,
+  InstallationAccess,
+  installationScopes,
   Memberships,
   principalGrantKey,
 } from "@fortnox-mcp/core";
@@ -22,6 +24,7 @@ export interface Owner {
   expiresAt: number;
 }
 export interface AuthConfig {
+  installationAccess?: boolean;
   restApi?: boolean;
   restBridge?: boolean;
   offlineClientIds?: readonly string[];
@@ -101,6 +104,10 @@ export async function hashToken(token: string) {
 export function createProductAuth(config: AuthConfig) {
   const memberships =
     config.memberships ?? new Memberships(config.state, config.multiUser);
+  const installationAccess = new InstallationAccess(
+    config.state,
+    config.installationAccess,
+  );
   const oauthOptions = {
     loginPage: "/sign-in",
     consentPage: "/consent",
@@ -114,7 +121,11 @@ export function createProductAuth(config: AuthConfig) {
       ...(config.restBridge ? ["api:bridge", "api:write", "api:files"] : []),
       "offline_access",
     ],
-    grantTypes: ["authorization_code", "refresh_token"],
+    grantTypes: [
+      "authorization_code",
+      "refresh_token",
+      ...(config.installationAccess ? ["client_credentials" as const] : []),
+    ],
     resources: [
       {
         identifier: `${config.origin}/mcp`,
@@ -154,12 +165,27 @@ export function createProductAuth(config: AuthConfig) {
     allowUnauthenticatedClientRegistration: true,
     clientRegistrationRequirePKCE: true,
     accessTokenExpiresIn: 300,
+    m2mAccessTokenExpiresIn: 300,
     codeExpiresIn: 600,
     refreshTokenExpiresIn: 86400,
     refreshTokenReuseInterval: 0,
     disableJwtPlugin: true,
-    clientPrivileges: () => false,
-    resourcePrivileges: () => false,
+    clientPrivileges: async ({ user }) => {
+      if (!config.installationAccess || !user) return false;
+      const owner = await config.state.get<Owner>("installation", "owner");
+      return owner?.value.phase === "active" && owner.value.ownerId === user.id;
+    },
+    resourcePrivileges: async ({ user, action, resourceId }) => {
+      if (
+        !config.installationAccess ||
+        !user ||
+        action !== "link" ||
+        resourceId !== `${config.origin}/api/v1`
+      )
+        return false;
+      const owner = await config.state.get<Owner>("installation", "owner");
+      return owner?.value.phase === "active" && owner.value.ownerId === user.id;
+    },
   } satisfies OAuthOptions<string[]>;
 
   const auth = betterAuth({
@@ -203,6 +229,77 @@ export function createProductAuth(config: AuthConfig) {
       {
         id: "product-token-validation",
         endpoints: {
+          bindInstallationToken: createAuthEndpoint.serverOnly(
+            {
+              method: "POST",
+              body: z.object({
+                token: z.string().max(4096),
+                client: z.string(),
+                reference: z.string(),
+              }),
+            },
+            async (ctx) => {
+              const api = getOAuthProviderApi(ctx, oauthOptions);
+              const claims = await api.requireActiveAccessToken(ctx.body.token);
+              const owner = await config.state.get<Owner>(
+                "installation",
+                "owner",
+              );
+              if (
+                owner?.value.phase !== "active" ||
+                claims.client_id !== ctx.body.client
+              )
+                throw new Error("AUTH_REQUIRED");
+              const g = await installationAccess.authorize(
+                owner.value.ownerId,
+                ctx.body.client,
+                ctx.body.reference,
+              );
+              const row = await ctx.context.adapter.findOne<{
+                id: string;
+                userId?: string;
+                refreshId?: string;
+                referenceId?: string;
+                scopes: string[];
+                resources?: string[];
+              }>({
+                model: "oauthAccessToken",
+                where: [
+                  {
+                    field: "token",
+                    value: await api.hashToken(ctx.body.token, "access_token"),
+                  },
+                ],
+              });
+              if (
+                !row ||
+                row.userId ||
+                row.refreshId ||
+                row.referenceId ||
+                !row.scopes.length ||
+                row.scopes.some(
+                  (s) => !installationScopes(g.writes).includes(s),
+                ) ||
+                row.resources?.length !== 1 ||
+                row.resources[0] !== `${config.origin}/api/v1`
+              )
+                throw new Error("AUTH_REQUIRED");
+              if (
+                !(await ctx.context.adapter.update({
+                  model: "oauthAccessToken",
+                  where: [{ field: "id", value: row.id }],
+                  update: { referenceId: ctx.body.reference },
+                }))
+              )
+                throw new Error("AUTH_REQUIRED");
+              await installationAccess.authorize(
+                owner.value.ownerId,
+                ctx.body.client,
+                ctx.body.reference,
+              );
+              return ctx.json({ ok: true });
+            },
+          ),
           authenticateOnboardingClient: createAuthEndpoint.serverOnly(
             {
               method: "POST",
@@ -541,6 +638,71 @@ export function createProductAuth(config: AuthConfig) {
                 "installation",
                 "owner",
               );
+              // Machine tokens have no browser user. Never map them onto the
+              // installation owner's personal grants or membership identity.
+              if (
+                ctx.body.resource === "api" &&
+                config.restApi &&
+                owner?.value.phase === "active" &&
+                typeof claims.client_id === "string"
+              ) {
+                const api = getOAuthProviderApi(ctx, oauthOptions);
+                const row = await ctx.context.adapter.findOne<{
+                  userId?: string;
+                  referenceId?: string;
+                  resources?: string[];
+                  scopes: string[];
+                }>({
+                  model: "oauthAccessToken",
+                  where: [
+                    {
+                      field: "token",
+                      value: await api.hashToken(
+                        ctx.body.token,
+                        "access_token",
+                      ),
+                    },
+                  ],
+                });
+                if (row && !row.userId) {
+                  const audience = Array.isArray(claims.aud)
+                    ? claims.aud
+                    : [claims.aud];
+                  if (
+                    claims.cnf ||
+                    claims.iss !== `${config.origin}/auth` ||
+                    audience.length !== 1 ||
+                    audience[0] !== `${config.origin}/api/v1`
+                  )
+                    throw new Error("AUTH_REQUIRED");
+                  if (
+                    !row.referenceId?.startsWith("installation-grant:") ||
+                    row.resources?.length !== 1 ||
+                    row.resources[0] !== `${config.origin}/api/v1`
+                  )
+                    throw new Error("AUTH_REQUIRED");
+                  const g = await installationAccess.authorize(
+                    owner.value.ownerId,
+                    claims.client_id,
+                    row.referenceId,
+                  );
+                  if (
+                    !row.scopes.includes("api:read") ||
+                    row.scopes.some(
+                      (s) => !installationScopes(g.writes).includes(s),
+                    )
+                  )
+                    throw new Error("AUTH_REQUIRED");
+                  return ctx.json({
+                    ownerId: owner.value.ownerId,
+                    subjectId: `installation:${g.id}`,
+                    clientId: row.referenceId,
+                    installationGrant: row.referenceId,
+                    oauthClientId: claims.client_id,
+                    scopes: row.scopes,
+                  });
+                }
+              }
               const audience = Array.isArray(claims.aud)
                 ? claims.aud
                 : [claims.aud];

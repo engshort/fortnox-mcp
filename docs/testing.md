@@ -349,3 +349,12 @@ exercise retention, source/access changes, concurrency and failure cleanup.
 ## External application onboarding regressions
 
 Shared `onboarding` cases use actual Better Auth registration/PKCE/token exchange and product MCP calls in Node/SQLite and local workerd/D1. `onboarding-restart` closes/reopens SQLite and restarts actual D1. The synthetic consumer/provider browser fixture uses distinct host cookies and real HTTP code exchange/profile/status reads. See [procedure and evidence](implementation/external-company-onboarding.md). The separate actual M2X-backend browser run against the synthetic provider is recorded in that evidence document; actual Fortnox acceptance remains unverified.
+
+## Persistent backend access
+
+The shared `installation-access` contract runs on Node/SQLite and actual local
+workerd/D1. `installation-restart.test.ts` additionally closes/reopens each storage
+runtime before reacquiring access after simulated 31-day inactivity. The owner
+browser `installation-access.spec.ts` checks read-default consent, explicit write
+approval and revocation on desktop/mobile. See the
+[evidence and actual-acceptance limits](implementation/installation-access.md).

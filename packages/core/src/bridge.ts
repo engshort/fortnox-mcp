@@ -4,6 +4,7 @@ import { type Actor, actorResource, hasPermission } from "./actor.js";
 import { type BridgeSchema, bridgeObject } from "./bridge-schema.js";
 import type { Connection, Connections } from "./connections.js";
 import { DomainError } from "./errors.js";
+import { agencyScopes } from "./installation-access.js";
 import { assertNoUncertainWrites, assertScopeProgram } from "./programs.js";
 
 export const bridgeLimits = {
@@ -133,6 +134,12 @@ export class FortnoxBridge {
     return c;
   }
   private checkOperation(actor: Actor, c: Connection, op: BridgeOperation) {
+    if (
+      actor.installationGrant &&
+      (op.files ||
+        op.scopes.some((s) => !(agencyScopes as readonly string[]).includes(s)))
+    )
+      throw new DomainError("CAPABILITY_UNAVAILABLE");
     if (
       op.unavailable ||
       !op.scopes.length ||

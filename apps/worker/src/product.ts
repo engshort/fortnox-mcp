@@ -28,6 +28,7 @@ export interface ProductEnv extends Partial<ProductBindings> {
   FORTNOX_CLIENT_SECRET?: string;
   FORTNOX_TEST_TENANTS?: string;
   ACCOUNTING_REFERENCES_ENABLED?: string;
+  INSTALLATION_ACCESS_ENABLED?: string;
   REST_API_ENABLED?: string;
   REST_BRIDGE_ENABLED?: string;
   REST_SYNC_ENABLED?: string;

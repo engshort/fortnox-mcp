@@ -49,6 +49,7 @@ export function ownerWeb(
     "/admin/companies/:id/payroll",
     "/admin/companies/:id/access",
     "/admin/ai-clients",
+    "/admin/integrations",
     "/admin/members",
     "/admin/membership-sources",
     "/app",

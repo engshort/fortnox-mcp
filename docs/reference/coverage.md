@@ -481,3 +481,10 @@ remain off by default. This is an identity/authorization capability, not a new
 Fortnox API module; existing financial/provider support classifications remain.
 Local synthetic/runtime/browser evidence is recorded separately from pending
 actual ChatGPT/M2X/provider acceptance.
+
+## Persistent backend access (2026-11-18)
+
+[Implementation/evidence](../implementation/installation-access.md): opt-in
+installation identity, finance profile, current/future REST company consent and
+separately approved writes. Local synthetic verification and actual provider/Office
+acceptance are reported separately. No upstream operation coverage is promoted.

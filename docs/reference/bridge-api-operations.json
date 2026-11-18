@@ -4,10 +4,10 @@
   "reviewedAt": "2026-11-16",
   "sourceStrategy": "Original transport/domain implementation and synthetic fixtures; authorized provider schemas remain private installation inputs. No active provider catalogue ships.",
   "sourceHashes": {
-    "packages/core/src/bridge.ts": "ea5cd10a0f8e0bd15dce307bbaf9e44e608dc1bc29592e77d332174c6649a507",
+    "packages/core/src/bridge.ts": "03a84fa1c4539b49d1f6ebab0d8c26639a041dbf1b3318cde1e6d42866b7e210",
     "packages/core/src/bridge-schema.ts": "a15c891ed91e2636d7657ea0a09d245e7dc2410c523ae41a558781c14355dc38",
-    "packages/fortnox/src/bridge.ts": "16cd9f80afdb6896e15d913227e572f8d6ac0a665acf570399b235bedcb41895",
-    "packages/rest/src/index.ts": "e1a02bea22bc727b485c9812abed371c9e60e95ebdfb7283b3d7404c5e7f3ec6",
+    "packages/fortnox/src/bridge.ts": "1dd716c1d3713b6a45d950ca84743647e60503aa7a5ce3c46360b0db7813b1aa",
+    "packages/rest/src/index.ts": "7ef805795bff45ee301388038da475f9fef7c9ac63f4fc3da7209b4a1d4095db",
     "apps/shared/bridge-catalog.ts": "f8af8fd4fc1e0a880c906da0f3e77bea15fef70eef523acdf97f7179a1ba0e53",
     "packages/core/src/sync.ts": "7f0b461acdf1f7eece83ae305ee576b67e3b718de83b048200f162d09dc8185a",
     "apps/shared/sync-sql.ts": "c34f80cb21a6ecf58cf245894912513763c4c21b059bf156a53a627bd93221a1",

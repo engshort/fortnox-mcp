@@ -459,7 +459,8 @@ export class FortnoxBridgeProvider implements BridgeProvider {
       assertActive,
       token: (force) => this.provider.token(actor.ownerId, c, force),
     };
-    await this.http.permit(context, Date.now() + bridgeLimits.timeoutMs);
+    const deadline = Date.now() + bridgeLimits.timeoutMs;
+    await this.http.permit(context, deadline);
     const token = await context.token(false);
     await assertActive();
     await beforeDispatch();
@@ -473,15 +474,30 @@ export class FortnoxBridgeProvider implements BridgeProvider {
         headers.set(p.name, call.headers.get(p.name) ?? "");
     const url = new URL(`https://api.fortnox.se${call.path}`);
     url.search = call.query.toString();
-    const response = await this.provider.config.fetch(
-      new Request(url, {
-        method: call.operation.method,
-        headers,
-        ...(call.bytes.length ? { body: new Uint8Array(call.bytes) } : {}),
-        redirect: "manual",
-        signal: AbortSignal.timeout(bridgeLimits.timeoutMs),
-      }),
-    );
+    const send = (accessToken: string) =>
+      this.provider.config.fetch(
+        new Request(url, {
+          method: call.operation.method,
+          headers: new Headers(
+            [...headers].map(([key, value]) => [
+              key,
+              key === "authorization" ? `Bearer ${accessToken}` : value,
+            ]),
+          ),
+          ...(call.bytes.length ? { body: new Uint8Array(call.bytes) } : {}),
+          redirect: "manual",
+          signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
+        }),
+      );
+    let response = await send(token);
+    if (response.status === 401 && call.operation.effect === "read") {
+      await response.body?.cancel();
+      const replacement = await context.token(true);
+      await this.http.permit(context, deadline);
+      await assertActive();
+      await beforeDispatch();
+      response = await send(replacement);
+    }
     const bytes = await boundedBytes(response, bridgeLimits.responseBytes);
     const output = new Headers({
       "cache-control": "no-store",
@@ -489,6 +505,7 @@ export class FortnoxBridgeProvider implements BridgeProvider {
       "referrer-policy": "no-referrer",
       "content-security-policy": "default-src 'none'; sandbox",
     });
+    if (!response.ok) output.set("x-fortnox-mcp-error-source", "provider");
     for (const key of ["content-type", "content-disposition", "retry-after"])
       if (response.headers.has(key))
         output.set(key, response.headers.get(key) ?? "");
