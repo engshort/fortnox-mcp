@@ -258,3 +258,13 @@ financial work. After such maintenance start a new attempt and explicitly choose
 the existing company. Logs must exclude codes/tokens, raw callback queries,
 provider/company identity and request payloads. No merge, release, deployment,
 production-company access, SSO or financial capability follows from this contract.
+
+## Optional finance profile
+
+With [installation access](installation-access.md) enabled, `start` additionally
+accepts `connection_profile: "agency_finance_v1"`. An owner-linked onboarding
+client uses that profile by default. It requires a service account and displays
+finance/invoice categories before consent or explicit reuse. Missing provider
+scopes require tenant-bound consent; existing scope/program selections can be
+reused. The resulting onboarding OAuth approval remains company-specific and
+does not replace the installation grant.

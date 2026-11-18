@@ -122,11 +122,13 @@ export function restApi(config: {
   routes.onError((error) => {
     const result = restError(error);
     const response = json(result.body, result.status);
-    if (result.status === 401)
+    if (result.status === 401) {
+      response.headers.set("x-fortnox-mcp-error-source", "integration");
       response.headers.set(
         "www-authenticate",
         `Bearer resource_metadata="${config.origin}/.well-known/oauth-protected-resource/api/v1", scope="api:read"`,
       );
+    }
     return response;
   });
   routes.get("/openapi.json", () => json(openApiDocument(config.origin)));

@@ -163,3 +163,10 @@ integrations-API:t när flera användare är aktiverat. Båda är `false` från 
 Skapa och avgränsa integrationskällor i administrationen; använd inte en vanlig
 MCP-token eller företagsanslutningens klienthemlighet för medlemssynk.
 Se [medlemsguiden](medlemmar.sv.md).
+
+### Beständig serverintegration
+
+`INSTALLATION_ACCESS_ENABLED=false` är standard. Aktivera uttryckligen tillsammans
+med REST-API och REST-bryggan för att låta installationsägaren godkänna en
+[serverintegration](serverintegrationer.sv.md). Detta operatörsvärde ändras inte
+genom den vanliga inställningsvyn.

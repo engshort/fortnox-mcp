@@ -7,6 +7,7 @@ import {
   BusinessWrites,
   Connections,
   CredentialVault,
+  InstallationAccess,
   InstallationSettings,
   ReceiptFiles,
 } from "@fortnox-mcp/core";
@@ -174,6 +175,34 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
         },
         async () => {},
       );
+      await new InstallationAccess(state, true).save(
+        f.actor.ownerId,
+        {
+          id: crypto.randomUUID(),
+          clientId: "synthetic-revoked-backend",
+          name: "Synthetic previous backend",
+          revision: 1,
+          active: false,
+          writes: false,
+          profile: "agency_finance_v1",
+          onboardingClientId: "synthetic-onboarding-client",
+        },
+        null,
+      );
+      await new InstallationAccess(state, true).save(
+        f.actor.ownerId,
+        {
+          id: crypto.randomUUID(),
+          clientId: f.actor.clientId,
+          name: "Synthetic backend",
+          revision: 1,
+          active: true,
+          writes: true,
+          profile: "agency_finance_v1",
+          onboardingClientId: "synthetic-onboarding-client",
+        },
+        null,
+      );
       seedAnalysisCache(db);
       await backupDatabase(db, backupKey, output);
       expect(
@@ -219,6 +248,19 @@ for (const stage of ["prepared", "succeeded", "outcome_unknown"] as const) {
         vault,
       });
       db = await openProductDatabase(path, migrations);
+      const restoredGrants = await new InstallationAccess(
+        sqliteState(db),
+        true,
+      ).list(f.actor.ownerId);
+      expect(restoredGrants).toHaveLength(2);
+      for (const clientId of [f.actor.clientId, "synthetic-revoked-backend"])
+        expect(
+          restoredGrants.find((g) => g.clientId === clientId),
+        ).toMatchObject({
+          revision: 2,
+          active: false,
+          writes: false,
+        });
       const restoredSettings = await new InstallationSettings(
         sqliteState(db),
         vault,

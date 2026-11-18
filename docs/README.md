@@ -1,5 +1,10 @@
 # Documentation map
 
+Opt-in [persistent backend access](contracts/installation-access.md):
+[implementation/evidence](implementation/installation-access.md) and
+[Swedish setup](users/serverintegrationer.sv.md). Finance profile, current/future
+company access and separately approved writes; new feature defaults off.
+
 Installation feature settings: [protected configuration contract](contracts/installation-settings.md),
 [S11/S02 implementation](implementation/installation-settings.md) and
 [Swedish administration guide](users/installationsinstallningar.sv.md).

@@ -137,3 +137,10 @@ but the current responding revision and original user's Accept header remain
 unverified. No hosted support is
 promoted, and no merge,
 release, deployment or production data operation is included.
+
+## Separate persistent integration option (2026-11-18)
+
+The [installation access contract](../contracts/installation-access.md) adds an
+explicitly approved backend principal that can acquire new access without a
+refresh token. The rolling policy and its existing employee/browser grants remain
+unchanged; migration is an explicit owner action, not automatic recovery.

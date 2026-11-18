@@ -13,6 +13,7 @@ export const onboardingRetention = 24 * 60 * 60_000;
 export const onboardingStart = z
   .object({
     action: z.enum(["connect", "reconnect"]),
+    connection_profile: z.literal("agency_finance_v1").optional(),
     redirect_uri: z.url().max(1024),
     state: z
       .string()
@@ -259,6 +260,7 @@ export class CompanyOnboarding {
     name: string,
     key: string,
     input: OnboardingRequest,
+    defaultProfile?: "agency_finance_v1",
   ) {
     const fingerprint = await onboardingHash(
       JSON.stringify(["start", client, input]),
@@ -310,7 +312,9 @@ export class CompanyOnboarding {
           : {}),
       };
       a.request = await this.connections.vault.sealData(
-        input,
+        !input.connection_profile && defaultProfile
+          ? { ...input, connection_profile: defaultProfile }
+          : input,
         this.binding(owner, a),
       );
       a.operations.push({

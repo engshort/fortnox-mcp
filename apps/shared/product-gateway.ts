@@ -9,6 +9,9 @@ import {
   DomainError,
   type FortnoxBridge,
   featureLabels,
+  InstallationAccess,
+  installationReference,
+  installationScopes,
   type OnboardingAttempt,
   OnboardingError,
   programSelection,
@@ -79,6 +82,10 @@ export function createProductGateway(
 ) {
   const admin = createAdmin(config);
   const auth = admin.auth;
+  const installationAccess = new InstallationAccess(
+    config.state,
+    config.installationAccess,
+  );
   const api = restApi({
     origin: config.origin,
     enabled: config.restApi === true,
@@ -331,11 +338,9 @@ export function createProductGateway(
           ${
             onboarding
               ? `<p>Applikation: <strong>${escapeHtml(onboarding.clientName)}</strong>. Företaget i detta försök: <strong>${escapeHtml(companies.find((c) => c.id === onboarding?.company?.id)?.name ?? "")}</strong>.</p><p>Godkännandet behåller nedanstående tidigare åtkomst och lägger till det valda företaget. Föregående token ersätts.</p>`
-              : resource === "api"
-                ? `<p>Välj vilka anslutna företag applikationen får använda. Detta samtycke omfattar endast de valda företagen och behörigheterna nedan. Företagets skrivskydd och granskningspolicy gäller alltid.</p>`
-                : selectedOnly
-                  ? `<p>Godkännandet omfattar de företag du väljer nedan och begränsas alltid av dina aktuella läs- och skrivrättigheter. Nya tilldelningar kräver ett nytt godkännande.</p>`
-                  : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
+              : selectedOnly
+                ? `<p>Godkännandet omfattar de företag du väljer nedan och begränsas alltid av dina aktuella läs- och skrivrättigheter. Nya tilldelningar kräver ett nytt godkännande.</p>`
+                : `<p>Godkännandet omfattar alla företag som du ansluter till denna Fortnox MCP-installation, nu och i framtiden.</p><p>Nya företag och ändrad företagsåtkomst blir tillgängliga utan att du ansluter AI-klienten igen. Klientens begärda läs-, skriv- och filbehörigheter samt företagets policy gäller fortfarande.</p>`
           }
         </section>
         <section class="consent-permissions" aria-labelledby="permissions-heading">
@@ -345,6 +350,7 @@ export function createProductGateway(
       </div>
       <fieldset class="consent-companies">
         <legend>${selectedOnly ? "Välj företag för detta godkännande" : "Nu anslutna företag"}</legend>
+        ${resource === "api" && !onboarding && memberSession.principal.role !== "member" ? '<label class="consent-company"><input type="checkbox" id="all-companies"><span><strong>Alla nuvarande och framtida företag</strong><small>Nya anslutna företag blir tillgängliga inom detta godkännandes behörigheter.</small></span></label>' : ""}
         <div class="consent-company-list">${companyChoices || `<p class="muted">${onboarding ? "Inga aktiva företag finns i detta godkännande. Gå tillbaka till anslutningsflödet." : "Inga företag är anslutna ännu. Företag som du ansluter senare blir tillgängliga via detta godkännande."}</p>`}</div>
       </fieldset>
     </div>
@@ -363,6 +369,11 @@ export function createProductGateway(
       return safeResponse(
         `const accept=document.querySelector('#accept');
 const status=document.querySelector('#status');
+const allCompanies=document.querySelector('#all-companies');
+allCompanies?.addEventListener('change',()=>{
+  accept.textContent=allCompanies.checked?'Godkänn åtkomst till nuvarande och framtida företag':'Godkänn begärda behörigheter till valda företag';
+  document.querySelectorAll('input[name=company]').forEach(c=>c.disabled=allCompanies.checked);
+});
 accept.onclick=async()=>{
   if(accept.disabled)return;
   const companies=[...document.querySelectorAll('input[name=company]:checked')].map(c=>JSON.parse(c.value));
@@ -372,7 +383,7 @@ accept.onclick=async()=>{
   accept.setAttribute('aria-busy','true');
   status.textContent='Godkännandet skickas…';
   try{
-    const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...(accept.dataset.companyAccess?{company_access:accept.dataset.companyAccess}:{}),companies})});
+    const r=await fetch('/auth/oauth2/consent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accept:true,oauth_query:location.search.slice(1),...((accept.dataset.companyAccess||document.querySelector('#all-companies')?.checked)?{company_access:accept.dataset.companyAccess||'owner_connections'}:{}),companies})});
     const d=await r.json();
     if(r.ok&&d.url){location.assign(d.url);return;}
     status.textContent='Godkännandet misslyckades. Öppna anslutningen igen i klienten och försök på nytt.';
@@ -511,8 +522,7 @@ accept.onclick=async()=>{
           if (
             resource === "api" &&
             body.data.accept &&
-            (body.data.company_access ||
-              !body.data.companies.length ||
+            ((!body.data.company_access && !body.data.companies.length) ||
               new Set(body.data.companies.map((c) => c.id)).size !==
                 body.data.companies.length)
           )
@@ -626,7 +636,12 @@ accept.onclick=async()=>{
           const body = z
             .object({
               client_id: z.string().optional(),
-              grant_type: z.enum(["authorization_code", "refresh_token"]),
+              grant_type: z.enum([
+                "authorization_code",
+                "refresh_token",
+                "client_credentials",
+              ]),
+              scope: z.string().optional(),
               code: z.string().optional(),
               refresh_token: z.string().optional(),
               resource: z.string().optional(),
@@ -650,6 +665,53 @@ accept.onclick=async()=>{
             }
           }
           if (!client) return safeResponse('{"error":"invalid_client"}', 400);
+          if (body.data.grant_type === "client_credentials") {
+            try {
+              if (
+                !config.installationAccess ||
+                !config.restApi ||
+                !config.restBridge ||
+                body.data.resource !== `${config.origin}/api/v1` ||
+                !/^Basic /i.test(request.headers.get("authorization") ?? "")
+              )
+                throw new Error();
+              const owner = (
+                await config.state.get<{ phase: string; ownerId: string }>(
+                  "installation",
+                  "owner",
+                )
+              )?.value;
+              if (owner?.phase !== "active") throw new Error();
+              const grant = await installationAccess.authorize(
+                owner.ownerId,
+                client,
+              );
+              const scopes =
+                body.data.scope?.split(" ") ?? installationScopes(grant.writes);
+              if (
+                !scopes.includes("api:read") ||
+                scopes.some(
+                  (s) => !installationScopes(grant.writes).includes(s),
+                )
+              )
+                return safeResponse('{"error":"invalid_scope"}', 400);
+              const reference = installationReference(grant);
+              const response = await auth.handler(request);
+              if (!response.ok) return response;
+              const pair = (await response.clone().json()) as {
+                access_token: string;
+              };
+              await auth.api.bindInstallationToken({
+                body: { token: pair.access_token, client, reference },
+              });
+              await auth.api.verifyProductToken({
+                body: { token: pair.access_token, resource: "api" },
+              });
+              return response;
+            } catch {
+              return safeResponse('{"error":"invalid_grant"}', 400);
+            }
+          }
           let resource: "mcp" | "api";
           try {
             resource = consentResource(

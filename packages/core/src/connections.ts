@@ -5,6 +5,11 @@ import type { BridgeExecution } from "./bridge.js";
 import { type BusinessState, businessBinding } from "./business-writes.js";
 import { DomainError } from "./errors.js";
 import {
+  agencyScopes,
+  agencySelection,
+  InstallationAccess,
+} from "./installation-access.js";
+import {
   type MemberPrincipal,
   Memberships,
   principalGrantKey,
@@ -150,6 +155,7 @@ export class Connections {
     readonly state: StateStore,
     readonly vault: CredentialVault,
     readonly memberships = new Memberships(state),
+    readonly installationAccess = new InstallationAccess(state),
   ) {}
   binding(owner: string, c: Pick<Connection, "id" | "generation" | "mode">) {
     return JSON.stringify([owner, c.id, c.generation, c.mode]);
@@ -249,7 +255,8 @@ export class Connections {
     input: Pick<
       Connection,
       "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
-    >,
+    > &
+      Pick<Partial<Connection>, "programs">,
     credentials: Credentials,
     onboarding?: OnboardingBinding,
   ) {
@@ -378,6 +385,26 @@ export class Connections {
     return authorizedConnection;
   }
   async authorizeActor(actor: Actor, company: string, active = true) {
+    if (actor.installationGrant) {
+      if (
+        actorResource(actor) !== "api" ||
+        !actor.oauthClientId ||
+        actor.clientId !== actor.installationGrant
+      )
+        throw new DomainError("AUTH_REQUIRED");
+      const grant = await this.installationAccess.authorize(
+        actor.ownerId,
+        actor.oauthClientId,
+        actor.installationGrant,
+      );
+      const c = (await this.list(actor.ownerId)).find((c) => c.id === company);
+      if (!c) throw new DomainError("COMPANY_FORBIDDEN");
+      if (c.state === "disconnected")
+        throw new DomainError("CONNECTION_DISCONNECTED");
+      if (active && c.state !== "active")
+        throw new DomainError("RECONNECT_REQUIRED");
+      return grant.writes ? c : { ...c, readOnly: true };
+    }
     return this.authorize(
       actor.ownerId,
       actor.clientId,
@@ -453,7 +480,7 @@ export class Connections {
       client.startsWith("oauth-grant:") ||
       new Set(selected.map((c) => c.id)).size !== selected.length ||
       (context && companyAccess) ||
-      (resource === "api" && (companyAccess || context))
+      (resource === "api" && context)
     )
       throw new DomainError("COMPANY_FORBIDDEN");
     if (principal) {
@@ -787,15 +814,25 @@ export class Connections {
         delete c.renewal;
       });
       return next;
-    } catch {
+    } catch (error) {
+      // Service acquisition has no rotating credential to lose. Only a proven
+      // terminal tenant authorization error may destroy its working credential.
+      const terminal =
+        first.mode === "user" ||
+        (error instanceof DomainError && error.code === "RECONNECT_REQUIRED");
       await this.mutate(owner, id, (c) => {
         if (c.generation === generation && c.renewal?.id === lock) {
-          c.state = "reconnect_required";
-          c.secret = null;
+          if (terminal) {
+            c.state = "reconnect_required";
+            c.secret = null;
+          }
           delete c.renewal;
         }
       }).catch(() => {});
-      throw new DomainError("RECONNECT_REQUIRED");
+      if (!terminal && error instanceof DomainError) throw error;
+      throw new DomainError(
+        terminal ? "RECONNECT_REQUIRED" : "UPSTREAM_UNAVAILABLE",
+      );
     }
   }
   async rotateKey(owner: string) {
@@ -854,7 +891,8 @@ export class Connections {
     input: Pick<
       Connection,
       "tenant" | "mode" | "name" | "organizationNumber" | "scopes"
-    >,
+    > &
+      Pick<Partial<Connection>, "programs">,
     credentials: Credentials,
     onboarding?: OnboardingBinding,
   ) {
@@ -873,6 +911,7 @@ export class Connections {
       c.name = input.name;
       c.organizationNumber = input.organizationNumber;
       c.scopes = input.scopes;
+      if (input.programs) c.programs = input.programs;
       c.state = "active";
       if (!onboarding) {
         c.readOnly = true;
@@ -881,6 +920,70 @@ export class Connections {
       delete c.renewal;
       c.secret = await this.vault.seal(credentials, this.binding(owner, c));
       if (onboarding) completeOnboardingCompany(set, onboarding, c);
+      return c;
+    });
+  }
+
+  async applyAgencyProfile(
+    owner: string,
+    id: string,
+    expected: { generation: number; policy: number; revision: number },
+    replacement?: {
+      credentials: Credentials;
+      scopes: string[];
+      onboarding?: OnboardingBinding;
+    },
+  ) {
+    return this.updateSet(owner, async (set) => {
+      const c = set.connections.find((c) => c.id === id);
+      if (
+        c?.state !== "active" ||
+        c.mode !== "service" ||
+        c.generation !== expected.generation ||
+        c.policyVersion !== expected.policy ||
+        programSelection(c).revision !== expected.revision ||
+        c.renewal
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      const selected = programSelection(c);
+      const scopes = [...new Set([...c.scopes, ...agencyScopes])];
+      const missing = agencyScopes.some((s) => !c.scopes.includes(s));
+      if (missing && !replacement)
+        throw new DomainError("CAPABILITY_UNAVAILABLE");
+      if (
+        replacement &&
+        (replacement.scopes.length !== scopes.length ||
+          scopes.some((s) => !replacement.scopes.includes(s)))
+      )
+        throw new DomainError("CONNECTION_CONFLICT");
+      const additions =
+        agencySelection.features.some((f) => !selected.features.includes(f)) ||
+        agencySelection.enabled.some((p) => !selected.enabled.includes(p));
+      if (missing || additions || replacement) {
+        assertNoUncertainWrites(c);
+        c.programs = {
+          revision: selected.revision + 1,
+          enabled: [
+            ...new Set([...selected.enabled, ...agencySelection.enabled]),
+          ],
+          features: [
+            ...new Set([...selected.features, ...agencySelection.features]),
+          ],
+        };
+        c.accessRevision = (c.accessRevision ?? 0) + 1;
+      }
+      if (replacement) {
+        c.generation++;
+        c.scopes = scopes;
+        c.secret = await this.vault.seal(
+          replacement.credentials,
+          this.binding(owner, c),
+        );
+        if (c.bookkeeping) c.bookkeeping.proposals = [];
+        if (c.business) c.business.proposals = [];
+        if (replacement.onboarding)
+          completeOnboardingCompany(set, replacement.onboarding, c);
+      }
       return c;
     });
   }

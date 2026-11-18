@@ -14,6 +14,7 @@ import {
   FinancialContexts,
   FinancialReads,
   FortnoxBridge,
+  InstallationAccess,
   type InstallationKey,
   InstallationSettings,
   type InstallationValues,
@@ -83,6 +84,7 @@ import { z } from "zod";
 import { companyServer } from "../../packages/mcp/src/companies.js";
 import { boundedJson, safeResponse } from "./admin.js";
 import { BridgeCatalogStore } from "./bridge-catalog.js";
+import { installationAccessRoutes } from "./installation-access-http.js";
 import {
   applySettings,
   settingEnvironment,
@@ -112,6 +114,7 @@ import { createProductGateway } from "./product-gateway.js";
 import { settingsRoutes } from "./settings-http.js";
 
 export interface ProductSettings {
+  installationAccess?: boolean;
   installationEnvironment?: Partial<Record<InstallationKey, string>>;
   installationDefaults?: Partial<InstallationValues>;
   installationSources?: InstallationKey[];
@@ -277,6 +280,7 @@ export function productSettings(
       env.FINANCIAL_ANALYSIS_CONTEXTS_ENABLED === "true",
     financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
     externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
+    installationAccess: env.INSTALLATION_ACCESS_ENABLED === "true",
     origin: origin.origin,
     secret,
     keys,
@@ -601,6 +605,7 @@ function buildProductApplication(
     runtime.state,
     new CredentialVault(settings.keys, settings.activeKey),
     memberships,
+    new InstallationAccess(runtime.state, settings.installationAccess === true),
   );
   const programGates = () => ({
     payrollConsent:
@@ -665,6 +670,7 @@ function buildProductApplication(
     ...(onboarding ? { onboarding } : {}),
     ...runtime,
     offlineClientIds: settings.offlineClientIds ?? [],
+    installationAccess: settings.installationAccess === true,
     origin: settings.origin,
     secret: settings.secret,
     memberships,
@@ -699,7 +705,16 @@ function buildProductApplication(
   )
     throw new DomainError("CAPABILITY_UNAVAILABLE");
   const readModules =
-    !fileTest && settings.testMode ? (settings.financialReadModules ?? []) : [];
+    !fileTest && settings.testMode
+      ? (settings.financialReadModules ?? [])
+      : !fileTest && settings.installationAccess
+        ? ([
+            "customer_invoices",
+            "supplier_invoices",
+            "vouchers",
+            "accounts",
+          ] as const)
+        : [];
   const companyReads = new CompanyReads(
     connections,
     new FortnoxCompanyReads(connections, provider),
@@ -711,7 +726,7 @@ function buildProductApplication(
       connections,
       provider,
       readModules,
-      settings.testTenants,
+      settings.testMode ? settings.testTenants : undefined,
     ),
     readModules,
   );
@@ -1839,10 +1854,20 @@ function buildProductApplication(
       return safeResponse('{"error":"REQUEST_FAILED"}', 503);
     }
   }
+  const integrationRoutes = installationAccessRoutes({
+    auth: gateway.auth,
+    origin: settings.origin,
+    enabled: settings.installationAccess === true,
+    rest: settings.restApi === true && settings.restBridge === true,
+    connections,
+    offlineClientIds: settings.offlineClientIds ?? [],
+  });
   const web = ownerWeb(
     async (request) => {
       if (new URL(request.url).origin !== settings.origin)
         return safeResponse('{"error":"ORIGIN_FORBIDDEN"}', 403);
+      if (new URL(request.url).pathname === "/admin/integrations/data")
+        return integrationRoutes(request);
       return fetchRequest(request);
     },
     (request) =>

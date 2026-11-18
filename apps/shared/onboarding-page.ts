@@ -3,7 +3,11 @@ import { connectionPage, escapeHtml as esc } from "./connection-page.js";
 
 const companyIcon = `<span class="onboarding-company-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h14v17M3 21h18M9 8h1m4 0h1M9 12h1m4 0h1M10 21v-5h4v5"/></svg></span>`;
 
-export function onboardingPage(a: OnboardingAttempt, companies: Connection[]) {
+export function onboardingPage(
+  a: OnboardingAttempt,
+  companies: Connection[],
+  profile?: string,
+) {
   const path = `/connect/company/${a.id}`;
   const hidden = `<input type="hidden" name="revision" value="${a.revision}">`;
   const canChoose = [
@@ -16,7 +20,7 @@ export function onboardingPage(a: OnboardingAttempt, companies: Connection[]) {
       (c) => `<form class="onboarding-company" data-action="${path}/choose">
         ${hidden}<input type="hidden" name="company_id" value="${esc(c.id)}">
         ${companyIcon}<span class="onboarding-company-name"><strong>${esc(c.name)}</strong><small>${esc(c.organizationNumber)}</small></span>
-        <button class="secondary" aria-label="Välj ${esc(c.name)}">Välj<span aria-hidden="true"> →</span></button>
+        <button class="secondary" aria-label="Välj ${esc(c.name)}">${profile ? "Välj och använd ekonomiprofilen" : "Välj"}<span aria-hidden="true"> →</span></button>
       </form>`,
     )
     .join("");
@@ -28,7 +32,7 @@ export function onboardingPage(a: OnboardingAttempt, companies: Connection[]) {
           <p class="muted">Fortsätt till Fortnox för att ansluta företaget och verifiera företagsuppgifterna.</p>
           <form class="onboarding-provider" data-action="${path}/provider">${hidden}
             <label for="connection-mode">Anslutningstyp</label>
-            <select id="connection-mode" name="mode"><option value="service">Servicekonto</option><option value="user">Användare</option></select>
+            <select id="connection-mode" name="mode"><option value="service">Servicekonto</option>${profile ? "" : '<option value="user">Användare</option>'}</select>
             <button>Fortsätt till Fortnox</button>
           </form>
         </section>`
@@ -65,6 +69,7 @@ export function onboardingPage(a: OnboardingAttempt, companies: Connection[]) {
     script: "/connect/company.js",
     content: `<div class="consent-heading"><h1>Anslut företag</h1><p class="intro muted">Välj företag och godkänn sedan applikationens åtkomst.</p></div>
       <div class="onboarding-context"><p>Applikation: <strong>${esc(a.clientName)}</strong></p><p class="muted">Ingen företagspolicy ändras. Att ansluta ett företag ger inte i sig applikationen åtkomst.</p></div>
+      ${profile ? '<section class="notice"><h2>Ekonomiprofil för byrån</h2><p>Servicekonto med bokföring, konton, referenser samt kund- och leverantörsfakturor. Befintliga anslutningar återanvänds. Saknade behörigheter begärs i Fortnox. Valet aktiverar profilens programfunktioner; byråns skrivåtkomst godkänns separat. Lön och filer ingår inte.</p></section>' : ""}
       ${pending}${unknown}${failed}${authorized}
       ${start}
       ${

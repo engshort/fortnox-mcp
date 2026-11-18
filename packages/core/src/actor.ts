@@ -3,6 +3,7 @@ import { DomainError } from "./errors.js";
 export type Permission = "read" | "finance_read" | "write" | "files" | "bridge";
 export type ApiResource = "mcp" | "api";
 export interface RequestActor {
+  readonly installationGrant?: string;
   readonly oauthClientId?: string;
   readonly subjectId?: string;
   ownerId: string;
@@ -13,6 +14,7 @@ export interface RequestActor {
 // Compatibility for internal callers of the prerelease domain API. Network
 // adapters always construct RequestActor after validating their own resource.
 export interface LegacyMcpActor {
+  readonly installationGrant?: string;
   readonly oauthClientId?: string;
   readonly subjectId?: string;
   ownerId: string;
@@ -34,6 +36,9 @@ export function requestActor(
   if (resource === "api" && identity.scopes.includes("api:bridge"))
     permissions.push("bridge");
   return {
+    ...(identity.installationGrant
+      ? { installationGrant: identity.installationGrant }
+      : {}),
     ...(identity.oauthClientId
       ? { oauthClientId: identity.oauthClientId }
       : {}),

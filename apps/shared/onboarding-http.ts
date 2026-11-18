@@ -1,4 +1,5 @@
 import {
+  agencyScopes,
   type CompanyOnboarding,
   DomainError,
   type OnboardingAttempt,
@@ -6,6 +7,7 @@ import {
   onboardingResume,
   onboardingStart,
   onboardingVersion,
+  programSelection,
 } from "@fortnox-mcp/core";
 import type { FortnoxConnections } from "@fortnox-mcp/fortnox";
 import { z } from "zod";
@@ -273,6 +275,16 @@ for(const form of forms)form.addEventListener('submit',async e=>{
         if (!service.clients.includes(client.clientId))
           throw new OnboardingError("AUTH_REQUIRED", 401);
         if (input) {
+          const defaultProfile =
+            await service.connections.installationAccess.profileFor(
+              owner.ownerId,
+              client.clientId,
+            );
+          if (
+            (input.connection_profile || defaultProfile) &&
+            !service.connections.installationAccess.enabled
+          )
+            throw new OnboardingError("CAPABILITY_UNAVAILABLE", 403);
           if (
             !config.redirects.includes(input.redirect_uri) ||
             !client.redirects.includes(input.redirect_uri)
@@ -289,6 +301,7 @@ for(const form of forms)form.addEventListener('submit',async e=>{
               client.name,
               key,
               input,
+              defaultProfile,
             ),
             201,
           );
@@ -503,7 +516,7 @@ for(const form of forms)form.addEventListener('submit',async e=>{
             (!a.company || c.id === a.company.id),
         );
         return safeResponse(
-          onboardingPage(a, companies),
+          onboardingPage(a, companies, protocol.connection_profile),
           200,
           "text/html; charset=utf-8",
         );
@@ -529,6 +542,9 @@ for(const form of forms)form.addEventListener('submit',async e=>{
         true,
       );
       const protocol = await validateClient(a, session.user.id);
+      const profile = protocol.connection_profile;
+      if (profile && !service.connections.installationAccess.enabled)
+        throw new OnboardingError("CAPABILITY_UNAVAILABLE", 403);
       if (browser[2] === "choose") {
         const c = (await service.connections.list(session.user.id)).find(
           (c) => c.id === input.company_id && c.state === "active",
@@ -539,6 +555,39 @@ for(const form of forms)form.addEventListener('submit',async e=>{
           (a.company && a.company.id !== c.id)
         )
           throw new OnboardingError("ATTEMPT_CONFLICT");
+        if (profile) {
+          if (c.mode !== "service")
+            throw new OnboardingError("SERVICE_ACCOUNT_REQUIRED", 409);
+          if (agencyScopes.some((s) => !c.scopes.includes(s))) {
+            const binding = await service.reserveProvider(
+              session.user.id,
+              id,
+              a.revision,
+              session.session.id,
+            );
+            try {
+              const integrationCredentials = await integration.credentials(
+                session.user.id,
+              );
+              if (!integrationCredentials)
+                throw new OnboardingError("INVALID_REQUEST", 400);
+              return json({
+                url: await provider.start(
+                  session.user.id,
+                  session.session.id,
+                  { ...integrationCredentials, mode: "service" },
+                  c.id,
+                  undefined,
+                  binding,
+                  profile,
+                ),
+              });
+            } catch (error) {
+              await service.providerFailure(session.user.id, binding, false);
+              throw error;
+            }
+          }
+        }
         const credentials = await service.connections.credentials(
           session.user.id,
           c,
@@ -551,6 +600,12 @@ for(const form of forms)form.addEventListener('submit',async e=>{
           },
           c.tenant,
         );
+        if (profile)
+          await service.connections.applyAgencyProfile(session.user.id, c.id, {
+            generation: c.generation,
+            policy: c.policyVersion,
+            revision: programSelection(c).revision,
+          });
         await service.choose(
           session.user.id,
           id,
@@ -577,6 +632,7 @@ for(const form of forms)form.addEventListener('submit',async e=>{
               a.expected?.id,
               undefined,
               binding,
+              profile,
             ),
           });
         } catch (e) {

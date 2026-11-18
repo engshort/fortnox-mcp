@@ -7,7 +7,7 @@ installation and administrator-provisioning delegation remain separate. Feature
 activation and client allowlists never grant scopes, companies or voucher approval.
 
 The opt-in [REST resource](rest.md) uses `/api/v1`, separate read scopes and
-explicitly selected company grants. MCP and REST tokens are not interchangeable.
+explicitly selected or explicitly approved current/future company grants. MCP and REST tokens are not interchangeable.
 New financial MCP reads require fresh `mcp:finance:read` consent; migration 0008
 advertises that scope without updating existing clients or tokens.
 Activation update (2026-11-11): [ordinary product activation](../implementation/product-activation-2026-11-11.md) supersedes historical default-off/test-only statements in this document. Acceptance evidence remains unchanged; authorization, policy, validation, source completeness and recovery requirements still apply.
@@ -226,3 +226,11 @@ No scope/company right is added; revoked or superseded families cannot be renewe
 Policy removal fences detached families immediately. Existing pairs are not
 rewritten at boot; expired or uncertain pairs need fresh explicit app consent.
 See [migration, recovery and bounded verification](../implementation/onboarding-continuity.md).
+
+## Persistent backend installation principal
+
+The owner-approved [installation access contract](installation-access.md) adds
+opt-in client-credentials access, independent of employee sessions, with a
+finance profile and separately approved writes. Existing grants are not widened.
+It also defines service renewal failure classification and native provider
+authentication diagnostics.

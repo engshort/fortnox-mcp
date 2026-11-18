@@ -384,8 +384,8 @@ export class FortnoxHttp {
       }
       if (response.status === 401)
         throw new ProviderError(
-          "RECONNECT_REQUIRED",
-          "provider_authentication",
+          "UPSTREAM_UNAVAILABLE",
+          "provider_authentication_unknown",
         );
       if (response.status === 429 || response.status >= 500) {
         if (attempt === 2)
