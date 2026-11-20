@@ -498,7 +498,24 @@ export class FortnoxBridgeProvider implements BridgeProvider {
       await beforeDispatch();
       response = await send(replacement);
     }
-    const bytes = await boundedBytes(response, bridgeLimits.responseBytes);
+    const type = response.headers.get("content-type") ?? "";
+    const binaryOriginal =
+      call.operation.method === "GET" &&
+      call.operation.effect === "read" &&
+      call.operation.files &&
+      /^\/3\/(?:inbox|archive)\/\{[A-Za-z_]+\}$/.test(call.operation.path) &&
+      call.operation.scopes.includes(
+        call.operation.path.startsWith("/3/inbox/") ? "inbox" : "archive",
+      ) &&
+      headers.get("accept") === "application/octet-stream" &&
+      response.status === 200 &&
+      /^(?:image\/[a-z0-9.+-]+|application\/(?:pdf|octet-stream|zip))(?:\s*;|$)/i.test(
+        type,
+      );
+    const bytes = await boundedBytes(
+      response,
+      binaryOriginal ? 20 * 1024 * 1024 : bridgeLimits.responseBytes,
+    );
     const output = new Headers({
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
@@ -509,12 +526,18 @@ export class FortnoxBridgeProvider implements BridgeProvider {
     for (const key of ["content-type", "content-disposition", "retry-after"])
       if (response.headers.has(key))
         output.set(key, response.headers.get(key) ?? "");
-    const type = response.headers.get("content-type") ?? "";
     if (bytes.length && (type.includes("json") || type === ""))
       parseBridgeJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     await assertActive();
-    if (call.operation.effect === "read")
-      output.set("etag", `"${await accountingHash([...bytes])}"`);
+    if (call.operation.effect === "read") {
+      const hash = binaryOriginal
+        ? Array.from(
+            new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+            (value) => value.toString(16).padStart(2, "0"),
+          ).join("")
+        : await accountingHash([...bytes]);
+      output.set("etag", `"${hash}"`);
+    }
     const state =
       response.ok && response.status !== 202 ? "succeeded" : "outcome_unknown";
     return {

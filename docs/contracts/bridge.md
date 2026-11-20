@@ -34,6 +34,29 @@ scopes and consent again; create a dedicated registration if an older client's
 registered scope ceiling cannot be updated through its supported management flow.
 Disabling the bridge stops its routes even for previously authorized tokens.
 
+## Voucher originals for background consumers
+
+A dedicated confidential API client can read reviewed attachment operations with
+`api:read api:bridge api:finance:read api:files offline_access` and explicit company
+consent. `api:write` is unnecessary. The resource uses the existing
+`/api/v1/companies/{company_id}/bridge/operations` discovery and native
+`/fortnox/3/...` routes. The connection still needs the matching Fortnox program
+and scopes, plus an owner-reviewed catalogue.
+
+The reviewed read-only `/3/voucherfileconnections` and
+`/3/supplierinvoicefileconnections` list profiles have bounded `page` and `limit`
+query parameters. Consumers should check all pages and verify year and voucher
+or invoice identity before accepting a link. An absent pagination envelope does
+not establish a complete inventory.
+
+For reviewed scoped GETs on `/3/inbox/{id}` or `/3/archive/{id}`, request
+`Accept: application/octet-stream`. Eligible successful binary originals have
+a 20 MiB ceiling and a SHA-256 ETag over the original bytes. Ordinary JSON and
+other bridge responses retain the standard 2 MiB ceiling. The caller should
+use a file ID obtained from a verified attachment relationship in the same
+company. Actual provider pagination, media and old file availability still need
+an authorized provider trial.
+
 ## Private catalogue
 
 An owner prepares an authorized private OpenAPI input using

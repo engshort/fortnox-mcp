@@ -43,3 +43,13 @@ inte godkänna sitt eget underlag eller ändra företagets policy.
 Denna leverans har separata lokala tester. Det innebär inte att alla Fortnox
 operationer är provade i verkligheten. Katalogimport, aktivering och faktisk
 providerverifiering redovisas var för sig.
+
+
+### Läs originalunderlag
+
+En separat serverklient kan godkännas för läsning av filkopplingar och original i
+ett känt företag. Ägaren behöver granska och installera de aktuella
+filoperationerna i katalogen. Original kan läsas med en gräns på 20 MiB för
+godkända filvägar och typer. Prova med ett auktoriserat testföretag och jämför
+hämtade filer med Fortnox filexport före införande.
+[Behörigheter och anrop](../contracts/bridge.md#voucher-originals-for-background-consumers)

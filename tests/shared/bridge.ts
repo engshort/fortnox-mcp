@@ -147,6 +147,19 @@ export async function syntheticBridgeCatalog() {
           },
         ]),
       },
+      "/3/voucherfileconnections": {
+        get: op("voucher_files", undefined, [
+          {
+            name: "voucheryear",
+            in: "query",
+            required: true,
+            schema: { type: "integer", minimum: 1 },
+          },
+        ]),
+      },
+      "/3/supplierinvoicefileconnections": {
+        get: op("supplier_invoice_files"),
+      },
       "/3/inbox": {
         post: {
           ...op("inbox_upload"),
@@ -208,18 +221,20 @@ export async function syntheticBridgeCatalog() {
           : "company_oauth",
         path,
         scopes: [
-          path.includes("inbox")
-            ? "inbox"
-            : path.includes("vouchers")
-              ? "bookkeeping"
-              : path.includes("invoices")
-                ? "invoice"
-                : "customer",
+          path.endsWith("fileconnections")
+            ? "connectfile"
+            : path.includes("inbox")
+              ? "inbox"
+              : path.includes("vouchers")
+                ? "bookkeeping"
+                : path.includes("invoices")
+                  ? "invoice"
+                  : "customer",
         ],
         effect: method === "get" && !path.endsWith("/email") ? "read" : "write",
         finance: path.includes("vouchers") || path.includes("invoices"),
         manual_vouchers: path.includes("vouchers"),
-        files: path.includes("inbox"),
+        files: path.includes("inbox") || path.endsWith("fileconnections"),
         unavailable: null,
       })),
   );
@@ -291,6 +306,7 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
             "project",
             "costcenter",
             "inbox",
+            "connectfile",
           ],
         },
         syntheticCredentials,
@@ -378,6 +394,52 @@ export function bridgeContract(fixture: () => Promise<AuthConfig>) {
         calls: () => calls,
       };
     }
+    it("pages reviewed voucher file routes and transfers a bounded binary original under file consent", async () => {
+      const f = await setup();
+      const original = new Uint8Array(2 * 1024 * 1024 + 1);
+      original[0] = 7;
+      original[original.length - 1] = 41;
+      f.setHook(async (request) => {
+        const path = new URL(request.url);
+        if (path.pathname === "/3/voucherfileconnections") {
+          expect(Object.fromEntries(path.searchParams)).toEqual({
+            voucheryear: "4",
+            page: "2",
+            limit: "100",
+          });
+          return Response.json({
+            VoucherFileConnections: [],
+            MetaInformation: { "@CurrentPage": 2, "@TotalPages": 2 },
+          });
+        }
+        expect(path.pathname).toBe("/3/inbox/synthetic-file");
+        expect(request.headers.get("accept")).toBe("application/octet-stream");
+        return new Response(original, {
+          headers: { "content-type": "application/pdf" },
+        });
+      });
+      const list =
+        "fortnox/3/voucherfileconnections?voucheryear=4&page=2&limit=";
+      expect((await f.req(`${list}101`)).status).toBe(400);
+      expect((await f.req(`${list}100`)).status).toBe(200);
+      const content = "fortnox/3/inbox/synthetic-file";
+      const headers = { accept: "application/octet-stream" };
+      const response = await f.req(content, "GET", undefined, headers);
+      expect(response.status).toBe(200);
+      const received = new Uint8Array(await response.arrayBuffer());
+      expect(received.byteLength).toBe(original.byteLength);
+      expect(received[0]).toBe(7);
+      expect(received[received.length - 1]).toBe(41);
+      const actor = f.actor();
+      f.setActor({
+        ...actor,
+        permissions: actor.permissions.filter((scope) => scope !== "files"),
+      });
+      expect((await f.req(content, "GET", undefined, headers)).status).toBe(
+        403,
+      );
+    });
+
     it("requires a complete source-bound review and protects delivery GETs, finance and specialist prerequisites", async () => {
       const bundle = await syntheticBridgeCatalog();
       await expect(
