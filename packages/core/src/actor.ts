@@ -1,6 +1,12 @@
 import { DomainError } from "./errors.js";
 
-export type Permission = "read" | "finance_read" | "write" | "files" | "bridge";
+export type Permission =
+  | "office_contacts_read"
+  | "read"
+  | "finance_read"
+  | "write"
+  | "files"
+  | "bridge";
 export type ApiResource = "mcp" | "api";
 export interface RequestActor {
   readonly installationGrant?: string;
@@ -35,6 +41,11 @@ export function requestActor(
   if (identity.scopes.includes(`${prefix}:files`)) permissions.push("files");
   if (resource === "api" && identity.scopes.includes("api:bridge"))
     permissions.push("bridge");
+  if (
+    resource === "api" &&
+    identity.scopes.includes("api:office:contacts:read")
+  )
+    permissions.push("office_contacts_read");
   return {
     ...(identity.installationGrant
       ? { installationGrant: identity.installationGrant }

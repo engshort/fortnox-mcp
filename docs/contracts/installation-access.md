@@ -120,3 +120,10 @@ revocation inside Fortnox, including cached provider tokens, requires provider
 acceptance; no authenticated consent-webhook contract has been established here.
 Office remains responsible for employee/customer rights, hourly checks, actual
 last-successful-financial-read reporting and administrator-facing recovery.
+
+## Optional Office contacts
+
+[Office contacts v1](office-contacts-v1.md) adds an independently approved contact
+scope and explicit company/source selections to this same registration. The
+finance profile, write approval and client-credentials renewal remain separate.
+Payroll contact reads do not extend the native finance bridge profile.

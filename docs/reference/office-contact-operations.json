@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "scope": "office-contacts-v1",
+  "reviewedAt": "2026-11-20",
+  "sourceStrategy": "Independent narrow projections and original synthetic fixtures; no redistributed provider specification.",
+  "sourceHashes": {
+    "packages/core/src/office-contacts.ts": "902718005711ed6cb7f2dad12bffa5a4329aa9e6b6b4a95868eba73aea38d6f1",
+    "packages/fortnox/src/office-contacts.ts": "25116862662f5777ba4dd4010e59bfbba25e505b95431c17e0086045efd113c7",
+    "packages/rest/src/index.ts": "d850905f95bcebaec26ef01456d4ec2f225b96bd4c90b9aa77259e3d24e93d9b"
+  },
+  "operations": [
+    {
+      "source": "customer-register",
+      "effect": "read",
+      "providerScope": "customer",
+      "upstream": [
+        "GET /3/customers",
+        "GET /3/customers/{CustomerNumber}"
+      ],
+      "classification": "implemented_unverified",
+      "defaultEnabled": false,
+      "actualProviderVerified": false,
+      "mcpTool": false,
+      "bridgeOperation": false
+    },
+    {
+      "source": "payroll",
+      "effect": "read",
+      "providerScope": "salary",
+      "upstream": [
+        "GET /3/employees"
+      ],
+      "classification": "implemented_unverified",
+      "defaultEnabled": false,
+      "actualProviderVerified": false,
+      "mcpTool": false,
+      "bridgeOperation": false
+    },
+    {
+      "source": "integration-users",
+      "effect": "read",
+      "providerScope": "developerapi",
+      "upstream": [
+        "GET /api/integration-developer/users/users-v1/{integrationId}/{tenantId}"
+      ],
+      "classification": "implemented_unverified",
+      "defaultEnabled": false,
+      "actualProviderVerified": false,
+      "mcpTool": false,
+      "bridgeOperation": false
+    }
+  ]
+}

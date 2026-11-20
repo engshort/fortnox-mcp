@@ -216,3 +216,19 @@ write recovery remain authoritative. No production activation or provider/Office
 acceptance is implied. Effective in the next build containing the change; see the
 [contract](contracts/installation-access.md) and
 [evidence](implementation/installation-access.md).
+
+## D06/D10 — Owner-authorized Office contact imports (2026-11-20)
+
+The owner requested a limited server API for customer-register contacts, payroll
+contacts and, where available, active users of a published integration. The owner
+selected extension of the existing confidential finance registration with separate
+company/source contact consent, retaining client-credentials renewal and existing
+offline/provider OAuth behavior. Empty customer contact references produce an
+empty contact list. Missing actual Developer API prerequisites may remain an
+explicitly unavailable, unverified source at delivery.
+
+This adds no implicit contact authority to existing clients or future companies,
+no MCP tools and no native bridge operations. Payroll contact projections do not
+extend the finance bridge profile. The module defaults off; resource migration
+0012 changes only known scope ceilings. See [office-contacts-v1](contracts/office-contacts-v1.md).
+Implementation authorization does not authorize merge, deployment or release.

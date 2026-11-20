@@ -12,6 +12,7 @@ import {
   InstallationAccess,
   installationReference,
   installationScopes,
+  type OfficeContacts,
   type OnboardingAttempt,
   OnboardingError,
   programSelection,
@@ -79,6 +80,7 @@ export function createProductGateway(
   reads: ReadServices,
   bridge?: FortnoxBridge,
   sync?: CompanySync,
+  officeContacts?: OfficeContacts,
 ) {
   const admin = createAdmin(config);
   const auth = admin.auth;
@@ -92,6 +94,7 @@ export function createProductGateway(
     services: reads,
     ...(bridge ? { bridge } : {}),
     ...(sync ? { sync } : {}),
+    ...(officeContacts ? { officeContacts } : {}),
     authenticate: async (request) => {
       const header = request.headers.get("authorization");
       if (!header || !/^Bearer [^\s]+$/i.test(header))
@@ -147,6 +150,7 @@ export function createProductGateway(
           scopes_supported: [
             "api:read",
             "api:finance:read",
+            ...(config.officeContacts ? ["api:office:contacts:read"] : []),
             ...(config.restBridge
               ? ["api:bridge", "api:write", "api:files"]
               : []),
@@ -687,11 +691,19 @@ accept.onclick=async()=>{
                 client,
               );
               const scopes =
-                body.data.scope?.split(" ") ?? installationScopes(grant.writes);
+                body.data.scope?.split(" ") ??
+                installationScopes(
+                  grant.writes,
+                  !!grant.officeContacts?.length,
+                );
               if (
                 !scopes.includes("api:read") ||
                 scopes.some(
-                  (s) => !installationScopes(grant.writes).includes(s),
+                  (s) =>
+                    !installationScopes(
+                      grant.writes,
+                      !!grant.officeContacts?.length,
+                    ).includes(s),
                 )
               )
                 return safeResponse('{"error":"invalid_scope"}', 400);

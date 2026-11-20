@@ -23,7 +23,7 @@
     },
     {
       "path": "apps/shared/product.ts",
-      "sha256": "e3a4f2e81fd849a15386f4631a1071830b0adf074eb55aa3e8fb636999be31f2",
+      "sha256": "3612c0b03b5944ba3cae22929dcc31b92a0173b7e8a6fe43462f659661f7486e",
       "kind": "independently_written_project_source"
     },
     {
@@ -33,7 +33,7 @@
     },
     {
       "path": "packages/core/src/errors.ts",
-      "sha256": "8189982b43f5716c67f665109f208f4570b877860b2d8050eb2fe09ea88bde6e",
+      "sha256": "03cbca3b84f910ce1a76b6bb4bec4de1a6b4029a143de4a6fd72cae41e2152e0",
       "kind": "independently_written_project_source"
     },
     {

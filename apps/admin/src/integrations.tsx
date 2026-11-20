@@ -1,4 +1,8 @@
-import type { InstallationGrant } from "@fortnox-mcp/core";
+import {
+  type InstallationGrant,
+  type OfficeContactSource,
+  officeContactSources,
+} from "@fortnox-mcp/core";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import type { Translate } from "./forms.js";
@@ -6,6 +10,7 @@ import type { Translate } from "./forms.js";
 interface AccessState {
   enabled: boolean;
   available: boolean;
+  office_contacts_available: boolean;
   integrations: InstallationGrant[];
   offline_client_ids: string[];
   companies: {
@@ -216,6 +221,17 @@ export function IntegrationsPage({ t }: { t: Translate }) {
                 <p>
                   Client ID: <code>{g.clientId}</code>
                 </p>
+                {g.active ? (
+                  <ContactConsentControls
+                    key={`${g.id}:${g.revision}`}
+                    grant={g}
+                    companies={state.companies}
+                    enabled={state.office_contacts_available}
+                    busy={busy}
+                    t={t}
+                    save={perform}
+                  />
+                ) : null}
                 <fieldset disabled={busy}>
                   <button
                     type="button"
@@ -313,5 +329,137 @@ export function IntegrationsPage({ t }: { t: Translate }) {
         <p>{t("Hämtar serveråtkomst…", "Loading backend access…")}</p>
       ) : null}
     </>
+  );
+}
+
+function ContactConsentControls({
+  grant,
+  companies,
+  enabled,
+  busy,
+  t,
+  save,
+}: {
+  grant: InstallationGrant;
+  companies: AccessState["companies"];
+  enabled: boolean;
+  busy: boolean;
+  t: Translate;
+  save: (body: unknown) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<
+    Record<string, OfficeContactSource[]>
+  >(() =>
+    Object.fromEntries(
+      (grant.officeContacts ?? []).map((c) => [c.company_id, c.sources]),
+    ),
+  );
+  const labels = {
+    "customer-register": t(
+      "Kundregistrets kontaktperson",
+      "Customer register contact",
+    ),
+    payroll: t("Kontaktuppgifter från Lön", "Payroll contacts"),
+    "integration-users": t(
+      "Integrationens aktiva användare",
+      "Active integration users",
+    ),
+  };
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save({
+          action: "change",
+          id: grant.id,
+          expected_revision: grant.revision,
+          office_contacts: Object.entries(selected)
+            .filter(([, sources]) => sources.length)
+            .map(([company_id, sources]) => ({ company_id, sources })),
+        });
+      }}
+    >
+      <fieldset disabled={busy}>
+        <legend>
+          {t(
+            "Separat medgivande för kontaktimport",
+            "Separate consent for contact imports",
+          )}
+        </legend>
+        <p>
+          {t(
+            "Välj företag och källor. Ett nytt eller återanslutet företag behöver eget medgivande. Program och Fortnox-behörigheter måste också finnas.",
+            "Select companies and sources. New or reconnected companies need their own consent. Programs and Fortnox permissions are also required.",
+          )}
+        </p>
+        {!enabled ? (
+          <p>
+            {t(
+              "Kontaktimport är avstängd. Sparade medgivanden kan återkallas.",
+              "Contact imports are disabled. Saved consents can be revoked.",
+            )}
+          </p>
+        ) : null}
+        {companies
+          .filter((c) => c.state === "active" || selected[c.company_id]?.length)
+          .map((c) => (
+            <fieldset key={c.company_id}>
+              <legend>{c.name}</legend>
+              {c.state !== "active" ? (
+                <p>
+                  {t(
+                    "Företaget är inte aktivt. Avmarkera källorna för att spara ett nytt medgivande.",
+                    "The company is inactive. Clear its sources before saving new consent.",
+                  )}
+                </p>
+              ) : null}
+              {officeContactSources.map((source) => (
+                <label key={source} className="check">
+                  <input
+                    type="checkbox"
+                    checked={selected[c.company_id]?.includes(source) ?? false}
+                    disabled={
+                      (!enabled || c.state !== "active") &&
+                      !selected[c.company_id]?.includes(source)
+                    }
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setSelected((previous) => ({
+                        ...previous,
+                        [c.company_id]: checked
+                          ? [...(previous[c.company_id] ?? []), source]
+                          : (previous[c.company_id] ?? []).filter(
+                              (v) => v !== source,
+                            ),
+                      }));
+                    }}
+                  />
+                  {labels[source]}
+                </label>
+              ))}
+            </fieldset>
+          ))}
+        <button type="submit">
+          {t(
+            "Spara uttryckligt kontaktmedgivande",
+            "Save explicit contact consent",
+          )}
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() =>
+            void save({
+              action: "change",
+              id: grant.id,
+              expected_revision: grant.revision,
+              office_contacts: [],
+            })
+          }
+        >
+          {t("Återkalla all kontaktimport", "Revoke all contact imports")}
+        </button>
+      </fieldset>
+    </form>
   );
 }

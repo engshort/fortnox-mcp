@@ -28,11 +28,26 @@ export const agencySelection = {
     | "supplier-invoices"
   )[],
 };
-export const installationScopes = (writes: boolean) => [
+export const officeContactSources = [
+  "customer-register",
+  "payroll",
+  "integration-users",
+] as const;
+export const officeContactConsent = z
+  .object({
+    company_id: z.string().uuid(),
+    sources: z.array(z.enum(officeContactSources)).min(1).max(3),
+    generation: z.number().int().positive(),
+    access_revision: z.number().int().nonnegative(),
+  })
+  .strict();
+export const officeContactConsents = z.array(officeContactConsent).max(20);
+export const installationScopes = (writes: boolean, contacts = false) => [
   "api:read",
   "api:finance:read",
   "api:bridge",
   ...(writes ? ["api:write"] : []),
+  ...(contacts ? ["api:office:contacts:read"] : []),
 ];
 const entry = z
   .object({
@@ -42,6 +57,7 @@ const entry = z
     revision: z.number().int().positive(),
     active: z.boolean(),
     writes: z.boolean(),
+    officeContacts: officeContactConsents.optional(),
     profile: z.literal(agencyProfile),
     onboardingClientId: z.string().min(1).max(256).optional(),
   })

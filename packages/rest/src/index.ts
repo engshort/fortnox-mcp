@@ -6,6 +6,8 @@ import {
   type CompanySync,
   DomainError,
   type FortnoxBridge,
+  type OfficeContacts,
+  officeContactSources,
   type ReadDefinition,
   type ReadServices,
   readDefinitions,
@@ -39,21 +41,33 @@ export function restError(cause: unknown) {
         ? 409
         : code === "AUTH_REQUIRED"
           ? 401
-          : code === "VALIDATION_FAILED"
+          : [
+                "VALIDATION_FAILED",
+                "OFFICE_CONTACTS_INVALID_CONTINUATION",
+              ].includes(code)
             ? 400
             : code === "RESOURCE_NOT_FOUND"
               ? 404
-              : ["COMPANY_FORBIDDEN", "CAPABILITY_UNAVAILABLE"].includes(code)
+              : [
+                    "COMPANY_FORBIDDEN",
+                    "CAPABILITY_UNAVAILABLE",
+                    "OFFICE_CONTACTS_CONSENT_REQUIRED",
+                    "OFFICE_CONTACTS_SOURCE_UNAVAILABLE",
+                  ].includes(code)
                 ? 403
                 : [
                       "CONNECTION_DISCONNECTED",
                       "RECONNECT_REQUIRED",
                       "CONNECTION_CONFLICT",
+                      "OFFICE_CONTACTS_AMBIGUOUS_CUSTOMER",
                     ].includes(code)
                   ? 409
                   : code === "RATE_LIMITED"
                     ? 429
-                    : code === "UPSTREAM_UNAVAILABLE"
+                    : [
+                          "UPSTREAM_UNAVAILABLE",
+                          "OFFICE_CONTACTS_INVALID_RESPONSE",
+                        ].includes(code)
                       ? 502
                       : 503;
   return {
@@ -77,6 +91,7 @@ export function restApi(config: {
   services: ReadServices;
   bridge?: FortnoxBridge;
   sync?: CompanySync;
+  officeContacts?: OfficeContacts;
   authenticate: (request: Request) => Promise<Actor>;
 }) {
   const routes = new Hono<{ Variables: { actor: Actor } }>();
@@ -132,6 +147,26 @@ export function restApi(config: {
     return response;
   });
   routes.get("/openapi.json", () => json(openApiDocument(config.origin)));
+  if (config.officeContacts) {
+    const contacts = config.officeContacts;
+    for (const source of officeContactSources)
+      routes.get(
+        `/companies/:company_id/office-contacts/${source}`,
+        async (c) => {
+          const query = new URL(c.req.url).searchParams;
+          if ([...query.keys()].some((key) => query.getAll(key).length !== 1))
+            throw new DomainError("VALIDATION_FAILED");
+          const result = await contacts.read(
+            c.get("actor"),
+            c.req.param("company_id"),
+            source,
+            Object.fromEntries(query),
+          );
+          await config.authenticate(c.req.raw);
+          return json(result);
+        },
+      );
+  }
   if (config.sync) {
     const sync = config.sync;
     routes.get("/companies/:company_id/sync/manifest", async (c) => {

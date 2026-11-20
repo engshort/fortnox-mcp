@@ -163,3 +163,6 @@ optional writes through the common reviewed bridge. The opt-in installation
 feature enables the implemented normalized finance modules without the historical
 test-tenant restriction; actual provider acceptance remains separately tracked.
 The legacy `FINANCIAL_READ_MODULES` test profile retains its own tenant restrictions.
+
+Optional [Office contacts](office-contacts-v1.md) adds three separately consented,
+backend-only normalized contact reads. Finance access alone grants no contact access.

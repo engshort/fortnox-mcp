@@ -7,6 +7,7 @@ import scopeSchema from "../../apps/worker/migrations/0005_accounting_scope.sql?
 import readScopeSchema from "../../apps/worker/migrations/0008_financial_read_scope.sql?raw";
 import bridgeScopeSchema from "../../apps/worker/migrations/0009_rest_bridge_scopes.sql?raw";
 import settingsScopeSchema from "../../apps/worker/migrations/0011_settings_resource_ceiling.sql?raw";
+import officeScopeSchema from "../../apps/worker/migrations/0012_office_contacts_scope.sql?raw";
 import { d1State } from "../../apps/worker/src/product-storage.js";
 import { accountingContract } from "../shared/accounting.js";
 import { accountingMigrationContract } from "../shared/accounting-migration.js";
@@ -32,6 +33,7 @@ import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { membershipContract } from "../shared/memberships.js";
+import { officeContactsContract } from "../shared/office-contacts.js";
 import { onboardingContract } from "../shared/onboarding.js";
 import { onboardingContinuityContract } from "../shared/onboarding-continuity.js";
 import { openItemsContract } from "../shared/open-items.js";
@@ -218,3 +220,24 @@ accountingMigrationContract(async () => {
 membershipContract(fixture);
 
 installationAccessContract(fixture);
+
+officeContactsContract(fixture);
+
+describe("Office contacts resource migration", () =>
+  accountingMigrationContract(
+    async () => {
+      await fixture();
+      return {
+        execute: async (sql: string) => env.DB.exec(sql),
+        all: async (sql: string) => (await env.DB.prepare(sql).all()).results,
+        migrate: async () =>
+          env.DB.exec(
+            officeScopeSchema
+              .replace(/--[^\n]*(?:\n|$)/g, "")
+              .replace(/\n/g, " "),
+          ),
+      };
+    },
+    "api:office:contacts:read",
+    "api/v1",
+  ));

@@ -46,6 +46,7 @@ export async function cleanupProduct(state: StateStore, now = Date.now()) {
     "fortnox-flows",
     "continuations",
     "read-continuations-v1",
+    "office-contact-continuations-v1",
     "oauth-grant-families",
     "oauth-approval-grants",
   ]) {

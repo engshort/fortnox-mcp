@@ -9,6 +9,7 @@ export * from "./diagnostics.js";
 export * from "./financial-evidence.js";
 export * from "./financial-reads.js";
 export * from "./http.js";
+export * from "./office-contacts.js";
 export * from "./open-items.js";
 export * from "./payroll.js";
 export * from "./payroll-writes.js";

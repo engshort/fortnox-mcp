@@ -108,6 +108,20 @@ export class DocumentHttp {
       throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
     }
   }
+  async readArray(context: ProviderContext, url: URL) {
+    const { bytes } = await this.readBody(context, url, Infinity, false);
+    try {
+      return z
+        .array(z.unknown())
+        .parse(
+          parseExactProviderJson(
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+          ),
+        );
+    } catch {
+      throw new ProviderError("UPSTREAM_UNAVAILABLE", "invalid_response");
+    }
+  }
   async readSie(context: ProviderContext, url: URL, until = Infinity) {
     if (url.origin !== "https://api.fortnox.se" || url.pathname !== "/3/sie/4")
       throw new DomainError("CAPABILITY_UNAVAILABLE");

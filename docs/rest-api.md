@@ -85,3 +85,6 @@ scope escalation or reconnection.
 Authenticated `GET /api/v1/openapi.json` describes the API. `npm run build` also
 generates `dist/openapi.json`; Docker includes `/app/dist/openapi.json`. This is
 the project's own definition, not a redistributed Fortnox specification.
+
+See [Office contacts v1](contracts/office-contacts-v1.md) for optional, separately
+consented contact imports using the existing Office backend registration.

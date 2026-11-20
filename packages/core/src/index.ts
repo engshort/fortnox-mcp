@@ -20,6 +20,7 @@ export * from "./invoice-history.js";
 export * from "./liquidity.js";
 export * from "./memberships.js";
 export * from "./money.js";
+export * from "./office-contacts.js";
 export * from "./onboarding.js";
 export * from "./open-items.js";
 export * from "./payroll.js";
