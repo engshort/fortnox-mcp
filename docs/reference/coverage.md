@@ -488,3 +488,9 @@ actual ChatGPT/M2X/provider acceptance.
 installation identity, finance profile, current/future REST company consent and
 separately approved writes. Local synthetic verification and actual provider/Office
 acceptance are reported separately. No upstream operation coverage is promoted.
+
+## Office contact projection
+
+[Office contacts](../implementation/office-contacts.md) adds default-off normalized
+customer-register, payroll-contact and published-integration-user sources. No
+provider operation is promoted to verified support by synthetic tests.

@@ -358,3 +358,11 @@ runtime before reacquiring access after simulated 31-day inactivity. The owner
 browser `installation-access.spec.ts` checks read-default consent, explicit write
 approval and revocation on desktop/mobile. See the
 [evidence and actual-acceptance limits](implementation/installation-access.md).
+
+## Office contact API
+
+The shared `office-contacts` contract exercises the actual product HTTP/OAuth
+management and token flow on Node/SQLite and local workerd/D1. It checks scoped
+company/source consent, contact-only payroll projection, exact customer matching,
+continuation binding and revocation during provider I/O. See
+[implementation and evidence](implementation/office-contacts.md).

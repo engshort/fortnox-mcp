@@ -4,7 +4,7 @@
   "reviewedAt": "2026-11-16",
   "sourceStrategy": "Independently written TypeScript/contracts and original synthetic fixtures; no redistributed provider specification. OpenAPI output describes only this project API.",
   "sourceHashes": {
-    "packages/core/src/actor.ts": "dec1fb721beed41bef20251aede36f95c2e5685093de095d263a4dbd59bb9f15",
+    "packages/core/src/actor.ts": "511ba51e341bc3ab30b84954529bc69771aae51a431cf4b5328f30a4838e5553",
     "packages/core/src/connections.ts": "0533211b96f2b49d723cb849944dbeecad016c0b80cccdf1f11465bdb0ea3d40",
     "packages/core/src/read-contracts.ts": "991850f4a49baee0eaabeff7953f13dfd3277b10ed9e30a221768876ef200fc7",
     "packages/core/src/reads.ts": "10813d54e8eac8f1edacec92b7fee66880e5ebf3f89802abcc6d97d4a713d7a6",
@@ -13,11 +13,11 @@
     "packages/fortnox/src/financial-reads.ts": "5838df0b70db69569f0e95f326d7df1a79644b0546fc9ddf4e61098a64227644",
     "packages/fortnox/src/company-reads.ts": "7238b0382a825ccd9d57ba7091f89b4e0fcac60f39d1b5cc6b63712e045967b6",
     "packages/mcp/src/reads.ts": "a664330e62ac7bbd8018b1d86a9ecd0dc5db8abd9085f2c7f8e7e563ba47049e",
-    "packages/rest/src/index.ts": "7ef805795bff45ee301388038da475f9fef7c9ac63f4fc3da7209b4a1d4095db",
-    "packages/rest/src/openapi.ts": "2fe8e2c342e064ddc0d27719094320838b53273642e8e2a8e847ef5698a1fd91",
-    "apps/shared/product-auth.ts": "c4087a9995eeef985d159407e4e437c845e4c058dd91dfc990659f356a818242",
-    "apps/shared/product-gateway.ts": "7080d94eb26b15580102ae85c7b37c9305356b211dbc9fbe42b79ff1c6ad9f2b",
-    "apps/shared/product.ts": "e3a4f2e81fd849a15386f4631a1071830b0adf074eb55aa3e8fb636999be31f2"
+    "packages/rest/src/index.ts": "d850905f95bcebaec26ef01456d4ec2f225b96bd4c90b9aa77259e3d24e93d9b",
+    "packages/rest/src/openapi.ts": "20127d8681cb48c313106716965810ec38d208810f30eae4dde96dda7e0f2559",
+    "apps/shared/product-auth.ts": "eceb8c92b4534637b40788013061620447027b431b22b2a9bce7efcd360dde07",
+    "apps/shared/product-gateway.ts": "7da44731726fb126e0b3ca09f1466e9449585dc08f091abf3658c92516add41e",
+    "apps/shared/product.ts": "3612c0b03b5944ba3cae22929dcc31b92a0173b7e8a6fe43462f659661f7486e"
   },
   "operations": [
     {

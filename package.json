@@ -44,7 +44,8 @@
     "prepare:product:bootstrap": "node scripts/product-bootstrap.mjs",
     "prepare:product:recovery": "node --env-file-if-exists=.env --import tsx scripts/product-recovery.ts",
     "prepare:receipt-relay": "node --env-file-if-exists=.env --import tsx scripts/prepare-receipt-relay.ts",
-    "dev:onboarding-fixture": "node --import tsx scripts/onboarding-fixture.ts"
+    "dev:onboarding-fixture": "node --import tsx scripts/onboarding-fixture.ts",
+    "test:office-contacts:contract": "node scripts/office-contacts-contract.mjs"
   },
   "cloudflare": {
     "bindings": {

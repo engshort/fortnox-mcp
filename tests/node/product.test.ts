@@ -26,6 +26,7 @@ import { invoiceHistoryContract } from "../shared/invoice-history.js";
 import { liquidityContract } from "../shared/liquidity.js";
 import { maintenanceContract } from "../shared/maintenance.js";
 import { membershipContract } from "../shared/memberships.js";
+import { officeContactsContract } from "../shared/office-contacts.js";
 import { onboardingContract } from "../shared/onboarding.js";
 import { onboardingContinuityContract } from "../shared/onboarding-continuity.js";
 import { openItemsContract } from "../shared/open-items.js";
@@ -215,3 +216,28 @@ accountingMigrationContract(async () => {
 membershipContract(fixture);
 
 installationAccessContract(fixture);
+
+officeContactsContract(fixture);
+
+describe("Office contacts resource migration", () =>
+  accountingMigrationContract(
+    async () => {
+      const { database } = await fixture();
+      return {
+        execute: async (sql: string) => database.exec(sql),
+        all: async (sql: string) => database.prepare(sql).all(),
+        migrate: async () =>
+          database.exec(
+            readFileSync(
+              new URL(
+                "../../apps/worker/migrations/0012_office_contacts_scope.sql",
+                import.meta.url,
+              ),
+              "utf8",
+            ),
+          ),
+      };
+    },
+    "api:office:contacts:read",
+    "api/v1",
+  ));

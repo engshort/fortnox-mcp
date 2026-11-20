@@ -18,6 +18,7 @@ import { keyA, syntheticCompany, syntheticCredentials } from "./connections.js";
 export async function installationAccessFixture(
   config: AuthConfig,
   enabled = true,
+  overrides: Partial<ProductSettings> = {},
 ) {
   const settings: ProductSettings = {
     origin: config.origin,
@@ -34,6 +35,7 @@ export async function installationAccessFixture(
     installationAccess: enabled,
     externalAppOnboarding: true,
     onboardingClients: [],
+    ...overrides,
   };
   let requests: Request[] = [];
   let hook: ((r: Request) => Promise<Response | undefined>) | undefined;

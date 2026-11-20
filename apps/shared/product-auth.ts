@@ -25,6 +25,7 @@ export interface Owner {
 }
 export interface AuthConfig {
   installationAccess?: boolean;
+  officeContacts?: boolean;
   restApi?: boolean;
   restBridge?: boolean;
   offlineClientIds?: readonly string[];
@@ -118,6 +119,7 @@ export function createProductAuth(config: AuthConfig) {
       "mcp:finance:read",
       "api:read",
       "api:finance:read",
+      ...(config.officeContacts ? ["api:office:contacts:read"] : []),
       ...(config.restBridge ? ["api:bridge", "api:write", "api:files"] : []),
       "offline_access",
     ],
@@ -144,6 +146,7 @@ export function createProductAuth(config: AuthConfig) {
               allowedScopes: [
                 "api:read",
                 "api:finance:read",
+                "api:office:contacts:read",
                 // The known resource ceiling is stable across UI activation.
                 // Registration, token validation and routes still use the
                 // current flags; existing client/grant scopes are untouched.
@@ -278,7 +281,11 @@ export function createProductAuth(config: AuthConfig) {
                 row.referenceId ||
                 !row.scopes.length ||
                 row.scopes.some(
-                  (s) => !installationScopes(g.writes).includes(s),
+                  (s) =>
+                    !installationScopes(
+                      g.writes,
+                      !!g.officeContacts?.length,
+                    ).includes(s),
                 ) ||
                 row.resources?.length !== 1 ||
                 row.resources[0] !== `${config.origin}/api/v1`
@@ -689,7 +696,11 @@ export function createProductAuth(config: AuthConfig) {
                   if (
                     !row.scopes.includes("api:read") ||
                     row.scopes.some(
-                      (s) => !installationScopes(g.writes).includes(s),
+                      (s) =>
+                        !installationScopes(
+                          g.writes,
+                          !!g.officeContacts?.length,
+                        ).includes(s),
                     )
                   )
                     throw new Error("AUTH_REQUIRED");

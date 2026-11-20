@@ -6,12 +6,23 @@ import {
   DomainError,
   InstallationAccess,
   installationScopes,
+  officeContactSources,
   programSelection,
 } from "@fortnox-mcp/core";
 import { z } from "zod";
 import { boundedJson, safeResponse } from "./admin.js";
 import { type ProductAuth, requireOwner } from "./product-auth.js";
 
+const contactSelection = z
+  .array(
+    z
+      .object({
+        company_id: z.string().uuid(),
+        sources: z.array(z.enum(officeContactSources)).min(1).max(3),
+      })
+      .strict(),
+  )
+  .max(20);
 const mutation = z.discriminatedUnion("action", [
   z
     .object({
@@ -27,6 +38,7 @@ const mutation = z.discriminatedUnion("action", [
       id: z.string().uuid(),
       expected_revision: z.number().int().positive(),
       allow_writes: z.boolean().optional(),
+      office_contacts: contactSelection.optional(),
     })
     .strict(),
 ]);
@@ -38,6 +50,7 @@ export function installationAccessRoutes(config: {
   rest: boolean;
   connections: Connections;
   offlineClientIds: readonly string[];
+  officeContacts?: boolean;
 }) {
   const access = new InstallationAccess(
     config.connections.state,
@@ -56,6 +69,7 @@ export function installationAccessRoutes(config: {
           JSON.stringify({
             enabled: config.enabled,
             available: config.rest,
+            office_contacts_available: config.officeContacts === true,
             integrations: await access.list(owner),
             offline_client_ids: config.offlineClientIds,
             companies: (await config.connections.list(owner)).map((c) => ({
@@ -132,14 +146,46 @@ export function installationAccessRoutes(config: {
       );
       if (!existing || existing.revision !== input.expected_revision)
         throw new DomainError("CONNECTION_CONFLICT");
-      if (input.action === "change" && typeof input.allow_writes !== "boolean")
+      if (input.action !== "change" && input.office_contacts !== undefined)
         throw new DomainError("VALIDATION_FAILED");
+      if (
+        input.action === "change" &&
+        input.allow_writes === undefined &&
+        input.office_contacts === undefined
+      )
+        throw new DomainError("VALIDATION_FAILED");
+      let officeContacts = existing.officeContacts;
+      if (input.action === "revoke") officeContacts = [];
+      if (input.office_contacts !== undefined) {
+        if (input.office_contacts.length && !config.officeContacts)
+          throw new DomainError("CAPABILITY_UNAVAILABLE");
+        if (
+          new Set(input.office_contacts.map((c) => c.company_id)).size !==
+          input.office_contacts.length
+        )
+          throw new DomainError("VALIDATION_FAILED");
+        const companies = await config.connections.list(owner);
+        officeContacts = input.office_contacts.map((selection) => {
+          const c = companies.find((c) => c.id === selection.company_id);
+          if (
+            c?.state !== "active" ||
+            new Set(selection.sources).size !== selection.sources.length
+          )
+            throw new DomainError("VALIDATION_FAILED");
+          return {
+            ...selection,
+            generation: c.generation,
+            access_revision: c.accessRevision ?? 0,
+          };
+        });
+      }
       // Fence old tokens before library changes. Partial/unknown rotation stays
       // disabled until the owner performs another explicit management action.
       const next = await access.save(
         owner,
         {
           ...existing,
+          ...(officeContacts ? { officeContacts } : {}),
           revision: existing.revision + 1,
           active: input.action === "change",
           writes:
@@ -160,8 +206,14 @@ export function installationAccessRoutes(config: {
           body: {
             client_id: existing.clientId,
             update: {
-              scope: installationScopes(next.writes).join(" "),
-              client_credentials_scopes: installationScopes(next.writes),
+              scope: installationScopes(
+                next.writes,
+                !!next.officeContacts?.length,
+              ).join(" "),
+              client_credentials_scopes: installationScopes(
+                next.writes,
+                !!next.officeContacts?.length,
+              ),
             },
           },
         });
@@ -183,8 +235,14 @@ export function installationAccessRoutes(config: {
         body: {
           client_id: existing.clientId,
           update: {
-            scope: installationScopes(next.writes).join(" "),
-            client_credentials_scopes: installationScopes(next.writes),
+            scope: installationScopes(
+              next.writes,
+              !!next.officeContacts?.length,
+            ).join(" "),
+            client_credentials_scopes: installationScopes(
+              next.writes,
+              !!next.officeContacts?.length,
+            ),
           },
         },
       });

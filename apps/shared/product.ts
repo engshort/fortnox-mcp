@@ -20,6 +20,7 @@ import {
   type InstallationValues,
   LiquidityAnalysis,
   Memberships,
+  OfficeContacts,
   OnboardingError,
   OpenItems,
   PayrollInputs,
@@ -67,6 +68,7 @@ import {
   FortnoxConnections,
   FortnoxConsentError,
   FortnoxFinancialReads,
+  FortnoxOfficeContacts,
   FortnoxOpenItems,
   FortnoxPayrollReads,
   FortnoxPayrollWrites,
@@ -75,7 +77,9 @@ import {
   FortnoxRegisters,
   FortnoxSalesDocuments,
   financialReadOperations,
+  type OfficeDeveloperBinding,
   type OpenItemReadOperation,
+  officeDeveloperBinding,
   openItemReadOperations,
   type PayrollWriteProfile,
   payrollReadOperationIds,
@@ -114,6 +118,8 @@ import { createProductGateway } from "./product-gateway.js";
 import { settingsRoutes } from "./settings-http.js";
 
 export interface ProductSettings {
+  officeContacts?: boolean;
+  officeContactsDeveloper?: OfficeDeveloperBinding;
   installationAccess?: boolean;
   installationEnvironment?: Partial<Record<InstallationKey, string>>;
   installationDefaults?: Partial<InstallationValues>;
@@ -281,6 +287,14 @@ export function productSettings(
     financialLargeReads: env.FINANCIAL_LARGE_READS_ENABLED === "true",
     externalAppOnboarding: env.EXTERNAL_APP_ONBOARDING_ENABLED === "true",
     installationAccess: env.INSTALLATION_ACCESS_ENABLED === "true",
+    officeContacts: env.OFFICE_CONTACTS_ENABLED === "true",
+    ...(env.OFFICE_CONTACTS_DEVELOPER_BINDING
+      ? {
+          officeContactsDeveloper: officeDeveloperBinding.parse(
+            JSON.parse(env.OFFICE_CONTACTS_DEVELOPER_BINDING),
+          ),
+        }
+      : {}),
     origin: origin.origin,
     secret,
     keys,
@@ -671,6 +685,8 @@ function buildProductApplication(
     ...runtime,
     offlineClientIds: settings.offlineClientIds ?? [],
     installationAccess: settings.installationAccess === true,
+    officeContacts:
+      settings.officeContacts === true && !fileTest && !businessTest,
     origin: settings.origin,
     secret: settings.secret,
     memberships,
@@ -992,6 +1008,17 @@ function buildProductApplication(
     () => bridgeCatalog.current(),
     now,
   );
+  const officeContacts = new OfficeContacts(
+    connections,
+    new FortnoxOfficeContacts(
+      connections,
+      provider,
+      settings.officeContactsDeveloper,
+      now,
+    ),
+    config.officeContacts,
+    now,
+  );
   const gateway = createProductGateway(
     config,
     (identity) =>
@@ -1028,6 +1055,7 @@ function buildProductApplication(
           now,
         )
       : undefined,
+    config.officeContacts ? officeContacts : undefined,
   );
   const onboardingHttp = onboarding
     ? onboardingRoutes({
@@ -1861,6 +1889,7 @@ function buildProductApplication(
     rest: settings.restApi === true && settings.restBridge === true,
     connections,
     offlineClientIds: settings.offlineClientIds ?? [],
+    officeContacts: config.officeContacts,
   });
   const web = ownerWeb(
     async (request) => {

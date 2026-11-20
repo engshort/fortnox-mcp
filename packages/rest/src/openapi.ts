@@ -1,4 +1,7 @@
 import {
+  officeContactSources,
+  officeContactsOutput,
+  officeContactsQuery,
   type ReadDefinition,
   readDefinitions,
   readError,
@@ -77,6 +80,52 @@ export function openApiDocument(origin = "") {
     required: true,
     schema: { type: "string", format: "uuid" },
   };
+  for (const source of officeContactSources) {
+    const input = z.toJSONSchema(officeContactsQuery(source)) as {
+      properties: Record<string, unknown>;
+      required?: string[];
+    };
+    paths[`/companies/{company_id}/office-contacts/${source}`] = {
+      get: {
+        operationId: `office_contacts_${source.replaceAll("-", "_")}`,
+        description:
+          "office-contacts-v1. Dedicated approved Office backend only; explicit current company/source consent. Disabled by default.",
+        security: [{ oauth2: ["api:read", "api:office:contacts:read"] }],
+        parameters: [
+          companyParameter,
+          ...Object.entries(input.properties).map(([name, schema]) => ({
+            name,
+            in: "query",
+            required: input.required?.includes(name) ?? false,
+            schema,
+          })),
+        ],
+        responses: {
+          "200": {
+            description:
+              "Only id, name, email; inspect completeness and continuation.",
+            content: {
+              "application/json": {
+                schema: z.toJSONSchema(officeContactsOutput),
+              },
+            },
+          },
+          ...Object.fromEntries(
+            [400, 401, 403, 409, 429, 502, 503].map((status) => [
+              status,
+              {
+                description:
+                  "Structured office-contacts-v1 error; no provider payload.",
+                content: {
+                  "application/json": { schema: z.toJSONSchema(readError) },
+                },
+              },
+            ]),
+          ),
+        },
+      },
+    };
+  }
   for (const endpoint of ["manifest", "changes"]) {
     paths[`/companies/{company_id}/sync/${endpoint}`] = {
       get: {
@@ -290,6 +339,8 @@ export function openApiDocument(origin = "") {
               tokenUrl: `${origin}/auth/oauth2/token`,
               scopes: {
                 "api:read": "Read authorized company metadata and references",
+                "api:office:contacts:read":
+                  "Company-consented Office contact imports",
                 "api:finance:read":
                   "Read authorized invoices, vouchers and annual account balances",
                 "api:write":
