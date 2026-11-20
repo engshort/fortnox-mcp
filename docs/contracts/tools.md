@@ -6,6 +6,12 @@ tools require `mcp:read` plus `mcp:finance:read`, share services/schemas with RE
 and remain limited to explicitly configured test companies. Existing tool formats
 and financial write/file gates are preserved.
 
+When sales-document reads are also enabled, the sales tools keep
+`list_invoices` and `get_invoice`. The corresponding raw financial tools are
+advertised as `list_financial_invoices` and `get_financial_invoice`, with the
+same arguments and scope requirements. Use `tools/list` for MCP tool names.
+The REST routes and capability operation identifiers are unchanged.
+
 Date-driven analysis adds `get_account_balances` and
 `list_financial_transactions`, plus optional historical `as_of` input on
 `list_receivables`/`list_payables`. These are read-only tools with strict inputs,

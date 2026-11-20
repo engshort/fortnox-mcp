@@ -1,12 +1,18 @@
 import {
   FinancialReads,
   type ReadModule,
+  Registers,
   type RequestActor,
   readDefinitions,
   readOutput,
   requestActor,
+  SalesDocuments,
 } from "@fortnox-mcp/core";
-import { FortnoxRawFinancialReads } from "@fortnox-mcp/fortnox";
+import {
+  FortnoxRawFinancialReads,
+  FortnoxRegisters,
+  FortnoxSalesDocuments,
+} from "@fortnox-mcp/fortnox";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { createProductApplication } from "../../apps/shared/product.js";
@@ -216,6 +222,79 @@ async function setup(config: AuthConfig, bridge = false) {
 
 export function readApiContract(fixture: () => Promise<AuthConfig>) {
   describe("shared REST/MCP read services", () => {
+    it("keeps sales invoice tools and scoped financial invoice reads available together", async () => {
+      const f = await setup(await fixture());
+      await f.app.connections.grant(f.actor.ownerId, f.actor.clientId, [
+        f.a.id,
+      ]);
+      const operations = ["invoice.list", "invoice.get"];
+      const sales = new SalesDocuments(
+        f.app.connections,
+        new FortnoxSalesDocuments(
+          f.app.connections,
+          f.app.provider,
+          operations,
+        ),
+        new Registers(
+          f.app.connections,
+          new FortnoxRegisters(f.app.connections, f.app.provider),
+        ),
+        f.app.bookkeeping.provider,
+        operations,
+      );
+      const server = companyServer({
+        identity: {
+          ownerId: f.actor.ownerId,
+          clientId: f.actor.clientId,
+          scopes: ["mcp:read", "mcp:finance:read"],
+        },
+        connections: f.app.connections,
+        provider: f.app.provider,
+        testMode: true,
+        reads: f.app.reads,
+        salesDocuments: sales,
+      });
+      const client = new Client({ name: "synthetic-bridge", version: "0" });
+      const [left, right] = InMemoryTransport.createLinkedPair();
+      try {
+        await server.connect(right);
+        await client.connect(left);
+        const { tools } = await client.listTools();
+        expect(tools.map(({ name }) => name)).toEqual(
+          expect.arrayContaining([
+            "get_connection_status",
+            "list_invoices",
+            "get_invoice",
+            "list_financial_invoices",
+            "get_financial_invoice",
+          ]),
+        );
+        expect(
+          tools.find(({ name }) => name === "get_invoice")?.inputSchema
+            .properties,
+        ).toHaveProperty("id");
+        const company = { company_id: f.a.id };
+        expect(
+          (
+            await client.callTool({
+              name: "get_connection_status",
+              arguments: company,
+            })
+          ).structuredContent,
+        ).toMatchObject({ status: "ok", data: { state: "active" } });
+        expect(
+          (
+            await client.callTool({
+              name: "get_financial_invoice",
+              arguments: { ...company, number: "12" },
+            })
+          ).structuredContent,
+        ).toMatchObject({ status: "ok", company_id: f.a.id });
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    });
     it("keeps grants resource-specific, rejects unsupported permissions and fails closed outside test modules", async () => {
       const f = await setup(await fixture());
       await expect(

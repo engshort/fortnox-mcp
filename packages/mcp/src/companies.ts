@@ -338,6 +338,12 @@ export function companyServer(context: {
     registerReceipts(server, context.receipts, actor, context.receiptWorkflow);
   if (context.receiptAttachments)
     registerReceiptAttachments(server, context.receiptAttachments, actor);
-  if (context.reads) registerReads(server, context.reads, actor);
+  if (context.reads)
+    registerReads(
+      server,
+      context.reads,
+      actor,
+      context.salesDocuments?.enabled,
+    );
   return server;
 }

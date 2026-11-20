@@ -2,6 +2,7 @@ import {
   type Actor,
   DomainError,
   type ReadDefinition,
+  type ReadOperation,
   type ReadServices,
   readDefinitions,
   readError,
@@ -11,10 +12,21 @@ import { ProviderError } from "@fortnox-mcp/fortnox";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
+const financialInvoiceAliases: Partial<
+  Record<ReadOperation, { salesOperation: string; name: string }>
+> = {
+  list_invoices: {
+    salesOperation: "invoice.list",
+    name: "list_financial_invoices",
+  },
+  get_invoice: { salesOperation: "invoice.get", name: "get_financial_invoice" },
+};
+
 export function registerReads(
   server: McpServer,
   services: ReadServices,
   actor: Actor | null,
+  salesOperations: readonly string[] = [],
 ) {
   for (const [operation, entry] of Object.entries(readDefinitions)) {
     const definition: ReadDefinition = entry;
@@ -28,11 +40,16 @@ export function registerReads(
         ))
     )
       continue;
+    const alias = financialInvoiceAliases[operation as ReadOperation];
+    const name =
+      alias && salesOperations.includes(alias.salesOperation)
+        ? alias.name
+        : operation;
     const output = z.union([readOutput(definition.data), readError]);
     server.registerTool(
-      operation,
+      name,
       {
-        title: operation.replaceAll("_", " "),
+        title: name.replaceAll("_", " "),
         description:
           "Read authorized company data with explicit completeness and source evidence. Experimental provider operations remain independently gated.",
         inputSchema: definition.input,
