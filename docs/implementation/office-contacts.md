@@ -58,7 +58,10 @@ maintained OAuth component and product HTTP routes.
 | `npm run lint` | Pass |
 | `npm run test:node -- tests/node/product.test.ts -t 'Office contacts' --maxWorkers=1` | 13 pass; 331 unrelated cases skipped |
 | `npm run test:worker -- tests/worker/product.test.ts -t 'Office contacts'` | 13 pass in actual local workerd/D1; 331 unrelated cases skipped |
-| Build and artifact checks | Initial build/artifact run passes; final rebuild recorded in PR |
+| `npm run test:node -- --maxWorkers=1` | 564 pass across 39 files; broad run loaded the earlier eight-case contact selection, followed by the final thirteen-case focused pass |
+| `npm run test:worker -- --fileParallelism=false` | 487 pass across 9 files on the final implementation in actual local workerd/D1 |
+| `npm run build` | Final build passes |
+| `npm run test:build` | 11 artifact checks and 3 native Worker/recovery checks pass on the final build |
 | Changed-document relative links and `git diff --check` | Pass |
 
 The independent AI reviewer inspected original final focused logs and source,
@@ -76,7 +79,14 @@ The initial sandboxed Worker attempt could not bind loopback/write Wrangler logs
 actual workerd runs used local process permission and a temporary log path.
 Initial broad concurrent regressions had five unrelated five-second timeouts and
 one large-analysis capability/budget failure (476 Worker cases passed). These are
-not passes. Serial Worker rerun and remaining whole-suite results are recorded
-in the PR. An earlier test fixture cloned an unconsumed error body and hung on
+not passes. The serial Worker rerun passes all 487 cases; the whole Node suite passes
+564 cases, supplemented by the final thirteen-case contact run. An earlier test fixture cloned an unconsumed error body and hung on
 cancellation; the fixture now supplies a fresh response. The consumer checker
 uses manual redirect rejection, compatible with both Node and workerd.
+
+
+The implementation and focused evidence are bound to commit
+`b0c6432ca47772992fb1e180255f4834624490c7` in
+[PR #160](https://github.com/engshort/fortnox-mcp/pull/160). This subsequent evidence
+update changes documentation only. CI results are visible on that PR; the earlier
+failed resource-concurrent run remains recorded above rather than relabeled.
