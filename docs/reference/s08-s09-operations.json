@@ -21,7 +21,7 @@
     "packages/fortnox/src/document-http.ts": "91f0232d8ac1cfcd30ee46e90dd689423b9fedcb8922b9d88fe6d25176984525",
     "packages/fortnox/src/http.ts": "dca42d866de6653ed2a489f23525fb3cb678c74752347ed681a39f529405216d",
     "packages/mcp/src/payroll.ts": "12dddd2e24b4947133c7ba7e0bf8c999ef1afcb720025c76112d8325f2e57fb3",
-    "packages/mcp/src/companies.ts": "9d5349fd3cc8ad24e33d52d4fffd4deaf6e97c687b08829ca457aa18d7c16a4b",
+    "packages/mcp/src/companies.ts": "c289e688f2f6538c34162a5d3e6f2ea43a219fda1e14b4da04f9bb532018fe10",
     "apps/node/src/register-test-main.ts": "ebbce6120e84432e0c274b3267f58e12415d23c17200b605bb210a40e227ea57",
     "packages/mcp/src/analytics.ts": "8a6c0f4f7c921c6aa13ad9b1e4ece0b6a03adf34cd319c1f2a4778ad4f83cd04",
     "packages/fortnox/src/payroll-test-employee.ts": "d5fa34fc58e6dca28dc732ea61533616b5c930b693983879bb7930938aad3723",
