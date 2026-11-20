@@ -155,8 +155,12 @@ export async function compileBridgeCatalog(
         entry.path === r.path ||
         (r.yearly && entry.path.startsWith(`${r.path}/`)),
     );
-    if (entry.method === "GET" && entry.effect === "read" && syncProfile) {
-      if (entry.path === syncProfile.path) {
+    const voucherFiles =
+      entry.files &&
+      entry.scopes.includes("connectfile") &&
+      /^\/3\/(?:voucher|supplierinvoice)fileconnections$/.test(entry.path);
+    if (entry.method === "GET" && entry.effect === "read") {
+      if (entry.path === syncProfile?.path || voucherFiles) {
         for (const name of ["page", "limit"]) {
           if (!parameterMap.has(`query:${name}`))
             parameterMap.set(`query:${name}`, {
@@ -171,7 +175,7 @@ export async function compileBridgeCatalog(
             });
         }
       }
-      if (syncProfile.yearly)
+      if (syncProfile?.yearly)
         parameterMap.set("query:financialyear", {
           name: "financialyear",
           in: "query",
